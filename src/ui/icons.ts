@@ -200,3 +200,80 @@ export function lockup(reducedMotion = false, onHome?: () => void): HTMLElement 
 
   return wrap;
 }
+
+/**
+ * Meet's loading indicator: Material 3's *wavy* circular progress, which is
+ * distinctive enough that a plain spinning arc reads as the wrong product.
+ *
+ * Measured off a screen recording of a cold load, since the spinner is gone
+ * before automation can reach it and the second load is cached. Frame at
+ * t=3.60s, pixels scanned for blue: the painted extent is 53x53, the stroke is
+ * about 5px, the active arc averages rgb(62,114,208) against white — which is
+ * #0b57d0 with antialiasing — and the track averages rgb(192,218,242), i.e.
+ * #a8c7fa lightened the same way.
+ *
+ * The wave is drawn as a real path rather than faked with a filter, so the
+ * amplitude stays constant as it rotates. Two nested rotations at different
+ * speeds give the arc its length-changing look without animating the path.
+ */
+export function spinner(): SVGSVGElement {
+  const ns = 'http://www.w3.org/2000/svg';
+  const svg = document.createElementNS(ns, 'svg');
+  svg.setAttribute('viewBox', '0 0 54 54');
+  svg.setAttribute('width', '54');
+  svg.setAttribute('height', '54');
+  svg.setAttribute('class', 'spin');
+  svg.setAttribute('role', 'progressbar');
+  svg.setAttribute('aria-label', 'Loading meetings');
+
+  // A sine ripple around r=21, 12 crests, amplitude 2.6 — the ratio that
+  // matched the recording's 53px extent at a 5px stroke.
+  const wavy = (turns: number): string => {
+    const R = 21, A = 2.6, CREST = 12, STEP = 2;
+    let d = '';
+    for (let deg = 0; deg <= 360 * turns; deg += STEP) {
+      const rad = (deg * Math.PI) / 180;
+      const r = R + A * Math.sin(rad * CREST);
+      const x = 27 + r * Math.cos(rad - Math.PI / 2);
+      const y = 27 + r * Math.sin(rad - Math.PI / 2);
+      d += `${d ? 'L' : 'M'}${x.toFixed(2)} ${y.toFixed(2)}`;
+    }
+    return d;
+  };
+
+  const track = document.createElementNS(ns, 'circle');
+  track.setAttribute('cx', '27'); track.setAttribute('cy', '27'); track.setAttribute('r', '21');
+  track.setAttribute('fill', 'none');
+  track.setAttribute('stroke', '#a8c7fa');
+  track.setAttribute('stroke-width', '5');
+  svg.appendChild(track);
+
+  const arc = document.createElementNS(ns, 'path');
+  arc.setAttribute('d', wavy(1));
+  arc.setAttribute('fill', 'none');
+  arc.setAttribute('stroke', '#0b57d0');
+  arc.setAttribute('stroke-width', '5');
+  arc.setAttribute('stroke-linecap', 'round');
+  arc.setAttribute('class', 'spin-arc');
+  svg.appendChild(arc);
+
+  return svg;
+}
+
+/**
+ * Google's own focus ring, lifted from the keyframes it ships under the name
+ * `gm3-focus-ring`. It is not an `outline` — it is a span inset -2px around the
+ * control carrying a box-shadow spread, which is how it gets a radius 2px
+ * larger than its host and how it can animate at all.
+ *
+ * On appearing it grows 0 → 8px in 150ms then settles back to 3px over 450ms.
+ * That overshoot is the pulse you see when the page finishes loading and when
+ * you return to the tab, and it is the entire reason the selected meeting reads
+ * as "the thing you are about to do" rather than as a static highlight.
+ */
+export function focusRing(): HTMLSpanElement {
+  const s = document.createElement('span');
+  s.className = 'focus-ring';
+  s.setAttribute('aria-hidden', 'true');
+  return s;
+}

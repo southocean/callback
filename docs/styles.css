@@ -64,7 +64,9 @@
   --nav-label:    #00639b;
   --newbtn:       #c4eed0;
   --newbtn-ink:   #072711;
-  --sched:        #d3e3fd;   /* scheduled meeting card */
+  --sched:        #d3e3fd;
+  /* An unselected meeting card is #f0f4f9; the selected one is #d3e3fd. */
+  --sched-idle:   #f0f4f9;   /* scheduled meeting card */
   --toast:        #3c4043;
 
   /* Meet dark surfaces — in call */
@@ -1339,3 +1341,101 @@ body.plain { background: #fff; color: #16181c; }
 .sched-join { width: 79px; height: 56px; border-radius: 28px; padding: 0; }
 /* And the composer's Join is 64 wide. */
 .composer-join { width: 64px; }
+
+/* ============================================================================
+   Google's focus ring, `gm3-focus-ring`, taken from the keyframes it ships.
+
+   It is not an outline. It is a span inset -2px around the control, carrying a
+   box-shadow spread — which is how it gets a radius 2px larger than its host,
+   and how it can animate, since outlines cannot. The colour is
+   --gm3-sys-color-secondary, #00639b, not the blue you would guess.
+
+   Grows 0 to 8px in 150ms, then settles back to 3px over 450ms. That overshoot
+   is the pulse when the page finishes loading and when you come back to the
+   tab. It rides on :focus-visible, which is why alt-tabbing away kills it
+   instantly and clicking empty space clears it — both of those are the browser
+   doing the work, not us. ========================================= */
+.ring-host { position: relative; }
+.focus-ring {
+  position: absolute; inset: -2px; border-radius: inherit;
+  pointer-events: none; z-index: 1; opacity: 0;
+}
+.ring-host:focus { outline: none; }
+.ring-host:focus-visible > .focus-ring {
+  opacity: 1;
+  box-shadow: 0 0 0 3px #00639b;
+  animation:
+    gm3-ring-grows   .15s cubic-bezier(0.2, 0, 0, 1),
+    gm3-ring-shrinks .45s cubic-bezier(0.2, 0, 0, 1);
+}
+@keyframes gm3-ring-grows   { from { box-shadow: 0 0 0 0   #00639b; } to { box-shadow: 0 0 0 8px #00639b; } }
+@keyframes gm3-ring-shrinks { from { box-shadow: 0 0 0 8px #00639b; } }
+
+/* The selected meeting is a different size, not just a different colour: it
+   fills the full 1052 column and stands 134 tall, where an unselected card is
+   inset 16px each side at 1020x108. Measured on both. */
+.sched-card {
+  width: calc(100% - 32px); margin: 0 16px;
+  background-color: var(--sched-idle); min-height: 108px;
+  transition: background-color .075s linear;
+}
+.sched-card.is-primary {
+  width: 100%; margin: 0; min-height: 134px;
+  background-color: var(--sched);
+  border-radius: 28px;
+}
+/* The ring's own radius has to clear the card's, hence +2. */
+.sched-card > .focus-ring { border-radius: 30px; }
+
+/* ---- the wavy loader ---------------------------------------------------- */
+.load-pad { display: grid; place-items: center; min-height: 320px; }
+.spin { display: block; }
+.spin      { animation: spin-rot 1.4s linear infinite; }
+/* Rotating the arc inside the rotating svg is what makes the lit length appear
+   to breathe, without animating the path itself. */
+.spin-arc  {
+  transform-origin: 27px 27px;
+  animation: spin-dash 1.6s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+  stroke-dasharray: 40 200;
+}
+@keyframes spin-rot  { to { transform: rotate(360deg); } }
+@keyframes spin-dash {
+  0%   { stroke-dasharray: 12 200; stroke-dashoffset: 0; }
+  50%  { stroke-dasharray: 90 200; stroke-dashoffset: -22; }
+  100% { stroke-dasharray: 12 200; stroke-dashoffset: -125; }
+}
+
+/* ---- entrance ----------------------------------------------------------- */
+/* Meet's own animation is called `fadeIn` and runs 500ms. The list arrives
+   first; the promo banner arrives after it and pushes the list down, which is
+   a layout shift the real product is entirely happy to ship. */
+.enter { animation: fadeIn .5s cubic-bezier(0.4, 0, 0.2, 1) both; }
+@keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+.banner-slot { display: grid; grid-template-rows: 0fr; transition: grid-template-rows .3s cubic-bezier(0.4, 0, 0.2, 1); }
+.banner-slot > * { overflow: hidden; }
+.banner-slot.open { grid-template-rows: 1fr; }
+
+/* ---- the buttons that still flipped ------------------------------------- */
+/* These three had a background that appeared and vanished with no duration —
+   the single most reliable tell of a fake, and the thing that gave the game
+   away on "Download the PDF". They now use the same state layer as everything
+   else: 75ms, and tinted with their own ink rather than grey. */
+.m-filled, .m-outlined, .m-text { position: relative; }
+.m-filled::before, .m-outlined::before, .m-text::before {
+  content: ''; position: absolute; inset: 0; z-index: 0;
+  border-radius: inherit; pointer-events: none; opacity: 0;
+  background-color: var(--sl, var(--blue));
+  transition: opacity .075s linear;
+}
+.m-filled > *, .m-outlined > *, .m-text > * { position: relative; z-index: 1; }
+.m-filled:hover::before, .m-outlined:hover::before, .m-text:hover::before { opacity: .08; }
+.m-filled:active::before, .m-outlined:active::before, .m-text:active::before { opacity: .12; }
+.m-filled { --sl: #fff; }
+.m-filled:hover { background-color: var(--blue); box-shadow: none; }
+.m-outlined:hover, .m-text:hover { background: transparent; }
+
+@media (prefers-reduced-motion: reduce) {
+  .spin, .spin-arc { animation: none; }
+  .ring-host:focus-visible > .focus-ring { animation: none; }
+  .banner-slot { transition: none; }
+}

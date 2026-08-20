@@ -9,15 +9,33 @@
 // now. Clicking Join is how you enter the CV.
 
 import { h, clear } from '../dom.js';
-import { sym, lockup } from './icons.js';
+import { sym, lockup, spinner, focusRing } from './icons.js';
 import { openDev } from './devopen.js';
-import { tip, tipAll } from './tooltip.js';
+import { tip, tipAll, tipAllAbove } from './tooltip.js';
 import type { Store } from '../state.js';
 
 const DAYS = ['SUN', 'MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT'];
 
+/**
+ * The boot sequence runs once per page load, not once per mount, so coming back
+ * from the call does not make you sit through it again — which is also what Meet
+ * does: a cold load spins, a return from a call does not.
+ *
+ * This is a phase and not a boolean because home() mounts more than once during
+ * startup (the router re-renders once the hash is resolved). A boolean gets
+ * consumed by the first mount and the second one renders the finished state, so
+ * the spinner was never seen. A phase lets a re-render pick the sequence up
+ * where it left off instead of restarting or skipping it.
+ */
+type Boot = 'cold' | 'listed' | 'done';
+let boot: Boot = 'cold';
+
+/** Measured off a screen recording of a cold load. */
+const BOOT_SPIN = 900;   // spinner alone, no date row
+const BOOT_BANNER = 800; // then the promo arrives and shoves the list down
+
 /** The interview is always "now", whenever you happen to open this. */
-function slot(): { day: string; date: number; label: string; week: { n: string; d: number }[] } {
+function slot(): { day: string; date: number; label: string; week: { n: string; d: number; full: string }[] } {
   const now = new Date();
   const start = new Date(now);
   start.setMinutes(0, 0, 0);
@@ -29,13 +47,18 @@ function slot(): { day: string; date: number; label: string; week: { n: string; 
     hr = hr % 12 || 12;
     return `${hr}:${String(d.getMinutes()).padStart(2, '0')} ${ap}`;
   };
-  const week: { n: string; d: number }[] = [];
+  const week: { n: string; d: number; full: string }[] = [];
   const sunday = new Date(now);
   sunday.setDate(now.getDate() - now.getDay());
   for (let i = 0; i < 7; i++) {
     const d = new Date(sunday);
     d.setDate(sunday.getDate() + i);
-    week.push({ n: DAYS[d.getDay()] ?? '', d: d.getDate() });
+    week.push({
+      n: DAYS[d.getDay()] ?? '',
+      d: d.getDate(),
+      // "Sunday, August 16" — Meet's own wording for the day labels.
+      full: d.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' }),
+    });
   }
   return {
     day: now.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' }),
@@ -170,7 +193,13 @@ export function renderHome(store: Store, reducedMotion = false): HTMLElement {
       'div',
       { class: 'date-row' },
       h('h1', { class: 'date-title' }, s.day),
-      sym('calendar_month', 20),
+      // Meet has a real control here, not decoration: a 40x40 button at radius
+      // 20 with a #444746 state layer and a tooltip. Ours was a bare glyph.
+      h(
+        'button',
+        { class: 'icon-btn cal-btn', type: 'button', 'aria-label': 'Open calendar' },
+        sym('calendar_month', 20),
+      ),
       h(
         'div',
         { class: 'week' },
@@ -178,7 +207,14 @@ export function renderHome(store: Store, reducedMotion = false): HTMLElement {
         ...s.week.map((d) =>
           h(
             'button',
-            { class: 'day', type: 'button', 'aria-current': d.d === s.date ? 'true' : 'false' },
+            {
+              class: 'day',
+              type: 'button',
+              'aria-current': d.d === s.date ? 'true' : 'false',
+              // Meet labels each column with the full date, and tips today as
+              // "Selected" rather than repeating it. Both measured.
+              'aria-label': d.d === s.date ? 'Selected' : d.full,
+            },
             h('span', { class: 'day-name' }, d.n),
             h('span', { class: 'day-num' }, String(d.d)),
           ),
@@ -189,6 +225,13 @@ export function renderHome(store: Store, reducedMotion = false): HTMLElement {
 
     // Meet's own promo banner slot, used for the thing a recruiter actually
     // needs: the boring version of this document.
+    //
+    // It is inside a collapsing wrapper because of the order the real product
+    // paints in: the meeting list lands first, then the promo appears above it
+    // and pushes it down. Meet ships that layout shift; so does this.
+    h(
+      'div',
+      { class: 'banner-slot' },
     h(
       'div',
       { class: 'banner' },
@@ -205,15 +248,18 @@ export function renderHome(store: Store, reducedMotion = false): HTMLElement {
         'Open document',
       ),
     ),
+    ),
 
     h('div', { class: 'sched-label' }, 'Scheduled'),
     h(
       'button',
       {
-        class: 'sched-card',
+        // is-primary is Meet's selected-meeting size, not just its colour.
+        class: 'sched-card is-primary ring-host',
         type: 'button',
         onclick: () => store.dispatch({ t: 'screen', screen: 'lobby' }),
       },
+      focusRing(),
       h(
         'div',
         {},
@@ -255,7 +301,46 @@ export function renderHome(store: Store, reducedMotion = false): HTMLElement {
     ),
   );
 
-  const main = h('main', { class: 'home-main', id: 'main' }, col);
+  const slotEl = col.querySelector<HTMLElement>('.banner-slot')!;
+  const card = col.querySelector<HTMLButtonElement>('.sched-card')!;
+  const main = h('main', { class: 'home-main', id: 'main' });
+
+  /**
+   * Focus the meeting you are most likely to want. Meet does this on load, and
+   * the ring it draws is a :focus-visible ring — which is why alt-tabbing away
+   * hides it, coming back replays the pulse, and clicking empty space clears
+   * it. All three of those are the browser's behaviour, inherited for free by
+   * using the real mechanism instead of a class we would have to manage.
+   */
+  const selectPrimary = (): void => {
+    card.focus({ preventScroll: true });
+  };
+
+  const openBanner = (): void => { boot = 'done'; slotEl.classList.add('open'); };
+  const showList = (): void => {
+    boot = 'listed';
+    clear(main);
+    col.classList.add('enter');
+    main.appendChild(col);
+    selectPrimary();
+    window.setTimeout(openBanner, BOOT_BANNER);
+  };
+
+  if (reducedMotion || boot === 'done') {
+    boot = 'done';
+    main.appendChild(col);
+    slotEl.classList.add('open');
+    selectPrimary();
+  } else if (boot === 'listed') {
+    // Re-rendered between the list landing and the promo arriving: show the
+    // list, and let the promo still make its entrance.
+    main.appendChild(col);
+    selectPrimary();
+    window.setTimeout(openBanner, BOOT_BANNER);
+  } else {
+    main.appendChild(h('div', { class: 'load-pad' }, spinner()));
+    window.setTimeout(() => { if (main.isConnected) showList(); }, BOOT_SPIN);
+  }
 
   const wrap = h(
     'div',
@@ -269,7 +354,15 @@ export function renderHome(store: Store, reducedMotion = false): HTMLElement {
   // tooltip repeating it would be noise, and Meet leaves them alone.
   tipAll(...bar.querySelectorAll<HTMLElement>('.icon-btn, .avatar-btn, .lockup, .m-new'));
   tip(wrap.querySelector<HTMLElement>('.composer-pill')!, 'Enter a code or link');
-  tipAll(...main.querySelectorAll<HTMLElement>('.week .icon-btn'));
+  // Above, not below: the week strip tips upward because downward would land on
+  // the meeting list. The day columns get one too — including today, whose
+  // label is the word "Selected".
+  // Queried off `col`, not `main`: during the boot sequence main holds the
+  // spinner and col is not attached yet, so querying main finds nothing and
+  // tip() gets handed a null.
+  tipAllAbove(...col.querySelectorAll<HTMLElement>('.week .icon-btn'));
+  tipAllAbove(...col.querySelectorAll<HTMLElement>('.day'));
+  tip(col.querySelector<HTMLElement>('.cal-btn')!);
 
   // Focus the code field only when someone has clearly come to type in it.
   if (location.hash === '#home') clear(hint);

@@ -41,7 +41,9 @@ function root(): HTMLElement {
   return layer;
 }
 
-function place(anchor: HTMLElement, text: string): void {
+type Placement = 'above' | 'below';
+
+function place(anchor: HTMLElement, text: string, where: Placement): void {
   hideNow();
   const tip = document.createElement('div');
   tip.className = 'tt';
@@ -54,7 +56,13 @@ function place(anchor: HTMLElement, text: string): void {
   // anchor is near an edge — which is most of the top-right cluster.
   let x = a.left + a.width / 2 - t.width / 2;
   x = Math.max(8, Math.min(x, window.innerWidth - t.width - 8));
-  let y = a.bottom + GAP;
+  // Meet does not use one rule for this. The top bar puts the tooltip 4px
+  // BELOW its controls; the week strip puts it 4px ABOVE them, because below
+  // would land on the meeting list. Measured on both: Support tipped at y+4
+  // under a 40px button, "Selected" tipped at y-4 over a 56px day column.
+  let y = where === 'above' ? a.top - t.height - GAP : a.bottom + GAP;
+  // Flip if the preferred side has no room.
+  if (y < 8) y = a.bottom + GAP;
   if (y + t.height > window.innerHeight - 8) y = a.top - t.height - GAP;
 
   tip.style.left = `${Math.round(x)}px`;
@@ -80,7 +88,7 @@ function leave(): void {
  * Give an element a Meet-style tooltip. The text defaults to the element's
  * accessible name, so the two can never drift apart.
  */
-export function tip(el: HTMLElement, text?: string): void {
+export function tip(el: HTMLElement, text?: string, where: Placement = 'below'): void {
   /**
    * Visible text only. `textContent` is the wrong fallback on anything holding
    * an icon: Material Symbols glyphs are ligature *text*, so a button reading
@@ -109,7 +117,7 @@ export function tip(el: HTMLElement, text?: string): void {
     window.clearTimeout(showTimer);
     const wait = Date.now() < primedUntil ? 0 : COLD_DELAY;
     showTimer = window.setTimeout(() => {
-      place(el, t);
+      place(el, t, where);
       // Showing one is what arms the next.
       primedUntil = Date.now() + PRIMED_WINDOW;
     }, wait);
@@ -121,16 +129,21 @@ export function tip(el: HTMLElement, text?: string): void {
   // hesitated, it is the only way to see the label at all.
   el.addEventListener('focus', () => {
     const t = label();
-    if (t) place(el, t);
+    if (t) place(el, t, where);
   });
   el.addEventListener('blur', hideNow);
   // A tooltip must never survive the thing it describes being clicked.
   el.addEventListener('click', hideNow);
 }
 
-/** Sugar: tip every element passed in. */
+/** Sugar: tip every element passed in, all on the same side. */
 export function tipAll(...els: (HTMLElement | null | undefined)[]): void {
   for (const el of els) if (el) tip(el);
+}
+
+/** Same, for the controls Meet tips above rather than below. */
+export function tipAllAbove(...els: (HTMLElement | null | undefined)[]): void {
+  for (const el of els) if (el) tip(el, undefined, 'above');
 }
 
 // Scrolling or leaving the window should drop it, or it hangs in mid-air.
