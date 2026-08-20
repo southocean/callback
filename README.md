@@ -129,8 +129,12 @@ docs/               the built site, served by GitHub Pages
 <div align="center">
 <sub>
 
-Not affiliated with, endorsed by, or built at Google. No Google marks, assets or stylesheets are used or shipped.
-The interface is an homage, rebuilt from the outside.
+Not affiliated with, endorsed by, or built at Google. The interface is rebuilt from the outside, from measurements
+of the live product. Two Google-owned things are used rather than recreated, and both are named here rather than
+glossed over: the Google Sans / Product Sans typefaces, linked from the Google Fonts API because that is the route
+Google provides for them; and the Meet camera mark, cropped from Google’s own published lockup asset so the logo is
+exact. No Google stylesheets or code are used. A hand-drawn SVG of the mark ships alongside it and is one flag away,
+for any context where redistributing the artwork is not wanted.
 
 </sub>
 </div>

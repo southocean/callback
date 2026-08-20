@@ -210,18 +210,27 @@ button { font: inherit; }
    because a button stretches to fill its grid column it ran all the way to the
    composer. justify-self keeps it the width of its contents. */
 .lockup {
-  display: flex; align-items: center; gap: 5px; flex: 0 0 auto;
-  grid-column: 1; justify-self: start; background: none; border: 0; padding: 0 0 0 4px;
+  /* 11px, measured: gstatic ships the mark and the word “Google” in one PNG,
+     and the gap baked into that image is 11 pixels. Ours was 5, which read as
+     the wordmark crowding the camera. */
+  display: flex; align-items: center; gap: 11px; flex: 0 0 auto;
+  grid-column: 1; justify-self: start; background: none; border: 0; padding: 0 0 0 7px;
   cursor: pointer; font: inherit; color: inherit;
 }
 /* Product Sans at 22px/44px, which is what the real wordmark is set in. */
 .lk-words { display: flex; align-items: baseline; font: 400 22px/44px var(--font-brand); letter-spacing: normal; white-space: nowrap; }
-/* Measured: Meet's wordmark is #1f1f1f throughout. "Google" only reads heavier
-   because it is a logotype, not because its colour differs — so all three words
-   take the same ink and the weight difference comes from the typeface. */
-.lk-google { color: #1f1f1f; overflow: hidden; }
-.lk-meet   { color: #1f1f1f; margin-left: .26em; }
-.lk-nam    { color: #1f1f1f; margin-left: .26em; }
+/* "Google" really is heavier and darker than "Meet" beside it, and the reason is
+   that Google's own lockup is internally inconsistent. gstatic ships the camera
+   and the word "Google" together as one 124x40 PNG; only "Meet" is live text.
+   Decoding that PNG and measuring it: the bitmap "Google" is 76px wide, which
+   Product Sans reaches at 23.5px, and its ink is a flat #212226 with no
+   antialiasing to lighten it. The "Meet" span next to it computes to 22px
+   #1f1f1f. So the first word of the wordmark is half a pixel bigger and two
+   shades darker than the second, forever, on every Google property that uses
+   this asset. Mirroring the inconsistency rather than tidying it up. */
+.lk-google { color: #212226; font-size: 23.5px; overflow: hidden; }
+.lk-meet   { color: #1f1f1f; margin-left: 4px; }
+.lk-nam    { color: #1f1f1f; margin-left: 4px; }
 
 /* The beat before the joke.
    "Google Meet" holds for --lk-delay so the reader registers it as genuine —
@@ -266,7 +275,7 @@ button { font: inherit; }
 /* "Meet" closes the gap Google leaves, so the final lockup sits tight against
    the mark rather than carrying an orphaned indent. */
 @keyframes lk-close {
-  from { margin-left: .26em; }
+  from { margin-left: 4px; }
   to   { margin-left: 0; }
 }
 /* Reduced motion: it simply reads "Meet Nam Nguyen" and nothing moves. */

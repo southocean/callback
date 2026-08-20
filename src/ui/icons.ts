@@ -54,15 +54,52 @@ export function sym(name: IconName, size = 24, opts: SymOpts = {}): HTMLElement 
  * lens horn #F9AA01, and a white record dot low-left. Not the old tricolour
  * camera — that logo was retired.
  */
-function mark(): SVGSVGElement {
+/**
+ * Two ways to draw the mark, and the switch matters.
+ *
+ * REAL: gstatic's own 124x40 lockup PNG, decoded and cropped to the camera at
+ * columns 1..35, rows 3..30 — so it is Google's artwork, pixel for pixel,
+ * rendered at the natural size Meet renders it. Nothing can be closer.
+ *
+ * TRACED: the SVG below, redrawn from measurements of that same PNG. It is a
+ * good likeness and it ships no Google artwork, which is the reason it exists:
+ * this repo goes to Google, and a hand-drawn homage is a different thing from
+ * redistributing a trademarked asset.
+ *
+ * Flip USE_REAL_MARK to choose. Whichever is active, the README must say so.
+ */
+const USE_REAL_MARK = true;
+
+function markImg(): HTMLImageElement {
+  const img = document.createElement('img');
+  img.src = 'meet-mark.png';
+  img.width = 35;
+  img.height = 28;
+  img.alt = '';
+  img.setAttribute('aria-hidden', 'true');
+  img.className = 'lk-mark';
+  return img;
+}
+
+function mark(): HTMLElement | SVGSVGElement {
+  return USE_REAL_MARK ? markImg() : markTraced();
+}
+
+function markTraced(): SVGSVGElement {
   const ns = 'http://www.w3.org/2000/svg';
   const svg = document.createElementNS(ns, 'svg');
-  // Traced off gstatic's 124x40 asset at 16x. Meet renders that image at its
-  // natural size, so the glyph is 34.75 x 27.6 on screen — a body that is very
-  // nearly square with a small flared horn. The first attempt was far too
-  // small and far too wide, which is what made ours look like a different logo.
-  svg.setAttribute('viewBox', '0 0 37 32');
-  svg.setAttribute('width', '37');
+  // Measured off gstatic's own 124x40 asset, not traced by eye this time: the
+  // PNG was decoded to raw RGBA and scanned column by column for yellow pixels.
+  // That put the mark at columns 1..35 and rows 3..30, so 35 x 28 on screen at
+  // the natural size Meet renders it, and it put the gap to the "Google" in the
+  // same image at exactly 11px.
+  //
+  // The same scan settled a corner radius that had been guessed at 4.2: at the
+  // left edge the shape starts 6px below the top, which for a rounded rect means
+  // the radius IS that inset. 6.5 it is. Too small a radius was what made this
+  // read as a different logo rather than a slightly-off one.
+  svg.setAttribute('viewBox', '0 0 36 32');
+  svg.setAttribute('width', '36');
   svg.setAttribute('height', '32');
   svg.setAttribute('aria-hidden', 'true');
   svg.setAttribute('class', 'lk-mark');
@@ -85,7 +122,9 @@ function mark(): SVGSVGElement {
   // Its corners are softened with a matching stroke rather than arcs, so the
   // path stays readable — hence the inset coordinates.
   const horn = document.createElementNS(ns, 'path');
-  horn.setAttribute('d', 'M27 11.9 L35.3 8.4 V26.2 L27 22.7 Z');
+  // Column scan: the horn is 13px tall where it meets the body (x=27, y 11..23)
+  // and flares to 21px by x=34 — wider at the outer edge, not narrower.
+  horn.setAttribute('d', 'M27 11 L35 6.2 V27.8 L27 23 Z');
   horn.setAttribute('fill', '#F9AA01');
   horn.setAttribute('stroke', '#F9AA01');
   horn.setAttribute('stroke-width', '1.6');
@@ -93,14 +132,14 @@ function mark(): SVGSVGElement {
   svg.appendChild(horn);
 
   const body = document.createElementNS(ns, 'rect');
-  body.setAttribute('x', '1.25'); body.setAttribute('y', '3');
-  body.setAttribute('width', '25.75'); body.setAttribute('height', '27.6');
-  body.setAttribute('rx', '4.2');
+  body.setAttribute('x', '1'); body.setAttribute('y', '3');
+  body.setAttribute('width', '26'); body.setAttribute('height', '28');
+  body.setAttribute('rx', '6.5');
   body.setAttribute('fill', 'url(#lkg)');
   svg.appendChild(body);
 
   const dot = document.createElementNS(ns, 'circle');
-  dot.setAttribute('cx', '7.2'); dot.setAttribute('cy', '24.6'); dot.setAttribute('r', '2.8');
+  dot.setAttribute('cx', '7'); dot.setAttribute('cy', '24'); dot.setAttribute('r', '3');
   dot.setAttribute('fill', '#fff');
   svg.appendChild(dot);
 
