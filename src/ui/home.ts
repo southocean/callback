@@ -317,16 +317,21 @@ export function renderHome(store: Store, reducedMotion = false, body?: HTMLEleme
       svg.appendChild(el);
     };
     const INK = '#3c4043';
-    const line = { stroke: INK, 'stroke-width': '2', 'stroke-linecap': 'round', 'stroke-linejoin': 'round' };
+    // 1.25, not 2. Meet's illustrations are drawn with a hairline — the weight
+    // is what separates an illustration from a diagram, and ours read as a
+    // diagram. Every filled shape carries the same line, including the ones
+    // that are purely decorative: an unoutlined block next to outlined ones
+    // looks like a rendering fault rather than a choice.
+    const line = { stroke: INK, 'stroke-width': '1.25', 'stroke-linecap': 'round', 'stroke-linejoin': 'round' };
 
     // Sun, off to the right and clipped by nothing — the one bright note.
-    add('circle', { cx: '258', cy: '30', r: '13', fill: '#FBBC04' });
+    add('circle', { cx: '258', cy: '30', r: '13', fill: '#FBBC04', ...line });
     // Its little arc of a flight path, which is what stops the composition
     // sitting flat.
     add('path', { d: 'M196 62 C 214 30, 236 26, 244 32', ...line });
 
     // A pink slab behind the cup, for depth.
-    add('path', { d: 'M52 128 L52 96 A 22 22 0 0 1 96 96 L96 128 Z', fill: '#F8BBD0' });
+    add('path', { d: 'M52 128 L52 96 A 22 22 0 0 1 96 96 L96 128 Z', fill: '#F8BBD0', ...line });
 
     // The notebook: a leaning page with a sketch on it.
     add('path', { d: 'M170 128 L186 58 L272 58 L256 128 Z', fill: '#fff', ...line });
@@ -338,8 +343,8 @@ export function renderHome(store: Store, reducedMotion = false, body?: HTMLEleme
     add('path', { d: 'M104 84 L146 84 L140 126 L110 126 Z', fill: '#FDD663', ...line });
     add('path', { d: 'M146 92 C 160 92, 160 108, 146 108', ...line });
     // Steam.
-    add('path', { d: 'M118 74 C 112 66, 124 60, 118 50', ...line });
-    add('path', { d: 'M132 72 C 126 64, 138 58, 132 48', ...line });
+    add('path', { d: 'M119 76 C 114 70, 124 66, 119 60', ...line });
+    add('path', { d: 'M131 74 C 126 68, 136 64, 131 58', ...line });
 
     // The pencil, leaning across the notebook.
     add('path', { d: 'M158 128 L188 46', ...line });
