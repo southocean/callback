@@ -704,7 +704,11 @@ export function renderHome(store: Store, reducedMotion = false, body?: HTMLEleme
   // Tooltips, on the same things the real product tips — which notably does
   // NOT include the rail items. Meetings and Calls carry a visible label, so a
   // tooltip repeating it would be noise, and Meet leaves them alone.
-  tipAll(...bar.querySelectorAll<HTMLElement>('.icon-btn, .avatar-btn, .lockup, .m-new'));
+  tipAll(...bar.querySelectorAll<HTMLElement>('.icon-btn, .avatar-btn, .lockup'));
+  // The New button is the one control whose tooltip is NOT its accessible name:
+  // Meet labels it "New meeting" for screen readers and tips it as just "New".
+  // Falling back to the label gave us "New meeting" in the bubble.
+  tip(bar.querySelector<HTMLElement>('.m-new')!, 'New');
   tip(wrap.querySelector<HTMLElement>('.composer-pill')!, 'Enter a code or link');
   // Touching Join dismisses the field's tooltip rather than leaving it up — and
   // leaving Join re-arms it, because moving back onto the field is movement

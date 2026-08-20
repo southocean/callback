@@ -2053,3 +2053,13 @@ body.plain { background: #fff; color: #16181c; }
   /* No room to sit beside the tile, so it goes above it instead. */
   .cc { width: calc(100% - 32px); bottom: calc(var(--botbar) + 116px); }
 }
+
+
+/* Hover wins over focus on the meeting card, and it has to be said last.
+   The shared state-layer block lists hover then focus-visible, so a card that is
+   BOTH focused and hovered took the focus opacity (.12) rather than the hover one
+   (.08) — half again as dark as Meet, which measures .08 on this card in every
+   state. It only showed up when the card was reached by keyboard, because
+   loading into it does not usually grant :focus-visible. Pinned, so the state
+   you arrived by cannot change the colour. */
+.sched-card:hover::before { opacity: .08; }
