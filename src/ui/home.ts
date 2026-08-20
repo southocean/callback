@@ -12,6 +12,7 @@ import { h, clear } from '../dom.js';
 import { sym, lockup, spinner, focusRing, playLockup, settleLockup } from './icons.js';
 import { openDev } from './devopen.js';
 import { tip, tipAll, tipAllAbove, hideTip } from './tooltip.js';
+import { eggMap, key as dayKey, type Egg } from '../data/eggs.js';
 import type { Store } from '../state.js';
 
 const DAYS = ['SUN', 'MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT'];
@@ -73,9 +74,23 @@ function wireSelection(): void {
 const BOOT_SPIN = 900;   // spinner alone, no date row
 const BOOT_BANNER = 800; // then the promo arrives and shoves the list down
 
+/**
+ * Which day the page is looking at. Module-level so paging to another day and
+ * back does not reset it, and so the boot sequence and the calendar agree about
+ * what "selected" means.
+ */
+let viewing: Date = new Date();
+const TODAY = new Date();
+
+/** Meet uses a short wavy arc for switching days and a long one for a cold
+ *  start. Switching is cheap work and the indicator says so. */
+const DAY_SWITCH_MS = 420;
+
+const isToday = (d: Date): boolean => dayKey(d) === dayKey(TODAY);
+
 /** The interview is always "now", whenever you happen to open this. */
-function slot(): { day: string; date: number; label: string; week: { n: string; d: number; full: string }[] } {
-  const now = new Date();
+function slot(on: Date): { day: string; date: number; label: string; week: { n: string; d: number; full: string; iso: string }[] } {
+  const now = on;
   const start = new Date(now);
   start.setMinutes(0, 0, 0);
   const end = new Date(start);
@@ -86,7 +101,7 @@ function slot(): { day: string; date: number; label: string; week: { n: string; 
     hr = hr % 12 || 12;
     return `${hr}:${String(d.getMinutes()).padStart(2, '0')} ${ap}`;
   };
-  const week: { n: string; d: number; full: string }[] = [];
+  const week: { n: string; d: number; full: string; iso: string }[] = [];
   const sunday = new Date(now);
   sunday.setDate(now.getDate() - now.getDay());
   for (let i = 0; i < 7; i++) {
@@ -97,6 +112,7 @@ function slot(): { day: string; date: number; label: string; week: { n: string; 
       d: d.getDate(),
       // "Sunday, August 16" — Meet's own wording for the day labels.
       full: d.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' }),
+      iso: dayKey(d),
     });
   }
   return {
@@ -108,7 +124,8 @@ function slot(): { day: string; date: number; label: string; week: { n: string; 
 }
 
 export function renderHome(store: Store, reducedMotion = false): HTMLElement {
-  const s = slot();
+  let s = slot(viewing);
+  const marks = eggMap(TODAY);
 
   // --- top bar -------------------------------------------------------------
 
@@ -241,6 +258,200 @@ export function renderHome(store: Store, reducedMotion = false): HTMLElement {
 
   // --- main ----------------------------------------------------------------
 
+  // --- the day body -------------------------------------------------------
+  //
+  // Everything below the promo depends on which day you are looking at, so it
+  // is built by a function rather than written once: today has the interview,
+  // a marked day has whatever is hidden there, and every other day is empty —
+  // which is a real state in Meet, not a gap.
+  const dayBody = h('div', { class: 'day-body' });
+
+  const todayPill = h(
+    'button',
+    { class: 'today-pill', type: 'button', onclick: () => switchDay(new Date()) },
+    'Today',
+  );
+
+  /**
+   * Meet's empty day has an illustration. Borrowing theirs would mean shipping
+   * their artwork, so this draws the same idea instead: an empty week, the kind
+   * of thing the page is telling you about.
+   */
+  function emptyArt(): SVGSVGElement {
+    const ns = 'http://www.w3.org/2000/svg';
+    const svg = document.createElementNS(ns, 'svg');
+    svg.setAttribute('viewBox', '0 0 240 120');
+    svg.setAttribute('width', '240');
+    svg.setAttribute('height', '120');
+    for (let i = 0; i < 5; i++) {
+      const r = document.createElementNS(ns, 'rect');
+      r.setAttribute('x', String(12 + i * 44));
+      r.setAttribute('y', '18');
+      r.setAttribute('width', '32');
+      r.setAttribute('height', '84');
+      r.setAttribute('rx', '10');
+      r.setAttribute('fill', i === 2 ? 'none' : '#e9eef6');
+      if (i === 2) { r.setAttribute('stroke', '#c4c7c5'); r.setAttribute('stroke-dasharray', '5 5'); }
+      svg.appendChild(r);
+    }
+    return svg;
+  }
+
+  /** Repaint the date row in place, so paging does not rebuild the whole page. */
+  const paintDate = (): void => {
+    s = slot(viewing);
+    const t = col.querySelector<HTMLElement>('.date-title');
+    if (t) t.textContent = s.day;
+    todayPill.style.display = isToday(viewing) ? 'none' : 'inline-flex';
+    const days = [...col.querySelectorAll<HTMLElement>('.day')];
+    s.week.forEach((d, i) => {
+      const cell = days[i];
+      if (!cell) return;
+      const sel = d.iso === dayKey(viewing);
+      cell.setAttribute('aria-current', sel ? 'true' : 'false');
+      const egg = marks.get(d.iso);
+      cell.setAttribute('aria-label', sel ? 'Selected' : d.full + (egg ? ', ' + egg.title : ''));
+      const nameEl = cell.querySelector('.day-name');
+      const numEl = cell.querySelector('.day-num');
+      if (nameEl) nameEl.textContent = d.n;
+      if (numEl) numEl.textContent = String(d.d);
+      cell.onclick = () => switchDay(new Date(d.iso + 'T12:00:00'));
+      cell.querySelector('.cal-dot')?.remove();
+      if (egg) cell.appendChild(h('span', { class: 'cal-dot', 'aria-hidden': 'true' }));
+    });
+  };
+
+  /**
+   * Move to another day. Meet shows a SHORT wavy arc here rather than the long
+   * one it uses for a cold start — the indicator is telling you how much work is
+   * happening, and switching days is cheap. Reproduced with the same parameter.
+   */
+  let switching = 0;
+  const switchDay = (d: Date): void => {
+    viewing = d;
+    closeCal();
+    paintDate();
+    const ticket = ++switching;
+    clear(dayBody);
+    const pad = h('div', { class: 'load-pad load-pad-sm' });
+    pad.appendChild(spinner(true));
+    dayBody.appendChild(pad);
+    window.setTimeout(() => { if (ticket === switching) paintDay(); }, DAY_SWITCH_MS);
+  };
+
+  // --- the month picker, fetched the first time it is opened ---------------
+  let calEl: (HTMLElement & { dispose?: () => void }) | null = null;
+  const closeCal = (): void => {
+    calEl?.dispose?.();
+    calEl?.remove();
+    calEl = null;
+  };
+  const toggleCal = async (): Promise<void> => {
+    if (calEl) { closeCal(); return; }
+    const btn = col.querySelector<HTMLElement>('.cal-btn');
+    if (!btn) return;
+    const { calendar } = await import('./calendar.js');
+    const pop = calendar({
+      selected: viewing,
+      marks,
+      onPick: (d) => switchDay(d),
+      onClose: () => closeCal(),
+    }) as HTMLElement & { dispose?: () => void };
+    // Anchored to the button, 8px below it, in the column's own coordinates.
+    const b = btn.getBoundingClientRect();
+    const c = col.getBoundingClientRect();
+    pop.style.left = `${Math.round(b.left - c.left)}px`;
+    pop.style.top = `${Math.round(b.bottom - c.top + 8)}px`;
+    calEl = pop;
+    col.appendChild(pop);
+  };
+
+  const interviewCard = (): HTMLElement => h(
+    'button',
+    {
+      // is-primary is Meet's selected-meeting size, not just its colour.
+      class: 'sched-card is-primary ring-host',
+      type: 'button',
+      onclick: () => store.dispatch({ t: 'screen', screen: 'lobby' }),
+    },
+    focusRing(),
+    h(
+      'div',
+      {},
+      h(
+        'div',
+        { class: 'sched-when' },
+        h('span', { class: 'now-chip' }, 'Now'),
+        h('span', { class: 'sched-time' }, s.label),
+      ),
+      h('div', { class: 'sched-title' }, "Nam's interview"),
+    ),
+    h('span', { class: 'sched-join' }, 'Join'),
+  );
+
+  const eggCard = (egg: Egg): HTMLElement => h(
+    'button',
+    {
+      class: 'sched-card ring-host',
+      type: 'button',
+      'aria-label': egg.title,
+      onclick: () => { location.hash = '#egg/' + egg.id; store.dispatch({ t: 'screen', screen: 'lobby' }); },
+    },
+    focusRing(),
+    h(
+      'div',
+      {},
+      h('div', { class: 'sched-when' }, h('span', { class: 'sched-time' }, 'All day')),
+      h('div', { class: 'sched-title' }, egg.title),
+      h('div', { class: 'sched-sub' }, egg.blurb),
+    ),
+    h('span', { class: 'sched-join' }, 'Join'),
+  );
+
+  const emptyDay = (): HTMLElement => h(
+    'div',
+    { class: 'empty-day' },
+    // Meet ships an illustration here. This draws its own rather than borrowing
+    // one: a week of empty rows, with the selected day left blank.
+    h('div', { class: 'empty-art', 'aria-hidden': 'true' }, emptyArt()),
+    h('p', { class: 'empty-h' }, 'No meetings were scheduled on this day'),
+    h('p', { class: 'empty-s' }, 'Your calendar for this day was clear'),
+    h(
+      'button',
+      {
+        class: 'm-btn m-tonal m-new',
+        type: 'button',
+        'aria-label': 'New meeting',
+        onclick: () => store.dispatch({ t: 'screen', screen: 'lobby' }),
+      },
+      sym('video_call', 20),
+      h('span', { class: 'm-new-label' }, 'New'),
+    ),
+  );
+
+  const paintDay = (): void => {
+    clear(dayBody);
+    const egg = marks.get(dayKey(viewing));
+    if (isToday(viewing)) {
+      dayBody.appendChild(h('div', { class: 'sched-label' }, 'Scheduled'));
+      dayBody.appendChild(interviewCard());
+      dayBody.appendChild(h(
+        'p',
+        { class: 'sched-note' },
+        'One participant. He has been waiting since March, when the CV was last updated.',
+      ));
+      dayBody.appendChild(hint);
+    } else if (egg) {
+      dayBody.appendChild(h('div', { class: 'sched-label' }, 'Scheduled'));
+      dayBody.appendChild(eggCard(egg));
+      dayBody.appendChild(h('p', { class: 'sched-note' }, 'Not work. Join anyway.'));
+    } else {
+      dayBody.appendChild(emptyDay());
+    }
+    const card = dayBody.querySelector<HTMLElement>('.sched-card');
+    if (card) { selectedCard = card; isSelected = true; showRing(card); card.focus({ preventScroll: true }); }
+  };
+
   const col = h(
     'div',
     { class: 'home-col' },
@@ -252,15 +463,26 @@ export function renderHome(store: Store, reducedMotion = false): HTMLElement {
       // 20 with a #444746 state layer and a tooltip. Ours was a bare glyph.
       h(
         'button',
-        { class: 'icon-btn cal-btn', type: 'button', 'aria-label': 'Open calendar' },
+        { class: 'icon-btn cal-btn', type: 'button', 'aria-label': 'Open calendar', onclick: () => void toggleCal() },
         sym('calendar_month', 20),
       ),
+      // Only exists when you have wandered off today, which is exactly when it
+      // is useful. Meet does the same.
+      todayPill,
       h(
         'div',
         { class: 'week' },
-        h('button', { class: 'icon-btn', type: 'button', 'aria-label': 'Previous week' }, sym('chevron_left', 24)),
-        ...s.week.map((d) =>
-          h(
+        h(
+          'button',
+          {
+            class: 'icon-btn', type: 'button', 'aria-label': 'Previous week',
+            onclick: () => { const d = new Date(viewing); d.setDate(d.getDate() - 7); switchDay(d); },
+          },
+          sym('chevron_left', 24),
+        ),
+        ...s.week.map((d) => {
+          const egg = marks.get(d.iso);
+          const cell = h(
             'button',
             {
               class: 'day',
@@ -268,13 +490,26 @@ export function renderHome(store: Store, reducedMotion = false): HTMLElement {
               'aria-current': d.d === s.date ? 'true' : 'false',
               // Meet labels each column with the full date, and tips today as
               // "Selected" rather than repeating it. Both measured.
-              'aria-label': d.d === s.date ? 'Selected' : d.full,
+              'aria-label': d.d === s.date ? 'Selected' : d.full + (egg ? ', ' + egg.title : ''),
+              onclick: () => switchDay(new Date(d.iso + 'T12:00:00')),
             },
             h('span', { class: 'day-name' }, d.n),
             h('span', { class: 'day-num' }, String(d.d)),
-          ),
+          );
+          // The teaching mark. One egg always lands inside the current week, so
+          // this dot is on screen the first time anyone looks at the page —
+          // which is how the calendar's dots become legible later.
+          if (egg) cell.appendChild(h('span', { class: 'cal-dot', 'aria-hidden': 'true' }));
+          return cell;
+        }),
+        h(
+          'button',
+          {
+            class: 'icon-btn', type: 'button', 'aria-label': 'Next week',
+            onclick: () => { const d = new Date(viewing); d.setDate(d.getDate() + 7); switchDay(d); },
+          },
+          sym('chevron_right', 24),
         ),
-        h('button', { class: 'icon-btn', type: 'button', 'aria-label': 'Next week' }, sym('chevron_right', 24)),
       ),
     ),
 
@@ -305,35 +540,7 @@ export function renderHome(store: Store, reducedMotion = false): HTMLElement {
     ),
     ),
 
-    h('div', { class: 'sched-label' }, 'Scheduled'),
-    h(
-      'button',
-      {
-        // is-primary is Meet's selected-meeting size, not just its colour.
-        class: 'sched-card is-primary ring-host',
-        type: 'button',
-        onclick: () => store.dispatch({ t: 'screen', screen: 'lobby' }),
-      },
-      focusRing(),
-      h(
-        'div',
-        {},
-        h(
-          'div',
-          { class: 'sched-when' },
-          h('span', { class: 'now-chip' }, 'Now'),
-          h('span', { class: 'sched-time' }, s.label),
-        ),
-        h('div', { class: 'sched-title' }, "Nam's interview"),
-      ),
-      h('span', { class: 'sched-join' }, 'Join'),
-    ),
-    h(
-      'p',
-      { class: 'sched-note' },
-      'One participant. He has been waiting since March, when the CV was last updated.',
-    ),
-    hint,
+    dayBody,
 
     h(
       'div',
@@ -357,9 +564,9 @@ export function renderHome(store: Store, reducedMotion = false): HTMLElement {
   );
 
   const slotEl = col.querySelector<HTMLElement>('.banner-slot')!;
-  const card = col.querySelector<HTMLButtonElement>('.sched-card')!;
   const main = h('main', { class: 'home-main', id: 'main' });
   wireSelection();
+  todayPill.style.display = isToday(viewing) ? 'none' : 'inline-flex';
 
   // The drawer. A scrim sits under it so a tap outside closes it, which is what
   // the real one does, and Escape closes it too because a drawer that traps you
@@ -380,27 +587,6 @@ export function renderHome(store: Store, reducedMotion = false): HTMLElement {
     if (e.key === 'Escape' && rail.classList.contains('open')) setDrawer(false);
   });
 
-  /**
-   * Select the meeting you are most likely to want, the way Meet does on load.
-   *
-   * This used to lean entirely on :focus-visible, which was elegant — alt-tab
-   * hiding the ring, returning replaying it, clicking away clearing it, all for
-   * free. It stopped working when the boot sequence moved the focus call from
-   * ~80ms to ~900ms after load: Chrome only grants :focus-visible when the last
-   * input modality was a keyboard, and in nine hundred milliseconds the pointer
-   * has usually moved, so the ring silently never appeared.
-   *
-   * So the selection is explicit now, and the three behaviours are wired by
-   * hand rather than inherited. Focus still moves, for keyboard and screen
-   * reader users; the ring is no longer contingent on it.
-   */
-  const selectPrimary = (): void => {
-    selectedCard = card;
-    isSelected = true;
-    showRing(card);
-    card.focus({ preventScroll: true });
-  };
-
   const openBanner = (): void => {
     boot = 'done';
     slotEl.classList.add('open');
@@ -413,7 +599,7 @@ export function renderHome(store: Store, reducedMotion = false): HTMLElement {
     clear(main);
     col.classList.add('enter');
     main.appendChild(col);
-    selectPrimary();
+    paintDay();
     window.setTimeout(openBanner, BOOT_BANNER);
   };
 
@@ -424,12 +610,12 @@ export function renderHome(store: Store, reducedMotion = false): HTMLElement {
     // The gag has already been seen this page load, so this fresh lockup goes
     // straight to its end state rather than sitting at "Google Meet".
     if (!reducedMotion) settleLockup(bar);
-    selectPrimary();
+    paintDay();
   } else if (boot === 'listed') {
     // Re-rendered between the list landing and the promo arriving: show the
     // list, and let the promo still make its entrance.
     main.appendChild(col);
-    selectPrimary();
+    paintDay();
     window.setTimeout(openBanner, BOOT_BANNER);
   } else {
     main.appendChild(h('div', { class: 'load-pad' }, spinner()));

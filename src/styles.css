@@ -1840,3 +1840,95 @@ body.plain { background: #fff; color: #16181c; }
 @media (max-width: 599px) {
   .rail, .rail-scrim { top: 112px; }
 }
+
+/* ============================================================================
+   The month picker, measured. Notable: no shadow at all — it separates from the
+   page by colour alone, which is unusual enough that copying it is most of what
+   makes it read as Meet's. ============================================ */
+.cal-pop {
+  position: absolute; z-index: 50;
+  width: 368px;
+  background-color: #f0f4f9;
+  border-radius: 28px;
+  padding: 16px;
+  box-sizing: border-box;
+}
+.cal-head { display: flex; align-items: center; gap: 4px; height: 40px; margin-bottom: 12px; }
+.cal-title {
+  font: 500 16px/24px var(--font-title); color: var(--ink);
+  margin-right: auto; padding-left: 8px;
+}
+.cal-nav { width: 40px; height: 40px; --sl: #444746; }
+.cal-grid { display: grid; grid-template-columns: repeat(7, 48px); }
+.cal-wd {
+  height: 24px; display: grid; place-items: center;
+  font: 400 16px/24px var(--font-title); color: var(--ink);
+}
+.cal-day {
+  position: relative;
+  width: 48px; height: 48px; padding: 0; border: 0; background: none;
+  cursor: pointer; display: grid; place-items: center;
+  font: inherit; color: var(--ink);
+  --sl: #1f1f1f;
+}
+/* The fill is 40px inside a 48px hit area — the target is bigger than the mark,
+   which is the detail that makes it feel like a real date picker. */
+.cal-day .cal-num {
+  position: relative; z-index: 1;
+  width: 40px; height: 40px; border-radius: 20px;
+  display: grid; place-items: center;
+  font: 400 16px/24px var(--font-title);
+  transition: background-color .075s linear, color .075s linear;
+}
+.cal-day::before { border-radius: 20px; inset: 4px; }
+.cal-day.is-out .cal-num { color: var(--sec); opacity: .55; }
+.cal-day.is-today .cal-num { box-shadow: inset 0 0 0 1px var(--blue); }
+.cal-day.is-sel .cal-num { background-color: var(--blue); color: #fff; box-shadow: none; }
+
+/* The mark. A dot, not a badge: it says something is here without saying what,
+   which is the only way a hunt survives being explained. */
+.cal-dot {
+  position: absolute; bottom: 5px; left: 50%; transform: translateX(-50%);
+  width: 5px; height: 5px; border-radius: 50%;
+  background-color: var(--blue); z-index: 2;
+}
+.cal-day.is-sel .cal-dot { background-color: #fff; }
+
+/* --- the Today pill, shown only when you are not looking at today --------- */
+.today-pill {
+  height: 32px; padding: 0 14px; border-radius: 16px;
+  border: 1px solid #c4c7c5; background: none; cursor: pointer;
+  font: 500 14px/24px var(--font-title); color: var(--sec);
+  display: inline-flex; align-items: center;
+  --sl: #444746;
+}
+
+/* --- the empty day ------------------------------------------------------- */
+.empty-day {
+  display: flex; flex-direction: column; align-items: center;
+  gap: 16px; padding: 64px 16px 0; text-align: center;
+}
+.empty-art { width: 100%; max-width: 581px; height: 170px; display: grid; place-items: center; }
+.empty-h { margin: 0; font: 400 32px/40px var(--font-title); color: var(--ink); }
+.empty-s { margin: 0; font: 400 16px/24px var(--font-title); color: var(--sec); }
+.empty-day .m-new { margin-top: 8px; }
+
+/* The week strip gets the same dot, so the mechanic is taught before it is
+   needed: one marked day always falls inside the current week. */
+.day { position: relative; }
+.day .cal-dot { bottom: 3px; }
+
+@media (max-width: 599px) {
+  .cal-pop { width: 100%; left: 0 !important; }
+  .cal-grid { grid-template-columns: repeat(7, 1fr); }
+  .cal-day { width: auto; }
+  .empty-h { font-size: 24px; line-height: 32px; }
+}
+
+/* The egg cards read as an unselected meeting: the neutral fill, not the blue
+   one, because they are not the thing the page is asking you to do. */
+.sched-sub { font: 400 14px/20px var(--font); color: var(--sec); margin-top: 2px; }
+.day-body { display: block; }
+/* The day-switch indicator sits where the list will be, not centred in the
+   viewport — the page is not reloading, one region is. */
+.load-pad-sm { min-height: 180px; }
