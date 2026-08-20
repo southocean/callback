@@ -976,7 +976,6 @@ code { font: 400 12px/1.4 ui-monospace, Consolas, monospace; color: var(--dark-b
 .quest-toast.out { animation: qout .5s ease-in both; }
 @keyframes qin  { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: none; } }
 @keyframes qout { to { opacity: 0; transform: translateY(-6px); } }
-.quest-kicker { font: 500 10.5px/14px var(--font); letter-spacing: .7px; text-transform: uppercase; color: var(--dark-blue); }
 .quest-name { font: 500 14px/20px var(--font); margin-top: 2px; }
 .quest-sub { font: 400 12px/17px var(--font); color: #dadce0; margin-top: 4px; }
 
@@ -2344,3 +2343,87 @@ body.plain { background: #fff; color: #16181c; }
      at both 480 and 400, where Join ends at 720 and Other starts at 736. */
   .join-actions { gap: 16px; }
 }
+
+/* =========================== THE ACHIEVEMENT NOTICE ====================== */
+/* Meet does have a notice surface we can reuse, and it is reachable without
+   joining a call: the card on the pre-join screen that reports a missing
+   microphone. Measured there, at 1440:
+
+     box     224,447 386x127   background #3c4043, radius 8
+     shadow  0 2px 2px rgba(0,0,0,.14), 0 3px 1px -2px rgba(0,0,0,.12),
+             0 1px 5px rgba(0,0,0,.2)          <- Material elevation 2
+     icon    245,481  24px  #fbbc04 for a warning
+     title   275,481  400 16/24, letter-spacing .1px, #fff
+     body    245,519  400 14/20, letter-spacing .2px, #fff
+     close   575,458  24px  #c4c7c5
+
+   From which the box model falls out exactly: 34 top + 24 icon + 14 + 20 body
+   + 35 bottom = 127, and 21 + 344 + 21 = 386. The close button sits 11 from the
+   top and 11 from the right.
+
+   Three details that are not what you would guess, and all three were wrong in
+   what we had:
+
+   - The title is 400. Meet does not bold it.
+   - The body is full white, not the dimmed #dadce0 that every other dark
+     surface in the product uses. It is a notice; both lines are to be read.
+   - The shadow is three soft layers, not one heavy one. Ours was
+     0 4px 16px rgba(0,0,0,.5), which reads as a floating dialog rather than as
+     a card resting on the page.
+
+   The body also aligns to the *icon's* left edge rather than the title's, which
+   is what stops a two-line notice from looking like a hanging indent. */
+.quest-tray { max-width: 386px; }
+.quest-toast {
+  position: relative; box-sizing: border-box;
+  width: 386px; max-width: 100%;
+  padding: 34px 21px 35px;
+  border-radius: 8px; background-color: #3c4043; color: #fff;
+  box-shadow: 0 2px 2px rgba(0, 0, 0, .14), 0 3px 1px -2px rgba(0, 0, 0, .12),
+              0 1px 5px rgba(0, 0, 0, .2);
+  animation: qin .28s cubic-bezier(0, 0, 0.2, 1) both;
+}
+/* 6px after the icon, and stopping clear of the close button so a long quest
+   name wraps instead of running underneath it. Meet's own strings are short
+   enough that it never has to solve this; ours are not. */
+.quest-row { display: flex; align-items: flex-start; gap: 6px; padding-right: 24px; }
+.quest-row .ms { color: #a8c7fa; }
+/* margin-top: 0 is load-bearing. The original rule set margin-top: 2px, and an
+   override that does not mention margin leaves it in place — which pushed the
+   title 2px below the icon, made the row 26 tall instead of 24, and carried the
+   error down into the body and the card height. Third time this shape of bug
+   has cost me an afternoon: a partial override is not an override. */
+.quest-name {
+  font: 400 16px/24px var(--font); letter-spacing: .1px; color: #fff; margin-top: 0;
+}
+.quest-sub {
+  font: 400 14px/20px var(--font); letter-spacing: .2px; color: #fff;
+  margin-top: 14px;
+}
+.quest-x {
+  position: absolute; top: 11px; right: 11px;
+  width: 24px; height: 24px; padding: 0; border: 0; background: none;
+  color: #c4c7c5; cursor: pointer; display: grid; place-items: center;
+  border-radius: 50%; --sl: #fff;
+}
+.quest-x:focus-visible { outline: 2px solid #a8c7fa; outline-offset: 2px; }
+
+@media (max-width: 480px) {
+  /* At 386 the card would be wider than the viewport's usable width. The
+     padding comes in with it — 34/21 on a 368px card is proportionally much
+     heavier than on Meet's 386. */
+  .quest-toast { padding: 20px 16px 22px; }
+  .quest-sub { margin-top: 10px; }
+}
+
+/* The tray has to outrank the surfaces a quest can fire from. It was 70, and:
+   - .help is 80 and pinned to the *same corner*, so an open help panel covered
+     the toast completely;
+   - .dp is 300 and opaque full-screen, and the Konami quest opens it — so the
+     one quest guaranteed to fire with a panel up was the one guaranteed to be
+     invisible. Hit-testing the toast's own close button returned `dp-body`.
+
+   320 puts it over both and still under .tt-layer at 400, which has to stay on
+   top of everything. A notice that fires and cannot be seen is worse than no
+   notice, because the state changed and nothing said so. */
+.quest-tray { z-index: 320; }

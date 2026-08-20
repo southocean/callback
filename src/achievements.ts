@@ -10,6 +10,7 @@
 // complete for someone who unlocks nothing.
 
 import { h } from './dom.js';
+import { sym } from './ui/icons.js';
 
 export interface Quest {
   id: string;
@@ -102,21 +103,73 @@ export class Quests {
     for (const fn of this.onChange) fn();
   }
 
+  /**
+   * Meet's own notice card, measured off the pre-join screen where it reports a
+   * missing microphone. It is the closest thing the product has to a toast that
+   * we can reach without joining a call, and it is a better fit than a snackbar
+   * anyway: an icon, a title, a line of detail, and a way to make it go away.
+   *
+   *   card    386x127, #3c4043, radius 8, padding 34 21 35
+   *   shadow  Material elevation 2 — three soft layers, not one heavy one
+   *   icon    24px, 21 from the left, 34 from the top
+   *   title   400 16/24, letter-spacing .1, #fff, 6px after the icon
+   *   body    400 14/20, letter-spacing .2, #fff, 14px under the icon row —
+   *           aligned to the *icon's* left edge, not the title's
+   *   close   24px #c4c7c5, 11 from the top and 11 from the right
+   *
+   * Two parts of that are not what you would guess. The title is 400, not 500:
+   * Meet does not bold it. And the body is full white, not the dimmed grey every
+   * other dark surface in the product uses. It is a notice, so both lines are
+   * meant to be read.
+   *
+   * The one thing dropped rather than copied is our own uppercase kicker. Meet
+   * has no uppercase kickers anywhere, and the information fits Meet's split as
+   * it stands: what happened goes in the title, the detail in the body.
+   */
   private toast(quest: Quest, complete: boolean): void {
     if (!this.tray) return;
     const { got, total } = this.count();
+
+    const kind = quest.secret ? 'Secret found' : 'Side quest';
+    const detail = complete
+      ? 'All of them. That is more thorough than most interview loops.'
+      : kind + ' ' + got + ' of ' + total;
+
+    // auto_awesome rather than a trophy: already in the icon subset, so it costs
+    // nothing, and it is Google's own glyph for a small delight. Tinted #a8c7fa,
+    // Meet's accent on dark — the warning card puts #fbbc04 in the same slot, so
+    // the colour is what tells you which kind of notice this is.
+    const close = h(
+      'button',
+      { class: 'quest-x', type: 'button', 'aria-label': 'Dismiss' },
+      sym('close', 24),
+    ) as HTMLButtonElement;
+
     const card = h(
       'div',
       { class: 'quest-toast', role: 'status' },
-      h('div', { class: 'quest-kicker' }, quest.secret ? 'Secret found' : `Side quest ${got}/${total}`),
-      h('div', { class: 'quest-name' }, quest.name),
-      complete
-        ? h('div', { class: 'quest-sub' }, 'All of them. That is more thorough than most interview loops.')
-        : null,
+      h('div', { class: 'quest-row' }, sym('auto_awesome', 24), h('span', { class: 'quest-name' }, quest.name)),
+      h('div', { class: 'quest-sub' }, detail),
+      close,
     );
     this.tray.appendChild(card);
-    window.setTimeout(() => card.classList.add('out'), 4200);
-    window.setTimeout(() => card.remove(), 4900);
+
+    // It leaves on its own, but not while someone is reading it. A notice that
+    // vanishes mid-sentence because the pointer happened to be elsewhere is the
+    // reason people learn to distrust toasts.
+    let timer = 0;
+    const leave = (): void => {
+      card.classList.add('out');
+      window.setTimeout(() => card.remove(), 500);
+    };
+    const arm = (): void => { timer = window.setTimeout(leave, 4200); };
+    const hold = (): void => { window.clearTimeout(timer); };
+    card.addEventListener('pointerenter', hold);
+    card.addEventListener('pointerleave', arm);
+    card.addEventListener('focusin', hold);
+    card.addEventListener('focusout', arm);
+    close.addEventListener('click', () => { hold(); leave(); });
+    arm();
   }
 }
 
