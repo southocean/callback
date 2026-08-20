@@ -9,7 +9,7 @@
 // now. Clicking Join is how you enter the CV.
 
 import { h, clear } from '../dom.js';
-import { sym, lockup, spinner, focusRing, playLockup } from './icons.js';
+import { sym, lockup, spinner, focusRing, playLockup, settleLockup } from './icons.js';
 import { openDev } from './devopen.js';
 import { tip, tipAll, tipAllAbove, hideTip } from './tooltip.js';
 import type { Store } from '../state.js';
@@ -321,7 +321,7 @@ export function renderHome(store: Store, reducedMotion = false): HTMLElement {
     slotEl.classList.add('open');
     // Only now does the wordmark do its trick. Everything else has stopped
     // moving, so it is the one thing on screen that is.
-    playLockup(wrap);
+    playLockup(bar);
   };
   const showList = (): void => {
     boot = 'listed';
@@ -336,6 +336,9 @@ export function renderHome(store: Store, reducedMotion = false): HTMLElement {
     boot = 'done';
     main.appendChild(col);
     slotEl.classList.add('open');
+    // The gag has already been seen this page load, so this fresh lockup goes
+    // straight to its end state rather than sitting at "Google Meet".
+    if (!reducedMotion) settleLockup(bar);
     selectPrimary();
   } else if (boot === 'listed') {
     // Re-rendered between the list landing and the promo arriving: show the

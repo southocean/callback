@@ -1646,3 +1646,35 @@ body.plain { background: #fff; color: #16181c; }
 /* The mark feels it too, a little, and at the moment of contact. */
 .lk-play .lk-mark  { animation: lk-bump .22s var(--ease-emph) var(--lk-hit) both; }
 .lk-play .lk-words { animation: lk-hit .2s var(--ease-emph) var(--lk-hit) both; }
+
+/* ============================================================================
+   The impact is simulated now — see ui/impact.ts — so the keyframes that used
+   to drive it have to be switched off. CSS animations beat inline styles in the
+   cascade, so leaving them in place would let them silently overwrite every
+   frame the simulation writes. Cancelled here rather than deleted above,
+   because the keyframes themselves are still worth reading as the record of
+   what was tried. */
+.lk-play .lk-nam,
+.lk-play .lk-meet,
+.lk-play .lk-google,
+.lk-play .lk-words,
+.lk-play .lk-mark { animation: none; }
+
+/* The bitmap squashes horizontally from its left edge, and the container it
+   sits in narrows with it, which is what makes "Meet" slide left as Google is
+   crushed instead of Google simply being sliced off. */
+.lk-google { overflow: hidden; display: inline-flex; }
+.lk-gimg { transform-origin: left center; will-change: transform; }
+.lk-nam { will-change: transform; }
+
+/* Baseline, properly this time. The word is a bitmap in a clipping box, and a
+   box whose overflow is not visible has its baseline at its BOTTOM MARGIN EDGE
+   rather than at its content's baseline — so the box bottom was landing on the
+   text baseline and lifting the whole word by the height of the g's descender.
+   That descender is 6px in the crop (glyph baseline at row 25, crop ends at 31),
+   plus the 1px the box itself contributes, so -7px puts it back. */
+.lk-google {
+  display: inline-block; overflow: hidden;
+  vertical-align: -7px; height: 25px; line-height: 0;
+}
+.lk-gimg { display: block; transform-origin: left center; vertical-align: top; }

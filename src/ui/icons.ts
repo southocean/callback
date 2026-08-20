@@ -16,6 +16,8 @@
 //
 // The FILL axis is wired up the way Meet wires it: unselected 0, selected 1.
 
+import { play, settle } from './impact.js';
+
 export type IconName =
   | 'add' | 'apps' | 'back_hand' | 'bolt' | 'calendar_month' | 'call' | 'call_end'
   | 'chat' | 'check' | 'chevron_left' | 'chevron_right' | 'close' | 'closed_caption'
@@ -205,12 +207,10 @@ export function lockup(reducedMotion = false, onHome?: () => void): HTMLElement 
   wrap.addEventListener('click', () => {
     onHome?.();
     if (reducedMotion) return;
-    // Restart the animation: drop the class, force a reflow so the browser
-    // notices, then put it back. Cheaper and more reliable than juggling
-    // animationName, and it means the gag can be watched twice.
-    wrap.classList.remove('lk-play');
-    void wrap.offsetWidth;
-    wrap.classList.add('lk-play');
+    // Next frame, and against the live document rather than this element:
+    // onHome re-renders the screen, which detaches this node, so simulating it
+    // would animate something no longer on the page.
+    requestAnimationFrame(() => playLockup(document));
   });
 
   return wrap;
@@ -363,10 +363,39 @@ export function focusRing(): HTMLSpanElement {
  * the wordmark. Played after the screen has settled, it is the only thing
  * moving.
  */
-export function playLockup(root: ParentNode = document): void {
+let stopImpact: (() => void) | null = null;
+
+function partsOf(root: ParentNode): { el: HTMLElement; parts: Parameters<typeof play>[0] } | null {
   const el = root.querySelector<HTMLElement>('.lockup');
-  if (!el || el.classList.contains('lk-static')) return;
-  el.classList.remove('lk-play');
-  void el.offsetWidth;
-  el.classList.add('lk-play');
+  if (!el || el.classList.contains('lk-static')) return null;
+  const google = el.querySelector<HTMLElement>('.lk-google');
+  const gimg = el.querySelector<HTMLElement>('.lk-gimg');
+  const meet = el.querySelector<HTMLElement>('.lk-meet');
+  const nam = el.querySelector<HTMLElement>('.lk-nam');
+  const mark = el.querySelector<HTMLElement>('.lk-mark');
+  if (!google || !gimg || !meet || !nam || !mark) return null;
+  return { el, parts: { google, gimg, meet, nam, mark } };
+}
+
+export function playLockup(root: ParentNode = document): void {
+  const found = partsOf(root);
+  if (!found) return;
+  found.el.classList.add('lk-play');
+  // Never leave two simulations driving the same element.
+  stopImpact?.();
+  stopImpact = play(found.parts);
+}
+
+/**
+ * Jump straight to the end state, no motion. Needed because home() mounts more
+ * than once: after the gag has played, a later re-render builds a fresh lockup
+ * that would otherwise sit at "Google Meet" forever.
+ */
+export function settleLockup(root: ParentNode = document): void {
+  const found = partsOf(root);
+  if (!found) return;
+  found.el.classList.add('lk-play');
+  stopImpact?.();
+  stopImpact = null;
+  settle(found.parts);
 }

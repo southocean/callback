@@ -26,6 +26,9 @@ export const motion: Section = {
     'Three curves do all the work, and two of them overshoot. That springiness is the single most recognisable ' +
     'thing about the product in motion — a linear or plain ease-out reads as "not Meet" instantly.',
   rules: [
+    { name: 'When keyframes are the wrong tool', value: 'simulate, do not choreograph', note: 'The wordmark impact was keyframed three times and read wrong every time. CSS animations are independent timelines — nothing can be triggered by the state of another element — so "this gives way once that has taken the blow" has to be faked as a guessed delay, and each element eases into its own end state, which is why nothing could transmit an impulse it had already spent. It is now one simulation with one clock: constant-velocity approach, then momentum spent displacing what is in front of it, then a damped spring. ui/impact.ts.' },
+    { name: 'Order the events, not the elements', value: 'Google out at 456ms, spring peaks at 505ms', note: 'The two overlapped in an earlier version, so the name was pushed right by the spring and then yanked left again as the last of Google died. Sequencing them dropped that jerk from 9px to under 2px. The trigger is computed from the spring, not typed in: the word must be gone by (pi/2)/omega, the moment the spring crosses zero.' },
+    { name: 'Displace, never distort', value: 'shoved left 44px, fading late', note: 'An earlier version squashed the Google wordmark with scaleX. It read as crushing Google’s own artwork, which is a poor look on a page addressed to Google and unnecessary — pushing it out of frame says the same thing about making room without mangling it.' },
     {
       name: 'Shape morph',
       value: '.35s cubic-bezier(0.4, 0.1, 0.5, 1.4)',
