@@ -3,63 +3,82 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Nam Nguyen — Senior SWE, Web Development, Google Meet</title>
-<meta name="description" content="An interactive CV for Nam Nguyen, lead front-end developer in Uppsala, applying to the Google Meet web-client team in Stockholm. Built as a faithful clone of Meet itself: TypeScript, no framework, no dependencies, tests you can run in the browser.">
+<title>Meet Nam — Senior SWE, Web Development, Google Meet</title>
+<meta name="description" content="An interactive CV for Nam Nguyen, lead front-end developer in Uppsala, applying to the Google Meet web-client team in Stockholm. Built as a measured rebuild of Meet itself: TypeScript, no framework, no dependencies, tests you can run in the browser.">
 <meta name="author" content="Nam Nguyen">
 <meta name="theme-color" content="#ffffff">
 <meta name="color-scheme" content="only light">
 
-<!-- Reviews S1/S2: no third-party requests at all, and a policy that says so. -->
+<!-- No third-party requests at all, and a policy that says so. -->
 <meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; media-src 'self' blob: mediastream:; font-src 'self'; connect-src 'self'; base-uri 'none'; form-action 'none'; frame-ancestors 'none'">
 
-<!-- Review R6: the link gets pasted into a chat; the card is what people see. -->
 <meta property="og:type" content="profile">
-<meta property="og:title" content="Nam Nguyen — Callback">
-<meta property="og:description" content="A CV that opens as a video call. Seven years leading a real-time multiplayer client, applying to Google Meet web in Stockholm.">
+<meta property="og:title" content="Meet Nam">
+<meta property="og:description" content="A CV that opens as a video call, rebuilt from a measured spec of Google Meet. Seven years leading a real-time multiplayer client.">
 <meta property="og:image" content="share-card.svg">
 <meta name="twitter:card" content="summary_large_image">
 
 <link rel="icon" href="favicon.svg" type="image/svg+xml">
+<link rel="preload" href="fonts/symbols-subset.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="preload" href="fonts/roboto-latin.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="stylesheet" href="styles.css">
 
-<!-- Critical CSS, inlined. Review U9: the first screen paints immediately, and
-     it paints with JavaScript disabled. The values are Meet's own, measured. -->
+<!-- Critical CSS, inlined: the first screen paints before the bundle arrives,
+     and it paints with JavaScript disabled. Values are Meet's own, measured. -->
 <style>
-  :root{color-scheme:only light;--w:#fff;--ink:#1f1f1f;--sec:#444746;--outline:#c4c7c5;--blue:#0b57d0;--surface:#f0f4f9;
-        --nav-pill:#c2e7ff;--nav-icon:#001d35;--nav-label:#00639b;--newbtn:#c4eed0;--newbtn-ink:#0b2818;--sched:#d3e3fd;
+  @font-face{font-family:'Roboto';src:url('fonts/roboto-latin.woff2') format('woff2-variations');font-weight:100 900;font-display:swap}
+  @font-face{font-family:'Material Symbols Outlined';src:url('fonts/symbols-subset.woff2') format('woff2-variations');font-weight:100 700;font-display:block}
+  :root{color-scheme:only light;--w:#fff;--ink:#1f1f1f;--sec:#444746;--outline:#c4c7c5;--blue:#0b57d0;
+        --composer:#e9eef6;--nav-pill:#c2e7ff;--nav-icon:#001d35;--nav-label:#00639b;--newbtn:#c4eed0;
+        --newbtn-ink:#0b2818;--sched:#d3e3fd;--disabled-bg:rgba(31,31,31,.12);--disabled-fg:rgba(16,16,16,.3);
         --font:"Google Sans Flex","Google Sans Text","Google Sans",Roboto,system-ui,-apple-system,"Segoe UI",Arial,sans-serif}
   *{box-sizing:border-box}
   html,body{margin:0;height:100%}
   #app{min-height:100dvh;display:flex;flex-direction:column}
   #app>*{flex:1 1 auto;min-height:0}
   body{background:#fff;color:var(--ink);font:400 14px/1.45 var(--font);-webkit-font-smoothing:antialiased}
+  .ms{font-family:'Material Symbols Outlined';font-weight:normal;line-height:1;display:inline-block;
+      white-space:nowrap;direction:ltr;font-feature-settings:'liga';flex:0 0 auto;user-select:none;
+      -webkit-font-smoothing:antialiased}
   .skip{position:absolute;left:-9999px;top:0;z-index:200;background:var(--blue);color:#fff;padding:10px 18px;border-radius:0 0 8px 0;font-weight:500;text-decoration:none}
   .skip:focus{left:0}
   .home{min-height:100%;display:flex;flex-direction:column}
-  .home-bar{height:56px;display:flex;align-items:center;padding:0 16px;gap:12px}
-  .lockup{display:flex;align-items:center;gap:6px}
-  .lockup-word{font:400 22px/1 var(--font);color:#5f6368;letter-spacing:-.2px}
-  .home-composer{margin:0 auto;display:flex;align-items:center;gap:12px}
-  .composer-pill{display:flex;align-items:center;height:48px;border-radius:28px;background:var(--surface);padding:0 6px 0 16px;min-width:340px}
-  .composer-pill input{border:0;background:transparent;outline:none;flex:1 1 auto;font:400 16px/1 var(--font);color:var(--ink);padding:0 12px;min-width:0}
-  .composer-join{height:36px;border-radius:18px;border:0;background:transparent;padding:0 18px;font:500 14px/1 var(--font);color:rgba(31,31,31,.38)}
+  .home-bar{height:64px;display:grid;grid-template-columns:1fr auto 1fr;align-items:center;padding:0 8px 0 16px;gap:12px}
+  .lockup{display:flex;align-items:center;gap:7px;flex:0 0 auto}
+  .lk-words{display:flex;align-items:baseline;font:400 22px/1.1 var(--font);letter-spacing:-.3px;white-space:nowrap}
+  .lk-google{color:#212327}
+  .lk-meet,.lk-nam{color:#5f6368;margin-left:.26em}
+  .home-composer{display:flex;align-items:center;gap:8px;justify-self:center}
+  .composer-pill{display:flex;align-items:center;height:48px;border-radius:999px;background:var(--composer);padding:0 4px 0 16px;gap:5px;width:384px;max-width:384px}
+  .composer-pill .ms{color:var(--sec)}
+  .composer-pill input{border:0;background:transparent;outline:none;flex:1 1 auto;font:400 16px/24px var(--font);color:var(--ink);padding:0 6px;min-width:0}
+  .composer-join{height:40px;margin:4px 0;border-radius:20px;border:0;padding:0 16px;font:500 14px/1 var(--font);background:var(--disabled-bg);color:var(--disabled-fg)}
   .m-btn{height:40px;border-radius:20px;padding:0 24px;border:0;cursor:pointer;font:500 14px/1 var(--font);display:inline-flex;align-items:center;gap:8px;text-decoration:none}
   .m-tonal{background:var(--newbtn);color:var(--newbtn-ink)}
-  .m-filled{background:var(--blue);color:#fff}
+  .m-new{height:48px;border-radius:24px;padding:0 16px;gap:8px}
   .m-outlined{background:transparent;color:var(--blue);border:1px solid #747775}
-  .home-bar-right{display:flex;align-items:center;gap:4px;margin-left:auto}
-  .icon-btn{width:40px;height:40px;border-radius:50%;border:0;background:transparent;color:var(--sec);display:grid;place-items:center;cursor:pointer}
-  .avatar-btn{width:32px;height:32px;border-radius:50%;border:0;padding:0;background:linear-gradient(145deg,#8ab4f8,#34a853);color:#10221a;font:500 13px/1 var(--font);display:grid;place-items:center;margin-left:8px}
+  .home-bar-right{display:flex;align-items:center;gap:8px;justify-self:end}
+  .icon-btn{width:40px;height:40px;border-radius:20px;border:0;background:transparent;color:var(--sec);display:grid;place-items:center;cursor:pointer;flex:0 0 auto}
+  .avatar-btn{width:40px;height:40px;border-radius:50%;border:0;cursor:pointer;padding:4px;background:transparent;display:grid;place-items:center;flex:0 0 auto}
+  .avatar-btn>span{width:32px;height:32px;border-radius:50%;background:linear-gradient(145deg,#8ab4f8,#34a853);color:#10221a;font:500 13px/1 var(--font);display:grid;place-items:center}
   .home-body{flex:1 1 auto;display:flex}
   .rail{flex:0 0 104px;padding-top:48px}
-  .rail-item{width:104px;height:56px;border:0;background:transparent;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:4px;padding:0}
+  .rail-item{width:104px;height:56px;border:0;background:transparent;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:4px;padding:0;margin-bottom:14px}
   .rail-pill{width:56px;height:32px;border-radius:9999px;display:grid;place-items:center;color:var(--sec)}
   .rail-item[aria-current="true"] .rail-pill{background:var(--nav-pill);color:var(--nav-icon)}
   .rail-label{font:500 12px/16px var(--font);letter-spacing:.1px;color:var(--sec)}
   .rail-item[aria-current="true"] .rail-label{color:var(--nav-label)}
-  .home-main{flex:1 1 auto;padding:32px 40px 60px;max-width:1180px}
+  .home-main{flex:1 1 auto;display:flex;justify-content:center;padding:32px 24px 60px;min-width:0}
+  .home-col{width:100%;max-width:1052px;min-width:0}
   .date-row{display:flex;align-items:center;gap:12px;margin-bottom:28px}
   .date-title{font:400 22px/1.2 var(--font);margin:0}
+  .week{margin-left:auto;display:flex;align-items:center;gap:10px}
+  .day{width:48px;height:56px;text-align:center;border:0;background:transparent;padding:6px 0 0;border-radius:28px;display:flex;flex-direction:column;align-items:center;gap:2px}
+  .day-name{display:block;font:500 11px/16px var(--font);letter-spacing:.1px;color:var(--sec)}
+  .day-num{display:block;font:400 16px/24px var(--font);color:var(--ink)}
+  .day[aria-current="true"]{background:var(--nav-pill)}
+  .day[aria-current="true"] .day-name,.day[aria-current="true"] .day-num{color:var(--nav-icon)}
+  .day[aria-current="true"] .day-num{font-weight:500}
   .banner{display:flex;align-items:center;gap:16px;border:1px solid var(--outline);border-radius:12px;padding:16px 20px;margin-bottom:32px}
   .banner-t{font:500 14px/20px var(--font)}
   .banner-s{font:400 13px/18px var(--font);color:var(--sec)}
@@ -78,10 +97,11 @@
     .home-composer{order:3;width:100%;margin:0}
     .composer-pill{min-width:0;width:100%}
     .home-body{display:block}
-    .home-main{padding:20px 16px 100px;max-width:none}
+    .home-main{padding:20px 16px 100px}
     .sched-card{flex-direction:column;align-items:flex-start}
     .sched-join{margin:0;width:100%}
     .rail{display:flex;justify-content:center;gap:24px;padding:0;border-top:1px solid var(--outline)}
+    .rail-item{margin:0}
   }
 </style>
 </head>
@@ -89,71 +109,86 @@
 <a class="skip" href="#main">Skip to content</a>
 
 <div id="app">
-  <!-- The home screen, as static markup. It is the first thing anyone sees, so
-       it does not wait for a bundle, and it works with scripting switched off. -->
+  <!-- The home screen as static markup: first paint does not wait for the
+       bundle, and this works with scripting switched off. The scripted version
+       replaces it as soon as it loads, adding the live date and the wordmark
+       animation. -->
   <div class="home" id="static-home">
     <header class="home-bar">
-      <div class="lockup">
-        <svg viewBox="0 0 40 28" width="34" height="24" aria-hidden="true">
-          <path d="M2 8a2 2 0 0 1 2-2h4v16H4a2 2 0 0 1-2-2V8Z" fill="#fbbc04"/>
-          <path d="M8 6h10a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H8V6Z" fill="#ea4335"/>
-          <path d="M20 11.5 30 6v16l-10-5.5v-5Z" fill="#34a853"/>
+      <div class="lockup" role="img" aria-label="Meet Nam">
+        <svg viewBox="0 0 34 28" width="32" height="26" aria-hidden="true">
+          <defs><linearGradient id="lkg" x1="0" y1="0" x2="1" y2="1">
+            <stop offset="0" stop-color="#FFDA45"/><stop offset=".55" stop-color="#FFD11B"/><stop offset="1" stop-color="#FBC900"/>
+          </linearGradient></defs>
+          <path d="M21 11.2 30.2 6.4a1 1 0 0 1 1.5.9v13.4a1 1 0 0 1-1.5.9L21 16.8Z" fill="#F9AA01"/>
+          <rect x="1.6" y="4.4" width="20.6" height="19.2" rx="4.6" fill="url(#lkg)"/>
+          <circle cx="7.2" cy="18.2" r="2.5" fill="#fff"/>
         </svg>
-        <span class="lockup-word">Callback</span>
+        <div class="lk-words">
+          <span class="lk-google" aria-hidden="true">Google</span><span class="lk-meet" aria-hidden="true">Meet</span>
+        </div>
       </div>
+
       <div class="home-composer">
         <div class="composer-pill">
-          <svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><path fill="#444746" d="M4 18q-.82 0-1.41-.59T2 16V8q0-.82.59-1.41T4 6h16q.82 0 1.41.59T22 8v8q0 .82-.59 1.41T20 18H4Zm0-2h16V8H4v8Zm4-1h8v-1.5H8V15Z"/></svg>
+          <span class="ms" style="font-size:24px" aria-hidden="true">keyboard</span>
           <input type="text" placeholder="Enter a code or link" aria-label="Enter a meeting code or link" autocomplete="off">
-          <button class="composer-join" type="button" data-go="lobby">Join</button>
+          <button class="composer-join" type="button" aria-disabled="true" data-go="lobby">Join</button>
         </div>
-        <button class="m-btn m-tonal" type="button" data-go="lobby">
-          <svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true"><path fill="currentColor" d="M4 18q-.82 0-1.41-.59T2 16V8q0-.82.59-1.41T4 6h11q.82 0 1.41.59T17 8v2.5l5-3.5v10l-5-3.5V16q0 .82-.59 1.41T15 18H4Z"/></svg>
+        <button class="m-btn m-tonal m-new" type="button" data-go="lobby">
+          <span class="ms" style="font-size:24px" aria-hidden="true">videocam</span>
           New
         </button>
       </div>
+
       <div class="home-bar-right">
-        <button class="icon-btn" type="button" aria-label="Support"><svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><path fill="currentColor" d="M12 22q-2.08 0-3.9-.79t-3.16-2.15-2.15-3.16T2 12q0-2.08.79-3.9t2.15-3.16 3.16-2.15T12 2q2.08 0 3.9.79t3.16 2.15 2.15 3.16T22 12q0 2.08-.79 3.9t-2.15 3.16-3.16 2.15T12 22Zm-.05-4q.52 0 .89-.37t.36-.88q0-.52-.37-.89t-.88-.36q-.52 0-.89.37t-.36.88q0 .52.37.89t.88.36Zm-.9-3.85h1.85q0-.83.19-1.3t1.06-1.3q.65-.65 1-1.24t.35-1.4q0-1.4-.94-2.15T12.1 5q-1.28 0-2.16.68T8.7 7.55l1.65.65q.15-.5.6-.94t1.13-.44q.62 0 1 .34t.37.9q0 .43-.25.83t-.7.83q-1.1 1-1.42 1.55t-.33 1.73Z"/></svg></button>
-        <button class="icon-btn" type="button" aria-label="Settings"><svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><path fill="currentColor" d="m9.25 22-.4-3.2q-.32-.13-.63-.3t-.6-.4l-2.95 1.25-2.75-4.8 2.55-1.95q-.02-.17-.02-.35v-.7q0-.17.02-.35L1.92 9.25l2.75-4.75 2.95 1.25q.29-.23.6-.4t.63-.3L9.25 2h5.5l.4 3.2q.32.13.63.3t.6.4l2.95-1.25 2.75 4.75-2.55 1.95q.02.17.02.35v.7q0 .18-.02.35l2.55 1.95-2.75 4.8-2.95-1.25q-.29.23-.6.4t-.63.3l-.4 3.2h-5.5Zm2.8-6.5q1.45 0 2.48-1.02T15.55 12q0-1.45-1.02-2.47T12.05 8.5q-1.47 0-2.49 1.03T8.55 12q0 1.45 1.02 2.48t2.48 1.02Z"/></svg></button>
-        <button class="avatar-btn" type="button" aria-label="Signed in as Nam Nguyen">NN</button>
+        <button class="icon-btn" type="button" aria-label="Support"><span class="ms" style="font-size:24px" aria-hidden="true">help</span></button>
+        <button class="icon-btn" type="button" aria-label="Settings"><span class="ms" style="font-size:24px" aria-hidden="true">settings</span></button>
+        <button class="icon-btn" type="button" aria-label="Google apps"><span class="ms" style="font-size:24px" aria-hidden="true">apps</span></button>
+        <button class="avatar-btn" type="button" aria-label="Account: you, the person reading this"><span>G</span></button>
       </div>
     </header>
 
     <div class="home-body">
       <nav class="rail" aria-label="Sections">
         <button class="rail-item" type="button" aria-current="true">
-          <span class="rail-pill"><svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><path fill="currentColor" d="M5 22q-.82 0-1.41-.59T3 20V6q0-.82.59-1.41T5 4h1V2h2v2h8V2h2v2h1q.82 0 1.41.59T21 6v14q0 .82-.59 1.41T19 22H5Zm0-2h14V10H5v10Zm0-12h14V6H5v2Z"/></svg></span>
+          <span class="rail-pill"><span class="ms" style="font-size:24px;font-variation-settings:'FILL' 1" aria-hidden="true">event</span></span>
           <span class="rail-label">Meetings</span>
         </button>
         <button class="rail-item" type="button" aria-current="false" data-go="plain">
-          <span class="rail-pill"><svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><path fill="currentColor" d="M8 18h8v-2H8v2Zm0-4h8v-2H8v2Zm-2 8q-.82 0-1.41-.59T4 20V4q0-.82.59-1.41T6 2h8l6 6v12q0 .82-.59 1.41T18 22H6Zm7-13V4H6v16h12V9h-5Z"/></svg></span>
+          <span class="rail-pill"><span class="ms" style="font-size:24px" aria-hidden="true">description</span></span>
           <span class="rail-label">CV</span>
         </button>
       </nav>
 
       <main class="home-main" id="main">
-        <div class="date-row"><h1 class="date-title">Nam&rsquo;s interview</h1></div>
-
-        <div class="banner">
-          <div>
-            <div class="banner-t">Short of time? Read this as a plain document instead</div>
-            <div class="banner-s">Same content, one page, prints cleanly. No call required.</div>
+        <div class="home-col">
+          <div class="date-row">
+            <h1 class="date-title">Today</h1>
+            <span class="ms" style="font-size:20px;color:var(--sec)" aria-hidden="true">calendar_month</span>
           </div>
-          <a href="#plain" data-go="plain">Open document</a>
-        </div>
 
-        <div class="sched-label">Scheduled</div>
-        <button class="sched-card" type="button" data-go="lobby">
-          <div>
-            <div class="sched-when"><span class="now-chip">Now</span><span class="sched-time">Starting now</span></div>
-            <div class="sched-title">Nam&rsquo;s interview</div>
+          <div class="banner">
+            <div>
+              <div class="banner-t">Short of time? Read this as a plain document instead</div>
+              <div class="banner-s">Same content, one page, prints cleanly. No call required.</div>
+            </div>
+            <a href="#plain" data-go="plain">Open document</a>
           </div>
-          <span class="sched-join">Join</span>
-        </button>
-        <p class="sched-note">One participant. He has been waiting since March, when the CV was last updated.</p>
 
-        <div class="home-alt">
-          <a class="m-btn m-outlined" href="NamNguyen_CV_2026.pdf" download>Download the PDF</a>
+          <div class="sched-label">Scheduled</div>
+          <button class="sched-card" type="button" data-go="lobby">
+            <div>
+              <div class="sched-when"><span class="now-chip">Now</span><span class="sched-time">Starting now</span></div>
+              <div class="sched-title">Nam&rsquo;s interview</div>
+            </div>
+            <span class="sched-join">Join</span>
+          </button>
+          <p class="sched-note">One participant. He has been waiting since March, when the CV was last updated.</p>
+
+          <div class="home-alt">
+            <a class="m-btn m-outlined" href="NamNguyen_CV_2026.pdf" download>Download the PDF</a>
+          </div>
         </div>
       </main>
     </div>
@@ -182,7 +217,7 @@
 
 <script type="module" src="app.js"></script>
 <script type="application/json" id="build-meta">
-{"jsGzip":39681,"jsRaw":73597,"cssGzip":10062,"budget":51200,"deps":0,"commit":"76a113f"}
+{"jsGzip":40219,"jsRaw":83166,"cssGzip":12188,"budget":51200,"deps":0,"commit":"76b30d3"}
 </script>
 </body>
 </html>

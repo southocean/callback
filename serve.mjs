@@ -14,6 +14,7 @@ const TYPES = {
   '.jpg': 'image/jpeg',
   '.pdf': 'application/pdf',
   '.json': 'application/json',
+  '.woff2': 'font/woff2',
 };
 
 const port = Number(process.env.PORT ?? 4173);

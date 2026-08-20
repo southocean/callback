@@ -10,7 +10,7 @@
 
 import * as esbuild from 'esbuild';
 import { gzipSync } from 'node:zlib';
-import { readFileSync, writeFileSync, mkdirSync, copyFileSync, existsSync, readdirSync, rmSync } from 'node:fs';
+import { readFileSync, writeFileSync, mkdirSync, copyFileSync, existsSync, readdirSync, rmSync, statSync } from 'node:fs';
 import { execSync } from 'node:child_process';
 
 const BUDGET = 50 * 1024; // gzipped, entry bundle only
@@ -94,10 +94,21 @@ for (const asset of ['share-card.svg', 'favicon.svg']) {
   if (existsSync(`src/assets/${asset}`)) copyFileSync(`src/assets/${asset}`, `${OUT}/${asset}`);
 }
 
+// Self-hosted fonts. Already woff2 and already subset, so they are copied
+// rather than processed — and they are the reason the icons are the real
+// Material Symbols rather than my tracings of them.
+mkdirSync(`${OUT}/fonts`, { recursive: true });
+let fontBytes = 0;
+for (const f of readdirSync('src/assets/fonts')) {
+  copyFileSync(`src/assets/fonts/${f}`, `${OUT}/fonts/${f}`);
+  fontBytes += statSync(`src/assets/fonts/${f}`).size;
+}
+
 const pct = ((entryGz / BUDGET) * 100).toFixed(1);
 console.log(`initial  ${entryGz} gzip across ${staticGraph.size} file(s)   (${pct}% of ${BUDGET} budget)`);
 for (const c of deferred) console.log(`deferred ${c.f} — ${c.gz} gzip, fetched only when reached`);
 console.log(`css      ${cssGz} gzip`);
+console.log(`fonts    ${fontBytes} bytes self-hosted woff2 (already compressed)`);
 console.log(`worst    ${entryGz + chunkGz + cssGz} gzip if every deferred chunk is also fetched`);
 
 if (entryGz > BUDGET) {

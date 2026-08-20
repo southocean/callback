@@ -158,10 +158,14 @@ export function renderLobby(store: Store, media: Media): HTMLElement {
     h(
       'header',
       { class: 'lobby-bar' },
+      // In the real product this is *your* account. Here the visitor is the
+      // one taking the interview, so it is theirs — not Nam's. No real address
+      // is invented: Google publishes none for this, and it would be a strange
+      // thing to fabricate on a job application.
       h(
         'div',
         { class: 'lobby-acct' },
-        h('b', {}, `${profile.emailUser}@${profile.emailHost}`),
+        h('b', {}, 'you@google.com'),
         h('span', {}, 'Switch account'),
       ),
     ),

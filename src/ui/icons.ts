@@ -1,102 +1,140 @@
-// Material Symbols, hand-drawn.
+// Icons and the product lockup.
 //
-// Meet renders its icons with the "Google Symbols" font. Loading that would be
-// a third-party request, and this project promises none — so every glyph here
-// is an inline SVG path traced to match the outlined Material Symbol of the
-// same name. The names are the real ones, taken off the live DOM during the
-// crawl, so the mapping is checkable.
+// Meet renders its icons with "Google Symbols", a proprietary superset of
+// Material Symbols driven by variable axes: FILL, wght, GRAD, opsz and Google's
+// own ROND. Read straight off the live DOM:
+//
+//   font: 400 24px/24px "Google Symbols"
+//   font-variation-settings: "FILL" 0, "GRAD" 0, "ROND" 50, "opsz" 24, "wght" 400
+//   selected rail item: identical but "FILL" 1
+//
+// Google Symbols is not distributable. Material Symbols Outlined is — Apache-2.0,
+// same design programme, same axes minus ROND — so this ships a 7 kB subset of it
+// covering exactly the 39 glyphs used here, self-hosted. That makes the icons the
+// real thing rather than my approximations of them, and keeps the promise of zero
+// third-party requests.
+//
+// The FILL axis is wired up the way Meet wires it: unselected 0, selected 1.
 
-export type IconName = keyof typeof paths;
+export type IconName =
+  | 'add' | 'apps' | 'back_hand' | 'bolt' | 'calendar_month' | 'call' | 'call_end'
+  | 'chat' | 'check' | 'chevron_left' | 'chevron_right' | 'close' | 'closed_caption'
+  | 'closed_caption_off' | 'content_copy' | 'description' | 'event' | 'expand_more'
+  | 'frame_person' | 'group' | 'help' | 'info' | 'keyboard' | 'keyboard_arrow_up'
+  | 'link' | 'lock_person' | 'mic' | 'mic_off' | 'mood' | 'more_vert' | 'person_add'
+  | 'present_to_all' | 'science' | 'settings' | 'shield' | 'speed' | 'videocam'
+  | 'videocam_off' | 'visual_effects';
 
-export const paths = {
-  // ---- call controls -------------------------------------------------------
-  mic: 'M12 14q-1.24 0-2.12-.88T9 11V5q0-1.24.88-2.12T12 2q1.24 0 2.12.88T15 5v6q0 1.24-.88 2.12T12 14Zm-1 7v-3.08q-2.6-.35-4.3-2.32T5 11h2q0 2.08 1.46 3.54T12 16q2.08 0 3.54-1.46T17 11h2q0 2.63-1.7 4.6T13 17.92V21h-2Z',
-  mic_off: 'M16.15 12.35 15 11.2V5q0-1.24-.88-2.12T12 2q-1.24 0-2.12.88T9 5v.2L7.6 3.8q.42-1.2 1.47-2T12 1q1.65 0 2.83 1.17T16 5v6q0 .35-.4.68l.55.67ZM11 21v-3.08q-2.6-.35-4.3-2.32T5 11h2q0 2.08 1.46 3.54T12 16q.53 0 1.02-.1l1.6 1.6q-.5.2-1.02.31t-1.1.11V21h-2ZM19.8 22.6 1.4 4.2l1.4-1.4 18.4 18.4-1.4 1.4Z',
-  videocam: 'M4 18q-.82 0-1.41-.59T2 16V8q0-.82.59-1.41T4 6h11q.82 0 1.41.59T17 8v2.5l5-3.5v10l-5-3.5V16q0 .82-.59 1.41T15 18H4Zm0-2h11V8H4v8Z',
-  videocam_off: 'M21 19.6 17 15.6V16q0 .82-.59 1.41T15 18H4q-.82 0-1.41-.59T2 16V8q0-.82.59-1.41T4 6h.4L1.4 3 2.8 1.6l19.6 19.6L21 22.6ZM17 12.9V8q0-.82-.59-1.41T15 6H9.1L20 16.9V7l-3 2.5v3.4ZM4 16h10.1L4 5.9V16Z',
-  computer_arrow_up: 'M2 19v-2h20v2H2Zm2-3q-.82 0-1.41-.59T2 14V6q0-.82.59-1.41T4 4h16q.82 0 1.41.59T22 6v8q0 .82-.59 1.41T20 16H4Zm0-2h16V6H4v8Zm7-1V9.4l-1.6 1.6L8 9.6 12 5.6l4 4-1.4 1.4L13 9.4V13h-2Z',
-  mood: 'M15.5 11q.63 0 1.06-.44T17 9.5q0-.63-.44-1.06T15.5 8q-.63 0-1.06.44T14 9.5q0 .63.44 1.06T15.5 11Zm-7 0q.63 0 1.06-.44T10 9.5q0-.63-.44-1.06T8.5 8q-.63 0-1.06.44T7 9.5q0 .63.44 1.06T8.5 11Zm3.5 6.5q1.75 0 3.14-.98T17.13 14H6.87q.6 1.54 1.99 2.52T12 17.5ZM12 22q-2.08 0-3.9-.79t-3.16-2.15-2.15-3.16T2 12q0-2.08.79-3.9t2.15-3.16 3.16-2.15T12 2q2.08 0 3.9.79t3.16 2.15 2.15 3.16T22 12q0 2.08-.79 3.9t-2.15 3.16-3.16 2.15T12 22Zm0-2q3.35 0 5.68-2.33T20 12q0-3.35-2.32-5.67T12 4Q8.65 4 6.32 6.33T4 12q0 3.35 2.32 5.67T12 20Z',
-  closed_caption: 'M4 20q-.82 0-1.41-.59T2 18V6q0-.82.59-1.41T4 4h16q.82 0 1.41.59T22 6v12q0 .82-.59 1.41T20 20H4Zm0-2h16V6H4v12Zm2.5-2.5h4q.42 0 .71-.29T11.5 14.5v-1H10v.5H7v-4h3v.5h1.5V9.5q0-.42-.29-.71T10.5 8.5h-4q-.42 0-.71.29T5.5 9.5v5q0 .42.29.71t.71.29Zm7 0h4q.42 0 .71-.29T18.5 14.5v-1H17v.5h-3v-4h3v.5h1.5V9.5q0-.42-.29-.71T17.5 8.5h-4q-.42 0-.71.29T12.5 9.5v5q0 .42.29.71t.71.29Z',
-  back_hand: 'M10.5 22q-.9 0-1.7-.4t-1.3-1.1L2.2 12.6l.6-.7q.4-.5 1-.6t1.1.2L7 12.6V4.5q0-.63.44-1.06T8.5 3q.63 0 1.06.44T10 4.5v4h.5V3q0-.63.44-1.06T12 1.5q.63 0 1.06.44T13.5 3v5.5h.5V4q0-.63.44-1.06T15.5 2.5q.63 0 1.06.44T17 4v4.5h.5V6.5q0-.63.44-1.06T19 5q.63 0 1.06.44T20.5 6.5V15q0 2.9-2.05 4.95T13.5 22h-3Z',
-  more_vert: 'M12 20q-.83 0-1.41-.59T10 18q0-.82.59-1.41T12 16q.82 0 1.41.59T14 18q0 .82-.59 1.41T12 20Zm0-6q-.83 0-1.41-.59T10 12q0-.82.59-1.41T12 10q.82 0 1.41.59T14 12q0 .82-.59 1.41T12 14Zm0-6q-.83 0-1.41-.59T10 6q0-.82.59-1.41T12 4q.82 0 1.41.59T14 6q0 .82-.59 1.41T12 8Z',
-  call_end: 'M12 9q-1.6 0-3.13.33T6 10.3v3.25q0 .3-.17.53t-.45.32q-1.03.35-1.98.85t-1.8 1.2q-.2.18-.47.19t-.48-.2l-2.4-2.4q-.2-.2-.2-.48t.2-.47q1.9-1.7 4.7-2.8T12 9q3.2 0 6.05 1.1t4.7 2.79q.2.2.2.48t-.2.47l-2.4 2.4q-.2.2-.48.2t-.48-.19q-.84-.7-1.79-1.2t-1.98-.85q-.28-.09-.45-.32T15 13.55V10.3q-1.34-.44-2.87-.72T12 9Z',
-  chat: 'M6 14h8v-2H6v2Zm0-3h12V9H6v2Zm0-3h12V6H6v2ZM2 22V4q0-.82.59-1.41T4 2h16q.82 0 1.41.59T22 4v12q0 .82-.59 1.41T20 18H6l-4 4Zm3.2-6H20V4H4v13.12L5.2 16Z',
-  apps: 'M6 8q-.82 0-1.41-.59T4 6q0-.82.59-1.41T6 4q.82 0 1.41.59T8 6q0 .82-.59 1.41T6 8Zm6 0q-.82 0-1.41-.59T10 6q0-.82.59-1.41T12 4q.82 0 1.41.59T14 6q0 .82-.59 1.41T12 8Zm6 0q-.82 0-1.41-.59T16 6q0-.82.59-1.41T18 4q.82 0 1.41.59T20 6q0 .82-.59 1.41T18 8ZM6 14q-.82 0-1.41-.59T4 12q0-.82.59-1.41T6 10q.82 0 1.41.59T8 12q0 .82-.59 1.41T6 14Zm6 0q-.82 0-1.41-.59T10 12q0-.82.59-1.41T12 10q.82 0 1.41.59T14 12q0 .82-.59 1.41T12 14Zm6 0q-.82 0-1.41-.59T16 12q0-.82.59-1.41T18 10q.82 0 1.41.59T20 12q0 .82-.59 1.41T18 14ZM6 20q-.82 0-1.41-.59T4 18q0-.82.59-1.41T6 16q.82 0 1.41.59T8 18q0 .82-.59 1.41T6 20Zm6 0q-.82 0-1.41-.59T10 18q0-.82.59-1.41T12 16q.82 0 1.41.59T14 18q0 .82-.59 1.41T12 20Zm6 0q-.82 0-1.41-.59T16 18q0-.82.59-1.41T18 16q.82 0 1.41.59T20 18q0 .82-.59 1.41T18 20Z',
-  lock_person: 'M6 22q-.82 0-1.41-.59T4 20V10q0-.82.59-1.41T6 8h1V6q0-2.08 1.46-3.54T12 1q2.08 0 3.54 1.46T17 6v2h1q.82 0 1.41.59T20 10v10q0 .82-.59 1.41T18 22H6Zm0-2h12V10H6v10Zm6-2.5q1.04 0 1.77-.73T14.5 15q0-1.04-.73-1.77T12 12.5q-1.04 0-1.77.73T9.5 15q0 1.04.73 1.77T12 17.5ZM9 8h6V6q0-1.25-.87-2.12T12 3q-1.25 0-2.12.88T9 6v2Z',
-  info: 'M11 17h2v-6h-2v6Zm1-8q.42 0 .71-.29T13 8q0-.42-.29-.71T12 7q-.42 0-.71.29T11 8q0 .42.29.71T12 9Zm0 13q-2.08 0-3.9-.79t-3.16-2.15-2.15-3.16T2 12q0-2.08.79-3.9t2.15-3.16 3.16-2.15T12 2q2.08 0 3.9.79t3.16 2.15 2.15 3.16T22 12q0 2.08-.79 3.9t-2.15 3.16-3.16 2.15T12 22Zm0-2q3.35 0 5.68-2.33T20 12q0-3.35-2.32-5.67T12 4Q8.65 4 6.32 6.33T4 12q0 3.35 2.32 5.67T12 20Z',
-  keyboard: 'M4 18q-.82 0-1.41-.59T2 16V8q0-.82.59-1.41T4 6h16q.82 0 1.41.59T22 8v8q0 .82-.59 1.41T20 18H4Zm0-2h16V8H4v8Zm4-1h8v-1.5H8V15Zm-3-2.5h1.5V11H5v1.5Zm3 0h1.5V11H8v1.5Zm3 0h1.5V11H11v1.5Zm3 0h1.5V11H14v1.5Zm3 0h1.5V11H17v1.5ZM5 10h1.5V8.5H5V10Zm3 0h1.5V8.5H8V10Zm3 0h1.5V8.5H11V10Zm3 0h1.5V8.5H14V10Zm3 0h1.5V8.5H17V10Z',
-  keyboard_arrow_up: 'M12 10.8 8.1 14.7 6.7 13.3l5.3-5.3 5.3 5.3-1.4 1.4L12 10.8Z',
-  expand_more: 'M12 15.4 6.7 10.1l1.4-1.4 3.9 3.9 3.9-3.9 1.4 1.4L12 15.4Z',
-  chevron_left: 'M14.7 18 8.7 12l6-6 1.4 1.4L11.5 12l4.6 4.6L14.7 18Z',
-  chevron_right: 'M9.3 18 7.9 16.6 12.5 12 7.9 7.4 9.3 6l6 6-6 6Z',
-  close: 'M6.4 19 5 17.6l5.6-5.6L5 6.4 6.4 5l5.6 5.6L17.6 5 19 6.4 13.4 12l5.6 5.6L17.6 19 12 13.4 6.4 19Z',
-  content_copy: 'M9 18q-.82 0-1.41-.59T7 16V4q0-.82.59-1.41T9 2h9q.82 0 1.41.59T20 4v12q0 .82-.59 1.41T18 18H9Zm0-2h9V4H9v12Zm-4 6q-.82 0-1.41-.59T3 20V6h2v14h11v2H5Z',
-  add: 'M11 19v-6H5v-2h6V5h2v6h6v2h-6v6h-2Z',
-  link: 'M11 17H7q-2.08 0-3.54-1.46T2 12q0-2.08 1.46-3.54T7 7h4v2H7q-1.25 0-2.12.88T4 12q0 1.25.88 2.12T7 15h4v2Zm-3-4v-2h8v2H8Zm5 4v-2h4q1.25 0 2.12-.88T20 12q0-1.25-.88-2.12T17 9h-4V7h4q2.08 0 3.54 1.46T22 12q0 2.08-1.46 3.54T17 17h-4Z',
-  event: 'M5 22q-.82 0-1.41-.59T3 20V6q0-.82.59-1.41T5 4h1V2h2v2h8V2h2v2h1q.82 0 1.41.59T21 6v14q0 .82-.59 1.41T19 22H5Zm0-2h14V10H5v10Zm0-12h14V6H5v2Zm7 6q-.42 0-.71-.29T11 13q0-.42.29-.71T12 12q.42 0 .71.29T13 13q0 .42-.29.71T12 14Zm-4 0q-.42 0-.71-.29T7 13q0-.42.29-.71T8 12q.42 0 .71.29T9 13q0 .42-.29.71T8 14Zm8 0q-.42 0-.71-.29T15 13q0-.42.29-.71T16 12q.42 0 .71.29T17 13q0 .42-.29.71T16 14Zm-4 4q-.42 0-.71-.29T11 17q0-.42.29-.71T12 16q.42 0 .71.29T13 17q0 .42-.29.71T12 18Zm-4 0q-.42 0-.71-.29T7 17q0-.42.29-.71T8 16q.42 0 .71.29T9 17q0 .42-.29.71T8 18Zm8 0q-.42 0-.71-.29T15 17q0-.42.29-.71T16 16q.42 0 .71.29T17 17q0 .42-.29.71T16 18Z',
-  call: 'M19.95 21q-3.1 0-6.15-1.4t-5.5-3.85Q5.85 13.3 4.42 10.25T3 4.05q0-.45.3-.75T4.05 3h3.6q.35 0 .62.23t.35.57l.6 3.1q.05.3-.01.55t-.24.42L6.9 10.05q.85 1.5 2.16 2.82t2.86 2.28l1.95-1.95q.2-.2.45-.27t.55-.02l3.1.63q.35.07.57.34t.23.62v3.6q0 .45-.3.75t-.75.3Z',
-  help: 'M11.95 18q.52 0 .89-.37t.36-.88q0-.52-.37-.89t-.88-.36q-.52 0-.89.37t-.36.88q0 .52.37.89t.88.36Zm-.9-3.85h1.85q0-.83.19-1.3t1.06-1.3q.65-.65 1-1.24t.35-1.4q0-1.4-.94-2.15T12.1 5q-1.28 0-2.16.68T8.7 7.55l1.65.65q.15-.5.6-.94t1.13-.44q.62 0 1 .34t.37.9q0 .43-.25.83t-.7.83q-1.1 1-1.42 1.55t-.33 1.73ZM12 22q-2.08 0-3.9-.79t-3.16-2.15-2.15-3.16T2 12q0-2.08.79-3.9t2.15-3.16 3.16-2.15T12 2q2.08 0 3.9.79t3.16 2.15 2.15 3.16T22 12q0 2.08-.79 3.9t-2.15 3.16-3.16 2.15T12 22Z',
-  settings: 'm9.25 22-.4-3.2q-.32-.13-.63-.3t-.6-.4l-2.95 1.25-2.75-4.8 2.55-1.95q-.02-.17-.02-.35v-.7q0-.17.02-.35L1.92 9.25l2.75-4.75 2.95 1.25q.29-.23.6-.4t.63-.3L9.25 2h5.5l.4 3.2q.32.13.63.3t.6.4l2.95-1.25 2.75 4.75-2.55 1.95q.02.17.02.35v.7q0 .18-.02.35l2.55 1.95-2.75 4.8-2.95-1.25q-.29.23-.6.4t-.63.3l-.4 3.2h-5.5Zm2.8-6.5q1.45 0 2.48-1.02T15.55 12q0-1.45-1.02-2.47T12.05 8.5q-1.47 0-2.49 1.03T8.55 12q0 1.45 1.02 2.48t2.48 1.02Z',
-  person_add: 'M14 14v-2h8v2h-8Zm-6 2q-1.65 0-2.83-1.17T4 12q0-1.65 1.17-2.83T8 8q1.65 0 2.83 1.17T12 12q0 1.65-1.17 2.83T8 16Zm-8 6v-2.8q0-.85.44-1.55t1.16-1.07q1.5-.75 3.06-1.16T8 18q1.79 0 3.34.41t3.06 1.17q.72.37 1.16 1.07T16 22H0Z',
-  shield: 'm12 22q-3.47-.88-5.74-3.98T4 11.1V5l8-3 8 3v6.1q0 3.83-2.26 6.92T12 22Zm0-2.1q2.6-.83 4.3-3.3T18 11.1V6.4l-6-2.25L6 6.4v4.7q0 2.63 1.7 5.1T12 19.9Zm-.9-4.4 5.3-5.3-1.4-1.4-3.9 3.9-2-2-1.4 1.4 3.4 3.4Z',
-  description: 'M8 18h8v-2H8v2Zm0-4h8v-2H8v2Zm-2 8q-.82 0-1.41-.59T4 20V4q0-.82.59-1.41T6 2h8l6 6v12q0 .82-.59 1.41T18 22H6Zm7-13V4H6v16h12V9h-5Z',
-  visual_effects: 'M12 2.5 13.6 7l4.4 1.6L13.6 10.2 12 14.7 10.4 10.2 6 8.6 10.4 7 12 2.5ZM5 14l.9 2.6L8.5 17.5 5.9 18.4 5 21l-.9-2.6L1.5 17.5 4.1 16.6 5 14Zm13 -1 1 2.9 2.9 1-2.9 1-1 2.9-1-2.9-2.9-1 2.9-1 1-2.9Z',
-  frame_person: 'M3 21v-4h2v2h2v2H3Zm14 0v-2h2v-2h2v4h-4ZM3 7V3h4v2H5v2H3Zm16 0V5h-2V3h4v4h-2ZM12 12q-1.25 0-2.12-.88T9 9q0-1.25.88-2.12T12 6q1.25 0 2.13.88T15 9q0 1.25-.87 2.13T12 12Zm-5 6v-1.1q0-.85.83-1.38T12 14q2.35 0 3.18.52T16 15.9V18H7Z',
-  group: 'M1 18v-1.5q0-1.1 1.13-1.8T5 14q.33 0 .64.02t.61.08q-.38.55-.57 1.15T5.5 16.5V18H1Zm6 0v-1.5q0-.72.4-1.35t1.12-1.1 1.66-.68T12 13.1q1 0 1.84.22t1.66.69 1.11 1.1.39 1.34V18H7Zm11.5 0v-1.5q0-.65-.18-1.25t-.54-1.15q.3-.06.6-.08T20 14q1.75 0 2.88.7T24 16.5V18h-4.5ZM5 13q-.82 0-1.41-.59T3 11q0-.82.59-1.41T5 9q.82 0 1.41.59T7 11q0 .82-.59 1.41T5 13Zm14 0q-.82 0-1.41-.59T17 11q0-.82.59-1.41T19 9q.82 0 1.41.59T21 11q0 .82-.59 1.41T19 13Zm-7-1q-1.25 0-2.12-.88T9 9q0-1.25.88-2.12T12 6q1.25 0 2.13.88T15 9q0 1.25-.87 2.13T12 12Z',
-  present_to_all: 'M4 20q-.82 0-1.41-.59T2 18V6q0-.82.59-1.41T4 4h16q.82 0 1.41.59T22 6v12q0 .82-.59 1.41T20 18H4Zm0-2h16V6H4v12Zm3-2.5 5-5 5 5H7Z',
-  do_not_disturb_on: 'M7 13h10v-2H7v2Zm5 9q-2.08 0-3.9-.79t-3.16-2.15-2.15-3.16T2 12q0-2.08.79-3.9t2.15-3.16 3.16-2.15T12 2q2.08 0 3.9.79t3.16 2.15 2.15 3.16T22 12q0 2.08-.79 3.9t-2.15 3.16-3.16 2.15T12 22Z',
-  check: 'M9.55 17.6 4 12.05l1.4-1.4 4.15 4.15 9-9L20 7.2 9.55 17.6Z',
-  bolt: 'M6 22 8 14H4l7-12h2l-2 8h5l-8 12H6Z',
-  science: 'M4 22q-.9 0-1.35-.75t.05-1.5L9 10.5V4H8V2h8v2h-1v6.5l6.3 9.25q.5.75.05 1.5T20 22H4Zm2.5-3h11l-4.5-6.6V4h-2v8.4L6.5 19Z',
-  speed: 'M12 4q3.32 0 5.66 2.34T20 12q0 1.1-.29 2.13t-.86 1.95l-1.5-1.5q.32-.6.49-1.25T18 12q0-2.5-1.75-4.25T12 6Q9.5 6 7.75 7.75T6 12q0 .68.16 1.33t.49 1.25l-1.5 1.5q-.57-.92-.86-1.95T4 12q0-3.32 2.34-5.66T12 4Zm0 12q-.83 0-1.41-.59T10 14q0-.4.15-.75t.45-.65L15.8 7.5l-4.9 5.85q.24-.2.53-.28T12 13q.83 0 1.41.59T14 15q0 .83-.59 1.41T12 17Z',
-} as const;
+export interface SymOpts {
+  /** Meet fills the glyph for the selected nav item. */
+  fill?: boolean;
+  /** Optical size, matched to the rendered size like Meet does. */
+  opsz?: number;
+}
 
-/** Inline SVG for a Material Symbol. Decorative by default. */
-export function sym(name: IconName, size = 24, cls = ''): SVGSVGElement {
+/**
+ * One Material Symbol. A span, not an SVG — same mechanism as the real product,
+ * which is why the shapes match instead of merely resembling.
+ */
+export function sym(name: IconName, size = 24, opts: SymOpts = {}): HTMLElement {
+  const el = document.createElement('span');
+  el.className = 'ms';
+  el.setAttribute('aria-hidden', 'true');
+  el.textContent = name;
+  const opsz = opts.opsz ?? (size <= 20 ? 20 : size >= 40 ? 40 : 24);
+  el.style.fontSize = `${size}px`;
+  el.style.fontVariationSettings = `"FILL" ${opts.fill ? 1 : 0}, "wght" 400, "GRAD" 0, "opsz" ${opsz}`;
+  return el;
+}
+
+/**
+ * The mark, redrawn from the 2026 asset.
+ *
+ * Sampled off gstatic's own PNG: body a yellow gradient around #FFD723 → #FECE06,
+ * lens horn #F9AA01, and a white record dot low-left. Not the old tricolour
+ * camera — that logo was retired.
+ */
+function mark(size = 26): SVGSVGElement {
   const ns = 'http://www.w3.org/2000/svg';
   const svg = document.createElementNS(ns, 'svg');
-  svg.setAttribute('viewBox', '0 0 24 24');
-  svg.setAttribute('width', String(size));
+  svg.setAttribute('viewBox', '0 0 34 28');
+  svg.setAttribute('width', String(Math.round(size * 34 / 28)));
   svg.setAttribute('height', String(size));
   svg.setAttribute('aria-hidden', 'true');
-  svg.setAttribute('focusable', 'false');
-  if (cls) svg.setAttribute('class', cls);
-  const p = document.createElementNS(ns, 'path');
-  p.setAttribute('d', paths[name]);
-  p.setAttribute('fill', 'currentColor');
-  svg.appendChild(p);
+  svg.setAttribute('class', 'lk-mark');
+
+  const grad = document.createElementNS(ns, 'linearGradient');
+  grad.setAttribute('id', 'lkg');
+  grad.setAttribute('x1', '0'); grad.setAttribute('y1', '0');
+  grad.setAttribute('x2', '1'); grad.setAttribute('y2', '1');
+  for (const [off, col] of [['0', '#FFDA45'], ['0.55', '#FFD11B'], ['1', '#FBC900']]) {
+    const s = document.createElementNS(ns, 'stop');
+    s.setAttribute('offset', off);
+    s.setAttribute('stop-color', col);
+    grad.appendChild(s);
+  }
+  const defs = document.createElementNS(ns, 'defs');
+  defs.appendChild(grad);
+  svg.appendChild(defs);
+
+  // lens horn first, so the body's rounded corner sits over its root
+  const horn = document.createElementNS(ns, 'path');
+  horn.setAttribute('d', 'M21 11.2 30.2 6.4a1 1 0 0 1 1.5.9v13.4a1 1 0 0 1-1.5.9L21 16.8Z');
+  horn.setAttribute('fill', '#F9AA01');
+  svg.appendChild(horn);
+
+  const body = document.createElementNS(ns, 'rect');
+  body.setAttribute('x', '1.6'); body.setAttribute('y', '4.4');
+  body.setAttribute('width', '20.6'); body.setAttribute('height', '19.2');
+  body.setAttribute('rx', '4.6');
+  body.setAttribute('fill', 'url(#lkg)');
+  svg.appendChild(body);
+
+  const dot = document.createElementNS(ns, 'circle');
+  dot.setAttribute('cx', '7.2'); dot.setAttribute('cy', '18.2'); dot.setAttribute('r', '2.5');
+  dot.setAttribute('fill', '#fff');
+  svg.appendChild(dot);
+
   return svg;
 }
 
 /**
- * The product lockup. Deliberately not Google's mark — the glyph is the same
- * family of shape so the pastiche reads instantly, but the wordmark is this
- * project's own name. See the note in the build log about why.
+ * The lockup, and the one liberty this clone takes with it.
+ *
+ * It renders as "Google Meet", then "Nam" flies in from the right, lands, the
+ * whole wordmark takes the hit, and "Google" is knocked out of it — leaving
+ * "Meet Nam". Which is the entire pitch, in one word of movement.
+ *
+ * Under reduced-motion it is simply "Meet Nam" from the start; nothing flies.
  */
-export function lockup(): HTMLElement {
-  const ns = 'http://www.w3.org/2000/svg';
-  const svg = document.createElementNS(ns, 'svg');
-  svg.setAttribute('viewBox', '0 0 40 28');
-  svg.setAttribute('width', '34');
-  svg.setAttribute('height', '24');
-  svg.setAttribute('aria-hidden', 'true');
-  const shapes: [string, string][] = [
-    ['M2 8a2 2 0 0 1 2-2h4v16H4a2 2 0 0 1-2-2V8Z', '#fbbc04'],
-    ['M8 6h10a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H8V6Z', '#ea4335'],
-    ['M20 11.5 30 6v16l-10-5.5v-5Z', '#34a853'],
-  ];
-  for (const [d, fill] of shapes) {
-    const p = document.createElementNS(ns, 'path');
-    p.setAttribute('d', d);
-    p.setAttribute('fill', fill);
-    svg.appendChild(p);
-  }
+export function lockup(reducedMotion = false): HTMLElement {
   const wrap = document.createElement('div');
-  wrap.className = 'lockup';
-  wrap.appendChild(svg);
-  const word = document.createElement('span');
-  word.className = 'lockup-word';
-  word.textContent = 'Callback';
-  wrap.appendChild(word);
+  wrap.className = `lockup${reducedMotion ? ' lk-static' : ' lk-play'}`;
+  wrap.appendChild(mark(26));
+
+  const words = document.createElement('div');
+  words.className = 'lk-words';
+
+  const google = document.createElement('span');
+  google.className = 'lk-google';
+  google.textContent = 'Google';
+
+  const meet = document.createElement('span');
+  meet.className = 'lk-meet';
+  meet.textContent = 'Meet';
+
+  const nam = document.createElement('span');
+  nam.className = 'lk-nam';
+  nam.textContent = 'Nam';
+
+  words.append(google, meet, nam);
+  wrap.appendChild(words);
+
+  // One accessible name for the whole thing, so a screen reader hears the
+  // destination rather than three fragments mid-animation.
+  wrap.setAttribute('role', 'img');
+  wrap.setAttribute('aria-label', 'Meet Nam');
+  for (const el of [google, meet, nam]) el.setAttribute('aria-hidden', 'true');
+
   return wrap;
 }

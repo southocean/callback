@@ -6,7 +6,7 @@
 
 export type Screen = 'home' | 'lobby' | 'call' | 'ended';
 export type Panel = 'none' | 'chat' | 'people' | 'present' | 'offclock' | 'tools' | 'host';
-export type EngTab = 'spec' | 'tests' | 'a11y' | 'perf' | 'fx' | 'net' | 'reqs';
+export type EngTab = 'spec' | 'design' | 'tests' | 'a11y' | 'perf' | 'fx' | 'net' | 'reqs';
 export type FxPreset = 'off' | 'soften' | 'normalise' | 'edges' | 'kaleido';
 export type NetProfile = 'good' | 'shaky' | 'hotel' | 'collapse';
 
@@ -176,7 +176,7 @@ export interface Route {
 }
 
 const panels: Panel[] = ['chat', 'people', 'present', 'offclock', 'tools', 'host'];
-const engTabs: EngTab[] = ['spec', 'tests', 'a11y', 'perf', 'fx', 'net', 'reqs'];
+const engTabs: EngTab[] = ['spec', 'design', 'tests', 'a11y', 'perf', 'fx', 'net', 'reqs'];
 
 export function parseRoute(hash: string): Route {
   const raw = hash.replace(/^#\/?/, '');

@@ -234,7 +234,7 @@ export function renderCall(store: Store, quests: Quests, deps: CallDeps): HTMLEl
     return { on, icon: on ? 'videocam' : 'videocam_off', label: on ? 'Turn off camera' : 'Turn on camera' };
   });
 
-  const presentBtn = cbtn('Present now', 'computer_arrow_up', '', () => store.dispatch({ t: 'panel', panel: 'present' }),
+  const presentBtn = cbtn('Present now', 'present_to_all', '', () => store.dispatch({ t: 'panel', panel: 'present' }),
     () => ({ on: store.get().panel === 'present' }));
 
   const reactBtn = cbtn('Send a reaction', 'mood', '', () => reactions(), () => ({ on: false }));

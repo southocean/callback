@@ -10,8 +10,8 @@
 
 import { h, clear } from '../dom.js';
 import { sym, lockup } from './icons.js';
+import { openDev } from './devopen.js';
 import type { Store } from '../state.js';
-import { profile } from '../data/cv.js';
 
 const DAYS = ['SUN', 'MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT'];
 
@@ -44,7 +44,7 @@ function slot(): { day: string; date: number; label: string; week: { n: string; 
   };
 }
 
-export function renderHome(store: Store): HTMLElement {
+export function renderHome(store: Store, reducedMotion = false): HTMLElement {
   const s = slot();
 
   // --- top bar -------------------------------------------------------------
@@ -58,7 +58,7 @@ export function renderHome(store: Store): HTMLElement {
 
   const join = h(
     'button',
-    { class: 'composer-join', type: 'button', onclick: () => tryCode() },
+    { class: 'composer-join', type: 'button', 'aria-disabled': 'true', onclick: () => tryCode() },
     'Join',
   ) as HTMLButtonElement;
 
@@ -81,7 +81,9 @@ export function renderHome(store: Store): HTMLElement {
   }
 
   input.addEventListener('input', () => {
-    join.classList.toggle('live', input.value.trim().length > 0);
+    const live = input.value.trim().length > 0;
+    join.classList.toggle('live', live);
+    join.setAttribute('aria-disabled', live ? 'false' : 'true');
   });
   input.addEventListener('keydown', (e) => {
     if ((e as KeyboardEvent).key === 'Enter') tryCode();
@@ -90,29 +92,42 @@ export function renderHome(store: Store): HTMLElement {
   const bar = h(
     'header',
     { class: 'home-bar' },
-    lockup(),
+    lockup(reducedMotion),
     h(
       'div',
       { class: 'home-composer' },
-      h('div', { class: 'composer-pill' }, sym('keyboard', 22), input, join),
+      h('div', { class: 'composer-pill' }, sym('keyboard', 24), input, join),
       h(
         'button',
         {
-          class: 'm-btn m-tonal',
+          class: 'm-btn m-tonal m-new',
           type: 'button',
           onclick: () => store.dispatch({ t: 'screen', screen: 'lobby' }),
         },
-        sym('videocam', 20),
+        sym('videocam', 24),
         'New',
       ),
     ),
     h(
       'div',
       { class: 'home-bar-right' },
-      h('button', { class: 'icon-btn', type: 'button', 'aria-label': 'Support' }, sym('help', 22)),
-      h('button', { class: 'icon-btn', type: 'button', 'aria-label': 'Settings' }, sym('settings', 22)),
-      h('button', { class: 'icon-btn', type: 'button', 'aria-label': 'Google apps' }, sym('apps', 20)),
-      h('button', { class: 'avatar-btn', type: 'button', 'aria-label': `Signed in as ${profile.name}` }, 'NN'),
+      h('button', { class: 'icon-btn', type: 'button', 'aria-label': 'Support' }, sym('help', 24)),
+      h(
+        'button',
+        {
+          class: 'icon-btn',
+          type: 'button',
+          'aria-label': 'Settings — build notes for this page',
+          onclick: () => { void openDev(store); },
+        },
+        sym('settings', 24),
+      ),
+      h('button', { class: 'icon-btn', type: 'button', 'aria-label': 'Google apps' }, sym('apps', 22)),
+      h(
+        'button',
+        { class: 'avatar-btn', type: 'button', 'aria-label': 'Account: you, the person reading this' },
+        h('span', {}, 'G'),
+      ),
     ),
   );
 
@@ -124,7 +139,7 @@ export function renderHome(store: Store): HTMLElement {
     h(
       'button',
       { class: 'rail-item', type: 'button', 'aria-current': 'true' },
-      h('span', { class: 'rail-pill' }, sym('event', 22)),
+      h('span', { class: 'rail-pill' }, sym('event', 24, { fill: true })),
       h('span', { class: 'rail-label' }, 'Meetings'),
     ),
     h(
@@ -135,25 +150,25 @@ export function renderHome(store: Store): HTMLElement {
         'aria-current': 'false',
         onclick: () => store.dispatch({ t: 'plain', on: true }),
       },
-      h('span', { class: 'rail-pill' }, sym('description', 22)),
+      h('span', { class: 'rail-pill' }, sym('description', 24)),
       h('span', { class: 'rail-label' }, 'CV'),
     ),
   );
 
   // --- main ----------------------------------------------------------------
 
-  const main = h(
-    'main',
-    { class: 'home-main', id: 'main' },
+  const col = h(
+    'div',
+    { class: 'home-col' },
     h(
       'div',
       { class: 'date-row' },
       h('h1', { class: 'date-title' }, s.day),
-      sym('event', 20),
+      sym('calendar_month', 20),
       h(
         'div',
         { class: 'week' },
-        h('button', { class: 'icon-btn', type: 'button', 'aria-label': 'Previous week' }, sym('chevron_left', 22)),
+        h('button', { class: 'icon-btn', type: 'button', 'aria-label': 'Previous week' }, sym('chevron_left', 24)),
         ...s.week.map((d) =>
           h(
             'button',
@@ -162,7 +177,7 @@ export function renderHome(store: Store): HTMLElement {
             h('span', { class: 'day-num' }, String(d.d)),
           ),
         ),
-        h('button', { class: 'icon-btn', type: 'button', 'aria-label': 'Next week' }, sym('chevron_right', 22)),
+        h('button', { class: 'icon-btn', type: 'button', 'aria-label': 'Next week' }, sym('chevron_right', 24)),
       ),
     ),
 
@@ -233,6 +248,8 @@ export function renderHome(store: Store): HTMLElement {
       ),
     ),
   );
+
+  const main = h('main', { class: 'home-main', id: 'main' }, col);
 
   const wrap = h(
     'div',

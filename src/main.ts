@@ -10,6 +10,7 @@ import { renderEnded } from './ui/ended.js';
 import { renderPlain } from './ui/plain.js';
 import { prefersReducedMotion } from './a11y.js';
 import { Quests, konami } from './achievements.js';
+import { openDev } from './ui/devopen.js';
 
 const root = must('#app');
 const quests = new Quests();
@@ -94,7 +95,7 @@ function render(): void {
   document.getElementById('static-home')?.remove();
 
   clear(root);
-  if (key === 'home') root.appendChild(renderHome(store));
+  if (key === 'home') root.appendChild(renderHome(store, s.reducedMotion));
   else if (key === 'lobby') root.appendChild(renderLobby(store, media));
   else if (key === 'ended') root.appendChild(renderEnded(store, quests));
   else root.appendChild(renderCall(store, quests, { video, canvas, toggleCamera }));
@@ -190,7 +191,7 @@ function showHelp(): void {
 // nothing at all for the people who never find it.
 konami(() => {
   quests.unlock('konami');
-  void import('./ui/devportal.js').then((m) => m.openDevPortal(store.get().reducedMotion));
+  void openDev(store);
 });
 
 // Reading the whole build log is its own quiet achievement.

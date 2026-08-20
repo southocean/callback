@@ -1,10 +1,48 @@
-/* Callback — a faithful Google Meet clone, used as a CV.
-   Every colour, radius and size below was measured off meet.google.com — computed
-   styles read from the live DOM, not sampled from a screenshot. Fonts are the
-   real Meet stack with a
-   system fallback — Google Sans is not fetchable and this project still ships
-   zero third-party requests, so the shapes are exact and the typeface is the
-   nearest thing already on your machine. */
+/* Callback — a measured rebuild of Google Meet, used as a CV.
+   Every colour, radius, size and easing below was read off meet.google.com's
+   live DOM — computed styles and bounding boxes across all four screens — and
+   then implemented from scratch. No Google stylesheet or asset is used.
+
+   Typefaces: Meet renders in Google Sans / Google Sans Text / Google Sans Flex
+   with Product Sans for the wordmark, and none of those are distributable. What
+   it declares *after* them is Roboto, which is Apache-2.0 — so that is what
+   ships here, self-hosted. Icons are a 7 kB subset of Material Symbols
+   Outlined (also Apache-2.0), the open sibling of Meet's Google Symbols, driven
+   by the same FILL axis. Zero third-party requests either way. */
+
+@font-face {
+  font-family: 'Roboto';
+  src: url('fonts/roboto-latin.woff2') format('woff2-variations');
+  font-weight: 100 900;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Material Symbols Outlined';
+  src: url('fonts/symbols-subset.woff2') format('woff2-variations');
+  font-weight: 100 700;
+  font-style: normal;
+  font-display: block;
+}
+
+/* One symbol. Same mechanism as the product: a ligature span on a variable
+   font, with FILL driven per-instance rather than two separate glyph sets. */
+.ms {
+  font-family: 'Material Symbols Outlined';
+  font-weight: normal;
+  font-style: normal;
+  line-height: 1;
+  letter-spacing: normal;
+  text-transform: none;
+  display: inline-block;
+  white-space: nowrap;
+  word-wrap: normal;
+  direction: ltr;
+  font-feature-settings: 'liga';
+  -webkit-font-smoothing: antialiased;
+  flex: 0 0 auto;
+  user-select: none;
+}
 
 :root {
   /* Chrome's Auto Dark Mode inverts light pages on some machines, which turned
@@ -48,7 +86,8 @@
   --dark-blue:    #a8c7fa;
 
   /* geometry, all measured */
-  --topbar:  56px;
+  --topbar:  64px;   /* home + lobby. The in-call bar is 56. */
+  --callbar: 56px;
   --botbar:  80px;
   --ctl-h:   48px;
   --ctl-r:   24px;
@@ -56,8 +95,32 @@
   --panel-w: 360px;
   --panel-r: 20px;
 
+  /* Meet's own stack. The Google faces are not shippable, so Roboto — which
+     Meet itself names next — is the one that actually resolves. */
   --font: "Google Sans Flex", "Google Sans Text", "Google Sans", Roboto,
           system-ui, -apple-system, "Segoe UI", Arial, sans-serif;
+
+  /* Measured surfaces that differ from the generic field colour */
+  --composer:   #e9eef6;   /* the code pill — not #f0f4f9 */
+  --disabled-bg: rgba(31,31,31,.12);
+  --disabled-fg: rgba(16,16,16,.3);
+
+  /* Motion, lifted from Meet's own transition declarations.
+     --ease-spring overshoots (1.4) and is what Meet uses to morph button
+     shape on press; --ease-emph is its emphasised move; --ease-std is the
+     Material standard curve. */
+  --ease-spring: cubic-bezier(0.4, 0.1, 0.5, 1.4);
+  --ease-emph:   cubic-bezier(0.27, 1.06, 0.18, 1);
+  --ease-std:    cubic-bezier(0.4, 0, 0.2, 1);
+  --t-shape: .35s;   /* border-radius morph      */
+  --t-fast:  .1s;    /* nav pill width / opacity */
+  --t-fade:  .15s;   /* opacity                  */
+  --t-move:  .25s;   /* panels, transforms       */
+
+  /* Material state layers: the opacity Google overlays for interaction. */
+  --state-hover: .08;
+  --state-focus: .1;
+  --state-press: .1;
 }
 
 * { box-sizing: border-box; }
@@ -97,12 +160,22 @@ button { font: inherit; }
 .m-text:hover { background: rgba(11,87,208,.08); }
 .m-tonal { background: var(--newbtn); color: var(--newbtn-ink); }
 .m-tonal:hover { filter: brightness(.96); }
-
-.icon-btn {
-  width: 40px; height: 40px; border-radius: 50%; border: 0; background: transparent;
-  color: var(--sec); display: grid; place-items: center; cursor: pointer; flex: 0 0 auto;
+/* "New" is taller and less round than a dialog button: 48px at radius 24,
+   16px of side padding, and it morphs shape on press. */
+.m-new {
+  height: 48px; border-radius: 24px; padding: 0 16px; gap: 8px;
+  transition: border-radius var(--t-shape) var(--ease-spring), filter var(--t-fade) var(--ease-std);
 }
-.icon-btn:hover { background: rgba(31,31,31,.08); }
+.m-new:active { border-radius: 10px; }
+
+/* 40x40, radius 20 (not 50%), and Meet morphs it toward a squircle on press. */
+.icon-btn {
+  width: 40px; height: 40px; border-radius: 20px; border: 0; background: transparent;
+  color: var(--sec); display: grid; place-items: center; cursor: pointer; flex: 0 0 auto;
+  transition: border-radius var(--t-shape) var(--ease-spring), background-color var(--t-fade) var(--ease-std);
+}
+.icon-btn:hover { background: rgba(31,31,31,var(--state-hover)); }
+.icon-btn:active { border-radius: 10px; background: rgba(31,31,31,var(--state-press)); }
 .icon-btn.on-dark { color: #fff; }
 .icon-btn.on-dark:hover { background: rgba(255,255,255,.12); }
 
@@ -110,20 +183,53 @@ button { font: inherit; }
 
 .home { min-height: 100%; display: flex; flex-direction: column; }
 
+/* Three columns, not a flex row with fighting auto-margins: Meet centres the
+   composer against the viewport, not against the space left over by the logo. */
 .home-bar {
-  height: var(--topbar); flex: 0 0 auto; display: flex; align-items: center;
-  padding: 0 16px; gap: 12px;
+  height: var(--topbar); flex: 0 0 auto; display: grid; align-items: center;
+  grid-template-columns: 1fr auto 1fr; padding: 0 8px 0 16px; gap: 12px;
 }
-.lockup { display: flex; align-items: center; gap: 6px; }
-.lockup-word {
-  font: 400 22px/1 var(--font); color: #5f6368; letter-spacing: -.2px;
+.lockup { display: flex; align-items: center; gap: 7px; flex: 0 0 auto; }
+.lk-words { display: flex; align-items: baseline; font: 400 22px/1.1 var(--font); letter-spacing: -.3px; white-space: nowrap; }
+.lk-google { color: #212327; }
+.lk-meet   { color: #5f6368; margin-left: .26em; }
+.lk-nam    { color: #5f6368; margin-left: .26em; }
+
+/* "Nam" flies in, lands, the wordmark takes the hit, and "Google" is knocked
+   out of it. One word of movement that says the whole thing. */
+.lk-play .lk-nam    { animation: lk-fly .52s var(--ease-spring) .55s both; }
+.lk-play .lk-words  { animation: lk-hit .2s var(--ease-emph) 1.05s both; }
+.lk-play .lk-google { animation: lk-out .42s var(--ease-emph) 1.05s both; }
+.lk-play .lk-mark   { animation: lk-bump .2s var(--ease-emph) 1.05s both; }
+
+@keyframes lk-fly {
+  from { opacity: 0; transform: translateX(96px) scale(1.08); }
+  60%  { opacity: 1; }
+  to   { opacity: 1; transform: none; }
 }
-.home-composer {
-  margin: 0 auto; display: flex; align-items: center; gap: 12px;
+@keyframes lk-hit {
+  0%, 100% { transform: none; }
+  35%      { transform: translateX(-3px); }
 }
+@keyframes lk-bump {
+  0%, 100% { transform: none; }
+  35%      { transform: translateX(-2px) rotate(-3deg); }
+}
+@keyframes lk-out {
+  from { max-width: 5em; opacity: 1; }
+  to   { max-width: 0;  opacity: 0; }
+}
+.lk-google { overflow: hidden; }
+/* Reduced motion: it simply reads "Meet Nam" and nothing moves. */
+.lk-static .lk-google { display: none; }
+.lk-static .lk-meet { margin-left: 0; }
+.home-composer { display: flex; align-items: center; gap: 8px; justify-self: center; }
+/* Measured: 48px tall, radius 999px, background #e9eef6, max-width 384px,
+   4px of right padding so the Join button's own 4px margin centres it. */
 .composer-pill {
-  display: flex; align-items: center; height: 48px; border-radius: 28px;
-  background: var(--surface); padding: 0 6px 0 16px; min-width: 340px;
+  display: flex; align-items: center; height: 48px; border-radius: 999px;
+  background: var(--composer); padding: 0 4px 0 16px; gap: 5px;
+  width: 384px; max-width: 384px;
 }
 .composer-pill svg { color: var(--sec); flex: 0 0 auto; }
 .composer-pill input {
@@ -131,28 +237,47 @@ button { font: inherit; }
   font: 400 16px/1 var(--font); color: var(--ink); padding: 0 12px; min-width: 0;
 }
 .composer-pill input::placeholder { color: var(--sec); }
+/* Disabled is a real filled button in Meet, not ghost text: a 12% black
+   surface with 30% black label, 40px tall at radius 20 inside the 48px pill. */
 .composer-join {
-  height: 36px; border-radius: 18px; border: 0; background: transparent; cursor: pointer;
-  padding: 0 18px; font: 500 14px/1 var(--font); color: rgba(31,31,31,.38);
+  height: 40px; margin: 4px 0; border-radius: 20px; border: 0; cursor: default;
+  padding: 0 16px; font: 500 14px/1 var(--font);
+  background: var(--disabled-bg); color: var(--disabled-fg);
+  transition: border-radius var(--t-shape) var(--ease-spring), background-color var(--t-fade) var(--ease-std);
 }
-.composer-join.live { color: var(--blue); }
-.composer-join.live:hover { background: rgba(11,87,208,.08); }
-.home-bar-right { display: flex; align-items: center; gap: 4px; margin-left: auto; }
+.composer-join.live { background: var(--blue); color: #fff; cursor: pointer; }
+.composer-join.live:hover { background: #0a4fbb; }
+.composer-join:active { border-radius: 8px; }
+.home-bar-right { display: flex; align-items: center; gap: 8px; justify-self: end; }
+/* Measured: a 40x40 hit area with 4px of padding, so the picture is 32px and
+   sits inside a ring of clear space. That gap is why Meet's avatar reads as a
+   photo rather than a button. */
 .avatar-btn {
-  width: 32px; height: 32px; border-radius: 50%; border: 0; cursor: pointer; padding: 0;
+  width: 40px; height: 40px; border-radius: 50%; border: 0; cursor: pointer;
+  padding: 4px; background: transparent; display: grid; place-items: center;
+  flex: 0 0 auto;
+  transition: background-color var(--t-fade) var(--ease-std);
+}
+.avatar-btn:hover { background: rgba(31,31,31,var(--state-hover)); }
+.avatar-btn > span {
+  width: 32px; height: 32px; border-radius: 50%;
   background: linear-gradient(145deg, #8ab4f8, #34a853); color: #10221a;
-  font: 500 13px/1 var(--font); display: grid; place-items: center; margin-left: 8px;
+  font: 500 13px/1 var(--font); display: grid; place-items: center;
 }
 
 .home-body { flex: 1 1 auto; display: flex; min-height: 0; }
 .rail { flex: 0 0 104px; padding-top: 48px; }
+/* 104x56 items on a 70px pitch — 14px of air between them. */
 .rail-item {
   width: 104px; height: 56px; border: 0; background: transparent; cursor: pointer;
   display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 0;
+  margin-bottom: 14px;
 }
 .rail-pill {
   width: 56px; height: 32px; border-radius: 9999px; display: grid; place-items: center;
   color: var(--sec);
+  transition: width var(--t-fast) var(--ease-emph), opacity var(--t-fast) var(--ease-emph),
+              background-color var(--t-fast) var(--ease-emph);
 }
 .rail-item[aria-current="true"] .rail-pill { background: var(--nav-pill); color: var(--nav-icon); }
 .rail-label { font: 500 12px/16px var(--font); letter-spacing: .1px; color: var(--sec); }
@@ -160,21 +285,29 @@ button { font: inherit; }
 .rail-item:hover .rail-pill { background: rgba(31,31,31,.06); }
 .rail-item[aria-current="true"]:hover .rail-pill { background: var(--nav-pill); }
 
-.home-main { flex: 1 1 auto; padding: 32px 40px 60px; max-width: 1180px; }
+/* Meet's main is a flex row with justify-content:center around a 1052px
+   column. Ours was left-aligned, which was the single most visible miss. */
+.home-main { flex: 1 1 auto; display: flex; justify-content: center; padding: 32px 24px 60px; min-width: 0; }
+.home-col { width: 100%; max-width: 1052px; min-width: 0; }
 .date-row { display: flex; align-items: center; gap: 12px; margin-bottom: 28px; }
 .date-title { font: 400 22px/1.2 var(--font); color: var(--ink); }
-.week { margin-left: auto; display: flex; align-items: center; gap: 2px; }
+.week { margin-left: auto; display: flex; align-items: center; gap: 10px; }
+/* The selected day is a 48x56 pill at radius 28 behind BOTH the weekday and
+   the number — not a circle on the number. Measured, after getting it wrong. */
 .day {
-  width: 48px; text-align: center; border: 0; background: transparent; cursor: pointer;
-  padding: 4px 0; border-radius: 12px;
+  width: 48px; height: 56px; text-align: center; border: 0; background: transparent;
+  cursor: pointer; padding: 6px 0 0; border-radius: 28px;
+  display: flex; flex-direction: column; align-items: center; gap: 2px;
+  transition: background-color var(--t-fast) var(--ease-emph);
 }
+.day:hover { background: rgba(31,31,31,var(--state-hover)); }
+.day[aria-current="true"] { background: var(--nav-pill); }
+.day[aria-current="true"]:hover { background: var(--nav-pill); }
 .day-name { display: block; font: 500 11px/16px var(--font); letter-spacing: .1px; color: var(--sec); }
 .day-num { display: block; font: 400 16px/24px var(--font); color: var(--ink); }
-.day[aria-current="true"] .day-num {
-  background: var(--nav-pill); border-radius: 50%; width: 32px; height: 32px;
-  display: grid; place-items: center; margin: 0 auto; color: var(--nav-icon);
-}
-.day[aria-current="true"] .day-name { color: var(--nav-label); }
+.day[aria-current="true"] .day-name,
+.day[aria-current="true"] .day-num { color: var(--nav-icon); }
+.day[aria-current="true"] .day-num { font-weight: 500; }
 
 .banner {
   display: flex; align-items: center; gap: 16px; border: 1px solid var(--outline);
@@ -283,7 +416,7 @@ button { font: inherit; }
 
 .call { position: fixed; inset: 0; background: var(--canvas); display: flex; flex-direction: column; }
 .call-top {
-  height: var(--topbar); flex: 0 0 auto; display: flex; align-items: center;
+  height: var(--callbar); flex: 0 0 auto; display: flex; align-items: center;
   padding: 0 12px 0 24px; gap: 16px; color: #fff;
 }
 .call-clock { font: 500 16px/24px var(--font); letter-spacing: .1px; }
@@ -957,3 +1090,14 @@ body.plain { background: #fff; color: #16181c; }
   .dp-tabs { padding: 10px 12px; }
   .dp-body { padding: 18px 16px 60px; }
 }
+
+/* -------------------------------------------------------- design rules --- */
+
+.rule { padding: 10px 0; border-bottom: 1px solid var(--dark-line); }
+.rule-top { display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap; }
+.rule-top b { font: 500 13.5px/19px var(--font); color: var(--on-dark); }
+.rule-top code {
+  font: 400 11.5px/1.5 ui-monospace, Consolas, monospace; color: var(--dark-blue);
+  background: var(--dark-surface); border-radius: 4px; padding: 2px 7px;
+}
+.rule-note { font: 400 12.5px/18px var(--font); color: var(--on-dark2); margin-top: 3px; }
