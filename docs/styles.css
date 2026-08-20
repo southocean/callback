@@ -2203,3 +2203,54 @@ body.plain { background: #fff; color: #16181c; }
   .lobby-body.is-in > * { animation: none; }
   .join-card, .ready-words { transition: none; }
 }
+
+/* ---- the "Joining…" scrim ------------------------------------------------ */
+/* Over the home screen, not part of the lobby: the screen you were looking at
+   has to acknowledge the click before the next one arrives. ~250ms, which is
+   barely long enough to read and exactly long enough to feel. */
+.joining {
+  position: fixed; inset: 0; z-index: 90;
+  background: rgba(32, 33, 36, .55);
+  display: grid; place-items: center;
+  font: 400 30px/38px var(--font-title); color: #fff;
+  animation: joining-in .12s linear both;
+}
+@keyframes joining-in { from { opacity: 0; } to { opacity: 1; } }
+
+/* ---- the warning badge on Join now -------------------------------------- */
+/* Measured: a 16x16 circle at #FCBD00 straddling the button's top-left corner
+   (inset 8 from the left, overhanging 8 above), expanding to a 169x20 pill that
+   reveals its label. Radius stays 9999 the whole way, the fill never changes,
+   and overflow:hidden is what turns a width change into a reveal. */
+.warn-pill {
+  position: absolute; left: 8px; top: -8px; z-index: 3;
+  height: 16px; width: 16px;
+  border-radius: 9999px; background-color: #FCBD00;
+  display: flex; align-items: center; gap: 4px;
+  overflow: hidden; white-space: nowrap; cursor: default;
+  padding: 0; box-sizing: border-box;
+  transition: width .22s cubic-bezier(0.2, 0, 0, 1), height .22s cubic-bezier(0.2, 0, 0, 1),
+              padding .22s cubic-bezier(0.2, 0, 0, 1);
+}
+.warn-dot {
+  flex: 0 0 16px; width: 16px; height: 16px;
+  display: grid; place-items: center;
+  font: 700 11px/1 var(--font-title); color: #6D3A01;
+}
+.warn-text {
+  font: 500 11px/16px var(--font-title); color: #6D3A01;
+  opacity: 0; transition: opacity .14s linear .06s;
+}
+/* Hover OR keyboard focus, because a note nobody can reach is not a note. */
+.join-now:hover .warn-pill,
+.warn-pill:hover, .warn-pill:focus-visible {
+  width: 169px; height: 20px; padding-right: 10px;
+}
+.join-now:hover .warn-text,
+.warn-pill:hover .warn-text, .warn-pill:focus-visible .warn-text { opacity: 1; }
+.warn-pill:focus-visible { outline: 2px solid #6D3A01; outline-offset: 1px; }
+
+@media (prefers-reduced-motion: reduce) {
+  .joining { animation: none; }
+  .warn-pill, .warn-text { transition: none; }
+}

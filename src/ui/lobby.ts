@@ -193,6 +193,18 @@ export function renderLobby(store: Store, media: Media): HTMLElement {
         },
         focusRing(),
         h('span', {}, 'Join now'),
+        // Meet puts a warning badge on this button when it cannot find a
+        // microphone: a 16px circle straddling the top-left corner that expands
+        // into a pill on hover. Ours says the same thing and means it — this page
+        // never requests a microphone, so you really are joining without one.
+        // The alternative was showing the badge to people who DO have a mic,
+        // which would be a false statement in Google’s voice.
+        h(
+          'span',
+          { class: 'warn-pill', role: 'note', tabindex: '0' },
+          h('span', { class: 'warn-dot', 'aria-hidden': 'true' }, '!'),
+          h('span', { class: 'warn-text' }, 'You’re joining without mic'),
+        ),
       ),
       // Meet opens dial-in numbers here. We have no phone number, so this keeps
       // the shape of the screen and does nothing — a deliberate choice, recorded

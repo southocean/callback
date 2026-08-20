@@ -103,6 +103,21 @@ const DAY_SWITCH_MS = 420;
 
 const isToday = (d: Date): boolean => dayKey(d) === dayKey(TODAY);
 
+/**
+ * Meet dims the home screen and writes "Joining…" across it for about a quarter
+ * of a second before the green room appears. It is barely long enough to read,
+ * and leaving it out is why our join felt like a page swap rather than a
+ * transition — the screen you were looking at has to acknowledge the click
+ * before the next one arrives.
+ */
+const JOINING_MS = 250;
+
+function joining(then: () => void): void {
+  const scrim = h('div', { class: 'joining', role: 'status' }, 'Joining…');
+  document.body.appendChild(scrim);
+  window.setTimeout(() => { scrim.remove(); then(); }, JOINING_MS);
+}
+
 /** The interview is always "now", whenever you happen to open this. */
 function slot(on: Date): { day: string; date: number; label: string; week: { n: string; d: number; full: string; iso: string }[] } {
   const now = on;
@@ -171,7 +186,7 @@ export function renderHome(store: Store, reducedMotion = false, body?: HTMLEleme
     // The real codes go to the CV. Anything else behaves like Meet does when a
     // code is wrong, because pretending every string works would be worse.
     if (['nam-cv-2026', 'namcv2026', 'callback', 'nam', 'hire-nam'].includes(code)) {
-      store.dispatch({ t: 'screen', screen: 'lobby' });
+      joining(() => store.dispatch({ t: 'screen', screen: 'lobby' }));
       return;
     }
     if (code === 'up-up-down-down' || code === 'konami') {
@@ -220,7 +235,7 @@ export function renderHome(store: Store, reducedMotion = false, body?: HTMLEleme
           // Meet's own label, which also gives the tooltip something better than
           // the button's own text to read.
           'aria-label': 'New meeting',
-          onclick: () => store.dispatch({ t: 'screen', screen: 'lobby' }),
+          onclick: () => joining(() => store.dispatch({ t: 'screen', screen: 'lobby' })),
         },
         sym('video_call', 20),
         // Wrapped so the breakpoint can drop the word and keep the icon, which
@@ -452,7 +467,7 @@ export function renderHome(store: Store, reducedMotion = false, body?: HTMLEleme
       // is-primary is Meet's selected-meeting size, not just its colour.
       class: 'sched-card is-primary ring-host',
       type: 'button',
-      onclick: () => store.dispatch({ t: 'screen', screen: 'lobby' }),
+      onclick: () => joining(() => store.dispatch({ t: 'screen', screen: 'lobby' })),
     },
     focusRing(),
     h(
@@ -475,7 +490,7 @@ export function renderHome(store: Store, reducedMotion = false, body?: HTMLEleme
       class: 'sched-card ring-host',
       type: 'button',
       'aria-label': egg.title,
-      onclick: () => { location.hash = '#egg/' + egg.id; store.dispatch({ t: 'screen', screen: 'lobby' }); },
+      onclick: () => { location.hash = '#egg/' + egg.id; joining(() => store.dispatch({ t: 'screen', screen: 'lobby' })); },
     },
     focusRing(),
     h(
@@ -502,7 +517,7 @@ export function renderHome(store: Store, reducedMotion = false, body?: HTMLEleme
         class: 'm-btn m-tonal m-new',
         type: 'button',
         'aria-label': 'New meeting',
-        onclick: () => store.dispatch({ t: 'screen', screen: 'lobby' }),
+        onclick: () => joining(() => store.dispatch({ t: 'screen', screen: 'lobby' })),
       },
       sym('video_call', 20),
       h('span', { class: 'm-new-label' }, 'New'),
