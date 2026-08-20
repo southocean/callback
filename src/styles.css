@@ -1394,12 +1394,10 @@ body.plain { background: #fff; color: #16181c; }
 /* ---- the wavy loader ---------------------------------------------------- */
 .load-pad { display: grid; place-items: center; min-height: 320px; }
 .spin { display: block; }
-.spin      { animation: spin-rot 2s linear infinite; }
+
 /* Rotating the arc inside the rotating svg is what makes the lit length appear
    to breathe, without animating the path itself. */
-/* No dash animation. The wave and the track are complementary arcs of one ring
-   now, so growing the active arc would slide it out from under its gap and
-   break the geometry. The ring simply turns. */
+
 @keyframes spin-rot  { to { transform: rotate(360deg); } }
 
 
@@ -1543,3 +1541,101 @@ body.plain { background: #fff; color: #16181c; }
    and only the fly-in or reduced-motion reveals it. */
 .lk-nam { opacity: 0; }
 .lk-static .lk-nam { opacity: 1; }
+
+
+/* ---- the loader, from Google’s own path data -------------------------- */
+/* Lengths are exact and precomputed, so nothing has to be measured at runtime:
+   the plain circle at R 22 is 138.23 long, and one wavy turn is 169.36 (1.2252
+   times longer, which is what the crests cost). The track is clipped to exactly
+   the complement of the lit arc minus a 10.5deg gap at each end — 21deg total,
+   the figure baked into Google’s own geometry.
+
+   Two loops on different periods is what stops it reading as mechanical: the
+   ring turns at a steady 2.2s while the lit arc breathes on an eased 1.5s. */
+.spin { display: block; animation: spin-rot 2.2s linear infinite; }
+.spin-arc, .spin-track { animation-duration: 1.5s; animation-iteration-count: infinite;
+  animation-direction: alternate; animation-timing-function: cubic-bezier(0.4, 0, 0.2, 1); }
+
+.spin-cold .spin-arc   { animation-name: arc-cold; }
+.spin-cold .spin-track { animation-name: trk-cold; }
+.spin-light .spin-arc   { animation-name: arc-light; }
+.spin-light .spin-track { animation-name: trk-light; }
+
+/* Cold start: the lit arc runs 8% to 60% of the ring. */
+@keyframes arc-cold { from { stroke-dasharray: 13.5 169.36; } to { stroke-dasharray: 101.6 169.36; } }
+@keyframes trk-cold {
+  from { stroke-dasharray: 119.1 138.23; stroke-dashoffset: -15.1; }
+  to   { stroke-dasharray: 47.2 138.23;  stroke-dashoffset: -87.0; }
+}
+/* Switching days is lighter work, and Meet says so with a shorter arc: 6% to
+   28%. Same ring, same gap, less of it lit. */
+@keyframes arc-light { from { stroke-dasharray: 10.2 169.36; } to { stroke-dasharray: 47.4 169.36; } }
+@keyframes trk-light {
+  from { stroke-dasharray: 121.8 138.23; stroke-dashoffset: -12.3; }
+  to   { stroke-dasharray: 91.4 138.23;  stroke-dashoffset: -42.7; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .spin, .spin-arc, .spin-track { animation: none; }
+  .spin-arc { stroke-dasharray: 60 169.36; }
+  .spin-track { stroke-dasharray: 70 138.23; stroke-dashoffset: -68; }
+}
+
+/* ============================================================================
+   The impact, choreographed as a cascade.
+
+   Not real physics — engineered to read as physics, which needs the events
+   staggered rather than simultaneous:
+
+     0.00s  the beat. "Google Meet", holding, nothing else moving.
+     0.55s  "Nam Nguyen" starts travelling in from the right.
+     1.00s  CONTACT. It reaches "Meet", and two things happen at once: Meet's
+            letters compress under the blow, and the name carries 7px PAST its
+            resting place — it is still moving, so it overshoots.
+     1.07s  the cascade. 70ms later the blow reaches "Google", which has taken
+            it second-hand and gives way, collapsing on an accelerating curve
+            rather than a symmetric one, because collapse is not a transition.
+     1.20s  Meet springs back past its normal tracking as it recovers, and that
+            expansion is what pushes the name right into its final position.
+
+   The 70ms is the whole trick. Simultaneous reads as a crossfade; staggered
+   reads as force travelling through the word. ========================= */
+.lockup {
+  --lk-delay: .55s;
+  --lk-hit: calc(var(--lk-delay) + .45s);
+  --lk-cascade: calc(var(--lk-hit) + .07s);
+}
+
+/* The name: in from the right, past the mark, then settled by Meet's recoil. */
+.lk-play .lk-nam {
+  animation: lk-fly .62s cubic-bezier(0.22, 0.61, 0.24, 1) var(--lk-delay) both;
+}
+@keyframes lk-fly {
+  0%   { opacity: 0; transform: translateX(110px); }
+  40%  { opacity: 1; }
+  72%  { transform: translateX(-7px); }   /* contact, carried past the mark */
+  86%  { transform: translateX(-2px); }
+  100% { opacity: 1; transform: translateX(0); }
+}
+
+/* Meet takes the blow: letters in hard, then out past normal, then rest. */
+.lk-play .lk-meet {
+  animation:
+    lk-close   .42s var(--ease-emph) var(--lk-hit) both,
+    lk-squeeze .52s cubic-bezier(0.3, 0.9, 0.3, 1) var(--lk-hit) both;
+}
+@keyframes lk-squeeze {
+  0%   { letter-spacing: normal; }
+  16%  { letter-spacing: -1.8px; }  /* compressed */
+  46%  { letter-spacing: .5px; }    /* recoil, past normal */
+  72%  { letter-spacing: -.15px; }
+  100% { letter-spacing: normal; }
+}
+
+/* Google gives way, second-hand and late, on an accelerating curve. */
+.lk-play .lk-google {
+  animation: lk-out .34s cubic-bezier(0.5, 0, 1, 1) var(--lk-cascade) both;
+}
+
+/* The mark feels it too, a little, and at the moment of contact. */
+.lk-play .lk-mark  { animation: lk-bump .22s var(--ease-emph) var(--lk-hit) both; }
+.lk-play .lk-words { animation: lk-hit .2s var(--ease-emph) var(--lk-hit) both; }

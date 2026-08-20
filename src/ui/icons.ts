@@ -256,53 +256,77 @@ export function lockup(reducedMotion = false, onHome?: () => void): HTMLElement 
  * load — switching days — and a long one for a cold start. A free, honest
  * signal of how much work is actually happening.
  */
-export function spinner(sweep = 130): SVGSVGElement {
+/**
+ * Meet's loading indicator: Material 3's wavy circular progress.
+ *
+ * Rebuilt from Google's own path data, which Nam pulled off the live page. That
+ * path decodes to a perfect circle of radius exactly 22.0000 about (32,32),
+ * sampled one point per degree and sweeping 0deg to 339deg — so a 21 degree
+ * gap, and it is the plain TRACK rather than the wavy part.
+ *
+ * Which settles the structure. It is one ring, not two objects:
+ *
+ *   - the wave oscillates about the ring's radius, crest outside and trough
+ *     inside, midline sitting exactly on it;
+ *   - the plain track is the arc the wave does not occupy;
+ *   - there is a gap between them, and 21 degrees total is what Google bakes
+ *     into the geometry.
+ *
+ * The remaining unknown was amplitude, and geometry decides it: at R 22 with a
+ * 4px stroke, an amplitude of 2.5 gives a painted extent of exactly 53.0px,
+ * which is what a frame of a real cold load measured. Nine crests per turn so
+ * the wave closes on itself seamlessly.
+ *
+ * The motion is two loops on different periods, which is the part that stops it
+ * looking mechanical: the ring turns steadily while the lit arc grows and
+ * shrinks on a slower, eased cycle. The track is clipped to exactly the
+ * complement, so the gap holds at both ends however long the lit arc is.
+ */
+export function spinner(light = false): SVGSVGElement {
   const ns = 'http://www.w3.org/2000/svg';
-  const C = 28;      // centre
-  const R = 21.5;    // the shared radius: wave midline AND plain track
-  const A = 2.8;     // wave amplitude
-  const K = 8;       // crests per full turn
-  const GAP = 12;    // degrees of clear space at each end of the wave
+  const C = 32;    // centre, from the real path
+  const R = 22;    // radius, from the real path — exact
+  const A = 2.5;   // amplitude: the value that yields the measured 53px extent
+  const K = 9;     // crests per turn
 
   const svg = document.createElementNS(ns, "svg");
-  svg.setAttribute("viewBox", "0 0 56 56");
-  svg.setAttribute("width", "56");
-  svg.setAttribute("height", "56");
-  svg.setAttribute("class", "spin");
+  svg.setAttribute("viewBox", "0 0 64 64");
+  svg.setAttribute("width", "64");
+  svg.setAttribute("height", "64");
+  svg.setAttribute("class", "spin " + (light ? "spin-light" : "spin-cold"));
   svg.setAttribute("role", "progressbar");
   svg.setAttribute("aria-label", "Loading");
 
-  /** Polar to cartesian, 0deg at twelve o'clock. */
   const at = (deg: number, r: number): [number, number] => {
     const rad = (deg * Math.PI) / 180;
     return [C + r * Math.cos(rad - Math.PI / 2), C + r * Math.sin(rad - Math.PI / 2)];
   };
 
-  const path = (from: number, to: number, wavy: boolean): string => {
-    const step = wavy ? 1.5 : 3;
+  // One point per degree for the track, matching how Google emits it.
+  const ring = (wavy: boolean): string => {
+    const step = wavy ? 1 : 1;
     let d = '';
-    for (let deg = from; deg <= to + 0.01; deg += step) {
-      const r = wavy ? R + A * Math.sin((((deg - from) * Math.PI) / 180) * K) : R;
+    for (let deg = 0; deg <= 360; deg += step) {
+      const r = wavy ? R + A * Math.sin(((deg * Math.PI) / 180) * K) : R;
       const [x, y] = at(deg, r);
       d += (d ? "L" : "M") + x.toFixed(2) + " " + y.toFixed(2);
     }
     return d;
   };
 
-  const line = (d: string, colour: string, cls?: string): SVGPathElement => {
+  const line = (d: string, colour: string, cls: string): SVGPathElement => {
     const p = document.createElementNS(ns, "path");
     p.setAttribute("d", d);
     p.setAttribute("fill", "none");
     p.setAttribute("stroke", colour);
     p.setAttribute("stroke-width", "4");
     p.setAttribute("stroke-linecap", "round");
-    if (cls) p.setAttribute("class", cls);
+    p.setAttribute("class", cls);
     return p;
   };
 
-  // The inactive remainder of the same ring, inset by the gap at both ends.
-  svg.appendChild(line(path(sweep + GAP, 360 - GAP, false), "#a8c7fa"));
-  svg.appendChild(line(path(0, sweep, true), "#0b57d0", "spin-arc"));
+  svg.appendChild(line(ring(false), "#a8c7fa", "spin-track"));
+  svg.appendChild(line(ring(true), "#0b57d0", "spin-arc"));
   return svg;
 }
 
