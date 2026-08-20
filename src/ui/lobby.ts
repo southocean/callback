@@ -88,11 +88,11 @@ export function renderLobby(store: Store, media: Media): HTMLElement {
             const on = b.classList.toggle('off');
             b.setAttribute('aria-label', on ? 'Turn on microphone' : 'Turn off microphone');
             clear(b);
-            b.appendChild(sym(on ? 'mic_off' : 'mic', 22));
+            b.appendChild(sym(on ? 'mic_off' : 'mic', 24));
             store.dispatch({ t: 'mic', on: !on });
           },
         },
-        sym('mic_off', 22),
+        sym('mic_off', 24),
       ),
       h(
         'button',
@@ -108,7 +108,7 @@ export function renderLobby(store: Store, media: Media): HTMLElement {
               b.classList.toggle('off', !on);
               b.setAttribute('aria-label', on ? 'Turn off camera' : 'Turn on camera');
               clear(b);
-              b.appendChild(sym(on ? 'videocam' : 'videocam_off', 22));
+              b.appendChild(sym(on ? 'videocam' : 'videocam_off', 24));
               avatar.style.display = on ? 'none' : '';
               if (!on) {
                 clear(warn);
@@ -127,7 +127,7 @@ export function renderLobby(store: Store, media: Media): HTMLElement {
             });
           },
         },
-        sym('videocam_off', 22),
+        sym('videocam_off', 24),
       ),
       h(
         'button',
@@ -140,7 +140,7 @@ export function renderLobby(store: Store, media: Media): HTMLElement {
             store.dispatch({ t: 'engTab', tab: 'fx' });
           },
         },
-        sym('auto_awesome', 22),
+        sym('auto_awesome', 24),
       ),
     ),
   );
@@ -258,12 +258,12 @@ export function renderLobby(store: Store, media: Media): HTMLElement {
     h(
       'div',
       { class: 'join-card' },
-      sym('closed_caption', 22),
+      sym('closed_caption', 20),
       h(
         'div',
         {},
         h('b', {}, 'Use the transcript'),
-        h('span', {}, 'Captions and a written script.'),
+        h('span', {}, 'Captions and a written script'),
       ),
       transcriptBtn,
     ),

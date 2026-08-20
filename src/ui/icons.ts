@@ -289,7 +289,66 @@ export function lockup(reducedMotion = false, onHome?: () => void): HTMLElement 
  * shrinks on a slower, eased cycle. The track is clipped to exactly the
  * complement, so the gap holds at both ends however long the lit arc is.
  */
+/**
+ * The "Getting ready" indicator, and this one is not inferred from a video
+ * frame — it is Google's own CSS, read out of Meet's live stylesheets. The
+ * component is gm3-cpi (circular progress indicator) and both of its keyframe
+ * sets are fully parameterised:
+ *
+ *   --EkrYwf  size          default 40px
+ *   --EscQs   stroke width  default 4px
+ *   --XJrZW   track space   default 4px
+ *
+ *   active:  dash = (C - G)*f - S           f: .16 -> .87 -> .16
+ *   track:   dash = (C - G)*g - G - S       g: .84 -> .13 -> .84
+ *            offset = (C - G)*g
+ *
+ * Nothing in the loaded sheets overrides those three variables, so the
+ * defaults are what renders. Three things fall out, and I had all three wrong
+ * by guessing at them:
+ *
+ *   RADIUS is (size - stroke) / 2 = 18, so the stroke's outer edge lands
+ *   exactly on the box edge. Ours was r 22 in a 64 box, which drew a bigger
+ *   ring AND left 8px of dead space inside it.
+ *
+ *   THE GAP is a fixed 4px of ARC LENGTH, not an angle: 4/113.0973 of a turn,
+ *   12.73 degrees at this size. I guessed 20, then 10.5.
+ *
+ *   f and g are exact complements (.16/.84, .87/.13), so the two arcs and the
+ *   two gaps always account for the whole circle. That is the check that the
+ *   decode is right rather than merely plausible.
+ *
+ * Round caps add S/2 at each end, which is what the trailing minus-S
+ * compensates for, so the painted arc is exactly (C - G)*f.
+ *
+ * And no wave anywhere near it. Nam said so twice.
+ */
+function cpi(): SVGSVGElement {
+  const ns = 'http://www.w3.org/2000/svg';
+  const svg = document.createElementNS(ns, 'svg');
+  svg.setAttribute('viewBox', '0 0 40 40');
+  svg.setAttribute('width', '40');
+  svg.setAttribute('height', '40');
+  svg.setAttribute('class', 'spin spin-cpi');
+  svg.setAttribute('role', 'progressbar');
+  svg.setAttribute('aria-label', 'Loading');
+  const arc = (cls: string, colour: string): SVGCircleElement => {
+    const c = document.createElementNS(ns, 'circle');
+    c.setAttribute('cx', '20');
+    c.setAttribute('cy', '20');
+    c.setAttribute('r', '18');
+    c.setAttribute('fill', 'none');
+    c.setAttribute('stroke', colour);
+    c.setAttribute('stroke-width', '4');
+    c.setAttribute('stroke-linecap', 'round');
+    c.setAttribute('class', cls);
+    return c;
+  };
+  svg.append(arc('spin-track', '#a8c7fa'), arc('spin-arc', '#0b57d0'));
+  return svg;
+}
 export function spinner(light = false, smooth = false): SVGSVGElement {
+  if (smooth) return cpi();
   const ns = 'http://www.w3.org/2000/svg';
   const C = 32;    // centre, from the real path
   const R = 22;    // radius, from the real path — exact
