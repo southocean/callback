@@ -1,0 +1,53 @@
+# The size budget in the README is only worth something if something enforces
+# it. This does: typecheck, then the same test suite the browser runs, then the
+# build, which exits non-zero if the gzipped bundle goes over 50 KB.
+
+name: verify
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - run: npm ci
+
+      - name: Typecheck
+        run: npm run typecheck
+
+      - name: Unit tests
+        run: npm test
+
+      - name: Chaos mode must fail the suite
+        # A test runner that cannot go red proves nothing. This step asserts the
+        # harness is live by requiring a non-zero exit with the fault injected.
+        run: |
+          if npm test -- --chaos; then
+            echo "Chaos mode did not fail the suite. The runner is not live."
+            exit 1
+          fi
+          echo "Chaos mode failed the suite, as it should."
+
+      - name: Build and enforce the size budget
+        run: npm run build
+
+      - name: Fail if the committed build is stale
+        # docs/ is committed and served by Pages, so a stale bundle is a bug.
+        # index.html is excluded because it carries the build's commit stamp,
+        # which necessarily differs from the commit that contains it.
+        run: |
+          if ! git diff --quiet -- docs/app.js docs/styles.css; then
+            echo "The committed bundle does not match the source. Run npm run build and commit the result."
+            git diff --stat -- docs/app.js docs/styles.css
+            exit 1
+          fi

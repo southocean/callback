@@ -1,0 +1,19 @@
+{
+  "name": "callback",
+  "version": "1.0.0",
+  "description": "An interactive CV for Nam Nguyen, built as a call. TypeScript, zero dependencies.",
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "test": "esbuild src/test/cli.ts --bundle --platform=node --format=esm --outfile=.tmp/test.mjs --log-level=warning && node .tmp/test.mjs",
+    "build": "node build.mjs",
+    "verify": "npm run typecheck && npm test && npm run build",
+    "serve": "node serve.mjs"
+  },
+  "type": "module",
+  "devDependencies": {
+    "@types/node": "^26.2.0",
+    "esbuild": "^0.28.2",
+    "typescript": "^7.0.2"
+  },
+  "private": true
+}

@@ -1,0 +1,53 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 630" width="1200" height="630">
+  <defs>
+    <linearGradient id="av" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#b388ff"/>
+      <stop offset="1" stop-color="#5ee0b0"/>
+    </linearGradient>
+  </defs>
+
+  <rect width="1200" height="630" fill="#101215"/>
+  <rect x="0" y="0" width="1200" height="6" fill="#b388ff"/>
+
+  <text x="72" y="112" fill="#b388ff" font-family="system-ui,Segoe UI,Roboto,Helvetica,Arial,sans-serif"
+        font-size="21" font-weight="700" letter-spacing="3.4">CALLBACK — AN APPLICATION, AS A CALL</text>
+
+  <text x="72" y="212" fill="#e8eaed" font-family="system-ui,Segoe UI,Roboto,Helvetica,Arial,sans-serif"
+        font-size="78" font-weight="700" letter-spacing="-2.2">Nam Nguyen</text>
+
+  <text x="72" y="266" fill="#9aa0a6" font-family="system-ui,Segoe UI,Roboto,Helvetica,Arial,sans-serif"
+        font-size="27" font-weight="400">Lead front-end developer · Uppsala, Sweden</text>
+
+  <text x="72" y="352" fill="#c3c8ce" font-family="system-ui,Segoe UI,Roboto,Helvetica,Arial,sans-serif" font-size="26">
+    Seven years leading a real-time multiplayer client: four players,
+  </text>
+  <text x="72" y="390" fill="#c3c8ce" font-family="system-ui,Segoe UI,Roboto,Helvetica,Arial,sans-serif" font-size="26">
+    four networks, one shared board, one of them on hotel wifi.
+  </text>
+
+  <!-- Camera-off tile, the pre-join state. -->
+  <rect x="838" y="176" width="290" height="218" rx="16" fill="#1a1d22" stroke="#2e333b"/>
+  <circle cx="983" cy="272" r="52" fill="url(#av)"/>
+  <text x="983" y="290" fill="#141018" text-anchor="middle"
+        font-family="system-ui,Segoe UI,Roboto,Helvetica,Arial,sans-serif" font-size="38" font-weight="700">NN</text>
+  <text x="983" y="368" fill="#9aa0a6" text-anchor="middle"
+        font-family="system-ui,Segoe UI,Roboto,Helvetica,Arial,sans-serif" font-size="16">Camera off</text>
+
+  <g font-family="system-ui,Segoe UI,Roboto,Helvetica,Arial,sans-serif" font-size="18" font-weight="600">
+    <rect x="72" y="452" width="228" height="46" rx="23" fill="#b388ff"/>
+    <text x="186" y="482" fill="#1a1024" text-anchor="middle">TypeScript, no framework</text>
+
+    <rect x="316" y="452" width="212" height="46" rx="23" fill="#1a1d22" stroke="#2e333b"/>
+    <text x="422" y="482" fill="#c3c8ce" text-anchor="middle">Zero dependencies</text>
+
+    <rect x="544" y="452" width="252" height="46" rx="23" fill="#1a1d22" stroke="#2e333b"/>
+    <text x="670" y="482" fill="#c3c8ce" text-anchor="middle">Tests run in your browser</text>
+  </g>
+
+  <text x="72" y="562" fill="#6b7280" font-family="system-ui,Segoe UI,Roboto,Helvetica,Arial,sans-serif" font-size="17">
+    Applying: Senior Software Engineer, Web Development — Google Meet, Stockholm
+  </text>
+  <text x="72" y="590" fill="#4a4f57" font-family="system-ui,Segoe UI,Roboto,Helvetica,Arial,sans-serif" font-size="15">
+    Not affiliated with Google. An homage, built as a job application.
+  </text>
+</svg>
