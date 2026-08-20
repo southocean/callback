@@ -2254,3 +2254,93 @@ body.plain { background: #fff; color: #16181c; }
   .joining { animation: none; }
   .warn-pill, .warn-text { transition: none; }
 }
+
+/* ================================================ LOBBY, EVERY WIDTH ====== */
+/* Measured on the product at eight widths (the table is in the plan). It comes
+   down to three rules and two breakpoints, and both breakpoints fall out of the
+   geometry rather than being device guesses.
+                                                                              */
+
+/* --- two columns: the law is already in the flex, once the padding is right -
+   Panel fixed at 448, gap 16, tile flexing at 16:9 with a 740 cap, group
+   centred. That produces every measured width from one setup:
+
+     vw 1440 -> wanted 1204 fits in 1408, tile stays 740, margins 118  ✓
+     vw 1100 -> wanted 1204 in 1068, tile shrinks 136 -> 604           ✓
+     vw 1000 -> wanted 1204 in  968, tile shrinks 236 -> 504           ✓
+     vw  960 -> wanted 1204 in  928, tile shrinks 276 -> 464           ✓
+
+   The side padding has to be 16 for that to hold. At 1440 it makes no
+   difference — the group is centred and there is slack either way, which is
+   exactly why 40 survived this long. It only shows up once the tile starts
+   shrinking, and then it is off by the whole difference. */
+.lobby-body, .ready-pad { padding-left: 16px; padding-right: 16px; flex-wrap: nowrap; }
+.preview-col { flex: 0 1 740px; min-width: 0; }
+.join-col, .ready-side { flex: 0 0 448px; }
+.preview, .ready-art { width: 100%; max-width: 740px; flex: none; }
+
+/* The controls sit 16px off the tile's bottom edge, not 19 — checked at 1440,
+   1000 and 600, where the tile bottoms are 661/545/324 and the controls end at
+   645/529/308. The earlier 19 was eyeballed; this one is measured three times. */
+.preview-ctls { bottom: 16px; }
+
+/* Chip width is derived from the tile, never set. Four across with 8px gaps
+   gives (W - 24) / 4, which is 179 at a 740 tile, 145 at 604, 120 at 504 and
+   106 at 448 — every one of those is what the product measures at that width.
+   So the row is "fill the tile, four across" and the 179 we had hard-coded was
+   one instance of the formula rather than the rule. */
+.devices { flex-wrap: nowrap; }
+.device-chip { flex: 1 1 0; width: auto; min-width: 0; }
+/* Which means the labels have to be allowed to lose. At a 106px chip a device
+   name cannot fit, and Meet truncates rather than wrapping or shrinking type —
+   the chip's job at that size is to show you the icon and that the row exists. */
+.device-chip > span:not(.ms), .device-chip { overflow: hidden; }
+.device-chip { text-overflow: ellipsis; white-space: nowrap; }
+
+/* --- the stack breakpoint is derived: 944 -------------------------------- */
+/* At 960 the product is two columns with a 464 tile; at 900 it is stacked with
+   a 448 one. So it stacks at exactly the width where the flexed tile would
+   become narrower than the tile it gets by stacking:
+
+     vw - 496 < 448   ->   vw < 944
+
+   Below that, side by side is strictly worse than stacked: the preview would be
+   smaller *and* the panel squeezed. That is a real rule, so it goes in as 944
+   rather than snapped to a round 960. */
+@media (max-width: 943px) {
+  .lobby-body, .ready-pad {
+    flex-direction: column; justify-content: flex-start; gap: 30px;
+    padding-top: 8px; padding-bottom: 24px;
+  }
+  .preview-col, .join-col, .ready-side { flex: none; width: 448px; max-width: calc(100% - 32px); }
+  .preview, .ready-art { max-width: 100%; }
+  /* The bottom margin was a desktop-only trick: it lifted the vertically
+     centred panel 11px to match the product's off-centre pair. Stacked, there
+     is nothing to lift it against, and leaving it in just adds dead space. */
+  .join-col { margin-bottom: 0; }
+}
+
+/* --- mobile: 480 and below ----------------------------------------------- */
+/* Three changes, and the middle one is the one worth copying rather than
+   reinterpreting. */
+@media (max-width: 480px) {
+  .lobby-body, .ready-pad { gap: 16px; }
+  .preview-col, .join-col, .ready-side { width: 100%; max-width: 100%; }
+  /* The tile flips to portrait and locks its height at 400, with the width
+     tracking the viewport: the product measures 255 at vw 400 and 307 at vw
+     480, which are 63.75% and 63.96% — 64% to the pixel at both. */
+  .preview, .ready-art {
+    /* 64vw, not 64% — the percentage would resolve against the padded column
+     (448 at this width) and come out 20px short. The product measures 307 at
+     vw 480, which is 64 of the *viewport*. */
+    width: 64vw; height: 400px; aspect-ratio: auto; margin-inline: auto;
+  }
+  /* Dropped, not shrunk. Four labels were already truncating at 106px; below
+     480 they would truncate to nothing useful, and a row of unreadable chips is
+     worse than no row. */
+  .devices { display: none; }
+  .join-card { width: 291px; max-width: calc(100% - 32px); }
+  /* 28 between Join now and Other ways at every wider size; 16 here. Measured
+     at both 480 and 400, where Join ends at 720 and Other starts at 736. */
+  .join-actions { gap: 16px; }
+}
