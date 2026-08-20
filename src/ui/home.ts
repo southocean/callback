@@ -9,9 +9,9 @@
 // now. Clicking Join is how you enter the CV.
 
 import { h, clear } from '../dom.js';
-import { sym, lockup, spinner, focusRing } from './icons.js';
+import { sym, lockup, spinner, focusRing, playLockup } from './icons.js';
 import { openDev } from './devopen.js';
-import { tip, tipAll, tipAllAbove } from './tooltip.js';
+import { tip, tipAll, tipAllAbove, hideTip } from './tooltip.js';
 import type { Store } from '../state.js';
 
 const DAYS = ['SUN', 'MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT'];
@@ -316,7 +316,13 @@ export function renderHome(store: Store, reducedMotion = false): HTMLElement {
     card.focus({ preventScroll: true });
   };
 
-  const openBanner = (): void => { boot = 'done'; slotEl.classList.add('open'); };
+  const openBanner = (): void => {
+    boot = 'done';
+    slotEl.classList.add('open');
+    // Only now does the wordmark do its trick. Everything else has stopped
+    // moving, so it is the one thing on screen that is.
+    playLockup(wrap);
+  };
   const showList = (): void => {
     boot = 'listed';
     clear(main);
@@ -354,15 +360,25 @@ export function renderHome(store: Store, reducedMotion = false): HTMLElement {
   // tooltip repeating it would be noise, and Meet leaves them alone.
   tipAll(...bar.querySelectorAll<HTMLElement>('.icon-btn, .avatar-btn, .lockup, .m-new'));
   tip(wrap.querySelector<HTMLElement>('.composer-pill')!, 'Enter a code or link');
+  // Touching Join dismisses the field's tooltip rather than leaving it up.
+  wrap.querySelector<HTMLElement>('.composer-join')
+    ?.addEventListener('pointerenter', hideTip);
   // Above, not below: the week strip tips upward because downward would land on
   // the meeting list. The day columns get one too — including today, whose
   // label is the word "Selected".
   // Queried off `col`, not `main`: during the boot sequence main holds the
   // spinner and col is not attached yet, so querying main finds nothing and
   // tip() gets handed a null.
+  // Above, not below: the whole date row tips upward, because downward would
+  // land on the meeting list.
+  //
+  // And NOT the day columns. Measured twice, cold and primed, hovering a
+  // non-today day for 1.3s produces nothing at all. Only the two arrows, the
+  // calendar button, and today — whose tooltip reads "Selected" rather than
+  // repeating the date. Tipping all seven was an invention.
   tipAllAbove(...col.querySelectorAll<HTMLElement>('.week .icon-btn'));
-  tipAllAbove(...col.querySelectorAll<HTMLElement>('.day'));
-  tip(col.querySelector<HTMLElement>('.cal-btn')!);
+  tipAllAbove(col.querySelector<HTMLElement>('.day[aria-current="true"]'));
+  tipAllAbove(col.querySelector<HTMLElement>('.cal-btn'));
 
   // Focus the code field only when someone has clearly come to type in it.
   if (location.hash === '#home') clear(hint);

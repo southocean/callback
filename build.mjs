@@ -90,7 +90,7 @@ const html = readFileSync('src/index.html', 'utf8')
 writeFileSync(`${OUT}/index.html`, html);
 writeFileSync(`${OUT}/.nojekyll`, '');
 
-for (const asset of ['share-card.svg', 'favicon.svg', 'meet-mark.png']) {
+for (const asset of ['share-card.svg', 'favicon.svg', 'meet-mark.png', 'meet-google.png']) {
   if (existsSync(`src/assets/${asset}`)) copyFileSync(`src/assets/${asset}`, `${OUT}/${asset}`);
 }
 

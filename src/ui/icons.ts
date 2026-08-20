@@ -161,15 +161,30 @@ function markTraced(): SVGSVGElement {
 export function lockup(reducedMotion = false, onHome?: () => void): HTMLElement {
   const wrap = document.createElement('button');
   wrap.type = 'button';
-  wrap.className = `lockup${reducedMotion ? ' lk-static' : ' lk-play'}`;
+  // Deliberately NOT lk-play yet. The caller starts it once the screen has
+  // finished loading — see playLockup below.
+  wrap.className = `lockup` + (reducedMotion ? ' lk-static' : '');
   wrap.appendChild(mark());
 
   const words = document.createElement('div');
   words.className = 'lk-words';
 
+  // "Google" is an IMAGE, because in the real lockup it is one. gstatic ships
+  // the camera and the word together in a single PNG and only "Meet" is live
+  // text — which is why the first word looks heavier and darker than the second
+  // on every Google surface that uses this asset. Set as text in Product Sans
+  // 400 it can never match a flat-ink bitmap, at any size. So this is the same
+  // crop as the mark, cols 47..122 rows 7..31 of that PNG, and the mismatch
+  // stops being something to chase.
   const google = document.createElement('span');
   google.className = 'lk-google';
-  google.textContent = 'Google';
+  const gimg = document.createElement('img');
+  gimg.src = 'meet-google.png';
+  gimg.width = 76;
+  gimg.height = 25;
+  gimg.alt = 'Google';
+  gimg.className = 'lk-gimg';
+  google.appendChild(gimg);
 
   const meet = document.createElement('span');
   meet.className = 'lk-meet';
@@ -219,40 +234,48 @@ export function lockup(reducedMotion = false, onHome?: () => void): HTMLElement 
 export function spinner(): SVGSVGElement {
   const ns = 'http://www.w3.org/2000/svg';
   const svg = document.createElementNS(ns, 'svg');
-  svg.setAttribute('viewBox', '0 0 54 54');
+  svg.setAttribute('viewBox', '0 0 68 68');
   svg.setAttribute('width', '54');
   svg.setAttribute('height', '54');
   svg.setAttribute('class', 'spin');
   svg.setAttribute('role', 'progressbar');
   svg.setAttribute('aria-label', 'Loading meetings');
 
-  // A sine ripple around r=21, 12 crests, amplitude 2.6 — the ratio that
-  // matched the recording's 53px extent at a 5px stroke.
+  // Three things were wrong first time round, all visible side by side with the
+  // real one: the wave sat directly on the track instead of outside it, it had
+  // too many crests so the curvature read as pointy rather than curvy, and it
+  // span far too fast.
+  //
+  // The track is the inner circle at r=16. The wave orbits outside it at r=22,
+  // which leaves 6px of clear white between the two lines — the breathing room
+  // that makes the real one look like two separate objects. Seven crests over
+  // the full turn instead of twelve, at a larger amplitude, gives the fat lazy
+  // curve rather than a zigzag.
   const wavy = (turns: number): string => {
-    const R = 21, A = 2.6, CREST = 12, STEP = 2;
+    const R = 26, A = 2.8, CREST = 7, STEP = 1.5;
     let d = '';
     for (let deg = 0; deg <= 360 * turns; deg += STEP) {
       const rad = (deg * Math.PI) / 180;
       const r = R + A * Math.sin(rad * CREST);
-      const x = 27 + r * Math.cos(rad - Math.PI / 2);
-      const y = 27 + r * Math.sin(rad - Math.PI / 2);
+      const x = 34 + r * Math.cos(rad - Math.PI / 2);
+      const y = 34 + r * Math.sin(rad - Math.PI / 2);
       d += `${d ? 'L' : 'M'}${x.toFixed(2)} ${y.toFixed(2)}`;
     }
     return d;
   };
 
   const track = document.createElementNS(ns, 'circle');
-  track.setAttribute('cx', '27'); track.setAttribute('cy', '27'); track.setAttribute('r', '21');
+  track.setAttribute('cx', '34'); track.setAttribute('cy', '34'); track.setAttribute('r', '19');
   track.setAttribute('fill', 'none');
   track.setAttribute('stroke', '#a8c7fa');
-  track.setAttribute('stroke-width', '5');
+  track.setAttribute('stroke-width', '3.5');
   svg.appendChild(track);
 
   const arc = document.createElementNS(ns, 'path');
   arc.setAttribute('d', wavy(1));
   arc.setAttribute('fill', 'none');
   arc.setAttribute('stroke', '#0b57d0');
-  arc.setAttribute('stroke-width', '5');
+  arc.setAttribute('stroke-width', '4');
   arc.setAttribute('stroke-linecap', 'round');
   arc.setAttribute('class', 'spin-arc');
   svg.appendChild(arc);
@@ -276,4 +299,19 @@ export function focusRing(): HTMLSpanElement {
   s.className = 'focus-ring';
   s.setAttribute('aria-hidden', 'true');
   return s;
+}
+
+/**
+ * Start the wordmark gag. Kept separate from building the lockup because the
+ * timing is the whole joke: played at mount it lands under a loading spinner
+ * and three entrance animations, and nobody sees "Google" get knocked out of
+ * the wordmark. Played after the screen has settled, it is the only thing
+ * moving.
+ */
+export function playLockup(root: ParentNode = document): void {
+  const el = root.querySelector<HTMLElement>('.lockup');
+  if (!el || el.classList.contains('lk-static')) return;
+  el.classList.remove('lk-play');
+  void el.offsetWidth;
+  el.classList.add('lk-play');
 }

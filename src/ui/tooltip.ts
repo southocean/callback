@@ -136,6 +136,19 @@ export function tip(el: HTMLElement, text?: string, where: Placement = 'below'):
   el.addEventListener('click', hideNow);
 }
 
+/**
+ * Kill any visible tooltip, and suppress the one that was about to appear.
+ *
+ * Needed for a case the real product handles and a naive implementation does
+ * not: the Join button lives INSIDE the code field, so moving onto it never
+ * fires pointerleave on the field and the field's tooltip just sits there.
+ * Meet dismisses it the moment you touch Join — the button behaves as though it
+ * were not part of the input at all, which is also true of its state layer.
+ */
+export function hideTip(): void {
+  hideNow();
+}
+
 /** Sugar: tip every element passed in, all on the same side. */
 export function tipAll(...els: (HTMLElement | null | undefined)[]): void {
   for (const el of els) if (el) tip(el);

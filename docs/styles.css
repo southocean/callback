@@ -270,9 +270,13 @@ button { font: inherit; }
   0%, 100% { transform: none; }
   35%      { transform: translateX(-2px) rotate(-3deg); }
 }
+/* px, not em. This animated `5em` until the word became an image and the span
+   was given font-size 0 to stop it reserving text space — at which point 5em
+   evaluated to 0px and "Google" vanished the instant the page loaded, before
+   the beat had even started. The word is 76px wide; 90 covers it. */
 @keyframes lk-out {
-  from { max-width: 5em; opacity: 1; }
-  to   { max-width: 0;  opacity: 0; }
+  from { max-width: 90px; opacity: 1; }
+  to   { max-width: 0;    opacity: 0; }
 }
 /* "Meet" closes the gap Google leaves, so the final lockup sits tight against
    the mark rather than carrying an orphaned indent. */
@@ -1390,19 +1394,19 @@ body.plain { background: #fff; color: #16181c; }
 /* ---- the wavy loader ---------------------------------------------------- */
 .load-pad { display: grid; place-items: center; min-height: 320px; }
 .spin { display: block; }
-.spin      { animation: spin-rot 1.4s linear infinite; }
+.spin      { animation: spin-rot 2.6s linear infinite; }
 /* Rotating the arc inside the rotating svg is what makes the lit length appear
    to breathe, without animating the path itself. */
 .spin-arc  {
-  transform-origin: 27px 27px;
-  animation: spin-dash 1.6s cubic-bezier(0.4, 0, 0.2, 1) infinite;
-  stroke-dasharray: 40 200;
+  transform-origin: 34px 34px;
+  animation: spin-dash 3s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+  stroke-dasharray: 40 260;
 }
 @keyframes spin-rot  { to { transform: rotate(360deg); } }
 @keyframes spin-dash {
-  0%   { stroke-dasharray: 12 200; stroke-dashoffset: 0; }
-  50%  { stroke-dasharray: 90 200; stroke-dashoffset: -22; }
-  100% { stroke-dasharray: 12 200; stroke-dashoffset: -125; }
+  0%   { stroke-dasharray: 22 260; stroke-dashoffset: 0; }
+  50%  { stroke-dasharray: 105 260; stroke-dashoffset: -30; }
+  100% { stroke-dasharray: 22 260; stroke-dashoffset: -152; }
 }
 
 /* ---- entrance ----------------------------------------------------------- */
@@ -1474,3 +1478,74 @@ body.plain { background: #fff; color: #16181c; }
    — the same 7 that appeared to do nothing until the cascade above was fixed. */
 .lockup { padding-left: 7px; }
 .lk-mark { position: relative; top: -1px; }
+
+/* ============================================================================
+   Corrections from a second pass on the real product. ==================== */
+
+/* The selected card looked muddy next to Meet's, and the cause was ours, not
+   the token: both are #d3e3fd, but autofocusing the card put a 12% black focus
+   state layer on top of it. Meet draws the ring and leaves the fill alone. The
+   ring IS the focus feedback; a layer as well just ages the colour. */
+.sched-card:focus-visible::before { opacity: 0; }
+
+/* Hovering the card's Join must not light the card. Measured: Join carries its
+   own white 8% layer and the row behind it stays completely inert, so the
+   button reads as sitting outside the row even though it is inside it. */
+.sched-card:has(.sched-join:hover)::before,
+.sched-card:has(.composer-join:hover)::before { opacity: 0; }
+.composer-pill:has(.composer-join:hover) { background-color: var(--composer); }
+
+/* Meet's composer: the glyph is 24px at a 16px inset and the input starts 16px
+   after it, with no padding of its own. Ours added 6px inside the input, which
+   is the whole reason the placeholder sat too far from the keyboard. */
+.composer-pill input { padding: 0; }
+
+/* The ring: same keyframes as Google's, but the settle is stretched from .45s
+   to .7s and eased out. Ours read heavy at Google's own timing because our card
+   is the only one on screen, so the pulse has nothing to share attention with.
+   A documented deviation, not a measurement. */
+.ring-host:focus-visible > .focus-ring {
+  animation:
+    gm3-ring-grows   .18s cubic-bezier(0.2, 0, 0, 1),
+    gm3-ring-shrinks .7s  cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+/* ---- lockup, second pass ------------------------------------------------ */
+/* The word is a bitmap now, so it needs a box rather than a font size, and the
+   -6px lifts it so its baseline lands on the text baseline of "Meet" beside it
+   (the crop keeps the g's descender, which is 6px below the baseline). */
+/* No font-size: 0 here. The span holds an image, so it reserves no text space
+   anyway, and zeroing it silently broke the em-based collapse above. */
+.lk-google { overflow: hidden; }
+.lk-gimg { display: inline-block; vertical-align: -6px; }
+
+/* The impact. "Meet" takes the hit by squeezing its letters together and
+   springing back, which is what sells the collision as a physical event rather
+   than a crossfade — and the squeeze is what lets the wordmark visibly give
+   ground as Google is pushed out of it. */
+@keyframes lk-squeeze {
+  0%   { letter-spacing: normal; }
+  30%  { letter-spacing: -1.4px; }
+  65%  { letter-spacing: .35px; }
+  100% { letter-spacing: normal; }
+}
+.lk-play .lk-meet {
+  animation:
+    lk-close   .42s var(--ease-emph) var(--lk-hit) both,
+    lk-squeeze .46s cubic-bezier(0.3, 1.4, 0.4, 1) var(--lk-hit) both;
+}
+
+/* The beat no longer starts at mount. It starts when the page has finished
+   arriving, because a joke told underneath a loading spinner and three
+   entrance animations is a joke nobody sees. home.ts adds .lk-play once the
+   boot sequence is done, so the delay below is only the pause after that. */
+.lockup { --lk-delay: .55s; }
+
+/* The name must not exist until it flies in. Previously the animation's `both`
+   fill held it at opacity 0 through the delay — but the animation only applies
+   once .lk-play is added, and .lk-play now arrives after the page has loaded.
+   In between, the resting state showed all three words at once and gave the
+   whole joke away before it started. So the resting state hides it explicitly,
+   and only the fly-in or reduced-motion reveals it. */
+.lk-nam { opacity: 0; }
+.lk-static .lk-nam { opacity: 1; }
