@@ -107,8 +107,9 @@ function mark(size = 26): SVGSVGElement {
  *
  * Under reduced-motion it is simply "Meet Nam" from the start; nothing flies.
  */
-export function lockup(reducedMotion = false): HTMLElement {
-  const wrap = document.createElement('div');
+export function lockup(reducedMotion = false, onHome?: () => void): HTMLElement {
+  const wrap = document.createElement('button');
+  wrap.type = 'button';
   wrap.className = `lockup${reducedMotion ? ' lk-static' : ' lk-play'}`;
   wrap.appendChild(mark(26));
 
@@ -132,9 +133,19 @@ export function lockup(reducedMotion = false): HTMLElement {
 
   // One accessible name for the whole thing, so a screen reader hears the
   // destination rather than three fragments mid-animation.
-  wrap.setAttribute('role', 'img');
-  wrap.setAttribute('aria-label', 'Meet Nam');
+  wrap.setAttribute('aria-label', 'Meet Nam — home');
   for (const el of [google, meet, nam]) el.setAttribute('aria-hidden', 'true');
+
+  wrap.addEventListener('click', () => {
+    onHome?.();
+    if (reducedMotion) return;
+    // Restart the animation: drop the class, force a reflow so the browser
+    // notices, then put it back. Cheaper and more reliable than juggling
+    // animationName, and it means the gag can be watched twice.
+    wrap.classList.remove('lk-play');
+    void wrap.offsetWidth;
+    wrap.classList.add('lk-play');
+  });
 
   return wrap;
 }

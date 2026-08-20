@@ -189,18 +189,35 @@ button { font: inherit; }
   height: var(--topbar); flex: 0 0 auto; display: grid; align-items: center;
   grid-template-columns: 1fr auto 1fr; padding: 0 8px 0 16px; gap: 12px;
 }
-.lockup { display: flex; align-items: center; gap: 7px; flex: 0 0 auto; }
+/* Meet's logo is a link home, so this is a button. It also replays the
+   animation, which is the only way to see it twice without a reload. */
+.lockup {
+  display: flex; align-items: center; gap: 7px; flex: 0 0 auto;
+  background: none; border: 0; padding: 4px 6px; margin: -4px -6px;
+  border-radius: 12px; cursor: pointer; font: inherit; color: inherit;
+  transition: background-color var(--t-fade) var(--ease-std);
+}
+.lockup:hover { background: rgba(31,31,31,var(--state-hover)); }
 .lk-words { display: flex; align-items: baseline; font: 400 22px/1.1 var(--font); letter-spacing: -.3px; white-space: nowrap; }
-.lk-google { color: #212327; }
+/* "Nam" inherits the dark that "Google" vacates, so the lockup always reads as
+   one dark word and one grey word — it just swaps which side they are on. */
+.lk-google { color: #212327; overflow: hidden; }
 .lk-meet   { color: #5f6368; margin-left: .26em; }
-.lk-nam    { color: #5f6368; margin-left: .26em; }
+.lk-nam    { color: #212327; margin-left: .26em; }
 
-/* "Nam" flies in, lands, the wordmark takes the hit, and "Google" is knocked
-   out of it. One word of movement that says the whole thing. */
-.lk-play .lk-nam    { animation: lk-fly .52s var(--ease-spring) .55s both; }
-.lk-play .lk-words  { animation: lk-hit .2s var(--ease-emph) 1.05s both; }
-.lk-play .lk-google { animation: lk-out .42s var(--ease-emph) 1.05s both; }
-.lk-play .lk-mark   { animation: lk-bump .2s var(--ease-emph) 1.05s both; }
+/* The beat before the joke.
+   "Google Meet" holds for --lk-delay so the reader registers it as genuine —
+   without that pause nobody sees the original and the gag does not land. Then
+   "Nam" flies in, the lockup takes the hit, and "Google" is knocked out of it.
+   2.2s is a judgement call: two words read in about 500ms, and past roughly
+   2.5s the eye has usually left the header and would miss the payoff. */
+.lockup { --lk-delay: 2.2s; --lk-hit: calc(var(--lk-delay) + .5s); }
+
+.lk-play .lk-nam    { animation: lk-fly  .52s var(--ease-spring) var(--lk-delay) both; }
+.lk-play .lk-words  { animation: lk-hit  .2s  var(--ease-emph)   var(--lk-hit)   both; }
+.lk-play .lk-google { animation: lk-out  .42s var(--ease-emph)   var(--lk-hit)   both; }
+.lk-play .lk-meet   { animation: lk-close .42s var(--ease-emph)  var(--lk-hit)   both; }
+.lk-play .lk-mark   { animation: lk-bump .2s  var(--ease-emph)   var(--lk-hit)   both; }
 
 @keyframes lk-fly {
   from { opacity: 0; transform: translateX(96px) scale(1.08); }
@@ -219,7 +236,12 @@ button { font: inherit; }
   from { max-width: 5em; opacity: 1; }
   to   { max-width: 0;  opacity: 0; }
 }
-.lk-google { overflow: hidden; }
+/* "Meet" closes the gap Google leaves, so the final lockup sits tight against
+   the mark rather than carrying an orphaned indent. */
+@keyframes lk-close {
+  from { margin-left: .26em; }
+  to   { margin-left: 0; }
+}
 /* Reduced motion: it simply reads "Meet Nam" and nothing moves. */
 .lk-static .lk-google { display: none; }
 .lk-static .lk-meet { margin-left: 0; }

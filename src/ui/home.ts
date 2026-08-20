@@ -92,7 +92,7 @@ export function renderHome(store: Store, reducedMotion = false): HTMLElement {
   const bar = h(
     'header',
     { class: 'home-bar' },
-    lockup(reducedMotion),
+    lockup(reducedMotion, () => store.dispatch({ t: 'screen', screen: 'home' })),
     h(
       'div',
       { class: 'home-composer' },
