@@ -164,8 +164,8 @@ button { font: inherit; }
   font: 500 14px/1 var(--font); display: inline-flex; align-items: center; gap: 8px;
   text-decoration: none; white-space: nowrap;
 }
-.m-filled  { background-color: var(--blue); color: #fff; }
-.m-filled:hover { background: #0a4fbb; box-shadow: 0 1px 3px rgba(0,0,0,.3); }
+.m-filled { background-color: var(--blue); color: #fff; }
+.m-filled:hover { background: #0a4fbb; }
 .m-outlined { background: transparent; color: var(--blue); border: 1px solid var(--outline2); }
 .m-outlined:hover { background: rgba(11,87,208,.08); }
 .m-text { background: transparent; color: var(--blue); padding: 0 12px; }
@@ -231,8 +231,8 @@ button { font: inherit; }
    shades darker than the second, forever, on every Google property that uses
    this asset. Mirroring the inconsistency rather than tidying it up. */
 .lk-google { color: #212226; font-size: 23.5px; overflow: hidden; }
-.lk-meet   { color: #1f1f1f; margin-left: 4px; }
-.lk-nam    { color: #1f1f1f; margin-left: 4px; }
+.lk-meet { color: #1f1f1f; margin-left: 4px; }
+.lk-nam { color: #1f1f1f; margin-left: 4px; }
 
 /* The beat before the joke.
    "Google Meet" holds for --lk-delay so the reader registers it as genuine —
@@ -251,11 +251,11 @@ button { font: inherit; }
    plus however long the JavaScript took to arrive. */
 .lockup { --lk-delay: 1.2s; --lk-hit: calc(var(--lk-delay) + .5s); }
 
-.lk-play .lk-nam    { animation: lk-fly  .52s var(--ease-spring) var(--lk-delay) both; }
-.lk-play .lk-words  { animation: lk-hit  .2s  var(--ease-emph)   var(--lk-hit)   both; }
+.lk-play .lk-nam { animation: lk-fly  .52s var(--ease-spring) var(--lk-delay) both; }
+/* (all declarations here are overridden below) */
 .lk-play .lk-google { animation: lk-out  .42s var(--ease-emph)   var(--lk-hit)   both; }
-.lk-play .lk-meet   { animation: lk-close .42s var(--ease-emph)  var(--lk-hit)   both; }
-.lk-play .lk-mark   { animation: lk-bump .2s  var(--ease-emph)   var(--lk-hit)   both; }
+/* (all declarations here are overridden below) */
+.lk-play .lk-mark { animation: lk-bump .2s  var(--ease-emph)   var(--lk-hit)   both; }
 
 @keyframes lk-fly {
   from { opacity: 0; transform: translateX(96px) scale(1.08); }
@@ -398,7 +398,7 @@ button { font: inherit; }
 .banner-t { font: 500 16px/24px var(--font-title); color: var(--ink); }
 .banner-s { font: 400 14px/20px var(--font); color: var(--sec); }
 .banner a { margin-left: auto; color: var(--blue); font: 500 14px/1 var(--font); text-decoration: none; white-space: nowrap; }
-.banner a:hover { text-decoration: underline; }
+/* (all declarations here are overridden below) */
 
 /* Measured: the card sits in a 16px-inset column, so it is 1020 wide inside a
    1052 column rather than filling it, and the section label is indented a
@@ -499,7 +499,11 @@ button { font: inherit; }
   display: flex; align-items: center; gap: 14px; margin-bottom: 24px;
 }
 .join-card b { font: 500 14px/20px var(--font); color: var(--ink); display: block; }
-.join-card span { font: 400 13px/18px var(--font); color: var(--sec); }
+/* :not(.ms) because a font shorthand resets font-family, and this rule
+   outranks .ms — which turned the icon inside the card into the literal text
+   "description". Same trap as the background shorthand earlier: shorthands
+   quietly reset properties you never mentioned. */
+.join-card span:not(.ms) { font: 400 13px/18px var(--font); color: var(--sec); }
 .join-card .m-text { margin-left: auto; }
 .join-actions { display: flex; flex-direction: column; gap: 12px; align-items: center; }
 .join-now { height: 48px; padding: 0 40px; border-radius: 24px; font-size: 15px; }
@@ -512,8 +516,8 @@ button { font: inherit; }
   padding: 0 12px 0 24px; gap: 16px; color: #fff;
 }
 .call-clock { font: 500 16px/24px var(--font); letter-spacing: .1px; }
-.call-code  { font: 500 16px/24px var(--font); letter-spacing: .1px; }
-.call-sep   { color: rgba(255,255,255,.5); }
+.call-code { font: 500 16px/24px var(--font); letter-spacing: .1px; }
+.call-sep { color: rgba(255,255,255,.5); }
 .call-top-right { margin-left: auto; display: flex; align-items: center; gap: 4px; }
 .count-chip {
   display: inline-flex; align-items: center; gap: 6px; height: 32px; padding: 0 12px;
@@ -759,7 +763,7 @@ code { font: 400 12px/1.4 ui-monospace, Consolas, monospace; color: var(--dark-b
   display: flex; align-items: center; font: 500 11px/1 var(--font);
   overflow: hidden; white-space: nowrap; color: #062e6f; background-color: var(--dark-blue);
 }
-.axis-bar.research   { background: #d3bcf6; color: #2b1a4a; }
+.axis-bar.research { background: #d3bcf6; color: #2b1a4a; }
 .axis-bar.commercial { background: #f8d99a; color: #40260a; }
 .axis-ticks {
   display: flex; justify-content: space-between; font: 400 11px/16px var(--font);
@@ -887,7 +891,7 @@ code { font: 400 12px/1.4 ui-monospace, Consolas, monospace; color: var(--dark-b
 .stat-v { font: 500 19px/26px var(--font); color: #fff; font-variant-numeric: tabular-nums; }
 .stat-v.good { color: #6dd58c; }
 .stat-v.warn { color: #f8d99a; }
-.stat-v.bad  { color: #f2b8b5; }
+.stat-v.bad { color: #f2b8b5; }
 
 .fx-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); gap: 8px; margin-bottom: 14px; }
 .fx-btn {
@@ -1312,20 +1316,20 @@ body.plain { background: #fff; color: #16181c; }
 .rail-item:active .rail-pill::before { opacity: var(--sl-press, .12); }
 
 /* Per-control tints, each one measured rather than chosen. */
-.icon-btn            { --sl: #1f1f1f; --sl-hover: .12; }
-.week .icon-btn      { --sl: #1f1f1f; }
-.cal-btn             { --sl: #444746; --sl-hover: .12; }
-.avatar-btn          { --sl: #444746; --sl-hover: .12; }
+.icon-btn { --sl: #1f1f1f; --sl-hover: .12; }
+.week .icon-btn { --sl: #1f1f1f; }
+.cal-btn { --sl: #444746; --sl-hover: .12; }
+.avatar-btn { --sl: #444746; --sl-hover: .12; }
 /* Google's shared bar animates slower than Meet's own controls. */
-.avatar-btn::before  { transition: opacity .3s ease-out; }
-.m-new               { --sl: var(--newbtn-ink); }
-.rail-pill           { --sl: #001d35; }
-.day                 { --sl: #6991d6; }
+.avatar-btn::before { transition: opacity .3s ease-out; }
+.m-new { --sl: var(--newbtn-ink); }
+.rail-pill { --sl: #001d35; }
+.day { --sl: #6991d6; }
 .day[aria-current="true"] { --sl: #041e49; }
-.sched-card          { --sl: #1f1f1f; }
-.sched-join          { --sl: #fff; }
-.composer-join       { --sl: #fff; }
-.banner a            { --sl: #0b57d0; }
+.sched-card { --sl: #1f1f1f; }
+.sched-join { --sl: #fff; }
+.composer-join { --sl: #fff; }
+.banner a { --sl: #0b57d0; }
 
 /* "Open document" is our text, but it is Meet's "Explore plan" control, so it
    takes that treatment: a 40px-tall pill with a #0b57d0 state layer at radius
@@ -1398,7 +1402,7 @@ body.plain { background: #fff; color: #16181c; }
 /* Rotating the arc inside the rotating svg is what makes the lit length appear
    to breathe, without animating the path itself. */
 
-@keyframes spin-rot  { to { transform: rotate(360deg); } }
+@keyframes spin-rot { to { transform: rotate(360deg); } }
 
 
 /* ---- entrance ----------------------------------------------------------- */
@@ -1509,7 +1513,7 @@ body.plain { background: #fff; color: #16181c; }
 /* No font-size: 0 here. The span holds an image, so it reserves no text space
    anyway, and zeroing it silently broke the em-based collapse above. */
 .lk-google { overflow: hidden; }
-.lk-gimg { display: inline-block; vertical-align: -6px; }
+/* (all declarations here are overridden below) */
 
 /* The impact. "Meet" takes the hit by squeezing its letters together and
    springing back, which is what sells the collision as a physical event rather
@@ -1556,9 +1560,9 @@ body.plain { background: #fff; color: #16181c; }
 .spin-arc, .spin-track { animation-duration: 1.5s; animation-iteration-count: infinite;
   animation-direction: alternate; animation-timing-function: cubic-bezier(0.4, 0, 0.2, 1); }
 
-.spin-cold .spin-arc   { animation-name: arc-cold; }
+.spin-cold .spin-arc { animation-name: arc-cold; }
 .spin-cold .spin-track { animation-name: trk-cold; }
-.spin-light .spin-arc   { animation-name: arc-light; }
+.spin-light .spin-arc { animation-name: arc-light; }
 .spin-light .spin-track { animation-name: trk-light; }
 
 /* Gap is 20deg at EACH end now, not 10.5. Google bakes 21deg total into its
@@ -1644,7 +1648,7 @@ body.plain { background: #fff; color: #16181c; }
 }
 
 /* The mark feels it too, a little, and at the moment of contact. */
-.lk-play .lk-mark  { animation: lk-bump .22s var(--ease-emph) var(--lk-hit) both; }
+.lk-play .lk-mark { animation: lk-bump .22s var(--ease-emph) var(--lk-hit) both; }
 .lk-play .lk-words { animation: lk-hit .2s var(--ease-emph) var(--lk-hit) both; }
 
 /* ============================================================================
@@ -1664,7 +1668,7 @@ body.plain { background: #fff; color: #16181c; }
    sits in narrows with it, which is what makes "Meet" slide left as Google is
    crushed instead of Google simply being sliced off. */
 .lk-google { overflow: hidden; display: inline-flex; }
-.lk-gimg { transform-origin: left center; will-change: transform; }
+.lk-gimg { will-change: transform; }
 .lk-nam { will-change: transform; }
 
 /* Baseline, properly this time. The word is a bitmap in a clipping box, and a

@@ -4,10 +4,7 @@ import { h, clear, must } from './dom.js';
 import { Store, parseRoute, routeToHash, initial } from './state.js';
 import type { State } from './state.js';
 import { renderHome } from './ui/home.js';
-import { renderLobby } from './ui/lobby.js';
-import { renderCall } from './ui/call.js';
-import { renderEnded } from './ui/ended.js';
-import { renderPlain } from './ui/plain.js';
+import { spinner } from './ui/icons.js';
 import { prefersReducedMotion } from './a11y.js';
 import { Quests, konami } from './achievements.js';
 import { openDev } from './ui/devopen.js';
@@ -81,8 +78,8 @@ function render(): void {
   document.body.classList.toggle('plain', key === 'plain');
 
   if (key === 'plain') {
-    clear(root);
-    root.appendChild(renderPlain(() => store.dispatch({ t: 'plain', on: false })));
+    mount(key, () => import('./ui/plain.js')
+      .then((m) => m.renderPlain(() => store.dispatch({ t: 'plain', on: false }))));
     quests.unlock('plain');
     return;
   }
@@ -94,13 +91,59 @@ function render(): void {
   // worse one, which is why the swap is now explicit.
   document.getElementById('static-home')?.remove();
 
-  clear(root);
-  if (key === 'home') root.appendChild(renderHome(store, s.reducedMotion));
-  else if (key === 'lobby') root.appendChild(renderLobby(store, media));
-  else if (key === 'ended') root.appendChild(renderEnded(store, quests));
-  else root.appendChild(renderCall(store, quests, { video, canvas, toggleCamera }));
-  quests.mount(root);
+  // The home screen is the only one in the entry bundle. Everything else is
+  // fetched when it is first reached, which is the difference between a first
+  // paint that carries the whole app and one that carries the screen you asked
+  // for. Nobody who reads the plain document ever downloads the WebGL pipeline.
+  if (key === 'home') {
+    clear(root);
+    root.appendChild(renderHome(store, s.reducedMotion));
+    quests.mount(root);
+    return;
+  }
+  if (key === 'lobby') {
+    mount(key, () => import('./ui/lobby.js').then((m) => m.renderLobby(store, media)));
+  } else if (key === 'ended') {
+    mount(key, () => import('./ui/ended.js').then((m) => m.renderEnded(store, quests)));
+  } else {
+    mount(key, () => import('./ui/call.js')
+      .then((m) => m.renderCall(store, quests, { video, canvas, toggleCamera })));
+  }
 }
+
+/**
+ * Swap in a screen that arrives asynchronously.
+ *
+ * The token guards against a race that is easy to hit and unpleasant to debug:
+ * click Join, change your mind, go back, and the call chunk finishes loading
+ * afterwards and mounts itself over the top of the home screen. Each render
+ * takes a ticket, and a chunk that resolves after the ticket has moved on
+ * throws its result away.
+ *
+ * The loader also shows the same wavy indicator the product uses, so a slow
+ * network reads as Meet loading rather than as nothing happening — which is
+ * exactly what the real client does when you join.
+ */
+function mount(key: string, load: () => Promise<HTMLElement>): void {
+  const ticket = ++renderTicket;
+  clear(root);
+  const pad = h('div', { class: 'load-pad' });
+  pad.appendChild(spinner(true));
+  root.appendChild(pad);
+  void load().then((node) => {
+    if (ticket !== renderTicket) return;
+    clear(root);
+    root.appendChild(node);
+    quests.mount(root);
+  }).catch(() => {
+    if (ticket !== renderTicket) return;
+    clear(root);
+    root.appendChild(h('div', { class: 'load-pad' }, 'That screen failed to load. Reload the page.'));
+  });
+  void key;
+}
+
+let renderTicket = 0;
 
 // --------------------------------------------------------------- routing ----
 

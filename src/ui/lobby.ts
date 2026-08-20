@@ -97,7 +97,7 @@ export function renderLobby(store: Store, media: Media): HTMLElement {
             store.dispatch({ t: 'engTab', tab: 'fx' });
           },
         },
-        sym('visual_effects', 22),
+        sym('auto_awesome', 22),
       ),
     ),
   );

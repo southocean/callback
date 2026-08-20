@@ -25,7 +25,7 @@ export type IconName =
   | 'frame_person' | 'group' | 'help' | 'info' | 'keyboard' | 'keyboard_arrow_up'
   | 'link' | 'lock_person' | 'mic' | 'mic_off' | 'mood' | 'more_vert' | 'person_add'
   | 'present_to_all' | 'science' | 'settings' | 'shield' | 'speed' | 'video_call' | 'videocam'
-  | 'videocam_off' | 'visual_effects';
+  | 'videocam_off' | 'auto_awesome';
 
 export interface SymOpts {
   /** Meet fills the glyph for the selected nav item. */

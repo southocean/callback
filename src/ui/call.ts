@@ -73,7 +73,7 @@ export function renderCall(store: Store, quests: Quests, deps: CallDeps): HTMLEl
       h(
         'button',
         { type: 'button', 'aria-label': 'Backgrounds and effects', onclick: () => store.dispatch({ t: 'engTab', tab: 'fx' }) },
-        sym('visual_effects', 22),
+        sym('auto_awesome', 22),
       ),
       h(
         'button',
@@ -422,7 +422,7 @@ export function renderCall(store: Store, quests: Quests, deps: CallDeps): HTMLEl
       'div',
       { class: 'menu', role: 'menu', 'aria-label': 'More options' },
       item('mood', 'Off the clock', () => store.dispatch({ t: 'panel', panel: 'offclock' })),
-      item('visual_effects', 'Apply visual effects', () => store.dispatch({ t: 'engTab', tab: 'fx' })),
+      item('auto_awesome', 'Apply visual effects', () => store.dispatch({ t: 'engTab', tab: 'fx' })),
       item('science', 'Run the test suite', () => store.dispatch({ t: 'engTab', tab: 'tests' })),
       item('description', 'Read it as a document', () => store.dispatch({ t: 'plain', on: true })),
       item('keyboard', 'Keyboard shortcuts', () => window.dispatchEvent(new KeyboardEvent('keydown', { key: '?' }))),
