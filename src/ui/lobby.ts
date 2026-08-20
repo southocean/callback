@@ -9,7 +9,7 @@
 // removing them — so this one is one click, and any deep link skips it.
 
 import { h, clear } from '../dom.js';
-import { sym } from './icons.js';
+import { sym, spinner, focusRing } from './icons.js';
 import type { Store } from '../state.js';
 import { profile } from '../data/cv.js';
 
@@ -18,6 +18,29 @@ export interface Media {
   toggleCamera: () => Promise<void>;
   cameraOn: () => boolean;
 }
+
+/**
+ * The green room runs through two states before it settles, and Meet's timings
+ * for them were taken off a screen recording of a real join:
+ *
+ *   +250ms  the "Joining..." scrim over the home screen ends and this mounts
+ *   +0      dark rect and spinner, no words yet
+ *   +80     "Getting ready..." and its subline fade in
+ *   +1500   they clear and the pre-join screen rises
+ *
+ * Meet holds that middle stage for about 1.5s because it is negotiating a call.
+ * We are not, so ours is 900ms — the same figure the home screen uses, which is
+ * long enough to read as the product and short enough not to read as a slow
+ * site. Coming back from the call skips it entirely: nothing is being prepared
+ * the second time either.
+ */
+const READY_MS = 900;
+/** The words arrive a beat after the shape, exactly as they do in the product. */
+const READY_TEXT_MS = 80;
+/** And the offer card lands a beat after the panel it sits in. */
+const OFFER_MS = 260;
+
+let greeted = false;
 
 export function renderLobby(store: Store, media: Media): HTMLElement {
   const warn = h('div', {});
@@ -102,34 +125,58 @@ export function renderLobby(store: Store, media: Media): HTMLElement {
     ),
   );
 
+  // Four chips at 179px with 8px gaps is 740 — exactly the tile width, which is
+  // why Meet has four. Ours say what is true of this page rather than naming
+  // hardware it never asks for: there is no microphone here at all, and the
+  // camera is an offer rather than a device that is already on.
   const chips = h(
     'div',
     { class: 'devices' },
-    h('span', { class: 'device-chip' }, sym('mic', 18), 'Default — Microphone', sym('expand_more', 18)),
-    h('span', { class: 'device-chip' }, sym('videocam', 18), 'Default — Camera', sym('expand_more', 18)),
-    h('span', { class: 'device-chip' }, sym('speed', 18), 'Fibre · 32 ms', sym('expand_more', 18)),
+    h('span', { class: 'device-chip is-off' }, sym('mic_off', 20), 'No microphone'),
+    h('span', { class: 'device-chip is-off' }, sym('videocam_off', 20), 'Sound off'),
+    h('span', { class: 'device-chip' }, sym('videocam', 20), 'Camera — optional'),
+    h('span', { class: 'device-chip' }, sym('speed', 20), 'Fibre · 32 ms'),
   );
+
+  // Turning the transcript on here carries into the call, which is the only
+  // reason an offer on a pre-join screen is worth anything.
+  const transcriptBtn = h(
+    'button',
+    { class: 'm-btn m-text', type: 'button' },
+    'Start',
+  ) as HTMLButtonElement;
+  transcriptBtn.addEventListener('click', () => {
+    const on = !store.get().captionsOn;
+    store.dispatch({ t: 'captions', on });
+    transcriptBtn.textContent = on ? 'On' : 'Start';
+    transcriptBtn.classList.toggle('is-on', on);
+  });
+
+  // One line, not two. Meet's subline is short by design — ours wrapped to a
+  // second line and pushed everything below it 11px down, which is how a copy
+  // length becomes a layout bug.
+  //
+  // It also narrates, the way the real one does: it says it is looking, and then
+  // says what it found. Measured at ~750ms apart in the recording.
+  const subLine = h('p', { class: 'join-sub' }, 'Looking for others in the call…');
+  window.setTimeout(() => { subLine.textContent = 'Nam Nguyen is already here'; }, 750);
 
   const col = h(
     'div',
     { class: 'join-col' },
     h('h1', {}, 'Ready to join?'),
-    h('p', { class: 'join-sub' }, 'Nam Nguyen is already in the call. He has been in there a while.'),
+    subLine,
     h(
       'div',
       { class: 'join-card' },
-      sym('description', 22),
+      sym('closed_caption', 22),
       h(
         'div',
         {},
-        h('b', {}, 'Prefer to read?'),
-        h('span', {}, 'The whole CV as one page.'),
+        h('b', {}, 'Use the transcript'),
+        h('span', {}, 'Captions and a written script.'),
       ),
-      h(
-        'button',
-        { class: 'm-btn m-text', type: 'button', onclick: () => store.dispatch({ t: 'plain', on: true }) },
-        'Open',
-      ),
+      transcriptBtn,
     ),
     h(
       'div',
@@ -137,20 +184,77 @@ export function renderLobby(store: Store, media: Media): HTMLElement {
       h(
         'button',
         {
-          class: 'm-btn m-filled join-now',
+          // ring-host so it can carry the same gm3 focus ring the meeting card
+          // uses. Meet autofocuses this button on arrival and draws exactly that
+          // ring around it, so the machinery is already ours.
+          class: 'm-btn m-filled join-now ring-host',
           type: 'button',
           onclick: () => store.dispatch({ t: 'join' }),
         },
-        'Join now',
+        focusRing(),
+        h('span', {}, 'Join now'),
       ),
+      // Meet opens dial-in numbers here. We have no phone number, so this keeps
+      // the shape of the screen and does nothing — a deliberate choice, recorded
+      // in the plan, rather than an unfinished control.
       h(
-        'a',
-        { class: 'm-btn m-outlined', href: 'NamNguyen_CV_2026.pdf', download: true },
-        sym('description', 18),
-        'Other ways to join — take the PDF',
+        'button',
+        { class: 'other-ways', type: 'button', 'aria-disabled': 'true' },
+        'Other ways to join',
+        sym('expand_more', 18),
       ),
     ),
   );
+
+  // The pre-join content, so the stage below can withhold it.
+  // A <main>, not a div: this is the page landmark and our own a11y audit
+  // checks for it. Swapping it for a div here is how that regresses silently.
+  const stageWrap = h('main', { class: 'lobby-body', id: 'main' });
+
+  const gettingReady = (): HTMLElement => {
+    const pad = h('div', { class: 'ready-pad' });
+    const art = h('div', { class: 'ready-art' });
+    const words = h(
+      'div',
+      { class: 'ready-words' },
+      h('p', { class: 'ready-h' }, 'Getting ready\u2026'),
+      h('p', { class: 'ready-s' }, 'You\u2019ll be able to join in just a moment'),
+    );
+    pad.append(art, h('div', { class: 'ready-side' }, words, spinner(true)));
+    // The shape lands first and the words catch up. One beat, and it is most of
+    // what makes the screen feel like it is doing something rather than waiting.
+    words.style.opacity = '0';
+    window.setTimeout(() => { words.style.opacity = ''; }, READY_TEXT_MS);
+    return pad;
+  };
+
+  const settle = (): void => {
+    greeted = true;
+    clear(stageWrap);
+    stageWrap.append(h('div', { class: 'preview-col' }, stage, chips), col);
+    stageWrap.classList.add('is-in');
+    // The offer card arrives after the rest of the panel, which is the order the
+    // product uses: the thing you came for first, the extra second.
+    const card = col.querySelector<HTMLElement>('.join-card');
+    if (card) {
+      card.classList.add('offer-late');
+      window.setTimeout(() => card.classList.remove('offer-late'), OFFER_MS);
+    }
+    // Meet autofocuses Join now. The ring rides :focus-visible plus the class,
+    // same as the meeting card, so it settles thick-to-thin on arrival.
+    const jn = col.querySelector<HTMLElement>('.join-now');
+    if (jn) {
+      jn.classList.add('is-selected');
+      jn.focus({ preventScroll: true });
+    }
+  };
+
+  if (greeted || store.get().reducedMotion) {
+    settle();
+  } else {
+    stageWrap.appendChild(gettingReady());
+    window.setTimeout(() => { if (stageWrap.isConnected) settle(); }, READY_MS);
+  }
 
   return h(
     'div',
@@ -169,11 +273,6 @@ export function renderLobby(store: Store, media: Media): HTMLElement {
         h('span', {}, 'Switch account'),
       ),
     ),
-    h(
-      'main',
-      { class: 'lobby-body', id: 'main' },
-      h('div', { class: 'preview-col' }, stage, chips),
-      col,
-    ),
+    stageWrap,
   );
 }

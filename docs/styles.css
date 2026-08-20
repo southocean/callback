@@ -2063,3 +2063,143 @@ body.plain { background: #fff; color: #16181c; }
    loading into it does not usually grant :focus-visible. Pinned, so the state
    you arrived by cannot change the colour. */
 .sched-card:hover::before { opacity: .08; }
+
+/* ============================================================================
+   THE PRE-JOIN SCREEN — step 1 of the join flow: geometry only.
+   Measured in a live meeting at 1440x900. Everything here is a number read off
+   the product, except the two column widths, which are derived — see below.
+
+     preview tile     740x416, #202124
+     round controls   3 x 56x48 at radius 24, pitch 72, #dde3ea
+                      disabled: the same fill at 40% and the glyph at 40%
+     device chips     4 x 179x32 at radius 16, pitch 187, 1px #c4c7c5
+                      disabled: 1px rgba(31,31,31,.12), text rgba(16,16,16,.3)
+     heading          28px/36px, #1f1f1f
+     subline          500 14/20, #1f1f1f
+     offer card       322x64 radius 16 #f0f4f9, with an 80x40 radius 20 button
+     Join now         240x56 radius 28 #0b57d0
+     Other ways       186x40 radius 20, transparent, 1px #747775
+
+   The tile lands at x=118 and the panel centre at x=1098 in the real product.
+   Neither is hard-coded here: 740 + 56 gap + 448 = 1244, centred in 1440 puts
+   the tile at 98 and the panel centre at 1118. Meet's own gap is what closes
+   that difference, so the gap is the number to solve for — 96px puts the tile
+   at 118 and the centre at 1098, matching. Deriving it this way keeps the
+   layout correct at every other width instead of only at 1440. ========== */
+/* 16, solved not chosen: a 740 tile plus a 448 panel plus gap g, centred in
+   1440, puts the tile at (1440 - 1188 - g)/2. Setting that to Meet’s measured
+   118 gives g = 16 — and then the panel centre lands on 1098, which is the
+   other measured number, from the same one input. Two measurements falling out
+   of one solve is the check that it is the right number.
+
+   (The first attempt used 96, from assuming a 400px panel because that is what
+   the heading box measures. The heading is centred inside a wider column.) */
+.lobby-body { gap: 16px; padding-bottom: 18px; }
+
+/* --- the round controls, inside the tile -------------------------------- */
+.preview-ctls { bottom: 19px; gap: 16px; }
+.round-ctl {
+  width: 56px; height: 48px; border-radius: 24px;
+  border: 0; background-color: #dde3ea; color: var(--ink);
+}
+/* Meet does not use a red fill for "off" here — that is the in-call treatment.
+   In the green room a disabled control is the same fill at 40%, which reads as
+   unavailable rather than as an alarm. */
+.round-ctl.off { background-color: #dde3ea; border-color: transparent; color: var(--ink); }
+.round-ctl[aria-disabled="true"], .round-ctl:disabled {
+  background-color: rgba(221, 227, 234, .4); color: rgba(31, 31, 31, .4); cursor: default;
+}
+.round-ctl { --sl: #1f1f1f; }
+
+/* --- device chips ------------------------------------------------------- */
+.devices { gap: 8px; margin-top: 20px; }
+.device-chip {
+  width: 179px; height: 32px; border-radius: 16px; background: none;
+  border: 1px solid #c4c7c5; padding: 0 12px; gap: 8px;
+  font: 500 14px/1 var(--font-title); color: var(--sec);
+  justify-content: flex-start; box-sizing: border-box;
+}
+.device-chip.is-off {
+  border-color: rgba(31, 31, 31, .12); color: rgba(16, 16, 16, .3);
+}
+.device-chip.is-off .ms { color: rgba(31, 31, 31, .38); }
+
+/* --- the right panel ---------------------------------------------------- */
+/* The panel does not share the preview column’s centre line. Measured: the
+   preview column centres at 479 and the panel at 468, so the panel sits 11px
+   higher. A bottom margin of 22 moves a centred box up by 11, which is the
+   whole of it — with the internal rhythm (24 heading-to-sub, 16 sub-to-card)
+   already matching exactly, this was the last number left. */
+.join-col { margin-bottom: 22px; }
+.join-col h1 { color: var(--ink); margin-bottom: 0; }
+.join-sub {
+  font: 500 14px/20px var(--font-title); color: var(--ink);
+  letter-spacing: normal; margin: 24px 0 0;
+}
+.join-card {
+  width: 322px; height: 64px; box-sizing: border-box;
+  background-color: #f0f4f9; border-radius: 16px;
+  /* 16 above, measured: the subline ends at 398 and the card starts at 414. */
+  padding: 0 12px 0 16px; margin: 16px auto 0; gap: 12px;
+}
+.join-card .m-text {
+  height: 40px; min-width: 80px; border-radius: 20px;
+  background-color: #e9eef6; color: var(--blue); padding: 0 16px;
+}
+/* 16 between the offer card and Join now, measured: the card ends at 478 and
+   the button starts at 494. 44 read as a section break; 16 reads as one group. */
+.join-actions { gap: 28px; margin-top: 16px; }
+.join-now {
+  width: 240px; height: 56px; border-radius: 28px; padding: 0;
+  font: 500 15px/1 var(--font-title);
+}
+/* Present, and deliberately inert — Meet opens dial-in numbers here and we have
+   no phone number to offer. Kept because the shape of the screen is the point;
+   see the plan for why it does nothing. */
+.other-ways {
+  width: 186px; height: 40px; border-radius: 20px; padding: 0;
+  background: none; border: 1px solid #747775; color: var(--blue);
+  font: 500 14px/1 var(--font-title); display: inline-flex;
+  align-items: center; justify-content: center; gap: 6px; cursor: pointer;
+  --sl: #0b57d0;
+}
+
+/* ---- stage 2: "Getting ready…" ------------------------------------------ */
+/* Meet's version is almost empty: the dark rectangle where the preview will be,
+   the two lines, and a spinner. Reproduced at the same proportions, so the
+   preview does not jump when the real one replaces it. */
+.ready-pad {
+  flex: 1 1 auto; display: flex; align-items: center; justify-content: center;
+  gap: 16px; padding: 12px 40px 28px; flex-wrap: wrap;
+}
+.ready-art {
+  width: 740px; max-width: 100%; aspect-ratio: 740 / 416;
+  background-color: var(--panel); border-radius: 8px; flex: 0 1 740px;
+}
+.ready-side {
+  flex: 0 1 448px; display: flex; flex-direction: column;
+  align-items: center; gap: 20px; text-align: center;
+}
+/* The words fade in a beat after the shape lands. */
+.ready-words { transition: opacity .25s cubic-bezier(0, 0, 0.2, 1); }
+.ready-h { margin: 0; font: 400 22px/28px var(--font-title); color: var(--ink); }
+.ready-s { margin: 6px 0 0; font: 400 14px/20px var(--font); color: var(--sec); }
+
+/* ---- stage 3: the pre-join panel rising in ------------------------------ */
+/* Opacity and a small lift, which is what the product does — and the offer card
+   is held back a beat so the order reads as "the thing you came for, then the
+   extra" rather than everything at once. */
+.lobby-body.is-in > * { animation: lob-rise .34s cubic-bezier(0, 0, 0.2, 1) both; }
+.lobby-body.is-in > *:nth-child(2) { animation-delay: .06s; }
+@keyframes lob-rise { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: none; } }
+.join-card { transition: opacity .22s cubic-bezier(0, 0, 0.2, 1), transform .22s cubic-bezier(0, 0, 0.2, 1); }
+.join-card.offer-late { opacity: 0; transform: translateY(8px); }
+
+/* The ring on Join now, same component as the meeting card's. */
+.join-now > .focus-ring { border-radius: 30px; }
+.join-now { position: relative; }
+
+@media (prefers-reduced-motion: reduce) {
+  .lobby-body.is-in > * { animation: none; }
+  .join-card, .ready-words { transition: none; }
+}
