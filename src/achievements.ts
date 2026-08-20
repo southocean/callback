@@ -150,6 +150,11 @@ export class Quests {
       { class: 'quest-toast', role: 'status' },
       h('div', { class: 'quest-row' }, sym('auto_awesome', 24), h('span', { class: 'quest-name' }, quest.name)),
       h('div', { class: 'quest-sub' }, detail),
+      // A bar as well as the count, which Nam asked for. Meet has no progress
+      // bar in a notice, so this is ours — built in its language rather than
+      // borrowed: a 4px track on the surface's own white at 24%, filled with the
+      // #a8c7fa accent the icon already uses.
+      complete ? null : h('div', { class: 'quest-bar' }, h('i', { style: `width:${Math.round((got / total) * 100)}%` })),
       close,
     );
     this.tray.appendChild(card);

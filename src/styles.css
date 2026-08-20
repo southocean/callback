@@ -2985,3 +2985,116 @@ body.plain { background: #fff; color: #16181c; }
 }
 .preview.cam-on .preview-unavail { display: block; }
 .preview.cam-on .preview-ask-wrap { display: none; }
+
+/* ================= NAM'S QA PASS ON THE PRE-JOIN SCREEN ================== */
+
+/* 1. The gap under Join now had doubled. -------------------------------- */
+/* .join-actions has gap: 28px, and Other ways to join is no longer the last
+   child — the three expander rows sit between it and Join now. Collapsed they
+   are 0 tall but still a flex item, so they collected a 28px gap on each side
+   and the button ended up 56 below instead of 28.
+
+   Explicit margins instead of a container gap, which is the only way to say
+   "28 above the rows, and 15 more only when they are open":
+
+     collapsed  Join now -> Other ways        28   (Meet: 494..550, 578)
+     open       Join now -> first row         28   (Meet: 26)
+                last row -> Show fewer        15   (Meet: 639, 654) */
+.join-actions { gap: 0; }
+.join-now { margin-bottom: 28px; }
+.other-rows.is-open { margin-bottom: 15px; }
+
+/* 2. The ! badge goes when the control is deliberately off. -------------- */
+/* Meet's badge means "this device was not found". Once you have turned the mic
+   off yourself the warning is moot, and Nam is right that it should go. */
+.round-ctl.off ~ .ctl-warn { display: none; }
+
+/* 3. The legacy hover was painting the control almost black. ------------- */
+/* `.round-ctl:hover { background: rgba(255,255,255,.12) }` survived from the
+   first draft, when these controls were outlined-on-dark. The `background`
+   SHORTHAND replaces background-color outright, so hovering swapped the
+   control's #dde3ea fill for 12% white — and 12% white over the #202124 tile is
+   very nearly black. Which is exactly what Nam described, and exactly why he
+   guessed it was inheriting the disabled state.
+
+   Fourth time the background shorthand has done this to me. The state layer is
+   the ::before and the ::after; the element's own fill must never move. */
+.round-ctl:hover { background-color: #dde3ea; }
+.round-ctl.off:hover { background-color: #f9dedc; }
+.round-ctl[aria-disabled="true"]:hover, .round-ctl:disabled:hover {
+  background-color: rgba(221, 227, 234, .4);
+}
+
+/* 4. content_copy was rendering as the literal text "content_copy". ------ */
+/* `.ready-link span` sets a `font` shorthand, which resets font-family, and it
+   outranks .ms — so the ligature never resolved and the word overflowed the
+   box. The same trap as the offer card's icon, and the fix is the same. */
+.ready-link span:not(.ms) {
+  font: 400 13px/20px var(--font); color: var(--ink2); flex: 1 1 auto;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.ready-link > .ms { flex: 0 0 auto; }
+/* And this selector never matched anything: sym() returns a span, not an svg. */
+.ready-fine > .ms { flex: 0 0 auto; color: var(--blue); margin-top: 1px; }
+
+/* 5. The achievement notice gets a progress bar. ------------------------- */
+/* Nam's request. Meet has no bar in a notice, so this is ours — built in its
+   language rather than borrowed: a 4px track on the surface's own white at 24%,
+   filled with the #a8c7fa the icon already uses, and it animates from 0 so the
+   step you just earned is the thing that moves. */
+.quest-bar {
+  height: 4px; border-radius: 2px; margin-top: 14px;
+  background-color: rgba(255, 255, 255, .24); overflow: hidden;
+}
+.quest-bar i {
+  display: block; height: 100%; border-radius: 2px; background-color: #a8c7fa;
+  animation: quest-fill .6s cubic-bezier(0.2, 0, 0, 1) both;
+}
+@keyframes quest-fill { from { width: 0 !important; } }
+
+@media (prefers-reduced-motion: reduce) {
+  .quest-bar i { animation: none; }
+}
+
+/* --- correction: the warning badge IS animated -------------------------- */
+/* I had this as an instant flip, on the grounds that every element from the
+   badge up to the button reads transition-duration: 0s and nothing was running
+   when I sampled it. That reasoning was wrong in a way worth writing down:
+   computed transition properties say nothing about the Web Animations API, and
+   a JS-driven animation leaves no trace in them at all.
+ *
+ * Nam's clip settles it. Stepping 2026-08-21 00-23-48 X at 20fps through the
+ * moment the pointer arrives:
+ *
+ *   frame 0    16px disc, bright #FCBD00
+ *   +1 frame   the disc darkens — a state layer, on the disc only
+ *   +2         the pill has begun extending to the right, text faint
+ *   +3         nearly full width, text still translucent
+ *   +4         settled: full pill, text at full opacity
+ *
+ * So about 150-200ms of width, with the label fading in behind it and the disc
+ * carrying its own hover layer while the extending body does not. 180ms on
+ * emphasized-decelerate, and the text on a short linear fade with a beat of
+ * delay so it arrives inside a pill that is already most of the way open. */
+.warn-pill {
+  transition: width .18s cubic-bezier(0.2, 0, 0, 1),
+              height .18s cubic-bezier(0.2, 0, 0, 1),
+              padding .18s cubic-bezier(0.2, 0, 0, 1);
+}
+.warn-text {
+  opacity: 0; transition: opacity .1s linear .07s;
+}
+/* The state layer sits on the 16px disc, not on the pill, which is why the
+   leading circle reads darker than the body it grew out of. */
+.warn-dot { position: relative; overflow: hidden; }
+.warn-dot::before {
+  content: ''; position: absolute; inset: 0; border-radius: inherit;
+  background-color: #6D3A01; opacity: 0;
+  transition: opacity .075s linear;
+}
+.warn-pill:hover .warn-dot::before,
+.warn-pill:focus-visible .warn-dot::before { opacity: .16; }
+
+@media (prefers-reduced-motion: reduce) {
+  .warn-pill, .warn-text, .warn-dot::before { transition: none; }
+}

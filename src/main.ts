@@ -72,7 +72,12 @@ function render(): void {
 
   // The call view owns the GL context, the caption timer and the panel state, so
   // it is built once and reused rather than torn down on every panel change.
-  if (key === lastKey && key === 'call') return;
+  // The lobby is on this list for the same reason the call view is: it owns
+  // local DOM state — which controls are on, whether a notice is showing, which
+  // menu is open — and a re-mount silently throws all of it away. toggleCamera()
+  // dispatches { t: 'camera' }, so before this every camera click rebuilt the
+  // tile from scratch and the click appeared to do nothing.
+  if (key === lastKey && (key === 'call' || key === 'lobby')) return;
   lastKey = key;
 
   document.body.classList.toggle('plain', key === 'plain');

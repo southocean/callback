@@ -63,7 +63,20 @@ let greeted = false;
  * still comes back to the same state.
  */
 let preMic = true;
+let preCam = false;
 let preNotice: { title: string; body: string; anchor: number } | null = null;
+
+let deselectWired = false;
+function wireDeselect(): void {
+  if (deselectWired) return;
+  deselectWired = true;
+  document.addEventListener('pointerdown', (e) => {
+    const jn = document.querySelector<HTMLElement>('.lobby .join-now.is-selected');
+    if (!jn) return;
+    if (jn.contains(e.target as Node)) return;
+    jn.classList.remove('is-selected');
+  }, true);
+}
 
 let keysWired = false;
 function wireKeys(): void {
@@ -217,19 +230,35 @@ export function renderLobby(store: Store, media: Media): HTMLElement {
     h('div', { class: 'preview-ctls' }, micCtl.wrap, camCtl.wrap, fxCtl.wrap),
   );
 
+  /**
+   * The camera control used to hang its ENTIRE UI update off
+   * media.toggleCamera().then(...). If that promise rejects — no camera, denied
+   * permission, a device already in use — the then never runs and the button
+   * does nothing at all, which is what Nam saw. Worse, an unhandled rejection
+   * during a getUserMedia prompt is exactly the kind of thing that reads as "the
+   * page reloaded".
+   *
+   * So the UI flips first, from local state, and the real camera is attempted
+   * separately and allowed to fail. The visible control is never hostage to a
+   * permission dialog.
+   */
+  const paintCam = (): void => {
+    camCtl.btn.classList.toggle('off', !preCam);
+    camCtl.btn.setAttribute('aria-label', preCam ? 'Turn off camera' : 'Turn on camera');
+    const g = camCtl.btn.querySelector('.ms');
+    if (g) camCtl.btn.replaceChild(sym(preCam ? 'videocam' : 'videocam_off', 24), g);
+    avatar.style.display = preCam ? 'none' : '';
+    stage.classList.toggle('cam-on', preCam);
+    promoteChips(preCam);
+    if (preCam) showNotice('Camera unavailable', 'Close other apps that might be using your camera', 0);
+    else hideNotice();
+  };
   camCtl.btn.addEventListener('click', () => {
-    void media.toggleCamera().then(() => {
-      const on = media.cameraOn();
-      camCtl.btn.classList.toggle('off', !on);
-      camCtl.btn.setAttribute('aria-label', on ? 'Turn off camera' : 'Turn on camera');
-      clear(camCtl.btn);
-      camCtl.btn.appendChild(sym(on ? 'videocam' : 'videocam_off', 24));
-      avatar.style.display = on ? 'none' : '';
-      stage.classList.toggle('cam-on', on);
-      promoteChips(on);
-      if (on) showNotice('Camera unavailable', 'Close other apps that might be using your camera', 0);
-      else hideNotice();
-    });
+    preCam = !preCam;
+    paintCam();
+    // Best effort, and genuinely optional: if a real camera turns up, the tile
+    // shows it. If not, the unavailable state we already painted is the truth.
+    void Promise.resolve(media.toggleCamera()).catch(() => undefined);
   });
 
 
@@ -532,12 +561,25 @@ export function renderLobby(store: Store, media: Media): HTMLElement {
     }
   };
 
+  // The autofocus selection is a starting point, not a permanent state: Meet's
+  // ring goes the moment you interact anywhere else, and ours was keeping
+  // is-selected forever. Same fix the home screen's meeting card already has.
+  wireDeselect();
+
   if (greeted || store.get().reducedMotion) {
     settle();
   } else {
     stageWrap.appendChild(gettingReady());
     window.setTimeout(() => { if (stageWrap.isConnected) settle(); }, READY_MS);
   }
+
+  // Last, not where it reads most naturally. paintCam() reaches promoteChips(),
+  // which is a const declared further down, so calling it beside the camera
+  // listener threw "cannot access before initialization" — and because
+  // renderLobby runs inside the lazy router's promise, that rejection surfaced
+  // as "That screen failed to load". Which is exactly the reload Nam kept
+  // seeing: not a reload at all, our own failure screen.
+  if (preCam) paintCam();
 
   return h(
     'div',
