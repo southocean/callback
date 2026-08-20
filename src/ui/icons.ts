@@ -25,7 +25,11 @@ export type IconName =
   | 'frame_person' | 'group' | 'help' | 'info' | 'keyboard' | 'keyboard_arrow_up'
   | 'link' | 'lock_person' | 'menu' | 'mic' | 'mic_off' | 'mood' | 'more_vert' | 'person_add'
   | 'present_to_all' | 'science' | 'settings' | 'shield' | 'speed' | 'today' | 'video_call' | 'videocam'
-  | 'videocam_off' | 'auto_awesome';
+  | 'videocam_off' | 'auto_awesome'
+  // Added for the pre-join chip row, which mirrors Meet's four exactly:
+  // mic_none for "Mic not found", volume_up for the speaker, blur_on for the
+  // effects control (Meet's own glyph there, where we had auto_awesome).
+  | 'mic_none' | 'volume_up' | 'blur_on';
 
 export interface SymOpts {
   /** Meet fills the glyph for the selected nav item. */

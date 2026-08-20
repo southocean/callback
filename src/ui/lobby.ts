@@ -140,7 +140,7 @@ export function renderLobby(store: Store, media: Media): HTMLElement {
             store.dispatch({ t: 'engTab', tab: 'fx' });
           },
         },
-        sym('auto_awesome', 24),
+        sym('blur_on', 24),
       ),
     ),
   );
@@ -149,59 +149,37 @@ export function renderLobby(store: Store, media: Media): HTMLElement {
   // why Meet has four. Ours say what is true of this page rather than naming
   // hardware it never asks for: there is no microphone here at all, and the
   // camera is an offer rather than a device that is already on.
-  // The two live chips. Meet's open a menu; these do the thing directly and say
-  // so in their label, which is the honest version of the same promise — the
-  // caret is there because every one of Meet's chips has one.
-  const capChip = h(
-    'button',
-    { class: 'device-chip', type: 'button', 'aria-label': 'Captions' },
-    sym('closed_caption', 20),
-    h('span', { class: 'chip-label' }, 'Captions off'),
-    dropCaret(20),
-  ) as HTMLButtonElement;
-  capChip.addEventListener('click', () => {
-    const on = !store.get().captionsOn;
-    store.dispatch({ t: 'captions', on });
-    const l = capChip.querySelector('.chip-label');
-    if (l) l.textContent = on ? 'Captions on' : 'Captions off';
-    capChip.classList.toggle('is-on', on);
-  });
-
-  const camChip = h(
-    'button',
-    { class: 'device-chip', type: 'button', 'aria-label': 'Camera' },
-    sym('videocam_off', 20),
-    h('span', { class: 'chip-label' }, 'Camera off'),
-    dropCaret(20),
-  ) as HTMLButtonElement;
-  camChip.addEventListener('click', () => {
-    void media.toggleCamera().then(() => {
-      const on = media.cameraOn();
-      const l = camChip.querySelector('.chip-label');
-      if (l) l.textContent = on ? 'Camera on' : 'Camera off';
-      clear(camChip.querySelector('.ms') as HTMLElement);
-      camChip.replaceChild(sym(on ? 'videocam' : 'videocam_off', 20), camChip.firstChild as Node);
-      camChip.classList.toggle('is-on', on);
-    });
-  });
-
   /**
-   * The chip row, rebuilt after hovering and clicking Meet's own. Measured:
+   * The chip row, mirroring Meet's four exactly. Measured:
    *
    *   chip     179x32 r16, 1px #c4c7c5, inline-flex, padding 0 16, gap 4
-   *   hit area 179x48 — the target is 16px taller than the chip on both sides
-   *   layer    the padding box, 177x30, r16, #444746 at .08, .075s linear
+   *   hit area 179x48 — 8px taller than the chip on each side
+   *   layer    the padding box, 177x30 r16, #444746 at .08, .075s linear
    *   icon     20px #444746 at dx 17
-   *   label    500 14px "Google Sans" #444746 at dx 41, ellipsis
-   *   caret    arrow_drop_down, flush right, ending at dx 162
+   *   label    500 14px "Google Sans" #444746 at dx 41, ellipsis at ~97px
+   *   caret    arrow_drop_down at dx 142, flush right
    *
-   * Four things there we did not have at all: the caret, the state layer, the
-   * taller hit area, and the truncation. And two we had backwards — the label
-   * colour (a warm grey #444746, not our --sec) and which chips are live. Meet
-   * enables the first two and disables the last two; ours had it inverted.
+   *   1  mic_none      "Mic not found"       live
+   *   2  volume_up     "Speaker not found"   live, truncates
+   *   3  videocam      "Permission needed"   disabled, truncates
+   *   4  blur_on       "Permission needed"   disabled, truncates
    *
-   * Long-hovering every chip produced no tooltip, so they get none. That is a
-   * measurement, not an omission: the label is already the whole message.
+   * Nam asked for these mirrored rather than reworded, and he is right that the
+   * versions I invented were worse — "Fibre · 32 ms" in particular was a number
+   * about a network nobody asked about, sitting in a row that is supposed to be
+   * about devices.
+   *
+   * They are also all true here, which is the part that makes mirroring fine
+   * rather than merely faithful: this page never requests a microphone or a
+   * speaker, and the camera and effects both genuinely need a permission it has
+   * not asked for.
+   *
+   * The tooltip rule is the interesting find, and it is why my first sweep
+   * concluded "no tooltips on chips": Meet tips a chip only when its label is
+   * TRUNCATED, and the one chip I probed was the one that fits. So the tip is
+   * wired off actual overflow, measured after layout, rather than hardcoded —
+   * which also means it stays correct when the row narrows and chips that fit at
+   * 740 stop fitting at 448.
    */
   const chip = (icon: IconName, label: string, live: boolean): HTMLElement => h(
     'button',
@@ -219,13 +197,22 @@ export function renderLobby(store: Store, media: Media): HTMLElement {
   const chips = h(
     'div',
     { class: 'devices' },
-    // Disabled, and honestly so: there is no microphone here to choose between.
-    chip('mic_off', 'No microphone', false),
-    capChip,
-    camChip,
-    // Informational. Nothing to pick, so nothing to open.
-    chip('speed', 'Fibre · 32 ms', false),
+    chip('mic_none', 'Mic not found', true),
+    chip('volume_up', 'Speaker not found', true),
+    chip('videocam', 'Permission needed', false),
+    chip('blur_on', 'Permission needed', false),
   );
+
+  // Tip only the ones whose label actually clips, which is Meet's rule. This has
+  // to run after the row is IN the document, not just built: off-document,
+  // clientWidth and scrollWidth are both 0, so the comparison is false for every
+  // chip and nothing gets tipped. Called from settle(), one frame after mount.
+  const tipClipped = (): void => {
+    for (const c of chips.querySelectorAll<HTMLElement>('.device-chip')) {
+      const l = c.querySelector<HTMLElement>('.chip-label');
+      if (l && l.scrollWidth > l.clientWidth + 1) tipAllAbove(c);
+    }
+  };
 
   // Turning the transcript on here carries into the call, which is the only
   // reason an offer on a pre-join screen is worth anything.
@@ -353,6 +340,7 @@ export function renderLobby(store: Store, media: Media): HTMLElement {
     clear(stageWrap);
     stageWrap.append(h('div', { class: 'preview-col' }, stage, chips), col);
     stageWrap.classList.add('is-in');
+    requestAnimationFrame(tipClipped);
     // The offer card arrives after the rest of the panel, which is the order the
     // product uses: the thing you came for first, the extra second.
     const card = col.querySelector<HTMLElement>('.join-card');
