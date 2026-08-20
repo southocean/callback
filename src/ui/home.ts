@@ -103,6 +103,9 @@ export function renderHome(store: Store, reducedMotion = false): HTMLElement {
         {
           class: 'm-btn m-tonal m-new',
           type: 'button',
+          // Meet's own label, which also gives the tooltip something better than
+          // the button's own text to read.
+          'aria-label': 'New meeting',
           onclick: () => store.dispatch({ t: 'screen', screen: 'lobby' }),
         },
         sym('video_call', 20),
@@ -128,7 +131,7 @@ export function renderHome(store: Store, reducedMotion = false): HTMLElement {
       h('button', { class: 'icon-btn', type: 'button', 'aria-label': 'Google apps' }, sym('apps', 22)),
       h(
         'button',
-        { class: 'avatar-btn', type: 'button', 'aria-label': 'Account: you, the person reading this' },
+        { class: 'avatar-btn', type: 'button', 'aria-label': 'Google Account: you' },
         h('span', {}, 'G'),
       ),
     ),

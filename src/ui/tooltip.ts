@@ -81,7 +81,24 @@ function leave(): void {
  * accessible name, so the two can never drift apart.
  */
 export function tip(el: HTMLElement, text?: string): void {
-  const label = () => text ?? el.getAttribute('aria-label') ?? el.textContent?.trim() ?? '';
+  /**
+   * Visible text only. `textContent` is the wrong fallback on anything holding
+   * an icon: Material Symbols glyphs are ligature *text*, so a button reading
+   * "New" reported "video_callNew". Walk the tree and skip anything hidden from
+   * assistive tech, which is exactly what the glyph spans are marked as.
+   */
+  const visibleText = (root: HTMLElement): string => {
+    let out = '';
+    for (const node of root.childNodes) {
+      if (node.nodeType === Node.TEXT_NODE) out += node.textContent ?? '';
+      else if (node instanceof HTMLElement && node.getAttribute('aria-hidden') !== 'true') {
+        out += visibleText(node);
+      }
+    }
+    return out.replace(/\s+/g, ' ').trim();
+  };
+
+  const label = () => text ?? el.getAttribute('aria-label') ?? visibleText(el);
 
   const enter = (): void => {
     const t = label();
