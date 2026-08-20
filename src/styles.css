@@ -1411,9 +1411,18 @@ body.plain { background: #fff; color: #16181c; }
    a layout shift the real product is entirely happy to ship. */
 .enter { animation: fadeIn .5s cubic-bezier(0.4, 0, 0.2, 1) both; }
 @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
-.banner-slot { display: grid; grid-template-rows: 0fr; transition: grid-template-rows .3s cubic-bezier(0.4, 0, 0.2, 1); }
-.banner-slot > * { overflow: hidden; }
-.banner-slot.open { grid-template-rows: 1fr; }
+/* minmax(0, ...) is load-bearing. A bare `0fr` resolves as minmax(auto, 0fr),
+   and that auto MINIMUM floors the row at its content height — so the slot
+   computed to 100px and never collapsed, which is why the staged entrance was
+   invisible however long the delay was set to. The explicit minmax removes the
+   floor and lets the row actually reach zero. */
+.banner-slot { display: grid; grid-template-rows: minmax(0, 0fr); transition: grid-template-rows .3s cubic-bezier(0.4, 0, 0.2, 1); }
+/* The clip has to be on the SLOT, not the child. The child is the promo row and
+   it carries min-height: 68px to match Meet, so it cannot shrink into a
+   zero-height grid row — it overflows, and its own overflow:hidden only clips
+   its children, not itself. Clipping at the slot contains it either way. */
+.banner-slot { overflow: hidden; }
+.banner-slot.open { grid-template-rows: minmax(0, 1fr); }
 
 /* ---- the buttons that still flipped ------------------------------------- */
 /* These three had a background that appeared and vanished with no duration —
