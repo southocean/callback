@@ -73,8 +73,29 @@ const V0 = 0.6;
 const PEN_MAX = 70;
 /** Fraction of the displacement Google absorbs. It is the one making room. */
 const G_SHARE = 0.94;
-/** How far left the word travels as it leaves, px. */
-const SHOVE = 44;
+/**
+ * The word both slides left and squeezes as it leaves, and the split between
+ * the two is not a taste decision — it is solved for.
+ *
+ * The box the word sits in narrows as Meet takes its place, but the word is not
+ * clipped (clipping is what moved its baseline and broke the alignment), so if
+ * it stays its full width it spills out to the right, straight into "Meet".
+ * That is the mess. The invariant that prevents it: the word's right edge must
+ * never pass the right edge of the space it still owns.
+ *
+ *   left + tx + G0.s  =  left + G0.k        for width fraction k, scale s
+ *   =>  tx = G0.(k - s)
+ *
+ * Any s satisfying that is overlap-free, so s is free to choose for looks.
+ * s = sqrt(k) squeezes gently — far less than the s = k that a pure crush would
+ * give — while leaving real leftward travel. Its worst protrusion past the left
+ * is at k = 1/4, where tx = -G0/4, so about 19px, and by then the word is
+ * already fading.
+ */
+const squeeze = (k: number): { tx: number; s: number } => {
+  const s = Math.sqrt(k);
+  return { tx: G0 * (k - s), s };
+};
 /** Letter-spacing Meet gives up per px of penetration. */
 const M_SHARE = 0.022;
 /** Velocity remaining at the end of the crush, as a fraction of v0. */
@@ -92,7 +113,7 @@ const APPROACH_MS = FROM / V0;
 /** Everything at rest, before the name has arrived. */
 export function reset(p: Parts): void {
   p.google.style.width = `${G0}px`;
-  p.google.style.transform = 'translateX(0)';
+  p.google.style.transform = 'translateX(0) scaleX(1)';
   p.google.style.opacity = '1';
   p.meet.style.letterSpacing = 'normal';
   p.nam.style.transform = `translateX(${FROM}px)`;
@@ -128,7 +149,8 @@ export function play(p: Parts): () => void {
     // width drives layout, so "Meet" slides left as the word leaves; transform
     // does not, so the word travels independently of the space it vacates.
     p.google.style.width = `${(G0 * k).toFixed(2)}px`;
-    p.google.style.transform = `translateX(${(-(1 - k) * SHOVE).toFixed(2)}px)`;
+    const { tx, s } = squeeze(k);
+    p.google.style.transform = `translateX(${tx.toFixed(2)}px) scaleX(${s.toFixed(4)})`;
     // Fades late and then quickly. The multiplier sets where the fade starts:
     // opacity stays at 1 until k falls below 1/4.5, so the word is fully solid
     // for the first 78% of its departure and then goes in a hurry. A gentler
