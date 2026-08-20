@@ -1369,13 +1369,7 @@ body.plain { background: #fff; color: #16181c; }
   pointer-events: none; z-index: 1; opacity: 0;
 }
 .ring-host:focus { outline: none; }
-.ring-host:focus-visible > .focus-ring {
-  opacity: 1;
-  box-shadow: 0 0 0 3px #00639b;
-  animation:
-    gm3-ring-grows   .15s cubic-bezier(0.2, 0, 0, 1),
-    gm3-ring-shrinks .45s cubic-bezier(0.2, 0, 0, 1);
-}
+/* Superseded by the canonical ring rule further down. */
 @keyframes gm3-ring-grows   { from { box-shadow: 0 0 0 0   #00639b; } to { box-shadow: 0 0 0 8px #00639b; } }
 @keyframes gm3-ring-shrinks { from { box-shadow: 0 0 0 8px #00639b; } }
 
@@ -1509,11 +1503,7 @@ body.plain { background: #fff; color: #16181c; }
    to .7s and eased out. Ours read heavy at Google's own timing because our card
    is the only one on screen, so the pulse has nothing to share attention with.
    A documented deviation, not a measurement. */
-.ring-host:focus-visible > .focus-ring {
-  animation:
-    gm3-ring-grows   .18s cubic-bezier(0.2, 0, 0, 1),
-    gm3-ring-shrinks .7s  cubic-bezier(0.16, 1, 0.3, 1);
-}
+/* Superseded by the canonical ring rule further down. */
 
 /* ---- lockup, second pass ------------------------------------------------ */
 /* The word is a bitmap now, so it needs a box rather than a font size, and the
@@ -1725,13 +1715,27 @@ body.plain { background: #fff; color: #16181c; }
    to ~900ms after load, at which point Chrome had usually seen pointer input
    and stopped granting it — so the ring never appeared on a fresh load. Both
    selectors, same rule, so keyboard focus still lights it too. */
+/* ONE animation, not two.
+   This listed grows and shrinks together, and when two animations touch the
+   same property the later one wins outright — so "grows" never rendered at all
+   and only the shrink was ever visible. Worse, its curve was
+   cubic-bezier(0.16, 1, 0.3, 1), which covers 62% of the distance in the first
+   100ms: the ring appeared thick, snapped to nearly thin, then crawled the last
+   sliver. That reads as two states, which is exactly the binary flip it was
+   supposed to avoid.
+
+   The ring now starts at its full 8px and settles to 3px on one even curve, so
+   the shrink is something you can actually watch. Starting thick rather than
+   growing from nothing is also what was asked for: it should look like coming
+   back to a tab, where the ring is already there and relaxes. */
 .ring-host.is-selected > .focus-ring,
 .ring-host:focus-visible > .focus-ring {
   opacity: 1;
-  box-shadow: 0 0 0 3px #00639b;
-  animation:
-    gm3-ring-grows   .18s cubic-bezier(0.2, 0, 0, 1),
-    gm3-ring-shrinks .7s  cubic-bezier(0.16, 1, 0.3, 1);
+  animation: gm3-ring-settle .5s cubic-bezier(0.4, 0, 0.4, 1) both;
+}
+@keyframes gm3-ring-settle {
+  from { box-shadow: 0 0 0 8px #00639b; }
+  to   { box-shadow: 0 0 0 3px #00639b; }
 }
 
 /* ============================================================================
