@@ -77,6 +77,15 @@ function render(): void {
 
   document.body.classList.toggle('plain', key === 'plain');
 
+  // The Calls tab. A real second tab rather than a link, because Meet has
+  // exactly two and a third would be the tell.
+  if (location.hash.startsWith('#calls')) {
+    mount('calls', () => import('./ui/calls.js').then((m) => m.renderCalls({
+      onOpenReferral: () => { history.pushState(null, '', '#call/host'); store.dispatch({ t: 'screen', screen: 'call' }); store.dispatch({ t: 'panel', panel: 'host' }); },
+    })).then((node) => renderHome(store, store.get().reducedMotion, node)));
+    return;
+  }
+
   // An egg lives at #egg/<id>. It is its own screen rather than a mode of the
   // call, because it needs almost none of what the call carries and the whole
   // point is that it loads fast when someone finally finds it.

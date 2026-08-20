@@ -123,7 +123,13 @@ function slot(on: Date): { day: string; date: number; label: string; week: { n: 
   };
 }
 
-export function renderHome(store: Store, reducedMotion = false): HTMLElement {
+/**
+ * The home shell. `body` swaps the content column for another screen that lives
+ * inside the same chrome — the Calls tab does this. Without it the boot sequence
+ * would asynchronously clear main and overwrite whatever the caller put there,
+ * which is exactly what happened the first time.
+ */
+export function renderHome(store: Store, reducedMotion = false, body?: HTMLElement): HTMLElement {
   let s = slot(viewing);
   const marks = eggMap(TODAY);
 
@@ -249,10 +255,10 @@ export function renderHome(store: Store, reducedMotion = false): HTMLElement {
         class: 'rail-item',
         type: 'button',
         'aria-current': 'false',
-        onclick: () => store.dispatch({ t: 'plain', on: true }),
+        onclick: () => { location.hash = '#calls'; store.dispatch({ t: 'screen', screen: 'home' }); },
       },
-      h('span', { class: 'rail-pill' }, sym('description', 24)),
-      h('span', { class: 'rail-label' }, 'CV'),
+      h('span', { class: 'rail-pill' }, sym('call', 24)),
+      h('span', { class: 'rail-label' }, 'Calls'),
     ),
   );
 
@@ -603,7 +609,16 @@ export function renderHome(store: Store, reducedMotion = false): HTMLElement {
     window.setTimeout(openBanner, BOOT_BANNER);
   };
 
-  if (reducedMotion || boot === 'done') {
+  if (body) {
+    // A different tab inside the same shell: no day view, no boot sequence, and
+    // the rail shows Calls as current.
+    boot = 'done';
+    main.appendChild(body);
+    if (!reducedMotion) settleLockup(bar);
+    const items = rail.querySelectorAll('.rail-item');
+    items[0]?.setAttribute('aria-current', 'false');
+    items[1]?.setAttribute('aria-current', 'true');
+  } else if (reducedMotion || boot === 'done') {
     boot = 'done';
     main.appendChild(col);
     slotEl.classList.add('open');
