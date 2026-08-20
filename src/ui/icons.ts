@@ -112,9 +112,12 @@ function mark(): SVGSVGElement {
  *
  * It renders as "Google Meet", then "Nam" flies in from the right, lands, the
  * whole wordmark takes the hit, and "Google" is knocked out of it — leaving
- * "Meet Nam". Which is the entire pitch, in one word of movement.
+ * "Meet Nam Nguyen". Which is the entire pitch, in one movement.
  *
- * Under reduced-motion it is simply "Meet Nam" from the start; nothing flies.
+ * The flying word is the full name rather than just "Nam": on its own the
+ * first name reads as a typo in a product wordmark rather than as a person.
+ *
+ * Under reduced-motion it is simply "Meet Nam Nguyen" from the start.
  */
 export function lockup(reducedMotion = false, onHome?: () => void): HTMLElement {
   const wrap = document.createElement('button');
@@ -135,14 +138,14 @@ export function lockup(reducedMotion = false, onHome?: () => void): HTMLElement 
 
   const nam = document.createElement('span');
   nam.className = 'lk-nam';
-  nam.textContent = 'Nam';
+  nam.textContent = 'Nam Nguyen';
 
   words.append(google, meet, nam);
   wrap.appendChild(words);
 
   // One accessible name for the whole thing, so a screen reader hears the
   // destination rather than three fragments mid-animation.
-  wrap.setAttribute('aria-label', 'Meet Nam');
+  wrap.setAttribute('aria-label', 'Meet Nam Nguyen');
   for (const el of [google, meet, nam]) el.setAttribute('aria-hidden', 'true');
 
   wrap.addEventListener('click', () => {

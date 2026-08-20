@@ -174,5 +174,48 @@ Per screen, and it matters — later steps rebuild on earlier ones:
 7. **Transient UI.** Tooltips, menus, toasts — including their timing, which is
    measurable and was measured.
 
-Steps 1–3 are done for the home screen. 4 is done for tooltips and the code
-field, and outstanding for the rest.
+
+---
+
+## 6. What the hover pass found
+
+Step 4 of the order below, done properly: eight controls on the home screen,
+each hovered with a **real** pointer, with `document.querySelectorAll(':hover')`
+walked and every ancestor's background — plus `::before` and `::after` — read at
+rest and again while hovered.
+
+The result was almost entirely negative, and that is the finding:
+
+| Control | Rest | Hovered |
+|---|---|---|
+| Code field | `#e9eef6` | **`#dde3ea`** |
+| Logo lockup | — | no change |
+| Support / Settings / Google apps | transparent | no change |
+| Avatar | transparent | no change |
+| Rail item, selected | `#c2e7ff` pill | no change |
+| Rail item, unselected | transparent | no change |
+| Week arrows | transparent | no change |
+| Day column | `#fff` | no change |
+| New button | `#c4eed0`, no shadow | no change |
+| Meeting card | `#f0f4f9` | no change |
+
+One hover state on the entire screen. Ours had six, all invented from
+Material's documented 8% state layer — so this pass was almost entirely
+deletions. That is worth saying out loud, because a clone drifts toward *more*
+feedback than the original: every individual state layer feels like an
+improvement, and the accumulation is what makes a copy feel like a copy.
+
+Two traps specific to this step:
+
+- **Synthetic events are not the problem people think they are.** They *do*
+  reach JS listeners, so a JS-toggled state layer would have shown up. What they
+  cannot do is make `:hover` match. Since you rarely know which mechanism a
+  target uses, drive a real pointer and both are covered at once.
+- **Read the element, not the tree.** The painted surface is usually a bare
+  overlay `div` that is neither the button nor its parent — walking up from
+  `elementFromPoint` found a transparent wrapper and missed the `#f0f4f9` layer
+  sitting at the same coordinates. Query by computed style (`borderRadius ===
+  '28px'`) instead, and A/B the *same element* pointer-away vs pointer-on.
+
+Steps 1–4 are now done for the home screen. 5 (focus) and 6 (press) are next,
+and the press morph is the one place Meet is known to be doing something.

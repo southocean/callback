@@ -62,11 +62,14 @@ export const motion: Section = {
 export const feedback: Section = {
   title: 'Interaction feedback',
   lead:
-    'Material state layers: a translucent overlay of the foreground colour, at a fixed opacity per state. Meet ' +
-    'never changes a control\'s fill colour on hover — it lays a film over it. Copying that is most of what makes ' +
-    'hover feel right.',
+    'Material documents state layers: a translucent film of the foreground colour at a fixed opacity per state. ' +
+    'Meet mostly does not use them. Eight controls on this screen were measured at rest and under a real pointer, ' +
+    'and hovering changes exactly one of them — by swapping the fill, not by laying a film over it. Getting this ' +
+    'right meant deleting hover states rather than adding them: the restraint is the design.',
   rules: [
-    { name: 'Hover', value: '8% state layer', note: 'rgba(31,31,31,.08) on light, rgba(255,255,255,.08) on dark.' },
+    { name: 'Hover — the surprise', value: 'nothing, almost everywhere', note: 'Eight controls on the home screen were hovered with a real pointer and their whole ancestor chain read, at rest and hovered. Seven of them do not change at all: the logo, the three top-bar icon buttons, both rail items, the week arrows, the day columns and the New button. The tooltip is the entire affordance.' },
+    { name: 'Hover, the one exception', value: '#e9eef6 → #dde3ea', note: 'The code field, and only the code field. It is a real fill change on the container, not a translucent film — which is the opposite of what Material documents, and the reason guessing would not have got there.' },
+    { name: 'Why that is the right call', value: 'the text is the affordance', note: 'Every control that stays inert either carries a visible label (the rail) or earns a tooltip on dwell. The one that reacts is the only one you are meant to type into. Hover feedback is spent where it changes what you do next.' },
     { name: 'Focus (visible)', value: '10% state layer + 3px ring', note: 'Keyboard focus must be louder than hover, never quieter.' },
     { name: 'Pressed', value: '10% layer + radius morph', note: 'The shape change is the press feedback; the colour barely moves.' },
     { name: 'Selected', value: 'secondary container #c2e7ff', note: 'A filled pill, plus the icon switches to FILL 1. Not a colour change on an outline.' },
