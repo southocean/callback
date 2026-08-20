@@ -129,8 +129,12 @@ export function play(p: Parts): () => void {
     // does not, so the word travels independently of the space it vacates.
     p.google.style.width = `${(G0 * k).toFixed(2)}px`;
     p.google.style.transform = `translateX(${(-(1 - k) * SHOVE).toFixed(2)}px)`;
-    // Fades late, so the shove is visible before the word goes.
-    p.google.style.opacity = Math.min(1, k * 2.2).toFixed(3);
+    // Fades late and then quickly. The multiplier sets where the fade starts:
+    // opacity stays at 1 until k falls below 1/4.5, so the word is fully solid
+    // for the first 78% of its departure and then goes in a hurry. A gentler
+    // ramp made it linger as a ghost while "Meet" was already moving into the
+    // space, which read as a crossfade rather than as something leaving.
+    p.google.style.opacity = Math.min(1, k * 4.5).toFixed(3);
     p.meet.style.letterSpacing = ls === 0 ? 'normal' : `${ls.toFixed(3)}px`;
     p.nam.style.transform = `translateX(${namX.toFixed(2)}px)`;
   };
