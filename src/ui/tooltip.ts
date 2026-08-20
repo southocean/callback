@@ -109,7 +109,21 @@ export function tip(el: HTMLElement, text?: string, where: Placement = 'below'):
     return out.replace(/\s+/g, ' ').trim();
   };
 
-  const label = () => text ?? el.getAttribute('aria-label') ?? visibleText(el);
+  /**
+   * Meet's tooltip is not the aria-label. On the pre-join screen the mic
+   * control announces "Turn off microphone" and its tooltip reads "Turn off
+   * microphone (ctrl + d)" — the shortcut is in the visible hint only, and
+   * rightly so: a screen reader user does not need the mouse-user's accelerator
+   * read out with every focus.
+   *
+   * So the shortcut lives in data-key and is appended here. Anything that sets
+   * it must actually implement the key, or the tooltip is a lie.
+   */
+  const label = () => {
+    const base = text ?? el.getAttribute('aria-label') ?? visibleText(el);
+    const key = el.getAttribute('data-key');
+    return key && base ? `${base} (${key})` : base;
+  };
 
   const enter = (): void => {
     const t = label();

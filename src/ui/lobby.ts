@@ -9,7 +9,9 @@
 // removing them — so this one is one click, and any deep link skips it.
 
 import { h, clear } from '../dom.js';
-import { sym, spinner, focusRing } from './icons.js';
+import { sym, spinner, focusRing, dropCaret } from './icons.js';
+import type { IconName } from './icons.js';
+import { tipAllAbove } from './tooltip.js';
 import type { Store } from '../state.js';
 import { profile } from '../data/cv.js';
 
@@ -42,6 +44,22 @@ const OFFER_MS = 260;
 
 let greeted = false;
 
+let keysWired = false;
+function wireKeys(): void {
+  if (keysWired) return;
+  keysWired = true;
+  window.addEventListener('keydown', (e) => {
+    if (!e.ctrlKey || e.metaKey || e.altKey) return;
+    const k = e.key.toLowerCase();
+    if (k !== 'd' && k !== 'e') return;
+    const ctls = document.querySelectorAll<HTMLElement>('.lobby .round-ctl');
+    const hit = k === 'd' ? ctls[0] : ctls[1];
+    if (!hit) return;
+    e.preventDefault();
+    hit.click();
+  });
+}
+
 export function renderLobby(store: Store, media: Media): HTMLElement {
   const warn = h('div', {});
 
@@ -64,6 +82,7 @@ export function renderLobby(store: Store, media: Media): HTMLElement {
           class: 'round-ctl off',
           type: 'button',
           'aria-label': 'Turn on microphone',
+          'data-key': 'ctrl + d',
           onclick: (e: Event) => {
             const b = e.currentTarget as HTMLButtonElement;
             const on = b.classList.toggle('off');
@@ -81,6 +100,7 @@ export function renderLobby(store: Store, media: Media): HTMLElement {
           class: 'round-ctl off',
           type: 'button',
           'aria-label': 'Turn on camera',
+          'data-key': 'ctrl + e',
           onclick: (e: Event) => {
             void media.toggleCamera().then(() => {
               const b = e.currentTarget as HTMLButtonElement;
@@ -129,13 +149,82 @@ export function renderLobby(store: Store, media: Media): HTMLElement {
   // why Meet has four. Ours say what is true of this page rather than naming
   // hardware it never asks for: there is no microphone here at all, and the
   // camera is an offer rather than a device that is already on.
+  // The two live chips. Meet's open a menu; these do the thing directly and say
+  // so in their label, which is the honest version of the same promise — the
+  // caret is there because every one of Meet's chips has one.
+  const capChip = h(
+    'button',
+    { class: 'device-chip', type: 'button', 'aria-label': 'Captions' },
+    sym('closed_caption', 20),
+    h('span', { class: 'chip-label' }, 'Captions off'),
+    dropCaret(20),
+  ) as HTMLButtonElement;
+  capChip.addEventListener('click', () => {
+    const on = !store.get().captionsOn;
+    store.dispatch({ t: 'captions', on });
+    const l = capChip.querySelector('.chip-label');
+    if (l) l.textContent = on ? 'Captions on' : 'Captions off';
+    capChip.classList.toggle('is-on', on);
+  });
+
+  const camChip = h(
+    'button',
+    { class: 'device-chip', type: 'button', 'aria-label': 'Camera' },
+    sym('videocam_off', 20),
+    h('span', { class: 'chip-label' }, 'Camera off'),
+    dropCaret(20),
+  ) as HTMLButtonElement;
+  camChip.addEventListener('click', () => {
+    void media.toggleCamera().then(() => {
+      const on = media.cameraOn();
+      const l = camChip.querySelector('.chip-label');
+      if (l) l.textContent = on ? 'Camera on' : 'Camera off';
+      clear(camChip.querySelector('.ms') as HTMLElement);
+      camChip.replaceChild(sym(on ? 'videocam' : 'videocam_off', 20), camChip.firstChild as Node);
+      camChip.classList.toggle('is-on', on);
+    });
+  });
+
+  /**
+   * The chip row, rebuilt after hovering and clicking Meet's own. Measured:
+   *
+   *   chip     179x32 r16, 1px #c4c7c5, inline-flex, padding 0 16, gap 4
+   *   hit area 179x48 — the target is 16px taller than the chip on both sides
+   *   layer    the padding box, 177x30, r16, #444746 at .08, .075s linear
+   *   icon     20px #444746 at dx 17
+   *   label    500 14px "Google Sans" #444746 at dx 41, ellipsis
+   *   caret    arrow_drop_down, flush right, ending at dx 162
+   *
+   * Four things there we did not have at all: the caret, the state layer, the
+   * taller hit area, and the truncation. And two we had backwards — the label
+   * colour (a warm grey #444746, not our --sec) and which chips are live. Meet
+   * enables the first two and disables the last two; ours had it inverted.
+   *
+   * Long-hovering every chip produced no tooltip, so they get none. That is a
+   * measurement, not an omission: the label is already the whole message.
+   */
+  const chip = (icon: IconName, label: string, live: boolean): HTMLElement => h(
+    'button',
+    {
+      class: 'device-chip' + (live ? '' : ' is-off'),
+      type: 'button',
+      ...(live ? {} : { 'aria-disabled': 'true' }),
+      'aria-label': label,
+    },
+    sym(icon, 20),
+    h('span', { class: 'chip-label' }, label),
+    dropCaret(20),
+  );
+
   const chips = h(
     'div',
     { class: 'devices' },
-    h('span', { class: 'device-chip is-off' }, sym('mic_off', 20), 'No microphone'),
-    h('span', { class: 'device-chip is-off' }, sym('videocam_off', 20), 'Sound off'),
-    h('span', { class: 'device-chip' }, sym('videocam', 20), 'Camera — optional'),
-    h('span', { class: 'device-chip' }, sym('speed', 20), 'Fibre · 32 ms'),
+    // Disabled, and honestly so: there is no microphone here to choose between.
+    chip('mic_off', 'No microphone', false),
+    capChip,
+    camChip,
+    // Informational. Nothing to pick, so nothing to open.
+    chip('speed', 'Fibre · 32 ms', false),
   );
 
   // Turning the transcript on here carries into the call, which is the only
@@ -204,6 +293,9 @@ export function renderLobby(store: Store, media: Media): HTMLElement {
           { class: 'warn-pill', role: 'note', tabindex: '0' },
           h('span', { class: 'warn-dot', 'aria-hidden': 'true' }, '!'),
           h('span', { class: 'warn-text' }, 'You’re joining without mic'),
+          // The expanded badge ends in a caret in Meet too — 15px, #6D3A01,
+          // finishing 5px short of the pill's right edge.
+          dropCaret(20),
         ),
       ),
       // Meet opens dial-in numbers here. We have no phone number, so this keeps
@@ -221,6 +313,22 @@ export function renderLobby(store: Store, media: Media): HTMLElement {
   // The pre-join content, so the stage below can withhold it.
   // A <main>, not a div: this is the page landmark and our own a11y audit
   // checks for it. Swapping it for a div here is how that regresses silently.
+  // Meet tips all three round controls, ABOVE them, 4px clear — and the text
+  // carries the keyboard shortcut: "Turn off microphone (ctrl + d)". So ours
+  // says the same, and ctrl+d / ctrl+e are wired below so the text is true.
+  // The chips are deliberately not tipped; long-hovering Meet's produced none.
+  tipAllAbove(...stage.querySelectorAll<HTMLElement>('.round-ctl'));
+
+  // The tooltips promise ctrl+d and ctrl+e, so here they are: Meet's own
+  // accelerators, and the reason the promise is allowed to be made at all.
+  //
+  // Wired once at module scope rather than per render. The lobby is remounted
+  // on every visit, so a listener per visit would fire three times a press by
+  // the third visit — and there is no teardown hook to hang a removal on. The
+  // handler looks the controls up when the key lands instead, which also means
+  // it is inert on every other screen without needing to know about them.
+  wireKeys();
+
   const stageWrap = h('main', { class: 'lobby-body', id: 'main' });
 
   const gettingReady = (): HTMLElement => {

@@ -2241,11 +2241,9 @@ body.plain { background: #fff; color: #16181c; }
   opacity: 0; transition: opacity .14s linear .06s;
 }
 /* Hover OR keyboard focus, because a note nobody can reach is not a note. */
-.join-now:hover .warn-pill,
 .warn-pill:hover, .warn-pill:focus-visible {
   width: 169px; height: 20px; padding-right: 10px;
 }
-.join-now:hover .warn-text,
 .warn-pill:hover .warn-text, .warn-pill:focus-visible .warn-text { opacity: 1; }
 .warn-pill:focus-visible { outline: 2px solid #6D3A01; outline-offset: 1px; }
 
@@ -2427,3 +2425,171 @@ body.plain { background: #fff; color: #16181c; }
    top of everything. A notice that fires and cannot be seen is worse than no
    notice, because the state changed and nothing said so. */
 .quest-tray { z-index: 320; }
+
+/* ================ THE PRE-JOIN SWEEP — what real hovering found ========== */
+/* Every control on Meet's pre-join screen, hovered short and long and then
+   clicked, with a real pointer (synthetic events cannot set :hover). What came
+   back changed six things here, and two of them were outright bugs.
+                                                                              */
+
+/* --- Join now: two bugs, and both were the cascade ---------------------- */
+/* The label sat hard against the left edge and a small blue square stuck out of
+   the button's left side. Both from the same edit that set width: 240 and
+   padding: 0.
+
+   .m-btn is inline-flex with no justify-content, so it had been relying on
+   symmetric padding to look centred. Take the padding away and flex-start puts
+   the label on the left. Meet's label measures [91,19 58x18] in a 240-wide
+   button — (240 - 58) / 2 = 91, dead centre.
+
+   And .m-filled > * { position: relative } — added so button labels paint above
+   the state layer — matches .focus-ring at the SAME specificity (0,1,0) and
+   sits later in the file, so it won. The ring stopped being absolute, became a
+   0-width in-flow flex item, and painted its 3px box-shadow as a small blue
+   square that also pushed the label along. That is the third time a property I
+   did not name has survived an override and cost real time. */
+.join-now { justify-content: center; }
+.join-now > .focus-ring { position: absolute; }
+
+/* --- the tooltip: one value off ---------------------------------------- */
+/* #303030, radius 4, padding 4px 8px, 400 12/16 — all already right. The text
+   colour was #f2f2f2 and Meet's is #e3e3e3. */
+.tt { color: #e3e3e3; }
+
+/* --- the device chips -------------------------------------------------- */
+/* Measured on Meet's, hovered and clicked:
+ *
+ *   chip     179x32 r16, 1px #c4c7c5, inline-flex, padding 0 16, gap 4
+ *   hit area 179x48 — 8px taller than the chip on each side
+ *   layer    the padding box, 177x30 r16, #444746 at .08, .075s linear
+ *   icon     20px #444746 at dx 17
+ *   label    500 14px "Google Sans" #444746 at dx 41, ellipsis
+ *   caret    arrow_drop_down, flush right, ending at dx 162
+ *
+ * We had no caret, no state layer, no taller hit area and no truncation, and
+ * the label colour and the enabled/disabled split were both wrong. */
+.device-chip {
+  position: relative; overflow: hidden;
+  padding: 0 16px; gap: 4px; justify-content: flex-start;
+  border: 1px solid #c4c7c5; border-radius: 16px;
+  background: none; color: #444746;
+  font: 500 14px/1 var(--font-title);
+  cursor: pointer; --sl: #444746;
+}
+/* inset:0 on an absolutely positioned child resolves against the PADDING box,
+   which is exactly the 177x30 Meet paints — so the border stays crisp and the
+   layer sits inside it without a second wrapper element. */
+.device-chip::before {
+  content: ''; position: absolute; inset: 0; border-radius: inherit;
+  background-color: #444746; opacity: 0;
+  transition: opacity .075s linear; pointer-events: none;
+}
+.device-chip:hover::before { opacity: .08; }
+.device-chip:active::before { opacity: .12; }
+/* The hit area is 48 tall while the chip is 32 — a control you can hit 8px
+   above and below where it appears to be. Free to copy, and the row sits in
+   open space so nothing collides with it. */
+.device-chip::after {
+  content: ''; position: absolute; left: 0; right: 0; top: -9px; bottom: -9px;
+}
+.device-chip > .ms { color: inherit; flex: 0 0 auto; }
+.device-chip .chip-label {
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  min-width: 0; text-align: left;
+}
+.device-chip > .caret { margin-left: auto; flex: 0 0 auto; color: inherit; }
+/* Disabled: a fainter border and text, and NO state layer — but Meet still
+   brightens a disabled control's ink on hover (see the round controls below),
+   so these do too. */
+.device-chip.is-off {
+  border-color: rgba(31, 31, 31, .12); color: rgba(16, 16, 16, .3); cursor: default;
+}
+.device-chip.is-off::before { display: none; }
+.device-chip.is-off:hover { color: rgba(16, 16, 16, .62); }
+.device-chip.is-on { border-color: #0b57d0; color: #0b57d0; --sl: #0b57d0; }
+.device-chip.is-on::before { background-color: #0b57d0; }
+
+/* --- the round controls: a disabled control that still answers ---------- */
+/* The blur control is aria-disabled, and hovering it still changes something:
+   its ink goes from rgba(31,31,31,.4) to full rgb(31,31,31), and it keeps its
+   tooltip. A disabled control that acknowledges the pointer — easy to miss and
+   the kind of detail the sweep exists to catch. */
+.round-ctl[aria-disabled="true"]:hover, .round-ctl:disabled:hover {
+  color: rgb(31, 31, 31);
+}
+
+/* --- the warning badge: expansion is NOT triggered by the button -------- */
+/* Hovering Join now leaves the badge at 16x16. It only opens when the pointer
+   is on the badge itself, which is why it can sit on the button at all without
+   covering the label every time someone reaches for it. Ours expanded from the
+   button, which is wrong and also worse.
+ *
+ * And there is no transition anywhere in Meet's chain — every element from the
+ * badge up to the button reads transition-duration: 0s, and nothing is running
+ * when it opens. The reveal is instant. Against the "everything is a
+ * transition" rule, but it is what the product does, so it is what this does. */
+.warn-pill { transition: none; }
+.warn-caret, .warn-pill > .caret {
+  flex: 0 0 auto; width: 15px; height: 15px; opacity: 0;
+}
+.warn-pill > .caret { margin-right: 5px; }
+.warn-pill:hover > .caret, .warn-pill:focus-visible > .caret { opacity: 1; }
+
+/* --- the spinner: why the wave was leaving the circle -------------------- */
+/* Nam's frames of the "Getting ready" screen show a near-complete pale ring
+   with a SHORT blue scallop, and both ends of the scallop meeting the ring
+   cleanly. Ours did neither: the lit arc was too long, the break either side of
+   it was twice as wide as it should be, and the arc's ends visibly stepped off
+   the circle, which is what made it read as a squiggle stuck onto a ring rather
+   than as one ring partly wavy.
+ *
+ * The ends were the real bug, and the fix is arithmetic. The wave has K = 9
+ * crests per turn, so one half wavelength is exactly 360 / 18 = 20 degrees, and
+ * the wave crosses its own midline — the track's radius — every 20 degrees. So
+ * an arc of exactly n half-waves begins and ends ON the circle, and any other
+ * length cannot. Our light variant ran 8.9 to 41.7 units, which is 1.08 to 5.04
+ * half-waves: both ends mid-wave, every frame.
+ *
+ *   half-wave = 148.94 / 18 = 8.274 units of path, 20 degrees of angle
+ *
+ * And the gap was 20 degrees at each end where Google bakes 21 degrees TOTAL
+ * into its own track geometry. Back to 10.5 each side.
+ *
+ * Light — the lobby's "Getting ready". Fixed at 3 half-waves, 60 degrees, which
+ * is what the reference frames show. Nothing animates but the rotation, so the
+ * ends sit on the circle in every frame rather than only at the extremes. A
+ * constant shape turning steadily is also just what the frames look like. */
+.spin-light .spin-arc {
+  animation: none;
+  stroke-dasharray: 24.82 148.94;
+}
+.spin-light .spin-track {
+  animation: none;
+  stroke-dasharray: 107.13 138.23;
+  stroke-dashoffset: -27.07;
+}
+/* Cold — the first paint, where Meet's arc does breathe. Kept, but both ends of
+   the breath are now on half-wave multiples (3 -> 9, so 60 to 180 degrees), so
+   the extremes join cleanly and only the middle of the sweep drifts off. */
+@keyframes arc-cold2 { from { stroke-dasharray: 24.82 148.94; } to { stroke-dasharray: 74.47 148.94; } }
+@keyframes trk-cold2 {
+  from { stroke-dasharray: 107.13 138.23; stroke-dashoffset: -27.07; }
+  to   { stroke-dasharray: 61.05 138.23;  stroke-dashoffset: -73.15; }
+}
+.spin-cold .spin-arc { animation-name: arc-cold2; }
+.spin-cold .spin-track { animation-name: trk-cold2; }
+
+@media (prefers-reduced-motion: reduce) {
+  /* Still a clean 3 half-waves rather than an arbitrary slice. */
+  .spin-arc { stroke-dasharray: 24.82 148.94; }
+  .spin-track { stroke-dasharray: 107.13 138.23; stroke-dashoffset: -27.07; }
+}
+
+/* --- Join now: the label's own size ------------------------------------- */
+/* With the centring fixed, ours measured [89,21 63x15] against Meet's
+   [91,19 58x18]. Same centre, different text box — so the font was off, not the
+   layout. 58 / 63 x 15 = 13.8, and the 18px height is what 14px Google Sans
+   gives at normal leading. So Meet's is 14px on an 18px line and ours was 15/1.
+   Two pixels of width and three of height, which is exactly the amount that
+   makes a button look subtly not-quite-right without showing you why. */
+.join-now { font: 500 14px/18px var(--font-title); }

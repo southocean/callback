@@ -348,6 +348,34 @@ export function spinner(light = false): SVGSVGElement {
  * you return to the tab, and it is the entire reason the selected meeting reads
  * as "the thing you are about to do" rather than as a static highlight.
  */
+/**
+ * Meet's dropdown caret. Measured off a device chip on the pre-join screen: it
+ * is an inline SVG, not a font glyph, drawn in a 24 viewBox as
+ *
+ *   M7 10l5 5 5-5H7z
+ *
+ * which is the classic Material `arrow_drop_down` — a FILLED TRIANGLE. Every
+ * chip has one, and so does the expanded warning badge.
+ *
+ * Worth being precise about because the obvious guess is wrong: `expand_more`
+ * is a stroked chevron and reads completely differently at 20px. We had neither,
+ * which is most of why the chip row looked unlike Meet's.
+ */
+export function dropCaret(px = 20): SVGSVGElement {
+  const ns = 'http://www.w3.org/2000/svg';
+  const svg = document.createElementNS(ns, 'svg');
+  svg.setAttribute('viewBox', '0 0 24 24');
+  svg.setAttribute('width', String(px));
+  svg.setAttribute('height', String(px));
+  svg.setAttribute('class', 'caret');
+  svg.setAttribute('aria-hidden', 'true');
+  const p = document.createElementNS(ns, 'path');
+  p.setAttribute('d', 'M7 10l5 5 5-5H7z');
+  p.setAttribute('fill', 'currentColor');
+  svg.appendChild(p);
+  return svg;
+}
+
 export function focusRing(): HTMLSpanElement {
   const s = document.createElement('span');
   s.className = 'focus-ring';
