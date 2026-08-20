@@ -24,6 +24,9 @@ const PRIMED_WINDOW = 600;
 /** Anything below this and a tooltip on focus would fight the focus ring. */
 const GAP = 4;
 
+/** The enter handler for each tipped element, so it can be re-armed. */
+const enters = new WeakMap<HTMLElement, () => void>();
+
 let primedUntil = 0;
 let showTimer = 0;
 let current: HTMLElement | null = null;
@@ -123,6 +126,7 @@ export function tip(el: HTMLElement, text?: string, where: Placement = 'below'):
     }, wait);
   };
 
+  enters.set(el, enter);
   el.addEventListener('pointerenter', enter);
   el.addEventListener('pointerleave', leave);
   // Keyboard users get it immediately — for them it is not a hint that they
@@ -134,6 +138,19 @@ export function tip(el: HTMLElement, text?: string, where: Placement = 'below'):
   el.addEventListener('blur', hideNow);
   // A tooltip must never survive the thing it describes being clicked.
   el.addEventListener('click', hideNow);
+}
+
+/**
+ * Start an element's tooltip timer as though the pointer had just arrived.
+ *
+ * Needed because pointerenter does not fire for movement WITHIN an element. The
+ * code field is tipped, the Join button inside it is not, and touching Join
+ * dismisses the field's tooltip — all correct. But moving from Join back onto
+ * the field is movement inside the field, so nothing fires and the tooltip never
+ * returns. The real product treats that as a fresh arrival, so this does too.
+ */
+export function rearm(el: HTMLElement): void {
+  enters.get(el)?.();
 }
 
 /**

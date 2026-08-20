@@ -1485,7 +1485,16 @@ body.plain { background: #fff; color: #16181c; }
    the token: both are #d3e3fd, but autofocusing the card put a 12% black focus
    state layer on top of it. Meet draws the ring and leaves the fill alone. The
    ring IS the focus feedback; a layer as well just ages the colour. */
-.sched-card:focus-visible::before { opacity: 0; }
+/* :not(:hover) is the fix. This suppressed the focus state layer so the
+   selected card would not look aged — but it fired while focused FULL STOP, and
+   because it sits after the hover rule with the same specificity it also killed
+   the hover layer for as long as the card was selected. Which is always, on a
+   fresh load. So the one card the page most wants you to click was the one card
+   that did not respond to the pointer.
+
+   Suppress the layer for focus alone; leave hover alone. */
+.sched-card:focus-visible:not(:hover)::before,
+.sched-card.is-selected:not(:hover)::before { opacity: 0; }
 
 /* Hovering the card's Join must not light the card. Measured: Join carries its
    own white 8% layer and the row behind it stays completely inert, so the
@@ -1912,7 +1921,8 @@ body.plain { background: #fff; color: #16181c; }
   display: flex; flex-direction: column; align-items: center;
   gap: 16px; padding: 64px 16px 0; text-align: center;
 }
-.empty-art { width: 100%; max-width: 581px; height: 170px; display: grid; place-items: center; }
+.empty-art { width: 300px; max-width: 100%; display: grid; place-items: center; }
+.empty-art svg { width: 100%; height: auto; }
 .empty-h { margin: 0; font: 400 32px/40px var(--font-title); color: var(--ink); }
 .empty-s { margin: 0; font: 400 16px/24px var(--font-title); color: var(--sec); }
 .empty-day .m-new { margin-top: 8px; }

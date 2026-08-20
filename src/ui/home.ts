@@ -11,7 +11,7 @@
 import { h, clear } from '../dom.js';
 import { sym, lockup, spinner, focusRing, playLockup, settleLockup } from './icons.js';
 import { openDev } from './devopen.js';
-import { tip, tipAll, tipAllAbove, hideTip } from './tooltip.js';
+import { tip, tipAll, tipAllAbove, hideTip, rearm } from './tooltip.js';
 import { eggMap, key as dayKey, type Egg } from '../data/eggs.js';
 import type { Store } from '../state.js';
 
@@ -301,20 +301,53 @@ export function renderHome(store: Store, reducedMotion = false, body?: HTMLEleme
   function emptyArt(): SVGSVGElement {
     const ns = 'http://www.w3.org/2000/svg';
     const svg = document.createElementNS(ns, 'svg');
-    svg.setAttribute('viewBox', '0 0 240 120');
-    svg.setAttribute('width', '240');
-    svg.setAttribute('height', '120');
-    for (let i = 0; i < 5; i++) {
-      const r = document.createElementNS(ns, 'rect');
-      r.setAttribute('x', String(12 + i * 44));
-      r.setAttribute('y', '18');
-      r.setAttribute('width', '32');
-      r.setAttribute('height', '84');
-      r.setAttribute('rx', '10');
-      r.setAttribute('fill', i === 2 ? 'none' : '#e9eef6');
-      if (i === 2) { r.setAttribute('stroke', '#c4c7c5'); r.setAttribute('stroke-dasharray', '5 5'); }
-      svg.appendChild(r);
-    }
+    svg.setAttribute('viewBox', '0 0 300 160');
+    svg.setAttribute('width', '300');
+    svg.setAttribute('height', '160');
+    svg.setAttribute('fill', 'none');
+
+    // Google's illustration style, as far as it can be characterised: flat
+    // shapes in the brand colours, a single dark hairline over the top, and one
+    // object deliberately breaking the baseline. Theirs is a desk with a coffee
+    // and a sketchbook; this is the same idea drawn from scratch rather than
+    // their file copied.
+    const add = (tag: string, attrs: Record<string, string>): void => {
+      const el = document.createElementNS(ns, tag);
+      for (const [k, v] of Object.entries(attrs)) el.setAttribute(k, v);
+      svg.appendChild(el);
+    };
+    const INK = '#3c4043';
+    const line = { stroke: INK, 'stroke-width': '2', 'stroke-linecap': 'round', 'stroke-linejoin': 'round' };
+
+    // Sun, off to the right and clipped by nothing — the one bright note.
+    add('circle', { cx: '258', cy: '30', r: '13', fill: '#FBBC04' });
+    // Its little arc of a flight path, which is what stops the composition
+    // sitting flat.
+    add('path', { d: 'M196 62 C 214 30, 236 26, 244 32', ...line });
+
+    // A pink slab behind the cup, for depth.
+    add('path', { d: 'M52 128 L52 96 A 22 22 0 0 1 96 96 L96 128 Z', fill: '#F8BBD0' });
+
+    // The notebook: a leaning page with a sketch on it.
+    add('path', { d: 'M170 128 L186 58 L272 58 L256 128 Z', fill: '#fff', ...line });
+    add('path', { d: 'M256 128 L272 58', ...line });
+    add('rect', { x: '198', y: '76', width: '44', height: '30', rx: '8', ...line });
+    add('path', { d: 'M206 100 L222 82 L236 100', ...line });
+
+    // The cup, with a yellow fill that stops short of the rim.
+    add('path', { d: 'M104 84 L146 84 L140 126 L110 126 Z', fill: '#FDD663', ...line });
+    add('path', { d: 'M146 92 C 160 92, 160 108, 146 108', ...line });
+    // Steam.
+    add('path', { d: 'M118 74 C 112 66, 124 60, 118 50', ...line });
+    add('path', { d: 'M132 72 C 126 64, 138 58, 132 48', ...line });
+
+    // The pencil, leaning across the notebook.
+    add('path', { d: 'M158 128 L188 46', ...line });
+    add('path', { d: 'M188 46 L196 50 L166 132 L158 128 Z', fill: '#4285F4', ...line });
+    add('path', { d: 'M158 128 L166 132 L160 140 Z', fill: INK });
+
+    // The desk. Drawn last so it sits over the feet of everything on it.
+    add('path', { d: 'M28 128 L272 128', ...line });
     return svg;
   }
 
@@ -673,9 +706,13 @@ export function renderHome(store: Store, reducedMotion = false, body?: HTMLEleme
   // tooltip repeating it would be noise, and Meet leaves them alone.
   tipAll(...bar.querySelectorAll<HTMLElement>('.icon-btn, .avatar-btn, .lockup, .m-new'));
   tip(wrap.querySelector<HTMLElement>('.composer-pill')!, 'Enter a code or link');
-  // Touching Join dismisses the field's tooltip rather than leaving it up.
-  wrap.querySelector<HTMLElement>('.composer-join')
-    ?.addEventListener('pointerenter', hideTip);
+  // Touching Join dismisses the field's tooltip rather than leaving it up — and
+  // leaving Join re-arms it, because moving back onto the field is movement
+  // inside the field and fires no pointerenter of its own.
+  const pillEl = wrap.querySelector<HTMLElement>('.composer-pill')!;
+  const joinEl = wrap.querySelector<HTMLElement>('.composer-join');
+  joinEl?.addEventListener('pointerenter', hideTip);
+  joinEl?.addEventListener('pointerleave', () => rearm(pillEl));
   // Above, not below: the week strip tips upward because downward would land on
   // the meeting list. The day columns get one too — including today, whose
   // label is the word "Selected".
