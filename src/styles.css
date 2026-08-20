@@ -168,8 +168,8 @@ button { font: inherit; }
   width: 48px; text-align: center; border: 0; background: transparent; cursor: pointer;
   padding: 4px 0; border-radius: 12px;
 }
-.day-name { font: 500 11px/16px var(--font); letter-spacing: .1px; color: var(--sec); }
-.day-num  { font: 400 16px/24px var(--font); color: var(--ink); }
+.day-name { display: block; font: 500 11px/16px var(--font); letter-spacing: .1px; color: var(--sec); }
+.day-num { display: block; font: 400 16px/24px var(--font); color: var(--ink); }
 .day[aria-current="true"] .day-num {
   background: var(--nav-pill); border-radius: 50%; width: 32px; height: 32px;
   display: grid; place-items: center; margin: 0 auto; color: var(--nav-icon);
