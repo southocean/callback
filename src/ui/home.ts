@@ -72,7 +72,22 @@ function wireSelection(): void {
 
 /** Measured off a screen recording of a cold load. */
 const BOOT_SPIN = 900;   // spinner alone, no date row
-const BOOT_BANNER = 800; // then the promo arrives and shoves the list down
+const BOOT_BANNER = 800; // then the wordmark does its trick
+/**
+ * And only after that does the promo arrive.
+ *
+ * These used to fire off the same timer, so the gag and the banner landed
+ * together and the banner won — something sliding in beside the joke is exactly
+ * as distracting as something sliding in underneath it.
+ *
+ * The impact runs 790ms end to end by its own constants (183 approach + 187
+ * displace + 420 recoil), so 1050 leaves a clear quarter-second of stillness
+ * after it lands before anything else on the page moves.
+ */
+const GAG_MS = 1050;
+
+/** The gag plays once per page load, however many times home() mounts. */
+let gagStarted = false;
 
 /**
  * Which day the page is looking at. Module-level so paging to another day and
@@ -596,9 +611,18 @@ export function renderHome(store: Store, reducedMotion = false, body?: HTMLEleme
   const openBanner = (): void => {
     boot = 'done';
     slotEl.classList.add('open');
-    // Only now does the wordmark do its trick. Everything else has stopped
-    // moving, so it is the one thing on screen that is.
+  };
+
+  /**
+   * The wordmark goes first, and alone. Nothing else on screen is moving by this
+   * point and nothing else starts moving until it has finished — which is the
+   * whole reason the joke reads at all. The promo follows after GAG_MS.
+   */
+  const playGag = (): void => {
+    if (gagStarted) { openBanner(); return; }
+    gagStarted = true;
     playLockup(bar);
+    window.setTimeout(openBanner, GAG_MS);
   };
   const showList = (): void => {
     boot = 'listed';
@@ -606,7 +630,7 @@ export function renderHome(store: Store, reducedMotion = false, body?: HTMLEleme
     col.classList.add('enter');
     main.appendChild(col);
     paintDay();
-    window.setTimeout(openBanner, BOOT_BANNER);
+    window.setTimeout(playGag, BOOT_BANNER);
   };
 
   if (body) {
@@ -631,7 +655,7 @@ export function renderHome(store: Store, reducedMotion = false, body?: HTMLEleme
     // list, and let the promo still make its entrance.
     main.appendChild(col);
     paintDay();
-    window.setTimeout(openBanner, BOOT_BANNER);
+    window.setTimeout(playGag, BOOT_BANNER);
   } else {
     main.appendChild(h('div', { class: 'load-pad' }, spinner()));
     window.setTimeout(() => { if (main.isConnected) showList(); }, BOOT_SPIN);
