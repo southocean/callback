@@ -340,7 +340,7 @@ export function renderLobby(store: Store, media: Media): HTMLElement {
       h('p', { class: 'ready-h' }, 'Getting ready\u2026'),
       h('p', { class: 'ready-s' }, 'You\u2019ll be able to join in just a moment'),
     );
-    pad.append(art, h('div', { class: 'ready-side' }, words, spinner(true)));
+    pad.append(art, h('div', { class: 'ready-side' }, words, spinner(true, true)));
     // The shape lands first and the words catch up. One beat, and it is most of
     // what makes the screen feel like it is doing something rather than waiting.
     words.style.opacity = '0';

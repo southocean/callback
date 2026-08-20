@@ -2593,3 +2593,42 @@ body.plain { background: #fff; color: #16181c; }
    Two pixels of width and three of height, which is exactly the amount that
    makes a button look subtly not-quite-right without showing you why. */
 .join-now { font: 500 14px/18px var(--font-title); }
+
+/* --- correction: the "Getting ready" spinner has no wave ----------------- */
+/* Nam had to say this twice, and worse, my own plan for this screen said it in
+   the first place: "the same ring/track construction as the home loader, but
+   both arcs smooth, no wave." I then built the wavy one anyway and shipped it.
+ *
+ * It is two plain circular arcs in different colours with a gap at each end —
+ * pale #a8c7fa for most of the ring, #0b57d0 for a short lit arc, both riding
+ * the same radius 22 circle, both 4px with round caps, and the whole thing
+ * rotating.
+ *
+ * Because both paths are now the plain circle, the arithmetic is one length for
+ * both: C = 2*pi*22 = 138.23. Gap stays at Google's 21 degrees total.
+ *
+ *   lit arc  50deg -> 100deg      19.20 -> 38.40
+ *   track    289deg -> 239deg    110.97 -> 91.77, offset -23.23 -> -42.43
+ *
+ * The lit arc breathes between those two, which is what the two frames Nam sent
+ * show: a short arc low-right in one and a longer one low-left in the other. */
+.spin-smooth .spin-arc {
+  animation-name: arc-smooth;
+  animation-duration: 1.5s; animation-iteration-count: infinite;
+  animation-direction: alternate; animation-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+  stroke-dasharray: 19.20 138.23;
+}
+.spin-smooth .spin-track {
+  animation-name: trk-smooth;
+  animation-duration: 1.5s; animation-iteration-count: infinite;
+  animation-direction: alternate; animation-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+}
+@keyframes arc-smooth { from { stroke-dasharray: 19.20 138.23; } to { stroke-dasharray: 38.40 138.23; } }
+@keyframes trk-smooth {
+  from { stroke-dasharray: 110.97 138.23; stroke-dashoffset: -23.23; }
+  to   { stroke-dasharray: 91.77 138.23;  stroke-dashoffset: -42.43; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .spin-smooth .spin-arc { animation: none; stroke-dasharray: 28.80 138.23; }
+  .spin-smooth .spin-track { animation: none; stroke-dasharray: 101.37 138.23; stroke-dashoffset: -32.83; }
+}

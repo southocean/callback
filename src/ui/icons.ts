@@ -289,7 +289,7 @@ export function lockup(reducedMotion = false, onHome?: () => void): HTMLElement 
  * shrinks on a slower, eased cycle. The track is clipped to exactly the
  * complement, so the gap holds at both ends however long the lit arc is.
  */
-export function spinner(light = false): SVGSVGElement {
+export function spinner(light = false, smooth = false): SVGSVGElement {
   const ns = 'http://www.w3.org/2000/svg';
   const C = 32;    // centre, from the real path
   const R = 22;    // radius, from the real path — exact
@@ -300,7 +300,7 @@ export function spinner(light = false): SVGSVGElement {
   svg.setAttribute("viewBox", "0 0 64 64");
   svg.setAttribute("width", "64");
   svg.setAttribute("height", "64");
-  svg.setAttribute("class", "spin " + (light ? "spin-light" : "spin-cold"));
+  svg.setAttribute("class", "spin " + (light ? "spin-light" : "spin-cold") + (smooth ? " spin-smooth" : ""));
   svg.setAttribute("role", "progressbar");
   svg.setAttribute("aria-label", "Loading");
 
@@ -333,7 +333,10 @@ export function spinner(light = false): SVGSVGElement {
   };
 
   svg.appendChild(line(ring(false), "#a8c7fa", "spin-track"));
-  svg.appendChild(line(ring(true), "#0b57d0", "spin-arc"));
+    // The "Getting ready" spinner has NO wave: it is two plain circular arcs in
+  // different colours with a gap at each end. Nam had to say so twice, and the
+  // plan I wrote said it as well before I went and built the wavy one anyway.
+  svg.appendChild(line(ring(!smooth), "#0b57d0", "spin-arc"));
   return svg;
 }
 
