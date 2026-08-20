@@ -23,8 +23,8 @@ export type IconName =
   | 'chat' | 'check' | 'chevron_left' | 'chevron_right' | 'close' | 'closed_caption'
   | 'closed_caption_off' | 'content_copy' | 'description' | 'event' | 'expand_more'
   | 'frame_person' | 'group' | 'help' | 'info' | 'keyboard' | 'keyboard_arrow_up'
-  | 'link' | 'lock_person' | 'mic' | 'mic_off' | 'mood' | 'more_vert' | 'person_add'
-  | 'present_to_all' | 'science' | 'settings' | 'shield' | 'speed' | 'video_call' | 'videocam'
+  | 'link' | 'lock_person' | 'menu' | 'mic' | 'mic_off' | 'mood' | 'more_vert' | 'person_add'
+  | 'present_to_all' | 'science' | 'settings' | 'shield' | 'speed' | 'today' | 'video_call' | 'videocam'
   | 'videocam_off' | 'auto_awesome';
 
 export interface SymOpts {

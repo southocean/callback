@@ -1733,3 +1733,110 @@ body.plain { background: #fff; color: #16181c; }
     gm3-ring-grows   .18s cubic-bezier(0.2, 0, 0, 1),
     gm3-ring-shrinks .7s  cubic-bezier(0.16, 1, 0.3, 1);
 }
+
+/* ============================================================================
+   RESPONSIVE — measured off meet.google.com at 400 / 768 / 800 / 840 / 1024 /
+   1100 / 1240 / 1440, not guessed from Material's published boundaries. Two of
+   the three thresholds happen to land on them anyway, which is reassuring.
+
+     >= 1240   rail 104px · New button 89x48 with its label · logo at x=20
+     840-1239  as above but New collapses to a 48x48 icon. Measured collapsed
+               at 1100 and 1024, expanded at 1240.
+     < 840     the rail goes and a 48x48 Main menu button takes its place at
+               12,8; the logo shifts right to x=64 to make room; content goes
+               full-width with 16px margins. Confirmed present at 840, gone at
+               800 — so the switch is at 840.
+     < 600     the top bar wraps to two rows and the week strip drops out
+               entirely. Measured at 400: New button at y=72, zero day columns
+               rendered, and no horizontal scroll.
+
+   One detail worth keeping: above 840 Meet's top-right icons sit at irregular
+   gaps (0, 5, 8) because two of them come from the shared account bar. Below
+   840 that irregularity disappears and they space evenly at 40. Both are
+   reproduced rather than averaged. ==================================== */
+
+/* --- the Main menu button, which only exists below 840 ------------------- */
+/* 48x48, not the 40x40 the other icon buttons use — measured at 12,8 on Meet.
+   The extra 8px is also what puts the logo at exactly x=64. */
+.menu-btn { display: none; width: 48px; height: 48px; border-radius: 24px; }
+.rail-scrim { display: none; }
+
+@media (max-width: 1239px) {
+  /* New keeps its icon and loses its word. */
+  .m-new { width: 48px; padding: 0; justify-content: center; gap: 0; }
+  .m-new .m-new-label { display: none; }
+}
+
+@media (max-width: 839px) {
+  .menu-btn { display: inline-flex; }
+  .lockup { padding-left: 0; }
+  .home-bar { padding-left: 12px; }
+
+  /* The rail becomes a drawer: off-canvas, over the content, with a scrim.
+     Meet slides it in from the left rather than pushing the page. */
+  .rail {
+    position: fixed; top: 64px; left: 0; bottom: 0; z-index: 40;
+    width: 240px; background: var(--w);
+    box-shadow: 0 8px 24px rgba(0,0,0,.18);
+    transform: translateX(-100%);
+    transition: transform .25s var(--ease-std);
+    padding-top: 12px;
+  }
+  .rail.open { transform: none; }
+  .rail-item { flex-direction: row; width: 100%; height: 56px; gap: 12px; padding: 0 16px; justify-content: flex-start; }
+  .rail-label { font-size: 14px; }
+  .rail-scrim {
+    display: block; position: fixed; inset: 64px 0 0; z-index: 39;
+    background: rgba(0,0,0,.32); opacity: 0; pointer-events: none;
+    transition: opacity .25s var(--ease-std);
+  }
+  .rail-scrim.open { opacity: 1; pointer-events: auto; }
+
+  /* Content is no longer inset by a rail, so it takes the window. */
+  .home-main { padding-left: 16px; padding-right: 16px; }
+  .home-body { display: block; }
+  .date-row, .sched-label { padding-left: 0; padding-right: 0; margin-left: 0; margin-right: 0; }
+  .banner, .sched-card, .sched-note { margin-left: 0; margin-right: 0; width: 100%; }
+  .home-bar-right { gap: 0; }
+  .home-bar-right .icon-btn:nth-child(3),
+  .home-bar-right .avatar-btn { margin-left: 0; }
+}
+
+@media (max-width: 599px) {
+  /* Two rows. The composer keeps the first, everything else drops below. */
+  .home-bar { height: auto; min-height: 112px; flex-wrap: wrap; align-items: flex-start; padding-top: 4px; }
+  .home-composer { position: static; transform: none; order: 3; width: 100%; justify-content: center; padding: 8px 0 4px; }
+  .composer-pill { width: 100%; max-width: none; }
+  .lockup { order: 1; }
+  .home-bar-right { order: 2; }
+  /* Meet drops the week strip rather than scrolling it. */
+  .week { display: none; }
+  .date-title { font-size: 20px; }
+  .sched-card { min-height: 0; padding: 18px 20px; }
+  .sched-card.is-primary { min-height: 0; }
+  .sched-title { font-size: 20px; line-height: 28px; }
+  .home-alt { flex-wrap: wrap; }
+}
+
+/* The bar's left cluster. Above 840 it holds only the logo; below, the Main
+   menu button joins it and the 4px gap is what puts the logo at x=64. */
+.home-bar-left { grid-column: 1; justify-self: start; display: flex; align-items: center; gap: 4px; }
+@media (max-width: 839px) {
+  .home-bar-left { gap: 4px; }
+  .lockup { padding-left: 0; }
+}
+
+/* Two drawer fixes found at 400px.
+   The rail items are width:100% plus 16px padding, so without border-box their
+   boxes ran 32px wider than the 240px drawer and poked back into view past the
+   translate — "CV" was visible at the left edge with the drawer shut. Clipping
+   the drawer contains anything that overflows it, whatever the cause.
+   And below 600 the bar is two rows tall, so a drawer pinned at 64px started
+   underneath it. */
+@media (max-width: 839px) {
+  .rail { overflow: hidden; }
+  .rail-item { box-sizing: border-box; }
+}
+@media (max-width: 599px) {
+  .rail, .rail-scrim { top: 112px; }
+}

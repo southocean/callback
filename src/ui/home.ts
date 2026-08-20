@@ -155,7 +155,21 @@ export function renderHome(store: Store, reducedMotion = false): HTMLElement {
   const bar = h(
     'header',
     { class: 'home-bar' },
-    lockup(reducedMotion, () => store.dispatch({ t: 'screen', screen: 'home' })),
+    // One left cluster, not two grid children. The bar is a 1fr/auto/1fr grid,
+    // so adding the menu button as a sibling took column 1 and pushed the logo
+    // into the middle. Grouping them also reproduces Meet's own arithmetic:
+    // button at 12 + 48 wide + 4 gap puts the logo at 64, which is exactly
+    // where it measures below 840.
+    h(
+      'div',
+      { class: 'home-bar-left' },
+      h(
+        'button',
+        { class: 'icon-btn menu-btn', type: 'button', 'aria-label': 'Main menu', 'aria-expanded': 'false' },
+        sym('menu', 24),
+      ),
+      lockup(reducedMotion, () => store.dispatch({ t: 'screen', screen: 'home' })),
+    ),
     h(
       'div',
       { class: 'home-composer' },
@@ -171,7 +185,9 @@ export function renderHome(store: Store, reducedMotion = false): HTMLElement {
           onclick: () => store.dispatch({ t: 'screen', screen: 'lobby' }),
         },
         sym('video_call', 20),
-        'New',
+        // Wrapped so the breakpoint can drop the word and keep the icon, which
+        // is what Meet does below 1240.
+        h('span', { class: 'm-new-label' }, 'New'),
       ),
     ),
     h(
@@ -345,6 +361,25 @@ export function renderHome(store: Store, reducedMotion = false): HTMLElement {
   const main = h('main', { class: 'home-main', id: 'main' });
   wireSelection();
 
+  // The drawer. A scrim sits under it so a tap outside closes it, which is what
+  // the real one does, and Escape closes it too because a drawer that traps you
+  // is worse than no drawer.
+  const scrim = h('div', { class: 'rail-scrim' });
+  const menuBtn = bar.querySelector<HTMLElement>('.menu-btn')!;
+  const setDrawer = (open: boolean): void => {
+    rail.classList.toggle('open', open);
+    scrim.classList.toggle('open', open);
+    menuBtn.setAttribute('aria-expanded', String(open));
+  };
+  menuBtn.addEventListener('click', () => setDrawer(!rail.classList.contains('open')));
+  scrim.addEventListener('click', () => setDrawer(false));
+  rail.addEventListener('click', (e) => {
+    if ((e.target as HTMLElement).closest('.rail-item')) setDrawer(false);
+  });
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape' && rail.classList.contains('open')) setDrawer(false);
+  });
+
   /**
    * Select the meeting you are most likely to want, the way Meet does on load.
    *
@@ -405,7 +440,7 @@ export function renderHome(store: Store, reducedMotion = false): HTMLElement {
     'div',
     { class: 'home' },
     bar,
-    h('div', { class: 'home-body' }, rail, main),
+    h('div', { class: 'home-body' }, rail, scrim, main),
   );
 
   // Tooltips, on the same things the real product tips — which notably does
