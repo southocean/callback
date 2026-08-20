@@ -60,8 +60,14 @@ export interface Parts {
   google: HTMLElement;
   meet: HTMLElement;
   nam: HTMLElement;
-  mark: HTMLElement;
 }
+
+// The camera mark is deliberately NOT in here. It used to take a small knock on
+// contact, on the theory that the whole lockup should feel the blow. It read as
+// the logo jittering rather than as force arriving — partly because it is the
+// one element that is Google's actual artwork, so any wobble reads as a
+// rendering fault rather than as choreography. It now stays perfectly still,
+// which also gives the moving parts something fixed to move against.
 
 /** Natural width of the "Google" bitmap, in px. */
 const G0 = 76;
@@ -117,7 +123,6 @@ export function reset(p: Parts): void {
   p.meet.style.letterSpacing = 'normal';
   p.nam.style.transform = `translateX(${FROM}px)`;
   p.nam.style.opacity = '0';
-  p.mark.style.transform = 'none';
 }
 
 /** The end state: no Google, natural tracking, name at rest. */
@@ -127,7 +132,6 @@ export function settle(p: Parts): void {
   p.meet.style.letterSpacing = 'normal';
   p.nam.style.transform = 'translateX(0)';
   p.nam.style.opacity = '1';
-  p.mark.style.transform = 'none';
 }
 
 /**
@@ -172,9 +176,6 @@ export function play(p: Parts): () => void {
       // The name stays at 0: from here its position is a consequence of the
       // stack in front of it, not something being animated.
       apply(pen, -M_SHARE * pen, 0);
-      // The mark feels the blow arrive, briefly.
-      const bump = Math.max(0, 1 - ct / 90);
-      p.mark.style.transform = bump > 0 ? `translateX(${(-1.6 * bump).toFixed(2)}px)` : 'none';
     } else {
       const rt = t - APPROACH_MS - CRUSH_MS;
       if (rt >= RECOIL_MS) { settle(p); return; }
@@ -190,7 +191,6 @@ export function play(p: Parts): () => void {
       // then, and every frame after it is pure outward push.
       const kill = Math.min(1, rt / (Math.PI / 2 / OMEGA));
       apply(PEN_MAX, ls, 0, 1 - kill);
-      p.mark.style.transform = 'none';
     }
     raf = requestAnimationFrame(frame);
   };

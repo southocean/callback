@@ -370,9 +370,8 @@ function partsOf(root: ParentNode): { el: HTMLElement; parts: Parameters<typeof 
   const google = el.querySelector<HTMLElement>('.lk-google');
   const meet = el.querySelector<HTMLElement>('.lk-meet');
   const nam = el.querySelector<HTMLElement>('.lk-nam');
-  const mark = el.querySelector<HTMLElement>('.lk-mark');
-  if (!google || !meet || !nam || !mark) return null;
-  return { el, parts: { google, meet, nam, mark } };
+  if (!google || !meet || !nam) return null;
+  return { el, parts: { google, meet, nam } };
 }
 
 export function playLockup(root: ParentNode = document): void {
