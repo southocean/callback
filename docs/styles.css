@@ -1706,3 +1706,17 @@ body.plain { background: #fff; color: #16181c; }
   transform-origin: left center;
   will-change: transform, width;
 }
+
+/* The selection ring is driven by a class as well as by :focus-visible.
+   :focus-visible alone was enough until the boot sequence pushed the focus call
+   to ~900ms after load, at which point Chrome had usually seen pointer input
+   and stopped granting it — so the ring never appeared on a fresh load. Both
+   selectors, same rule, so keyboard focus still lights it too. */
+.ring-host.is-selected > .focus-ring,
+.ring-host:focus-visible > .focus-ring {
+  opacity: 1;
+  box-shadow: 0 0 0 3px #00639b;
+  animation:
+    gm3-ring-grows   .18s cubic-bezier(0.2, 0, 0, 1),
+    gm3-ring-shrinks .7s  cubic-bezier(0.16, 1, 0.3, 1);
+}

@@ -30,6 +30,45 @@ const DAYS = ['SUN', 'MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT'];
 type Boot = 'cold' | 'listed' | 'done';
 let boot: Boot = 'cold';
 
+/**
+ * Which card is currently selected, and whether the selection is meant to be
+ * showing. Module-level because the three things that clear or restore it are
+ * document- and window-level events, and those listeners must be attached once
+ * rather than once per render.
+ */
+let selectedCard: HTMLElement | null = null;
+let isSelected = false;
+let wired = false;
+
+/** Re-adding the class restarts the ring animation, which is the pulse. */
+function showRing(el: HTMLElement): void {
+  el.classList.remove('is-selected');
+  void el.offsetWidth;
+  el.classList.add('is-selected');
+}
+
+function wireSelection(): void {
+  if (wired) return;
+  wired = true;
+  // Clicking anything that is not the card drops the selection, exactly as it
+  // does in the real product.
+  document.addEventListener('pointerdown', (e) => {
+    if (!selectedCard || !isSelected) return;
+    const t = e.target;
+    if (t instanceof Node && selectedCard.contains(t)) return;
+    isSelected = false;
+    selectedCard.classList.remove('is-selected');
+  });
+  // Alt-tab or Ctrl-Tab away and the ring goes; come back and it pulses again.
+  // Meet gets this from the browser; we have to say it.
+  window.addEventListener('blur', () => {
+    selectedCard?.classList.remove('is-selected');
+  });
+  window.addEventListener('focus', () => {
+    if (isSelected && selectedCard) showRing(selectedCard);
+  });
+}
+
 /** Measured off a screen recording of a cold load. */
 const BOOT_SPIN = 900;   // spinner alone, no date row
 const BOOT_BANNER = 800; // then the promo arrives and shoves the list down
@@ -304,15 +343,26 @@ export function renderHome(store: Store, reducedMotion = false): HTMLElement {
   const slotEl = col.querySelector<HTMLElement>('.banner-slot')!;
   const card = col.querySelector<HTMLButtonElement>('.sched-card')!;
   const main = h('main', { class: 'home-main', id: 'main' });
+  wireSelection();
 
   /**
-   * Focus the meeting you are most likely to want. Meet does this on load, and
-   * the ring it draws is a :focus-visible ring — which is why alt-tabbing away
-   * hides it, coming back replays the pulse, and clicking empty space clears
-   * it. All three of those are the browser's behaviour, inherited for free by
-   * using the real mechanism instead of a class we would have to manage.
+   * Select the meeting you are most likely to want, the way Meet does on load.
+   *
+   * This used to lean entirely on :focus-visible, which was elegant — alt-tab
+   * hiding the ring, returning replaying it, clicking away clearing it, all for
+   * free. It stopped working when the boot sequence moved the focus call from
+   * ~80ms to ~900ms after load: Chrome only grants :focus-visible when the last
+   * input modality was a keyboard, and in nine hundred milliseconds the pointer
+   * has usually moved, so the ring silently never appeared.
+   *
+   * So the selection is explicit now, and the three behaviours are wired by
+   * hand rather than inherited. Focus still moves, for keyboard and screen
+   * reader users; the ring is no longer contingent on it.
    */
   const selectPrimary = (): void => {
+    selectedCard = card;
+    isSelected = true;
+    showRing(card);
     card.focus({ preventScroll: true });
   };
 

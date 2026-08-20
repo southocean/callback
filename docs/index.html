@@ -171,12 +171,18 @@
             <span class="ms" style="font-size:20px;color:var(--sec)" aria-hidden="true">calendar_month</span>
           </div>
 
+          <!-- Closed on first paint, like the real product: the meeting list is the
+               information, the promo is the offer, and the offer arrives after.
+               Without this wrapper the static shell painted both at once and the
+               staged entrance the script performs was never seen. -->
+          <div class="banner-slot">
           <div class="banner">
             <div>
               <div class="banner-t">Short of time? Read this as a plain document instead</div>
               <div class="banner-s">Same content, one page, prints cleanly. No call required.</div>
             </div>
             <a href="#plain" data-go="plain">Open document</a>
+          </div>
           </div>
 
           <div class="sched-label">Scheduled</div>
@@ -199,6 +205,9 @@
 </div>
 
 <noscript>
+<style>/* Nothing will ever open the slot without script, and the plain-document
+     link is the one thing a no-JS visitor most needs. */
+.banner-slot{grid-template-rows:1fr}</style>
   <div style="max-width:720px;margin:0 auto;padding:32px 24px">
     <h1>Nam Nguyen</h1>
     <p><b>Lead front-end developer, Uppsala.</b> Applying for Senior Software Engineer, Web Development &mdash;
@@ -220,7 +229,7 @@
 
 <script type="module" src="app.js"></script>
 <script type="application/json" id="build-meta">
-{"jsGzip":46107,"jsRaw":95360,"cssGzip":22768,"budget":51200,"deps":0,"commit":"251e5bf"}
+{"jsGzip":46260,"jsRaw":95816,"cssGzip":22937,"budget":51200,"deps":0,"commit":"b0f6f2d"}
 </script>
 </body>
 </html>
