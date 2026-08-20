@@ -1561,23 +1561,30 @@ body.plain { background: #fff; color: #16181c; }
 .spin-light .spin-arc   { animation-name: arc-light; }
 .spin-light .spin-track { animation-name: trk-light; }
 
+/* Gap is 20deg at EACH end now, not 10.5. Google bakes 21deg total into its
+   track geometry, but that measures the resting gap; while the arc is moving the
+   break reads much wider than that, and at 10.5 the two lines looked joined.
+   40deg total, so 7.7px of clear arc at each end.
+
+   Wavy turn is 148.96 long at amplitude 1.4 (169.36 at 2.5 — flatter crests are
+   a shorter path). Plain circle is 138.23. */
 /* Cold start: the lit arc runs 8% to 60% of the ring. */
-@keyframes arc-cold { from { stroke-dasharray: 13.5 169.36; } to { stroke-dasharray: 101.6 169.36; } }
+@keyframes arc-cold { from { stroke-dasharray: 11.9 148.96; } to { stroke-dasharray: 89.4 148.96; } }
 @keyframes trk-cold {
-  from { stroke-dasharray: 119.1 138.23; stroke-dashoffset: -15.1; }
-  to   { stroke-dasharray: 47.2 138.23;  stroke-dashoffset: -87.0; }
+  from { stroke-dasharray: 111.8 138.23; stroke-dashoffset: -18.7; }
+  to   { stroke-dasharray: 39.9 138.23;  stroke-dashoffset: -90.6; }
 }
 /* Switching days is lighter work, and Meet says so with a shorter arc: 6% to
    28%. Same ring, same gap, less of it lit. */
-@keyframes arc-light { from { stroke-dasharray: 10.2 169.36; } to { stroke-dasharray: 47.4 169.36; } }
+@keyframes arc-light { from { stroke-dasharray: 8.9 148.96; } to { stroke-dasharray: 41.7 148.96; } }
 @keyframes trk-light {
-  from { stroke-dasharray: 121.8 138.23; stroke-dashoffset: -12.3; }
-  to   { stroke-dasharray: 91.4 138.23;  stroke-dashoffset: -42.7; }
+  from { stroke-dasharray: 114.6 138.23; stroke-dashoffset: -16.0; }
+  to   { stroke-dasharray: 84.2 138.23;  stroke-dashoffset: -46.4; }
 }
 @media (prefers-reduced-motion: reduce) {
   .spin, .spin-arc, .spin-track { animation: none; }
-  .spin-arc { stroke-dasharray: 60 169.36; }
-  .spin-track { stroke-dasharray: 70 138.23; stroke-dashoffset: -68; }
+  .spin-arc { stroke-dasharray: 53 148.96; }
+  .spin-track { stroke-dasharray: 62 138.23; stroke-dashoffset: -72; }
 }
 
 /* ============================================================================

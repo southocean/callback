@@ -272,10 +272,18 @@ export function lockup(reducedMotion = false, onHome?: () => void): HTMLElement 
  *   - there is a gap between them, and 21 degrees total is what Google bakes
  *     into the geometry.
  *
- * The remaining unknown was amplitude, and geometry decides it: at R 22 with a
- * 4px stroke, an amplitude of 2.5 gives a painted extent of exactly 53.0px,
- * which is what a frame of a real cold load measured. Nine crests per turn so
- * the wave closes on itself seamlessly.
+ * The remaining unknown was amplitude. Inferring it from the painted extent of
+ * a video frame gave 2.5, and that was too tall: the crests read as pointy next
+ * to the real thing. The frame measurement was never solid — its bounding box
+ * came out 53x57, and a circle is not 4px taller than it is wide, so something
+ * had contaminated it.
+ *
+ * 1.4 instead, chosen against the shape rather than the extent. What matters is
+ * amplitude over wavelength: 1.4 / 15.4 = 0.091, where 2.5 gave 0.163. Crest
+ * and trough sit close to the radius and the curve reads as a gentle scallop
+ * rather than a zigzag — what makes a sine look pointy is not its height but
+ * its height against its wavelength. Nine crests per turn either way, so the
+ * wave closes on itself seamlessly.
  *
  * The motion is two loops on different periods, which is the part that stops it
  * looking mechanical: the ring turns steadily while the lit arc grows and
@@ -286,7 +294,7 @@ export function spinner(light = false): SVGSVGElement {
   const ns = 'http://www.w3.org/2000/svg';
   const C = 32;    // centre, from the real path
   const R = 22;    // radius, from the real path — exact
-  const A = 2.5;   // amplitude: the value that yields the measured 53px extent
+  const A = 1.4;   // amplitude: see the note above on why not 2.5.
   const K = 9;     // crests per turn
 
   const svg = document.createElementNS(ns, "svg");
