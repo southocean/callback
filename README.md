@@ -17,7 +17,7 @@ Applying for **Senior Software Engineer, Web Development — Google Meet, Stockh
 
 A CV that opens the way the product does. You land on a home screen with one meeting scheduled, press **Join**, pass through the green room, and end up in a call where the participants are the chapters of a career and every control in the bar leads somewhere real.
 
-The interface is not a lookalike. It is a rebuild from a measured spec: computed styles and bounding boxes read off `meet.google.com` across the whole flow, then implemented from scratch in TypeScript with no framework, no dependencies and no Google assets. The **Spec** panel inside the app publishes every number, so you can check the work.
+The interface is not a lookalike. It is a rebuild from a measured spec: computed styles, bounding boxes and transition curves read off `meet.google.com` across the whole flow, then implemented from scratch in TypeScript with no framework and no dependencies. The **Spec** and **Design** panels inside the app publish every number, so you can check the work — and `tools/QA.md` documents the diff loop used to find the mismatches, because eyeballing does not scale.
 
 If you have ninety seconds and no interest in any of that, the plain document and the PDF are one click from the first screen. Novelty is never the only route to the content.
 
@@ -64,19 +64,20 @@ The interface was specified before it was written. A sample of what was read off
 | Lobby preview | 740 × 416 at radius 8 |
 | Light shell | text `#1f1f1f` / `#444746`, primary `#0b57d0`, nav pill `#c2e7ff` |
 
-Twenty-nine tokens and eleven layout measurements in total, all listed in the **Spec** panel with the surface each came from. Icons are the real Material Symbol names — `computer_arrow_up`, `back_hand`, `closed_caption_off` — each redrawn as an inline SVG path, because the icon font would be a third-party request and this page makes none.
+Twenty-nine tokens and eleven layout measurements in total, all listed in the **Spec** panel with the surface each came from. Icons are the real thing: Meet drives Google Symbols through variable axes and flips `FILL` 0→1 for the selected nav item, so this ships a 7 kB subset of Material Symbols Outlined — the Apache-2.0 sibling of the same design programme — with that axis wired the same way.
 
-Two things are deliberately *not* faithful, and both are choices rather than gaps: there is no Google wordmark or logo anywhere, and Google Sans is substituted with a system stack, since it is not distributable.
+The typefaces are Google's own — Google Sans, Google Sans Text and Product Sans. None of them are open source, so none are copied into this repo; they are linked from the Google Fonts API, which is the route Google provides for exactly this. That is the one place this page reaches off-origin, and it is stated in the app rather than glossed over.
 
 ---
 
 ## Engineering
 
 ```
-Initial payload   39.7 kB gzipped JavaScript   (budget 50 kB, enforced in CI)
+Initial payload   41.4 kB gzipped JavaScript   (budget 50 kB, enforced in CI)
 Dev portal        13.1 kB, a deferred chunk nobody who misses it ever fetches
 Runtime deps      0
-Third-party reqs  0        no analytics, no CDN, no fonts, no backend
+Third-party       Google Fonts only — the typeface is Google's and is licensed
+                  for linking, not redistribution. No analytics, no backend.
 Tests             44, run in CI and in the browser
 A11y assertions   13, run against the live DOM
 ```
@@ -85,7 +86,7 @@ A11y assertions   13, run against the live DOM
 - **State is a pure reducer**, which is why the router, the timeline geometry, the caption scheduler and the network model can all be unit-tested without a DOM.
 - **The tests run in your browser**, in Meeting tools → Tests. Same file CI runs. There is a chaos switch that injects a real fault so you can watch the suite go red — a runner that cannot fail proves nothing.
 - **Accessibility is asserted, not claimed.** Roving tabindex on the tile grid, focus trapping, polite live regions, reduced-motion honoured, nothing flashing above 3 Hz. The audit panel checks the live document and is allowed to fail; during QA it caught a missing `<main>` landmark.
-- **Complete with zero permissions.** No camera, no microphone, no autoplay. Camera is opt-in behind a click, processed locally, and there is no server for it to reach — open the Network tab and watch nothing happen.
+- **Complete with zero permissions.** No camera, no microphone, no autoplay. Camera is opt-in behind a click, processed locally, and there is no server for it to reach — the only requests this page makes off-origin are for Google's fonts.
 - **Real-time video work**, because the role is real-time video: a WebGL filter chain capped at 30 fps on a low-power context that suspends on a hidden tab, and a seeded network simulator that degrades the call to hotel wifi and shows what a client should do about it.
 
 ```bash

@@ -95,7 +95,8 @@ export const type: Section = {
     { name: 'Input', value: '400 16px/24px', note: '16px so mobile Safari does not zoom on focus.' },
     { name: 'Nav label', value: '500 12px/16px, +0.1px tracking', note: 'The one place tracking is opened up.' },
     { name: 'Overline / day name', value: '500 11px/16px, +0.1px, uppercase', note: 'SUN, MON, TUE.' },
-    { name: 'Weight range', value: '400 and 500 only', note: 'Nothing on the home screen is 600 or 700. Bold reads as un-Google.' },
+    { name: 'Weight range', value: 'mostly 400 and 500', note: 'With one measured exception: the meeting time on a card is 700. Nothing else on the home screen is bold.' },
+    { name: 'Which face where', value: 'Text for body, Sans for display', note: 'Google Sans Text for body, labels and buttons; Google Sans for titles, the code input, day numbers and card titles; Product Sans for the wordmark and nothing else.' },
   ],
 };
 

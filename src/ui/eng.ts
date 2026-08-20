@@ -323,7 +323,7 @@ function perfView(fxStats: () => { fps: number; ms: number; backend: string }): 
       stat('Used', `${pct}%`, Number(pct) < 85 ? 'good' : 'warn'),
       stat('Runtime dependencies', String(b.deps), b.deps === 0 ? 'good' : 'warn'),
       stat('CSS, gzipped', `${(b.cssGzip / 1024).toFixed(1)} kB`, ''),
-      stat('Third-party requests', '0', 'good'),
+      stat('Third-party origins', '2', 'warn'),
     ),
     h(
       'dl',
@@ -338,9 +338,11 @@ function perfView(fxStats: () => { fps: number; ms: number; backend: string }): 
     h(
       'p',
       { class: 'pnote' },
-      h('b', {}, 'Verify the privacy claim yourself: '),
-      'open DevTools, Network tab, reload. No third-party requests, no analytics and no backend — which is why the ' +
-        'camera stream has nowhere to go even if it wanted one.',
+      h('b', {}, 'Verify it yourself: '),
+      'open DevTools, Network tab, reload. Everything leaving this origin goes to Google’s own font CDN and nothing ' +
+        'else. Google Sans, Google Sans Text and Product Sans are not open source — the licence says so in as many ' +
+        'words — so they are linked from the Fonts API rather than copied, which is the licensed way to use them. ' +
+        'No analytics, no tracking, no backend. Which is why the camera stream has nowhere to go even if it wanted one.',
     ),
   );
 }
