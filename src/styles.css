@@ -209,9 +209,13 @@ button { font: inherit; }
    "Google Meet" holds for --lk-delay so the reader registers it as genuine —
    without that pause nobody sees the original and the gag does not land. Then
    "Nam" flies in, the lockup takes the hit, and "Google" is knocked out of it.
-   2.2s is a judgement call: two words read in about 500ms, and past roughly
-   2.5s the eye has usually left the header and would miss the payoff. */
-.lockup { --lk-delay: 2.2s; --lk-hit: calc(var(--lk-delay) + .5s); }
+
+   1.2s, arrived at by trying longer and hating it. Two words read in roughly
+   450ms, so this leaves a clear held beat without the dead air. It also reads
+   longer than it measures: the static shell paints "Google Meet" before the
+   bundle mounts, and the delay only starts at mount, so the real hold is this
+   plus however long the JavaScript took to arrive. */
+.lockup { --lk-delay: 1.2s; --lk-hit: calc(var(--lk-delay) + .5s); }
 
 .lk-play .lk-nam    { animation: lk-fly  .52s var(--ease-spring) var(--lk-delay) both; }
 .lk-play .lk-words  { animation: lk-hit  .2s  var(--ease-emph)   var(--lk-hit)   both; }
