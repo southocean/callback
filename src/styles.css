@@ -1212,3 +1212,121 @@ body.plain { background: #fff; color: #16181c; }
 @media (prefers-reduced-motion: reduce) {
   .tt { transition-duration: .001s; }
 }
+
+/* ============================================================================
+   Meet's state-layer system, measured off the live product.
+
+   The first hover pass concluded Meet barely reacts to the pointer. That was
+   wrong, and the method was why: it read `background-color` on the elements in
+   the `:hover` chain. Meet does it with a `::before` on an inner span, and what
+   changes is `opacity`, not colour. Ancestor-blind and property-blind at once,
+   so it reported "no change" for a screen where *every* control reacts.
+
+   The real system, harvested in a single pass over every ::before in the page:
+
+     ::before, position absolute, inset 0, radius matching the host
+     transition: opacity .075s linear, border-radius 0s linear
+     opacity 0 -> .08 on most surfaces, -> .12 on 40x40 icon buttons
+
+   The part worth stealing is the tint. It is never a neutral black — it is the
+   control's own on-colour, so the layer reads as the control getting more of
+   itself rather than as grey being poured over it:
+
+     Support / Settings / week arrows / cards   #1f1f1f
+     Days                                      #6991d6
+     Today (on the light blue pill)            #041e49
+     Rail items                                #001d35
+     New meeting (on green)                    #072711  = its own ink
+     Explore plan (blue text link)             #0b57d0
+     Join buttons (on blue)                    #ffffff
+     Open calendar                             #444746
+     Avatar + Google apps                      #444746, and .3s ease-out —
+       the one exception, because those come from Google's shared bar
+       component rather than from Meet.
+
+   75ms linear is the whole reason Meet feels solid rather than twitchy: fast
+   enough to read as instant, but a ramp rather than a flip. ============ */
+.icon-btn, .avatar-btn, .m-new, .day, .sched-card, .sched-join, .composer-join, .banner a, .cal-btn, .rail-pill { position: relative; }
+.icon-btn::before,
+.avatar-btn::before,
+.m-new::before,
+.day::before,
+.sched-card::before,
+.sched-join::before,
+.composer-join::before,
+.banner a::before,
+.cal-btn::before,
+.rail-pill::before {
+  content: ''; position: absolute; inset: 0; z-index: 0;
+  border-radius: inherit; pointer-events: none;
+  background-color: var(--sl, #1f1f1f);
+  opacity: 0;
+  transition: opacity .075s linear;
+}
+/* Content sits above the layer wherever the content is an element. */
+.icon-btn > *, .avatar-btn > *, .m-new > *, .day > *, .sched-card > *, .sched-join > *, .composer-join > *, .banner a > *, .cal-btn > *, .rail-pill > * { position: relative; z-index: 1; }
+.icon-btn:hover::before,
+.avatar-btn:hover::before,
+.m-new:hover::before,
+.day:hover::before,
+.sched-card:hover::before,
+.sched-join:hover::before,
+.composer-join:hover::before,
+.banner a:hover::before,
+.cal-btn:hover::before,
+.rail-item:hover .rail-pill::before { opacity: var(--sl-hover, .08); }
+.icon-btn:focus-visible::before,
+.avatar-btn:focus-visible::before,
+.m-new:focus-visible::before,
+.day:focus-visible::before,
+.sched-card:focus-visible::before,
+.sched-join:focus-visible::before,
+.composer-join:focus-visible::before,
+.banner a:focus-visible::before,
+.cal-btn:focus-visible::before,
+.rail-item:focus-visible .rail-pill::before { opacity: var(--sl-focus, .12); }
+.icon-btn:active::before,
+.avatar-btn:active::before,
+.m-new:active::before,
+.day:active::before,
+.sched-card:active::before,
+.sched-join:active::before,
+.composer-join:active::before,
+.banner a:active::before,
+.cal-btn:active::before,
+.rail-item:active .rail-pill::before { opacity: var(--sl-press, .12); }
+
+/* Per-control tints, each one measured rather than chosen. */
+.icon-btn            { --sl: #1f1f1f; --sl-hover: .12; }
+.week .icon-btn      { --sl: #1f1f1f; }
+.cal-btn             { --sl: #444746; --sl-hover: .12; }
+.avatar-btn          { --sl: #444746; --sl-hover: .12; }
+/* Google's shared bar animates slower than Meet's own controls. */
+.avatar-btn::before  { transition: opacity .3s ease-out; }
+.m-new               { --sl: var(--newbtn-ink); }
+.rail-pill           { --sl: #001d35; }
+.day                 { --sl: #6991d6; }
+.day[aria-current="true"] { --sl: #041e49; }
+.sched-card          { --sl: #1f1f1f; }
+.sched-join          { --sl: #fff; }
+.composer-join       { --sl: #fff; }
+.banner a            { --sl: #0b57d0; }
+
+/* "Open document" is our text, but it is Meet's "Explore plan" control, so it
+   takes that treatment: a 40px-tall pill with a #0b57d0 state layer at radius
+   20. Underline-on-hover was both wrong and dated — the background is what
+   makes it read as a button rather than as 1997 hypertext. */
+.banner a {
+  display: inline-flex; align-items: center; height: 40px;
+  padding: 0 12px; border-radius: 20px; margin-left: auto;
+}
+.banner a:hover { text-decoration: none; }
+
+/* Google apps belongs to the shared-bar group with the avatar, not to Meet's
+   own icon buttons: #444746 tint and the slower .3s ease-out. */
+.home-bar-right .icon-btn:nth-child(3) { --sl: #444746; }
+.home-bar-right .icon-btn:nth-child(3)::before { transition: opacity .3s ease-out; }
+/* Measured on the card's Join: 79x56 at radius 28, not 94x48 at 24. */
+.sched-join { width: 79px; height: 56px; border-radius: 28px; padding: 0; }
+/* And the composer's Join is 64 wide. */
+.composer-join { width: 64px; }

@@ -62,14 +62,18 @@ export const motion: Section = {
 export const feedback: Section = {
   title: 'Interaction feedback',
   lead:
-    'Material documents state layers: a translucent film of the foreground colour at a fixed opacity per state. ' +
-    'Meet mostly does not use them. Eight controls on this screen were measured at rest and under a real pointer, ' +
-    'and hovering changes exactly one of them — by swapping the fill, not by laying a film over it. Getting this ' +
-    'right meant deleting hover states rather than adding them: the restraint is the design.',
+    'Every interactive control reacts to the pointer, and they all do it the same way: a ::before at inset 0 ' +
+    'whose opacity ramps from 0 to .08 over 75ms. An earlier pass on this screen concluded the opposite — that ' +
+    'Meet barely responds — because it read background-color on the :hover chain, and the layer is a pseudo-element ' +
+    'on an inner span whose opacity, not colour, is what moves. Worth stating plainly: the probe was confidently ' +
+    'wrong, and the fix was to stop choosing which properties to look at.',
   rules: [
-    { name: 'Hover — the surprise', value: 'nothing, almost everywhere', note: 'Eight controls on the home screen were hovered with a real pointer and their whole ancestor chain read, at rest and hovered. Seven of them do not change at all: the logo, the three top-bar icon buttons, both rail items, the week arrows, the day columns and the New button. The tooltip is the entire affordance.' },
-    { name: 'Hover, the one exception', value: '#e9eef6 → #dde3ea', note: 'The code field, and only the code field. It is a real fill change on the container, not a translucent film — which is the opposite of what Material documents, and the reason guessing would not have got there.' },
-    { name: 'Why that is the right call', value: 'the text is the affordance', note: 'Every control that stays inert either carries a visible label (the rail) or earns a tooltip on dwell. The one that reacts is the only one you are meant to type into. Hover feedback is spent where it changes what you do next.' },
+    { name: 'State layers', value: '::before, inset 0, opacity 0 → .08', note: 'Every interactive control carries an absolutely-positioned ::before at inset 0 with the host’s radius. Hover raises its opacity; nothing else moves. Icon buttons at 40x40 go to .12 instead of .08.' },
+    { name: 'The tint is the on-colour', value: 'never a neutral black', note: '#6991d6 on a day, #041e49 on today’s blue pill, #072711 on the green New button, #0b57d0 on a blue text link, #ffffff on a blue Join, #1f1f1f only on neutral surfaces. The layer reads as the control gaining more of itself. A generic 8% black is what makes a Material copy look like a copy.' },
+    { name: 'State transition', value: 'opacity .075s linear', note: '75ms is fast enough to read as instant but is still a ramp, not a flip. Measured identically on every Meet-owned control. The only exception is the account bar, at .3s ease-out, because it is a different team’s component.' },
+    { name: 'Never flip a state', value: 'every change is a transition', note: 'A binary on/off background is the single most reliable tell of a fake. If a property changes on interaction it gets a duration, even a 75ms one.' },
+    { name: 'Fill changes, separately', value: '#e9eef6 → #dde3ea', note: 'The code field is the one control that also changes its actual fill, on top of having no state layer of its own.' },
+    { name: 'Tooltip placement', value: '4px, and the side is not uniform', note: 'Top-bar controls place the tooltip below; the week strip places it above. Both centred on the anchor. Today’s reads “Selected” rather than the date.' },
     { name: 'Focus (visible)', value: '10% state layer + 3px ring', note: 'Keyboard focus must be louder than hover, never quieter.' },
     { name: 'Pressed', value: '10% layer + radius morph', note: 'The shape change is the press feedback; the colour barely moves.' },
     { name: 'Selected', value: 'secondary container #c2e7ff', note: 'A filled pill, plus the icon switches to FILL 1. Not a colour change on an outline.' },
@@ -88,8 +92,10 @@ export const type: Section = {
   title: 'Type',
   lead:
     'Meet renders in Google Sans, Google Sans Text and Google Sans Flex, with Product Sans for the wordmark. None ' +
-    'of those are distributable, so this ships Roboto — the next family Meet itself names — self-hosted. Sizes, ' +
-    'weights and letter-spacing are Meet\'s own.',
+    'of those are open source, so none are copied into this repo — they are linked from the Google Fonts API, ' +
+    'which is the route Google provides for exactly this. Google Sans Flex, which Meet names first on tooltips, ' +
+    'is not served there; Google Sans Text is the next family Meet itself names. Sizes, weights and tracking are ' +
+    'Meet\'s own.',
   rules: [
     { name: 'Page / section title', value: '400 22px/1.2', note: '"Thu, Aug 20". Regular weight, never bold.' },
     { name: 'Card title', value: '400 20px/28px', note: 'The meeting name.' },

@@ -177,45 +177,73 @@ Per screen, and it matters — later steps rebuild on earlier ones:
 
 ---
 
-## 6. What the hover pass found
+## 6. The hover pass, and why the first one was wrong
 
-Step 4 of the order below, done properly: eight controls on the home screen,
-each hovered with a **real** pointer, with `document.querySelectorAll(':hover')`
-walked and every ancestor's background — plus `::before` and `::after` — read at
-rest and again while hovered.
+The first attempt concluded that only one control in eight reacted to the
+pointer, and wrote that up as a finding about Meet being restrained. It was
+wrong. Every interactive control on the home screen reacts. The method is what
+failed, and it failed in a way worth recording because it is the default way
+anyone would write this probe:
 
-The result was almost entirely negative, and that is the finding:
+    for (el of document.querySelectorAll(":hover"))
+        read el.backgroundColor          // <- two fatal assumptions
 
-| Control | Rest | Hovered |
-|---|---|---|
-| Code field | `#e9eef6` | **`#dde3ea`** |
-| Logo lockup | — | no change |
-| Support / Settings / Google apps | transparent | no change |
-| Avatar | transparent | no change |
-| Rail item, selected | `#c2e7ff` pill | no change |
-| Rail item, unselected | transparent | no change |
-| Week arrows | transparent | no change |
-| Day column | `#fff` | no change |
-| New button | `#c4eed0`, no shadow | no change |
-| Meeting card | `#f0f4f9` | no change |
+**Ancestor-blind.** `:hover` returns only the elements the pointer is literally
+over. Meet paints its state on a `::before` belonging to an inner span, and on
+many controls the pointer is over a *text node* whose parent is not that span.
+The layer was never in the list.
 
-One hover state on the entire screen. Ours had six, all invented from
-Material's documented 8% state layer — so this pass was almost entirely
-deletions. That is worth saying out loud, because a clone drifts toward *more*
-feedback than the original: every individual state layer feels like an
-improvement, and the accumulation is what makes a copy feel like a copy.
+**Property-blind.** The layer's background never changes. Its `opacity` does,
+0 to 0.08. Reading `background-color` finds a constant and reports "no change"
+with total confidence.
 
-Two traps specific to this step:
+The lesson generalises: a probe that inspects a property list chosen in advance
+can only find states you already predicted. `tools/hover-sweep.js` inverts it —
+snapshot every element whose box intersects the control, across ~20 properties
+plus both pseudo-elements, perturb, snapshot again, and diff. Region-based
+rather than ancestor-based, so overlays and positioned siblings are included; and
+it reports elements that *appeared*, which is how the tooltips got caught.
 
-- **Synthetic events are not the problem people think they are.** They *do*
-  reach JS listeners, so a JS-toggled state layer would have shown up. What they
-  cannot do is make `:hover` match. Since you rarely know which mechanism a
-  target uses, drive a real pointer and both are covered at once.
-- **Read the element, not the tree.** The painted surface is usually a bare
-  overlay `div` that is neither the button nor its parent — walking up from
-  `elementFromPoint` found a transparent wrapper and missed the `#f0f4f9` layer
-  sitting at the same coordinates. Query by computed style (`borderRadius ===
-  '28px'`) instead, and A/B the *same element* pointer-away vs pointer-on.
+Rewritten with that harness, one pass over every `::before` in the document
+recovered the entire system at once:
 
-Steps 1–4 are now done for the home screen. 5 (focus) and 6 (press) are next,
-and the press morph is the one place Meet is known to be doing something.
+    ::before, position absolute, inset 0, border-radius matching the host
+    transition: opacity .075s linear, border-radius 0s linear
+    opacity 0 -> .08 on surfaces, 0 -> .12 on 40x40 icon buttons
+
+| Control | Box | Layer tint | Radius |
+|---|---|---|---|
+| Support / Settings | 40x40 | `#1f1f1f` @ .12 | 20 |
+| Google apps / avatar | 40x40 | `#444746`, **.3s ease-out** | 50% |
+| Open calendar | 40x40 | `#444746` | 20 |
+| Week arrows | 48x56 | `#1f1f1f` | 28 |
+| Day | 48x56 | `#6991d6` | 28 |
+| Today | 48x56 | `#041e49` | 28 |
+| Rail item | 56x32 | `#001d35` | 9999 |
+| New meeting | 89x48 | `#072711` | 24 |
+| Explore plan | 103x40 | `#0b57d0` | 20 |
+| Meeting card | 1020x108 | `#1f1f1f` | 28 |
+| Card Join | 79x56 | `#ffffff` | 28 |
+
+The tint is the thing to steal. It is never a neutral black — it is the
+control's own on-colour, so the layer reads as the control gaining more of
+itself rather than as grey being poured over it. A generic 8% black is what
+makes a Material copy look like a Material copy.
+
+The avatar and apps buttons are the single exception at .3s ease-out, because
+they come from Google's shared account bar rather than from Meet.
+
+### Traps specific to this step
+
+- **Synthetic events are not the blocker people assume.** They *do* reach JS
+  listeners. What they cannot do is make `:hover` match. Drive a real pointer
+  and both mechanisms are covered.
+- **Read the element, not the tree.** Walking up from `elementFromPoint` finds
+  transparent wrappers and misses the layer sitting at the same coordinates.
+  Query by computed style instead.
+- **Tooltip placement is not uniform.** The top bar places them 4px *below* the
+  control; the week strip places them 4px *above*. Both centred. Assuming one
+  rule gets half of them wrong.
+- **Settle, do not sleep.** Poll `document.getAnimations()` until nothing is
+  running. A fixed delay either samples mid-transition or wastes seconds per
+  control, and at 75ms the mid-transition value looks like a plausible answer.
