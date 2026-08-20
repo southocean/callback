@@ -1439,3 +1439,38 @@ body.plain { background: #fff; color: #16181c; }
   .ring-host:focus-visible > .focus-ring { animation: none; }
   .banner-slot { transition: none; }
 }
+
+/* ============================================================================
+   Final pixel pass on the home screen, from diffing our own control inventory
+   against Meet's rather than from anyone noticing. Four gaps, all small enough
+   that nobody would report them and all big enough to see side by side. ==== */
+
+/* Meet's top-right cluster is NOT evenly spaced. Support and Settings touch at
+   0px; then 5px to Google apps; then 8px to the avatar. Measured at 1253 /
+   1293 / 1338 / 1386. The irregularity is a seam: the first two are Meet's own
+   controls, the last two come from Google's shared account bar, which brings
+   its own margins. Ours was a uniform 4px gap, which put every one of them in
+   the wrong place. */
+.home-bar-right { gap: 0; }
+.home-bar-right .icon-btn:nth-child(3) { margin-left: 5px; }
+.home-bar-right .avatar-btn { margin-left: 8px; }
+
+/* The calendar button sits 4px after the date, not 12. Title measured at
+   262,100 117x28; button at 383,94. */
+.date-row { gap: 4px; margin-bottom: 25px; }
+/* But the week strip still needs air, and it is pushed right by margin-left
+   auto anyway, so only the title-to-button gap is affected. */
+
+/* Meet's promo row is 1050x68 inside the full 1052 column — not inset like the
+   meeting cards are. The icon is a true 24px at a 16px inset with 12px to the
+   text, and the whole row is 68 tall, where ours had grown to 78. */
+.banner {
+  width: 100%; margin: 0 0 32px; padding: 12px 16px; gap: 12px;
+  min-height: 68px; box-sizing: border-box;
+}
+.banner-ico { display: flex; width: 24px; height: 24px; }
+
+/* The mark lands at 21,17 in the real bar. 7px of lockup padding puts it there
+   — the same 7 that appeared to do nothing until the cascade above was fixed. */
+.lockup { padding-left: 7px; }
+.lk-mark { position: relative; top: -1px; }

@@ -26,10 +26,10 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Google+Sans:wght@400;500;700&family=Google+Sans+Text:wght@400;500&family=Product+Sans&display=swap">
-<link rel="stylesheet" href="styles.css">
-
-<!-- Critical CSS, inlined: the first screen paints before the bundle arrives,
-     and it paints with JavaScript disabled. Values are Meet's own, measured. -->
+<!-- Critical CSS, inlined so the shell paints before styles.css arrives.
+     It MUST come before that link. It used to sit after it, which meant every
+     selector duplicated here silently beat the real stylesheet on source order,
+     and rules added to styles.css appeared to do nothing at all. -->
 <style>
   @font-face{font-family:'Material Symbols Outlined';src:url('fonts/symbols-subset.woff2') format('woff2-variations');font-weight:100 700;font-display:block}
   :root{color-scheme:only light;--w:#fff;--ink:#1f1f1f;--sec:#444746;--outline:#c4c7c5;--blue:#0b57d0;
@@ -109,6 +109,11 @@
     .rail-item{margin:0}
   }
 </style>
+<link rel="stylesheet" href="styles.css">
+
+<!-- Critical CSS, inlined: the first screen paints before the bundle arrives,
+     and it paints with JavaScript disabled. Values are Meet's own, measured. -->
+
 </head>
 <body>
 <a class="skip" href="#main">Skip to content</a>

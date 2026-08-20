@@ -247,3 +247,58 @@ they come from Google's shared account bar rather than from Meet.
 - **Settle, do not sleep.** Poll `document.getAnimations()` until nothing is
   running. A fixed delay either samples mid-transition or wastes seconds per
   control, and at 75ms the mid-transition value looks like a plausible answer.
+
+---
+
+## 7. The cascade bug that hid a dozen fixes
+
+Worth its own section because it wasted more time than any measurement error,
+and because the failure mode is invisible.
+
+`index.html` inlines critical CSS so the shell paints before `styles.css`
+arrives. That `<style>` block sat **after** `<link rel="stylesheet"
+href="styles.css">`. Same specificity, later in source order — so every
+selector duplicated in the shell silently beat the real stylesheet.
+
+The symptom is maddening: you add a rule to `styles.css`, the rule is present
+in the served file, `document.styleSheets` contains it, the selector matches the
+element, and the element does not change. Four separate fixes in one pass
+appeared to do nothing, while a fifth (`.lk-mark`, which the shell happened not
+to mention) worked — which is the clue, if you notice it.
+
+The fix is to move the inline block **before** the link. Critical CSS should
+paint first and lose every argument afterwards; the full stylesheet is the
+source of truth. Inline styles in `<head>` are parsed immediately regardless of
+position, so nothing is given up by moving it.
+
+Two lessons for the loop:
+
+- **Verify fixes by measuring, never by reasoning.** "The rule is in the file,
+  therefore it applies" was wrong twice in this project — here, and with
+  `background: var(--x)` in section 6. Both times the CSS was correct and the
+  cascade was not.
+- **A rule that appears to do nothing is a cascade question, not a syntax
+  question.** Check what else claims the same selector before rewriting it.
+
+## 8. Final home-screen geometry
+
+After the sweep, ours against the live product at a 1440x900 viewport:
+
+| Element | Meet | Ours |
+|---|---|---|
+| Logo mark | 21,17 35x28 | **21,17 35x28** |
+| Date title | 262,100 117x28 | **262,100 117x28** |
+| Open calendar | 383,94 40x40 | **383,94 40x40** |
+| Support | 1253,12 40x40 | **1253,12 40x40** |
+| Settings | 1293,12 40x40 | **1293,12 40x40** |
+| Google apps | 1338,12 40x40 | **1338,12 40x40** |
+| Avatar | 1386,12 40x40 | **1386,12 40x40** |
+| Week arrows / days | 770..1234, 48x56 | identical |
+| Promo row | 1050x68 @247,167 | 1052x70 @246,167 (1px border) |
+| Selected card | 1052x134 @246 | **1052x134 @246** |
+| Tooltip on today | "Selected" 64x24 @1052,58 | **"Selected" 64x24 @1052,58** |
+
+The top-bar cluster is the interesting one: Meet's gaps are 0, 5 and 8 px, not
+a uniform rhythm. Support and Settings touch; the last two carry the shared
+account bar's own margins. Ours had an even 4px gap, which put all four in the
+wrong place while looking perfectly deliberate.
