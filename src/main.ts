@@ -1,11 +1,13 @@
-// Entry point: boot, routing, global keys.
+// Entry point: boot, routing, shared media, global keys.
 
 import { h, clear, must } from './dom.js';
 import { Store, parseRoute, routeToHash, initial } from './state.js';
 import type { State } from './state.js';
+import { renderHome } from './ui/home.js';
+import { renderLobby } from './ui/lobby.js';
 import { renderCall } from './ui/call.js';
+import { renderEnded } from './ui/ended.js';
 import { renderPlain } from './ui/plain.js';
-import { renderEnd } from './ui/end.js';
 import { prefersReducedMotion } from './a11y.js';
 import { Quests, konami } from './achievements.js';
 
@@ -25,93 +27,94 @@ const boot: State = {
 
 const store = new Store(boot);
 
-// Keep the OS preference authoritative even if it changes mid-visit.
 window.matchMedia('(prefers-reduced-motion: reduce)').addEventListener('change', (e) => {
   store.dispatch({ t: 'reducedMotion', on: e.matches });
 });
 
-let callView: HTMLElement | null = null;
-let lastScreen: State['screen'] | 'plain' | null = null;
+// ---------------------------------------------------------------- media -----
+// One video element and one GL canvas, shared between the lobby preview and the
+// call tile, so a camera granted in the green room is still live after you join
+// — which is how the real product behaves.
+
+const video = h('video', { muted: true, playsinline: true, autoplay: true }) as HTMLVideoElement;
+video.muted = true;
+const canvas = h('canvas', { 'aria-hidden': 'true' }) as HTMLCanvasElement;
+canvas.hidden = true;
+let stream: MediaStream | null = null;
+
+async function toggleCamera(): Promise<void> {
+  if (store.get().cameraOn) {
+    stream?.getTracks().forEach((t) => t.stop());
+    stream = null;
+    video.srcObject = null;
+    store.dispatch({ t: 'camera', on: false });
+    return;
+  }
+  try {
+    // Only ever called from an explicit click (reviews T8, R3).
+    stream = await navigator.mediaDevices.getUserMedia({ video: { width: 960 }, audio: false });
+    video.srcObject = stream;
+    await video.play().catch(() => undefined);
+    store.dispatch({ t: 'camera', on: true });
+    quests.unlock('camera');
+  } catch {
+    store.dispatch({ t: 'camera', on: false });
+  }
+}
+
+const media = { video, toggleCamera, cameraOn: () => store.get().cameraOn };
+
+// ---------------------------------------------------------------- render ----
+
+let lastKey: string | null = null;
 
 function render(): void {
   const s = store.get();
   const key = s.plain ? 'plain' : s.screen;
 
-  // The call view keeps camera state, GL context and caption timers, so it is
-  // built once and reused rather than torn down on every panel change.
-  if (key === lastScreen && key === 'call') return;
-  lastScreen = key;
+  // The call view owns the GL context, the caption timer and the panel state, so
+  // it is built once and reused rather than torn down on every panel change.
+  if (key === lastKey && key === 'call') return;
+  lastKey = key;
+
+  document.body.classList.toggle('plain', key === 'plain');
 
   if (key === 'plain') {
-    document.body.classList.add('plain');
     clear(root);
     root.appendChild(renderPlain(() => store.dispatch({ t: 'plain', on: false })));
     quests.unlock('plain');
     return;
   }
 
-  document.body.classList.remove('plain');
+  // The home screen ships as static markup so it paints before the bundle
+  // arrives (review U9). Once the bundle is here the scripted version is
+  // strictly richer — live date, week strip, working code field — so it takes
+  // over. Earlier this went the other way and replaced a good screen with a
+  // worse one, which is why the swap is now explicit.
+  document.getElementById('static-home')?.remove();
 
-  // The pre-join screen is static markup in index.html so it paints before the
-  // bundle arrives (review U9). On boot it is already on screen and correct —
-  // re-rendering it here would throw away the good version for a fallback.
-  if (key === 'prejoin' && document.getElementById('prejoin')) return;
-
-  if (key === 'call') {
-    clear(root);
-    callView = renderCall(store, quests);
-    root.appendChild(callView);
-    quests.mount(root);
-    return;
-  }
-
-  if (key === 'ended') {
-    clear(root);
-    root.appendChild(renderEnd(store, quests, () => store.dispatch({ t: 'plain', on: true })));
-    quests.mount(root);
-    return;
-  }
-
-  // Pre-join is static markup in index.html; if we come back to it, rebuild a
-  // minimal version rather than shipping the whole thing twice.
   clear(root);
-  root.appendChild(
-    h(
-      'main',
-      { class: 'end', id: 'main' },
-      h(
-        'div',
-        { class: 'end-inner' },
-        h('h1', {}, 'Callback'),
-        h('p', { class: 'end-lead' }, 'An application from Nam Nguyen, as a call.'),
-        h(
-          'div',
-          { class: 'contact' },
-          h('button', { class: 'btn btn-primary', type: 'button', onclick: () => store.dispatch({ t: 'join' }) }, 'Join the call'),
-          h('button', { class: 'btn', type: 'button', onclick: () => store.dispatch({ t: 'plain', on: true }) }, 'Read it as a document'),
-        ),
-      ),
-    ),
-  );
+  if (key === 'home') root.appendChild(renderHome(store));
+  else if (key === 'lobby') root.appendChild(renderLobby(store, media));
+  else if (key === 'ended') root.appendChild(renderEnded(store, quests));
+  else root.appendChild(renderCall(store, quests, { video, canvas, toggleCamera }));
   quests.mount(root);
 }
 
-// ------------------------------------------------------------------ routing --
+// --------------------------------------------------------------- routing ----
 
 let suppress = false;
 store.subscribe(() => {
   render();
   const hash = routeToHash(store.get());
-  if (!suppress && location.hash !== hash) {
-    history.pushState(null, '', hash);
-  }
+  if (!suppress && location.hash !== hash) history.pushState(null, '', hash);
 });
 
 window.addEventListener('popstate', () => {
   const r = parseRoute(location.hash);
   suppress = true;
   store.dispatch({ t: 'plain', on: !!r.plain });
-  if (r.screen === 'call') store.dispatch({ t: 'join' });
+  if (!r.plain) store.dispatch({ t: 'screen', screen: r.screen });
   store.dispatch({ t: 'panel', panel: 'none' });
   if (r.panel !== 'none') store.dispatch({ t: 'panel', panel: r.panel });
   if (r.engTab) store.dispatch({ t: 'engTab', tab: r.engTab });
@@ -119,22 +122,29 @@ window.addEventListener('popstate', () => {
   suppress = false;
 });
 
-// The static pre-join screen in index.html needs wiring before the first render.
-document.getElementById('join-btn')?.addEventListener('click', () => store.dispatch({ t: 'join' }));
-document.getElementById('plain-link')?.addEventListener('click', (e) => {
-  e.preventDefault();
-  store.dispatch({ t: 'plain', on: true });
-});
+// Wire the static home screen before the first render replaces nothing.
+for (const el of document.querySelectorAll<HTMLElement>('[data-go]')) {
+  el.addEventListener('click', (e) => {
+    e.preventDefault();
+    const to = el.dataset['go'];
+    if (to === 'plain') store.dispatch({ t: 'plain', on: true });
+    else if (to === 'lobby') {
+      document.getElementById('static-home')?.remove();
+      store.dispatch({ t: 'screen', screen: 'lobby' });
+    }
+  });
+}
 
 // ------------------------------------------------------------ global keys ---
 
 const HELP: [string, string][] = [
   ['C', 'captions on or off'],
   ['E', 'kill the effects'],
-  ['L', 'cover letter'],
-  ['P', 'participants'],
-  ['S', 'screen share'],
-  ['G', 'engineering'],
+  ['M', 'in-call messages'],
+  ['P', 'people'],
+  ['S', 'present'],
+  ['T', 'meeting tools'],
+  ['H', 'raise hand'],
   ['D', 'read it as a document'],
   ['Esc', 'close the panel'],
   ['?', 'this list'],
@@ -144,38 +154,43 @@ window.addEventListener('keydown', (e) => {
   const tag = (e.target as HTMLElement | null)?.tagName;
   if (tag === 'INPUT' || tag === 'TEXTAREA' || e.metaKey || e.ctrlKey || e.altKey) return;
   const s = store.get();
+  if (e.key === '?') { showHelp(); return; }
+  if (e.key === 'Escape') { if (s.panel !== 'none') store.dispatch({ t: 'panel', panel: s.panel }); return; }
+  if (s.screen !== 'call' && 'cemspth'.includes(e.key.toLowerCase())) return;
 
   switch (e.key.toLowerCase()) {
     case 'c': store.dispatch({ t: 'captions', on: !s.captionsOn }); break;
     case 'e': store.dispatch({ t: 'fx', preset: 'off' }); break;
-    case 'l': store.dispatch({ t: 'panel', panel: 'chat' }); break;
+    case 'm': store.dispatch({ t: 'panel', panel: 'chat' }); break;
     case 'p': store.dispatch({ t: 'panel', panel: 'people' }); break;
     case 's': store.dispatch({ t: 'panel', panel: 'present' }); break;
-    case 'g': store.dispatch({ t: 'panel', panel: 'eng' }); break;
+    case 't': store.dispatch({ t: 'panel', panel: 'tools' }); break;
+    case 'h': store.dispatch({ t: 'hand', on: !s.handRaised }); break;
     case 'd': store.dispatch({ t: 'plain', on: !s.plain }); break;
-    case 'escape': if (s.panel !== 'none') store.dispatch({ t: 'panel', panel: s.panel }); break;
-    case '?': showHelp(); break;
     default: return;
   }
 });
 
 function showHelp(): void {
-  if (document.getElementById('help')) return;
+  const open = document.getElementById('help');
+  if (open) { open.remove(); return; }
   const box = h(
     'div',
-    { class: 'help', id: 'help', role: 'dialog', 'aria-label': 'Keyboard shortcuts', 'aria-modal': 'false' },
+    { class: 'help', id: 'help', role: 'dialog', 'aria-label': 'Keyboard shortcuts' },
     h('h3', {}, 'Keyboard'),
     h('dl', { class: 'kv' }, ...HELP.flatMap(([k, v]) => [h('dt', {}, h('kbd', {}, k)), h('dd', {}, v)])),
-    h('button', { class: 'btn btn-sm', type: 'button', onclick: () => box.remove() }, 'Close'),
+    h('button', { class: 'mbtn', type: 'button', onclick: () => box.remove() }, 'Close'),
   );
   document.body.appendChild(box);
   box.querySelector('button')?.focus();
 }
 
+// The Konami code opens the dev portal — the working notes for this build,
+// linked from nowhere. It is a separate chunk, fetched on demand, so it costs
+// nothing at all for the people who never find it.
 konami(() => {
-  const view = callView as (HTMLElement & { egg?: () => void }) | null;
-  if (view?.egg) view.egg();
-  else quests.unlock('konami');
+  quests.unlock('konami');
+  void import('./ui/devportal.js').then((m) => m.openDevPortal(store.get().reducedMotion));
 });
 
 // Reading the whole build log is its own quiet achievement.
@@ -183,8 +198,9 @@ document.addEventListener(
   'scroll',
   (e) => {
     const el = e.target as HTMLElement;
-    if (!el?.classList?.contains('panel-body')) return;
-    if (el.scrollTop + el.clientHeight >= el.scrollHeight - 40 && store.get().engTab === 'log' && store.get().panel === 'eng') {
+    if (!el?.classList?.contains('side-body')) return;
+    const s = store.get();
+    if (el.scrollTop + el.clientHeight >= el.scrollHeight - 40 && s.engTab === 'spec' && s.panel === 'tools') {
       quests.unlock('patient');
     }
   },
@@ -192,4 +208,3 @@ document.addEventListener(
 );
 
 render();
-if (store.get().screen === 'prejoin' && !store.get().plain) quests.mount(root);

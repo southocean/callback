@@ -16,7 +16,7 @@ export function renderChat(): HTMLElement {
   return h(
     'div',
     {},
-    h('p', { class: 'panel-note' }, 'The cover letter. It is a chat panel because a chat panel is where people actually read things.'),
+    h('p', { class: 'pnote' }, 'The cover letter. It is a chat panel because a chat panel is where people actually read things.'),
     ...chat.map((m) =>
       h(
         'div',
@@ -25,6 +25,8 @@ export function renderChat(): HTMLElement {
         h('div', { class: 'msg-body' }, m.text),
       ),
     ),
+    h('div', { class: 'shead' }, 'Transcript'),
+    renderTranscript(),
   );
 }
 
@@ -85,7 +87,7 @@ export function renderPeople(): HTMLElement {
   return h(
     'div',
     {},
-    h('p', { class: 'panel-note' }, 'Every participant in this call is a chapter. They joined in this order.'),
+    h('p', { class: 'pnote' }, 'Every participant in this call is a chapter. They joined in this order.'),
     axis,
     note,
     ...roles.map((r) =>
@@ -153,7 +155,7 @@ export function renderPresent(store: Store): HTMLElement {
   };
 
   wrap.append(
-    h('p', { class: 'panel-note' }, 'Screen share. Three projects and this page, which is the fourth.'),
+    h('p', { class: 'pnote' }, 'Screen share. Three projects and this page, which is the fourth.'),
     nav,
     body,
   );
@@ -170,7 +172,7 @@ export function renderTranscript(): HTMLElement {
     {},
     h(
       'p',
-      { class: 'panel-note' },
+      { class: 'pnote' },
       'Transcript. Scripted, not recognised — there is no audio track here, and pretending otherwise would be a lie ' +
         'told in a job application. Live recognition is a separate, optional thing: turn on your microphone and it ' +
         'transcribes you.',

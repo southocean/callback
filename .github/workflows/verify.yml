@@ -46,8 +46,8 @@ jobs:
         # index.html is excluded because it carries the build's commit stamp,
         # which necessarily differs from the commit that contains it.
         run: |
-          if ! git diff --quiet -- docs/app.js docs/styles.css; then
+          if ! git diff --quiet -- docs/app.js docs/styles.css "docs/chunk-*.js"; then
             echo "The committed bundle does not match the source. Run npm run build and commit the result."
-            git diff --stat -- docs/app.js docs/styles.css
+            git diff --stat -- docs/app.js docs/styles.css "docs/chunk-*.js"
             exit 1
           fi

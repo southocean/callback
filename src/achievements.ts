@@ -20,22 +20,25 @@ export interface Quest {
 }
 
 export const quests: Quest[] = [
-  { id: 'join', name: 'Answer the call', hint: 'Join.' },
-  { id: 'chat', name: 'Read the letter', hint: 'Open the chat panel.' },
-  { id: 'people', name: 'Meet the participants', hint: 'Open the people panel.' },
-  { id: 'present', name: 'Sit through the slides', hint: 'Watch the screen share.' },
-  { id: 'captions', name: 'Read along', hint: 'Open the transcript.' },
+  { id: 'join', name: 'Join the call', hint: 'Press Join.' },
+  { id: 'chat', name: 'Read the messages', hint: 'Open in-call messages.' },
+  { id: 'people', name: 'See who is here', hint: 'Open People.' },
+  { id: 'present', name: 'Watch the screen share', hint: 'Open Presenting.' },
   { id: 'offclock', name: 'Off the clock', hint: 'Find out what he does when nobody is paying him.' },
-  { id: 'eng', name: 'Open the hood', hint: 'Find the Engineering panel.' },
+  { id: 'tools', name: 'Open the toolbox', hint: 'Find Meeting tools.' },
+  { id: 'spec', name: 'Read the spec', hint: 'See what this interface was measured from.' },
   { id: 'tests', name: 'Trust but verify', hint: 'Run the test suite.' },
   { id: 'chaos', name: 'Break it on purpose', hint: 'Make the tests fail.' },
   { id: 'fx', name: 'Hall of mirrors', hint: 'Turn on an effect.' },
   { id: 'collapse', name: 'Hotel wifi', hint: 'Push the network until it gives up.' },
+  { id: 'camera', name: 'Show your face', hint: 'Turn your camera on. It never leaves your machine.' },
+  { id: 'hand', name: 'Raise your hand', hint: 'You know the button.' },
+  { id: 'react', name: 'React to something', hint: 'Send a reaction.' },
   { id: 'a11y', name: 'No mouse required', hint: 'Move through the tiles with the arrow keys.' },
-  { id: 'story', name: 'The pitch behind the pitch', hint: 'Read the storyline argument.' },
+  { id: 'host', name: 'Host controls', hint: 'Take something away with you.' },
   { id: 'plain', name: 'Just give me the CV', hint: 'Read it as a document instead.' },
   { id: 'konami', name: 'You know the code', hint: '', secret: true },
-  { id: 'patient', name: 'Read the whole build log', hint: '', secret: true },
+  { id: 'patient', name: 'Read the whole spec', hint: '', secret: true },
 ];
 
 const KEY = 'callback.quests';
@@ -108,7 +111,7 @@ export class Quests {
       h('div', { class: 'quest-kicker' }, quest.secret ? 'Secret found' : `Side quest ${got}/${total}`),
       h('div', { class: 'quest-name' }, quest.name),
       complete
-        ? h('div', { class: 'quest-sub' }, 'Side quests complete. Only the main quest left — it is in the Storyline tab.')
+        ? h('div', { class: 'quest-sub' }, 'All of them. That is more thorough than most interview loops.')
         : null,
     );
     this.tray.appendChild(card);
@@ -143,24 +146,3 @@ export function konami(onFound: () => void): void {
   });
 }
 
-/** Deals a row of mahjong tiles across the stage. Seven years of habit. */
-export function mahjongEasterEgg(host: HTMLElement, reducedMotion: boolean): void {
-  if (host.querySelector('.mahjong')) return;
-  const faces = ['🀇', '🀈', '🀉', '🀊', '🀋', '🀌', '🀍', '🀎', '🀏'];
-  const row = h(
-    'div',
-    { class: 'mahjong', role: 'note', 'aria-label': 'Easter egg: a row of mahjong tiles, and a note about Mahjong Logic.' },
-    h('div', { class: 'mahjong-tiles', 'aria-hidden': 'true' },
-      ...faces.map((f, n) =>
-        h('span', { style: reducedMotion ? '' : `animation-delay:${n * 60}ms` }, f),
-      ),
-    ),
-    h('div', { class: 'mahjong-note' }, 'A clean run of nines. Seven years on this game and some habits do not leave.'),
-    h('button', {
-      class: 'btn btn-sm',
-      type: 'button',
-      onclick: () => row.remove(),
-    }, 'Discard'),
-  );
-  host.prepend(row);
-}

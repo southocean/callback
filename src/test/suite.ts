@@ -9,7 +9,7 @@
 // Review T9 added the chaos flag: passing `true` injects a genuine fault so the
 // suite can be watched going red. A runner that cannot fail proves nothing.
 
-import { reduce, initial, parseRoute, routeToHash, layoutTimeline, overlaps, captionAt, clamp01 } from '../state.js';
+import { reduce, initial, parseRoute, routeToHash, layoutTimeline, overlaps, captionAt, clamp01, clock } from '../state.js';
 import type { State } from '../state.js';
 import { sample, policy, rng, profiles } from '../net/degrade.js';
 import { cssFallback } from '../fx/pipeline.js';
@@ -51,7 +51,7 @@ let chaos = false;
 // ---------------------------------------------------------------------------
 
 suite('state / reducer', () => {
-  test('join moves from pre-join to the call', () => {
+  test('join moves from the green room into the call', () => {
     eq(reduce(initial, { t: 'join' }).screen, 'call');
   });
 
@@ -104,18 +104,18 @@ suite('state / reducer', () => {
 
   test('selecting an engineering tab opens the engineering panel', () => {
     const s = reduce(initial, { t: 'engTab', tab: 'tests' });
-    eq(s.panel, 'eng');
+    eq(s.panel, 'tools');
     eq(s.engTab, 'tests');
   });
 });
 
 suite('routing', () => {
-  test('the empty hash is the pre-join screen', () => {
-    eq(parseRoute('').screen, 'prejoin');
-    eq(parseRoute('#').screen, 'prejoin');
+  test('the empty hash is the home screen', () => {
+    eq(parseRoute('').screen, 'home');
+    eq(parseRoute('#').screen, 'home');
   });
 
-  test('a deep link skips the pre-join screen', () => {
+  test('a deep link goes straight into the call', () => {
     // Review U3: the referrer must be able to link straight at a section.
     const r = parseRoute('#chat');
     eq(r.screen, 'call');
@@ -129,21 +129,21 @@ suite('routing', () => {
   });
 
   test('engineering tabs are linkable', () => {
-    eq(parseRoute('#eng/tests').engTab, 'tests');
-    eq(parseRoute('#eng/a11y').engTab, 'a11y');
+    eq(parseRoute('#tools/tests').engTab, 'tests');
+    eq(parseRoute('#tools/a11y').engTab, 'a11y');
   });
 
   test('an unknown engineering tab falls back rather than throwing', () => {
-    eq(parseRoute('#eng/nonsense').engTab, 'log');
+    eq(parseRoute('#tools/nonsense').engTab, 'spec');
   });
 
   test('garbage in the hash does not break the app', () => {
-    eq(parseRoute('#../../etc/passwd').screen, 'prejoin');
-    eq(parseRoute('#%%%').screen, 'prejoin');
+    eq(parseRoute('#../../etc/passwd').screen, 'home');
+    eq(parseRoute('#%%%').screen, 'home');
   });
 
   test('hash round-trips through state', () => {
-    for (const hash of ['#chat', '#people', '#eng/perf', '#present/mahjong', '#plain']) {
+    for (const hash of ['#chat', '#people', '#tools/perf', '#present/mahjong', '#plain']) {
       const r = parseRoute(hash);
       let s: State = { ...initial, screen: r.screen, panel: r.panel };
       if (r.engTab) s = { ...s, engTab: r.engTab };
@@ -223,6 +223,13 @@ suite('captions', () => {
   });
   test('an empty script does not throw', () => {
     eq(captionAt([], 4), null);
+  });
+
+  test('the clock matches Meet\'s format', () => {
+    eq(clock(new Date(2026, 7, 20, 9, 2)), '9:02 AM');
+    eq(clock(new Date(2026, 7, 20, 0, 5)), '12:05 AM');
+    eq(clock(new Date(2026, 7, 20, 12, 0)), '12:00 PM');
+    eq(clock(new Date(2026, 7, 20, 13, 30)), '1:30 PM');
   });
 });
 
@@ -311,13 +318,22 @@ suite('content integrity', () => {
     ok(!banned.test(referralBlurb), 'a superlative crept into the referral blurb');
   });
 
-  test('every review finding has a resolution and a change', async () => {
-    // Review H8: an objection may never appear without its resolution.
-    const { findings } = await import('../data/devlog.js');
-    for (const f of findings) {
-      ok(f.resolution.trim().length > 20, `${f.id} has no resolution`);
-      ok(f.changed.trim().length > 5, `${f.id} changed nothing in the repo`);
+  test('every measured token names where it came from', async () => {
+    const { surfaces, geometry } = await import('../data/spec.js');
+    for (const t of [...surfaces.tokens, ...geometry.tokens]) {
+      ok(t.value.trim().length > 0, `${t.name} has no measured value`);
+      ok(t.where.trim().length > 2, `${t.name} does not say where it was measured`);
     }
+  });
+
+  test('every documented screen actually routes', async () => {
+    const { flow } = await import('../data/spec.js');
+    const screens = new Set(flow.steps.map((s) => parseRoute(s.id).screen));
+    for (const s of flow.steps) {
+      ok(parseRoute(s.id).screen !== undefined, s.id + ' does not route');
+    }
+    eq(screens.size, flow.steps.length, 'two documented screens resolve to the same route');
+    ok(flow.deviations.length >= 5, 'the deviations from Meet are undocumented');
   });
 
   test('no placeholder text survived into the content', async () => {

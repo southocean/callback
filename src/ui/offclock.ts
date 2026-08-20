@@ -44,7 +44,7 @@ export function renderOffClock(): HTMLElement {
 
   const muteBtn = h(
     'button',
-    { class: 'btn btn-sm', type: 'button', onclick: () => setMuted(!muted) },
+    { class: 'mbtn', type: 'button', onclick: () => setMuted(!muted) },
     'Unmute',
   );
 
@@ -133,7 +133,7 @@ export function renderOffClock(): HTMLElement {
     {},
     h(
       'p',
-      { class: 'panel-note' },
+      { class: 'pnote' },
       'Not filler. Two of these are the reason the page you are looking at exists. Roughly forty seconds in total, ' +
         'cut to the highlight — nobody has time for the uncut version, including me.',
     ),
@@ -147,9 +147,9 @@ export function renderOffClock(): HTMLElement {
       h(
         'div',
         { class: 'reel-controls' },
-        h('button', { class: 'btn btn-sm', type: 'button', 'aria-label': 'Previous clip', onclick: () => go(index - 1, true) }, '‹ Prev'),
-        h('button', { class: 'btn btn-sm btn-primary', type: 'button', onclick: () => (playing ? pause() : play()) }, reduced ? 'Play' : 'Play the reel'),
-        h('button', { class: 'btn btn-sm', type: 'button', 'aria-label': 'Next clip', onclick: () => go(index + 1, true) }, 'Next ›'),
+        h('button', { class: 'mbtn', type: 'button', 'aria-label': 'Previous clip', onclick: () => go(index - 1, true) }, '‹ Prev'),
+        h('button', { class: 'mbtn fill', type: 'button', onclick: () => (playing ? pause() : play()) }, reduced ? 'Play' : 'Play the reel'),
+        h('button', { class: 'mbtn', type: 'button', 'aria-label': 'Next clip', onclick: () => go(index + 1, true) }, 'Next ›'),
         muteBtn,
       ),
       dots,
@@ -160,7 +160,7 @@ export function renderOffClock(): HTMLElement {
         : h('p', { class: 'clip-note' }, 'Clips advance automatically. Sound is off until you turn it on.'),
     ),
 
-    h('div', { class: 'test-suite', style: 'margin-top:22px' }, 'What each one is doing here'),
+    h('div', { class: 'shead', style: 'margin-top:22px' }, 'What each one is doing here'),
     ...reel.map((c) =>
       h(
         'div',
@@ -178,10 +178,10 @@ export function renderOffClock(): HTMLElement {
       ),
     ),
 
-    h('div', { class: 'test-suite', style: 'margin-top:20px' }, 'And one that is not here'),
+    h('div', { class: 'shead', style: 'margin-top:20px' }, 'And one that is not here'),
     h('p', { class: 'clip-note' }, h('b', {}, `${omitted.what}. `), omitted.why),
 
-    h('div', { class: 'test-suite', style: 'margin-top:20px' }, 'No footage, still true'),
+    h('div', { class: 'shead', style: 'margin-top:20px' }, 'No footage, still true'),
     h(
       'dl',
       { class: 'kv' },

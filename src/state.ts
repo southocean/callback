@@ -1,12 +1,12 @@
 // Application state as a pure reducer.
 //
 // Kept pure specifically so it can be unit-tested without a DOM (review T4).
-// Every interaction in the UI goes through `reduce`, so the tests in
-// src/test/suite.ts cover real behaviour rather than decoration.
+// The screen list mirrors Meet's actual flow — home, lobby, call, ended — so the
+// clone covers the whole journey rather than one screenshot of it (review V1).
 
-export type Screen = 'prejoin' | 'call' | 'ended';
-export type Panel = 'none' | 'chat' | 'people' | 'present' | 'captions' | 'offclock' | 'eng';
-export type EngTab = 'log' | 'tests' | 'a11y' | 'perf' | 'fx' | 'net' | 'reqs' | 'story';
+export type Screen = 'home' | 'lobby' | 'call' | 'ended';
+export type Panel = 'none' | 'chat' | 'people' | 'present' | 'offclock' | 'tools' | 'host';
+export type EngTab = 'spec' | 'tests' | 'a11y' | 'perf' | 'fx' | 'net' | 'reqs';
 export type FxPreset = 'off' | 'soften' | 'normalise' | 'edges' | 'kaleido';
 export type NetProfile = 'good' | 'shaky' | 'hotel' | 'collapse';
 
@@ -14,11 +14,14 @@ export interface State {
   screen: Screen;
   panel: Panel;
   engTab: EngTab;
-  /** Case-study or role id currently spotlit, or null for the grid. */
+  /** Case-study id currently on the shared screen. */
   spotlight: string | null;
   cameraOn: boolean;
   micOn: boolean;
   captionsOn: boolean;
+  handRaised: boolean;
+  /** Meet's "Your meeting's ready" card, dismissible. */
+  readyCard: boolean;
   fx: FxPreset;
   net: NetProfile;
   /** Injects a deliberate fault so the test suite can be seen failing. */
@@ -28,6 +31,7 @@ export interface State {
 }
 
 export type Action =
+  | { t: 'screen'; screen: Screen }
   | { t: 'join' }
   | { t: 'leave' }
   | { t: 'panel'; panel: Panel }
@@ -36,6 +40,8 @@ export type Action =
   | { t: 'camera'; on: boolean }
   | { t: 'mic'; on: boolean }
   | { t: 'captions'; on: boolean }
+  | { t: 'hand'; on: boolean }
+  | { t: 'readyCard'; on: boolean }
   | { t: 'fx'; preset: FxPreset }
   | { t: 'net'; profile: NetProfile }
   | { t: 'chaos'; on: boolean }
@@ -43,13 +49,15 @@ export type Action =
   | { t: 'plain'; on: boolean };
 
 export const initial: State = {
-  screen: 'prejoin',
+  screen: 'home',
   panel: 'none',
-  engTab: 'log',
+  engTab: 'spec',
   spotlight: null,
   cameraOn: false,
   micOn: false,
   captionsOn: true,
+  handRaised: false,
+  readyCard: true,
   fx: 'off',
   net: 'good',
   chaos: false,
@@ -59,20 +67,25 @@ export const initial: State = {
 
 export function reduce(s: State, a: Action): State {
   switch (a.t) {
+    case 'screen':
+      // Leaving the call must release hardware wherever you go next.
+      return a.screen === 'call'
+        ? { ...s, screen: 'call' }
+        : { ...s, screen: a.screen, panel: 'none', cameraOn: false, micOn: false, fx: 'off' };
+
     case 'join':
       return { ...s, screen: 'call' };
 
     case 'leave':
-      // Leaving stops the camera and the effects. A CV should not keep a
-      // webcam warm after you have walked away from it.
-      return { ...s, screen: 'ended', panel: 'none', cameraOn: false, micOn: false, fx: 'off' };
+      // A CV has no business keeping a webcam warm after you walk away from it.
+      return { ...s, screen: 'ended', panel: 'none', cameraOn: false, micOn: false, fx: 'off', handRaised: false };
 
     case 'panel':
       // Clicking the open panel's own button closes it, the way a real call does.
       return { ...s, panel: s.panel === a.panel ? 'none' : a.panel };
 
     case 'engTab':
-      return { ...s, panel: 'eng', engTab: a.tab };
+      return { ...s, panel: 'tools', engTab: a.tab };
 
     case 'spotlight':
       return { ...s, spotlight: a.id };
@@ -88,11 +101,16 @@ export function reduce(s: State, a: Action): State {
     case 'captions':
       return { ...s, captionsOn: a.on };
 
+    case 'hand':
+      return { ...s, handRaised: a.on };
+
+    case 'readyCard':
+      return { ...s, readyCard: a.on };
+
     case 'fx':
       // Effects are meaningless without a video source, so asking for one
       // implies asking for the camera. Nothing is enabled behind your back:
-      // the camera button still shows its real state, and getUserMedia is only
-      // ever called from an explicit click.
+      // getUserMedia is only ever called from an explicit click.
       if (a.preset !== 'off' && !s.cameraOn) return { ...s, fx: a.preset, cameraOn: true };
       return { ...s, fx: a.preset };
 
@@ -146,7 +164,7 @@ export class Store {
 //
 // Hand-rolled, because the whole point is no framework — which means the back
 // button is my problem (review T12). Every panel is linkable and a deep link
-// skips the pre-join screen entirely (review U3).
+// skips straight to the screen it names (review U3).
 // ---------------------------------------------------------------------------
 
 export interface Route {
@@ -157,8 +175,8 @@ export interface Route {
   plain?: boolean;
 }
 
-const panels: Panel[] = ['chat', 'people', 'present', 'captions', 'offclock', 'eng'];
-const engTabs: EngTab[] = ['log', 'tests', 'a11y', 'perf', 'fx', 'net', 'reqs', 'story'];
+const panels: Panel[] = ['chat', 'people', 'present', 'offclock', 'tools', 'host'];
+const engTabs: EngTab[] = ['spec', 'tests', 'a11y', 'perf', 'fx', 'net', 'reqs'];
 
 export function parseRoute(hash: string): Route {
   const raw = hash.replace(/^#\/?/, '');
@@ -166,11 +184,13 @@ export function parseRoute(hash: string): Route {
 
   if (head === 'plain') return { screen: 'call', panel: 'none', plain: true };
   if (head === 'ended') return { screen: 'ended', panel: 'none' };
-  if (head === '' || head === 'join') return { screen: 'prejoin', panel: 'none' };
+  if (head === 'lobby') return { screen: 'lobby', panel: 'none' };
+  if (head === 'call') return { screen: 'call', panel: 'none' };
+  if (head === '' || head === 'home') return { screen: 'home', panel: 'none' };
 
-  if (head === 'eng') {
-    const tab = engTabs.includes(tail as EngTab) ? (tail as EngTab) : 'log';
-    return { screen: 'call', panel: 'eng', engTab: tab };
+  if (head === 'tools') {
+    const tab = engTabs.includes(tail as EngTab) ? (tail as EngTab) : 'spec';
+    return { screen: 'call', panel: 'tools', engTab: tab };
   }
 
   if (panels.includes(head as Panel)) {
@@ -179,14 +199,15 @@ export function parseRoute(hash: string): Route {
     return route;
   }
 
-  return { screen: 'prejoin', panel: 'none' };
+  return { screen: 'home', panel: 'none' };
 }
 
 export function routeToHash(s: State): string {
   if (s.plain) return '#plain';
-  if (s.screen === 'prejoin') return '#';
+  if (s.screen === 'home') return '#home';
+  if (s.screen === 'lobby') return '#lobby';
   if (s.screen === 'ended') return '#ended';
-  if (s.panel === 'eng') return `#eng/${s.engTab}`;
+  if (s.panel === 'tools') return `#tools/${s.engTab}`;
   if (s.panel === 'present' && s.spotlight) return `#present/${s.spotlight}`;
   if (s.panel !== 'none') return `#${s.panel}`;
   return '#call';
@@ -215,6 +236,12 @@ export interface Placed extends Span {
   lane: number;
 }
 
+export function overlaps(a: Span, b: Span, now: number): boolean {
+  const ae = a.to ?? now;
+  const be = b.to ?? now;
+  return a.from < be && b.from < ae;
+}
+
 export function layoutTimeline(spans: Span[], now: number): Placed[] {
   const ends = spans.map((s) => s.to ?? now);
   const min = Math.min(...spans.map((s) => s.from));
@@ -225,9 +252,9 @@ export function layoutTimeline(spans: Span[], now: number): Placed[] {
   const order = [...spans].sort((a, b) => (b.to ?? now) - b.from - ((a.to ?? now) - a.from));
 
   // Interval-graph colouring: a span joins the first lane it collides with
-  // nothing in. Comparing only against each lane's LAST end is not enough —
-  // a span that starts earlier than everything in a lane still fits it, and
-  // the naive version wasted a row on exactly that case.
+  // nothing in. Comparing only against each lane's LAST end is not enough — a
+  // span that starts earlier than everything in a lane still fits it, and the
+  // naive version wasted a row on exactly that case.
   const lanes: Span[][] = [];
   const out: Placed[] = [];
 
@@ -245,12 +272,6 @@ export function layoutTimeline(spans: Span[], now: number): Placed[] {
   return out;
 }
 
-export function overlaps(a: Span, b: Span, now: number): boolean {
-  const ae = a.to ?? now;
-  const be = b.to ?? now;
-  return a.from < be && b.from < ae;
-}
-
 // ---------------------------------------------------------------------------
 // Caption scheduling
 // ---------------------------------------------------------------------------
@@ -264,8 +285,16 @@ export function captionAt<T extends { at: number }>(lines: T[], t: number): T | 
   return found;
 }
 
-/** Clamp a shader parameter into range, rejecting NaN (review T5). */
+/** Clamp a shader parameter into range. Only NaN is refused (review Q4). */
 export function clamp01(n: number): number {
   if (Number.isNaN(n)) return 0;
   return n < 0 ? 0 : n > 1 ? 1 : n;
+}
+
+/** Meet's clock format: "9:02 AM". */
+export function clock(d: Date): string {
+  let h = d.getHours();
+  const ampm = h >= 12 ? 'PM' : 'AM';
+  h = h % 12 || 12;
+  return `${h}:${String(d.getMinutes()).padStart(2, '0')} ${ampm}`;
 }
