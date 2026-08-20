@@ -22,7 +22,7 @@ export type IconName =
   | 'closed_caption_off' | 'content_copy' | 'description' | 'event' | 'expand_more'
   | 'frame_person' | 'group' | 'help' | 'info' | 'keyboard' | 'keyboard_arrow_up'
   | 'link' | 'lock_person' | 'mic' | 'mic_off' | 'mood' | 'more_vert' | 'person_add'
-  | 'present_to_all' | 'science' | 'settings' | 'shield' | 'speed' | 'videocam'
+  | 'present_to_all' | 'science' | 'settings' | 'shield' | 'speed' | 'video_call' | 'videocam'
   | 'videocam_off' | 'visual_effects';
 
 export interface SymOpts {
@@ -54,12 +54,16 @@ export function sym(name: IconName, size = 24, opts: SymOpts = {}): HTMLElement 
  * lens horn #F9AA01, and a white record dot low-left. Not the old tricolour
  * camera — that logo was retired.
  */
-function mark(size = 26): SVGSVGElement {
+function mark(): SVGSVGElement {
   const ns = 'http://www.w3.org/2000/svg';
   const svg = document.createElementNS(ns, 'svg');
-  svg.setAttribute('viewBox', '0 0 34 28');
-  svg.setAttribute('width', String(Math.round(size * 34 / 28)));
-  svg.setAttribute('height', String(size));
+  // Traced off gstatic's 124x40 asset at 16x. Meet renders that image at its
+  // natural size, so the glyph is 34.75 x 27.6 on screen — a body that is very
+  // nearly square with a small flared horn. The first attempt was far too
+  // small and far too wide, which is what made ours look like a different logo.
+  svg.setAttribute('viewBox', '0 0 37 32');
+  svg.setAttribute('width', '37');
+  svg.setAttribute('height', '32');
   svg.setAttribute('aria-hidden', 'true');
   svg.setAttribute('class', 'lk-mark');
 
@@ -77,21 +81,26 @@ function mark(size = 26): SVGSVGElement {
   defs.appendChild(grad);
   svg.appendChild(defs);
 
-  // lens horn first, so the body's rounded corner sits over its root
+  // The horn is a trapezoid, taller at the outer edge, tucked behind the body.
+  // Its corners are softened with a matching stroke rather than arcs, so the
+  // path stays readable — hence the inset coordinates.
   const horn = document.createElementNS(ns, 'path');
-  horn.setAttribute('d', 'M21 11.2 30.2 6.4a1 1 0 0 1 1.5.9v13.4a1 1 0 0 1-1.5.9L21 16.8Z');
+  horn.setAttribute('d', 'M27 11.9 L35.3 8.4 V26.2 L27 22.7 Z');
   horn.setAttribute('fill', '#F9AA01');
+  horn.setAttribute('stroke', '#F9AA01');
+  horn.setAttribute('stroke-width', '1.6');
+  horn.setAttribute('stroke-linejoin', 'round');
   svg.appendChild(horn);
 
   const body = document.createElementNS(ns, 'rect');
-  body.setAttribute('x', '1.6'); body.setAttribute('y', '4.4');
-  body.setAttribute('width', '20.6'); body.setAttribute('height', '19.2');
-  body.setAttribute('rx', '4.6');
+  body.setAttribute('x', '1.25'); body.setAttribute('y', '3');
+  body.setAttribute('width', '25.75'); body.setAttribute('height', '27.6');
+  body.setAttribute('rx', '4.2');
   body.setAttribute('fill', 'url(#lkg)');
   svg.appendChild(body);
 
   const dot = document.createElementNS(ns, 'circle');
-  dot.setAttribute('cx', '7.2'); dot.setAttribute('cy', '18.2'); dot.setAttribute('r', '2.5');
+  dot.setAttribute('cx', '7.2'); dot.setAttribute('cy', '24.6'); dot.setAttribute('r', '2.8');
   dot.setAttribute('fill', '#fff');
   svg.appendChild(dot);
 
@@ -111,7 +120,7 @@ export function lockup(reducedMotion = false, onHome?: () => void): HTMLElement 
   const wrap = document.createElement('button');
   wrap.type = 'button';
   wrap.className = `lockup${reducedMotion ? ' lk-static' : ' lk-play'}`;
-  wrap.appendChild(mark(26));
+  wrap.appendChild(mark());
 
   const words = document.createElement('div');
   words.className = 'lk-words';
@@ -133,7 +142,7 @@ export function lockup(reducedMotion = false, onHome?: () => void): HTMLElement 
 
   // One accessible name for the whole thing, so a screen reader hears the
   // destination rather than three fragments mid-animation.
-  wrap.setAttribute('aria-label', 'Meet Nam — home');
+  wrap.setAttribute('aria-label', 'Meet Nam');
   for (const el of [google, meet, nam]) el.setAttribute('aria-hidden', 'true');
 
   wrap.addEventListener('click', () => {

@@ -72,6 +72,12 @@ export const feedback: Section = {
     { name: 'Selected', value: 'secondary container #c2e7ff', note: 'A filled pill, plus the icon switches to FILL 1. Not a colour change on an outline.' },
     { name: 'Disabled', value: 'bg rgba(31,31,31,.12), text rgba(16,16,16,.3)', note: 'A real filled surface, not ghosted text. Measured off the inactive Join button.' },
     { name: 'Hit area', value: '40px minimum, 48px for primary', note: 'Icon buttons are 40×40 even when the glyph is 24. Never shrink the target to fit the art.' },
+    { name: 'Tooltip surface', value: '#303030 on #f2f2f2, radius 4, padding 4px 8px', note: '400 12px/16px, no shadow, 4px below the anchor and centred on it.' },
+    { name: 'Tooltip entrance', value: 'opacity + translateY, .15s cubic-bezier(0, 0, 0.2, 1)', note: 'The decelerate curve, not the spring. Tooltips arrive; they do not bounce.' },
+    { name: 'Tooltip delay, cold', value: '~540ms', note: 'Measured three times on the live product: 541, 543, 567.' },
+    { name: 'Tooltip delay, primed', value: '~0ms', note: 'Showing one arms the next — move to any other target and its tooltip appears at once. Measured at 38ms.' },
+    { name: 'Tooltip cooldown', value: '600ms touching nothing', note: 'Then it forgets and the next one waits again. Ours: Google publishes no figure, and 1.6s idle was enough to reset it.' },
+    { name: 'Where tooltips go', value: 'icon-only controls, the logo, the code field', note: 'NOT the rail items — they carry a visible label already, so a tooltip would only repeat it. Meet leaves them alone.' },
   ],
 };
 
@@ -158,8 +164,8 @@ export const gaps = {
     'Honest inventory. These were not captured in the crawl, so anything built in these areas is inference rather ' +
     'than measurement, and should be marked as such until it is measured.',
   items: [
-    'Hover and pressed states were derived from Material\'s documented state-layer opacities, not read off the product in those states.',
-    'The Gemini notes panel, the avatar hover card and the People panel were not captured — including the two status pills that animate from full-width to icon-only after notes start.',
+    'Pressed and focus state layers are still Material\'s documented opacities rather than values read off the product. Hover itself is now measured: the code field goes #e9eef6 to #dde3ea, and the logo has no hover surface at all.',
+    'The Gemini notes panel, the avatar hover card and the People panel are still not captured — including the two status pills that animate from full-width to icon-only once notes start.',
     'Ripple geometry and origin on click.',
     'Panel open/close transitions in call, and the tile-grid reflow when someone joins.',
     'Focus-ring colour and offset in the dark call surface specifically.',

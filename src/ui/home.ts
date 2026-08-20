@@ -11,6 +11,7 @@
 import { h, clear } from '../dom.js';
 import { sym, lockup } from './icons.js';
 import { openDev } from './devopen.js';
+import { tip, tipAll } from './tooltip.js';
 import type { Store } from '../state.js';
 
 const DAYS = ['SUN', 'MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT'];
@@ -104,7 +105,7 @@ export function renderHome(store: Store, reducedMotion = false): HTMLElement {
           type: 'button',
           onclick: () => store.dispatch({ t: 'screen', screen: 'lobby' }),
         },
-        sym('videocam', 24),
+        sym('video_call', 20),
         'New',
       ),
     ),
@@ -117,7 +118,9 @@ export function renderHome(store: Store, reducedMotion = false): HTMLElement {
         {
           class: 'icon-btn',
           type: 'button',
-          'aria-label': 'Settings — build notes for this page',
+          // Meet just says "Settings". Keeping the label faithful also keeps the
+          // build notes behind it a discovery rather than a signpost.
+          'aria-label': 'Settings',
           onclick: () => { void openDev(store); },
         },
         sym('settings', 24),
@@ -257,6 +260,13 @@ export function renderHome(store: Store, reducedMotion = false): HTMLElement {
     bar,
     h('div', { class: 'home-body' }, rail, main),
   );
+
+  // Tooltips, on the same things the real product tips — which notably does
+  // NOT include the rail items. Meetings and Calls carry a visible label, so a
+  // tooltip repeating it would be noise, and Meet leaves them alone.
+  tipAll(...bar.querySelectorAll<HTMLElement>('.icon-btn, .avatar-btn, .lockup, .m-new'));
+  tip(wrap.querySelector<HTMLElement>('.composer-pill')!, 'Enter a code or link');
+  tipAll(...main.querySelectorAll<HTMLElement>('.week .icon-btn'));
 
   // Focus the code field only when someone has clearly come to type in it.
   if (location.hash === '#home') clear(hint);

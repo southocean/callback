@@ -29,7 +29,7 @@
   @font-face{font-family:'Roboto';src:url('fonts/roboto-latin.woff2') format('woff2-variations');font-weight:100 900;font-display:swap}
   @font-face{font-family:'Material Symbols Outlined';src:url('fonts/symbols-subset.woff2') format('woff2-variations');font-weight:100 700;font-display:block}
   :root{color-scheme:only light;--w:#fff;--ink:#1f1f1f;--sec:#444746;--outline:#c4c7c5;--blue:#0b57d0;
-        --composer:#e9eef6;--nav-pill:#c2e7ff;--nav-icon:#001d35;--nav-label:#00639b;--newbtn:#c4eed0;
+        --composer:#e9eef6;--composer-h:#dde3ea;--nav-pill:#c2e7ff;--nav-icon:#001d35;--nav-label:#00639b;--newbtn:#c4eed0;
         --newbtn-ink:#0b2818;--sched:#d3e3fd;--disabled-bg:rgba(31,31,31,.12);--disabled-fg:rgba(16,16,16,.3);
         --font:"Google Sans Flex","Google Sans Text","Google Sans",Roboto,system-ui,-apple-system,"Segoe UI",Arial,sans-serif}
   *{box-sizing:border-box}
@@ -44,7 +44,7 @@
   .skip:focus{left:0}
   .home{min-height:100%;display:flex;flex-direction:column}
   .home-bar{height:64px;display:grid;grid-template-columns:1fr auto 1fr;align-items:center;padding:0 8px 0 16px;gap:12px}
-  .lockup{display:flex;align-items:center;gap:7px;flex:0 0 auto}
+  .lockup{display:flex;align-items:center;gap:5px;flex:0 0 auto;justify-self:start;padding-left:4px}
   .lk-words{display:flex;align-items:baseline;font:400 22px/1.1 var(--font);letter-spacing:-.3px;white-space:nowrap}
   .lk-google{color:#212327}
   .lk-meet{color:#5f6368;margin-left:.26em}
@@ -64,7 +64,7 @@
   .avatar-btn>span{width:32px;height:32px;border-radius:50%;background:linear-gradient(145deg,#8ab4f8,#34a853);color:#10221a;font:500 13px/1 var(--font);display:grid;place-items:center}
   .home-body{flex:1 1 auto;display:flex}
   .rail{flex:0 0 104px;padding-top:48px}
-  .rail-item{width:104px;height:56px;border:0;background:transparent;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:4px;padding:0;margin-bottom:14px}
+  .rail-item{width:104px;height:56px;border:0;background:transparent;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:8px;padding:0;margin-bottom:14px}
   .rail-pill{width:56px;height:32px;border-radius:9999px;display:grid;place-items:center;color:var(--sec)}
   .rail-item[aria-current="true"] .rail-pill{background:var(--nav-pill);color:var(--nav-icon)}
   .rail-label{font:500 12px/16px var(--font);letter-spacing:.1px;color:var(--sec)}
@@ -117,13 +117,13 @@
   <div class="home" id="static-home">
     <header class="home-bar">
       <div class="lockup" role="img" aria-label="Meet Nam">
-        <svg viewBox="0 0 34 28" width="32" height="26" aria-hidden="true">
+        <svg viewBox="0 0 37 32" width="37" height="32" aria-hidden="true" class="lk-mark">
           <defs><linearGradient id="lkg" x1="0" y1="0" x2="1" y2="1">
             <stop offset="0" stop-color="#FFDA45"/><stop offset=".55" stop-color="#FFD11B"/><stop offset="1" stop-color="#FBC900"/>
           </linearGradient></defs>
-          <path d="M21 11.2 30.2 6.4a1 1 0 0 1 1.5.9v13.4a1 1 0 0 1-1.5.9L21 16.8Z" fill="#F9AA01"/>
-          <rect x="1.6" y="4.4" width="20.6" height="19.2" rx="4.6" fill="url(#lkg)"/>
-          <circle cx="7.2" cy="18.2" r="2.5" fill="#fff"/>
+          <path d="M27 11.9 L35.3 8.4 V26.2 L27 22.7 Z" fill="#F9AA01" stroke="#F9AA01" stroke-width="1.6" stroke-linejoin="round"/>
+          <rect x="1.25" y="3" width="25.75" height="27.6" rx="4.2" fill="url(#lkg)"/>
+          <circle cx="7.2" cy="24.6" r="2.8" fill="#fff"/>
         </svg>
         <div class="lk-words">
           <span class="lk-google" aria-hidden="true">Google</span><span class="lk-meet" aria-hidden="true">Meet</span>
@@ -137,7 +137,7 @@
           <button class="composer-join" type="button" aria-disabled="true" data-go="lobby">Join</button>
         </div>
         <button class="m-btn m-tonal m-new" type="button" data-go="lobby">
-          <span class="ms" style="font-size:24px" aria-hidden="true">videocam</span>
+          <span class="ms" style="font-size:20px" aria-hidden="true">video_call</span>
           New
         </button>
       </div>
