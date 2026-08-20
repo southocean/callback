@@ -56,10 +56,8 @@
 // a cause.
 
 export interface Parts {
-  /** The clipping container whose width the layout follows. */
+  /** The word itself. Its width drives layout; its transform carries it out. */
   google: HTMLElement;
-  /** The bitmap inside it, which is what actually squashes. */
-  gimg: HTMLElement;
   meet: HTMLElement;
   nam: HTMLElement;
   mark: HTMLElement;
@@ -94,8 +92,8 @@ const APPROACH_MS = FROM / V0;
 /** Everything at rest, before the name has arrived. */
 export function reset(p: Parts): void {
   p.google.style.width = `${G0}px`;
-  p.gimg.style.transform = 'translateX(0)';
-  p.gimg.style.opacity = '1';
+  p.google.style.transform = 'translateX(0)';
+  p.google.style.opacity = '1';
   p.meet.style.letterSpacing = 'normal';
   p.nam.style.transform = `translateX(${FROM}px)`;
   p.nam.style.opacity = '0';
@@ -105,7 +103,7 @@ export function reset(p: Parts): void {
 /** The end state: no Google, natural tracking, name at rest. */
 export function settle(p: Parts): void {
   p.google.style.width = '0px';
-  p.gimg.style.opacity = '0';
+  p.google.style.opacity = '0';
   p.meet.style.letterSpacing = 'normal';
   p.nam.style.transform = 'translateX(0)';
   p.nam.style.opacity = '1';
@@ -127,10 +125,12 @@ export function play(p: Parts): () => void {
     // follows it, which is what slides "Meet" left; the bitmap inside travels
     // left independently, so the word leaves rather than shrinking in place.
     const k = Math.max(0, (1 - (pen * G_SHARE) / G0) * gExtra);
+    // width drives layout, so "Meet" slides left as the word leaves; transform
+    // does not, so the word travels independently of the space it vacates.
     p.google.style.width = `${(G0 * k).toFixed(2)}px`;
-    p.gimg.style.transform = `translateX(${(-(1 - k) * SHOVE).toFixed(2)}px)`;
+    p.google.style.transform = `translateX(${(-(1 - k) * SHOVE).toFixed(2)}px)`;
     // Fades late, so the shove is visible before the word goes.
-    p.gimg.style.opacity = Math.min(1, k * 2.2).toFixed(3);
+    p.google.style.opacity = Math.min(1, k * 2.2).toFixed(3);
     p.meet.style.letterSpacing = ls === 0 ? 'normal' : `${ls.toFixed(3)}px`;
     p.nam.style.transform = `translateX(${namX.toFixed(2)}px)`;
   };

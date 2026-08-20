@@ -1678,3 +1678,31 @@ body.plain { background: #fff; color: #16181c; }
   vertical-align: -7px; height: 25px; line-height: 0;
 }
 .lk-gimg { display: block; transform-origin: left center; vertical-align: top; }
+
+/* ============================================================================
+   The wordmark is real text again.
+
+   It was a bitmap for a while, cropped from Google's own lockup PNG, because
+   nothing else could match a flat-ink bitmap for weight. That was true and
+   still the wrong trade: an image cannot share a baseline with the text beside
+   it without compensating hacks, and every one of those was visibly off — a
+   scroll container's baseline is its bottom margin edge, so the word kept
+   floating above the line.
+
+   Text has no such problem, and the metrics never needed fixing: Product Sans
+   at 23.5px measures 75.8px, against the bitmap's 76. The only real difference
+   was ink weight, and text-stroke adds that without moving a single metric —
+   0.32px of stroke on the glyph outline reproduces what antialiasing takes
+   away, which is the whole reason the live product's bitmap looks heavier than
+   the "Meet" set in the same face beside it. ====================== */
+.lk-google {
+  display: inline-block;
+  font-size: 23.5px;
+  color: #212226;
+  -webkit-text-stroke: 0.32px #212226;
+  overflow: visible;      /* keeps the baseline where text expects it */
+  vertical-align: baseline;
+  height: auto; line-height: 44px;
+  transform-origin: left center;
+  will-change: transform, width;
+}

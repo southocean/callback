@@ -171,22 +171,21 @@ export function lockup(reducedMotion = false, onHome?: () => void): HTMLElement 
   const words = document.createElement('div');
   words.className = 'lk-words';
 
-  // "Google" is an IMAGE, because in the real lockup it is one. gstatic ships
-  // the camera and the word together in a single PNG and only "Meet" is live
-  // text — which is why the first word looks heavier and darker than the second
-  // on every Google surface that uses this asset. Set as text in Product Sans
-  // 400 it can never match a flat-ink bitmap, at any size. So this is the same
-  // crop as the mark, cols 47..122 rows 7..31 of that PNG, and the mismatch
-  // stops being something to chase.
+  // Real text, not the bitmap.
+  //
+  // Meet genuinely renders this word as part of a PNG, and for a while this did
+  // too, on the grounds that nothing else could match a flat-ink bitmap for
+  // weight. That was true and still the wrong trade: an image cannot share a
+  // baseline with the text beside it without hacks, and every one of those
+  // hacks was visibly off.
+  //
+  // Text matches it instead, and the metrics were never the problem — Product
+  // Sans at 23.5px measures 75.8px against the bitmap's 76. Only the stroke
+  // weight differed, and -webkit-text-stroke thickens strokes without moving a
+  // single metric. See styles.css.
   const google = document.createElement('span');
   google.className = 'lk-google';
-  const gimg = document.createElement('img');
-  gimg.src = 'meet-google.png';
-  gimg.width = 76;
-  gimg.height = 25;
-  gimg.alt = 'Google';
-  gimg.className = 'lk-gimg';
-  google.appendChild(gimg);
+  google.textContent = 'Google';
 
   const meet = document.createElement('span');
   meet.className = 'lk-meet';
@@ -369,12 +368,11 @@ function partsOf(root: ParentNode): { el: HTMLElement; parts: Parameters<typeof 
   const el = root.querySelector<HTMLElement>('.lockup');
   if (!el || el.classList.contains('lk-static')) return null;
   const google = el.querySelector<HTMLElement>('.lk-google');
-  const gimg = el.querySelector<HTMLElement>('.lk-gimg');
   const meet = el.querySelector<HTMLElement>('.lk-meet');
   const nam = el.querySelector<HTMLElement>('.lk-nam');
   const mark = el.querySelector<HTMLElement>('.lk-mark');
-  if (!google || !gimg || !meet || !nam || !mark) return null;
-  return { el, parts: { google, gimg, meet, nam, mark } };
+  if (!google || !meet || !nam || !mark) return null;
+  return { el, parts: { google, meet, nam, mark } };
 }
 
 export function playLockup(root: ParentNode = document): void {
