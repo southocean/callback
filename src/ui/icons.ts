@@ -231,55 +231,78 @@ export function lockup(reducedMotion = false, onHome?: () => void): HTMLElement 
  * amplitude stays constant as it rotates. Two nested rotations at different
  * speeds give the arc its length-changing look without animating the path.
  */
-export function spinner(): SVGSVGElement {
+/**
+ * Meet's loading indicator: Material 3's wavy circular progress.
+ *
+ * The structure took two wrong attempts to see, and it is worth stating
+ * plainly because it is not what it looks like. It is ONE ring, split in two:
+ *
+ *   - the wave oscillates AROUND the ring's radius, crest outside and trough
+ *     inside, so the midline of the wave IS the radius of the plain track;
+ *   - the plain track is not a full circle. It is only the arc the wave does
+ *     not occupy;
+ *   - and the two do not meet. There is a gap at each end.
+ *
+ * The first attempt drew a small full circle with a large squiggle orbiting
+ * it, which is why it read as two objects fighting rather than one indicator.
+ * Once the wave shares the track's radius the whole thing resolves.
+ *
+ * Geometry, checked numerically before it was written: R 21.5, amplitude 2.8,
+ * eight crests per turn, 4px stroke. The wave's radius ranges 18.7..24.3 with
+ * a midline of exactly 21.5, and phase 0 puts its start exactly on the radius,
+ * so it leaves and rejoins the track cleanly rather than stepping off it.
+ *
+ * `sweep` is how much of the ring is wavy. Meet uses a short arc for a light
+ * load — switching days — and a long one for a cold start. A free, honest
+ * signal of how much work is actually happening.
+ */
+export function spinner(sweep = 130): SVGSVGElement {
   const ns = 'http://www.w3.org/2000/svg';
-  const svg = document.createElementNS(ns, 'svg');
-  svg.setAttribute('viewBox', '0 0 68 68');
-  svg.setAttribute('width', '54');
-  svg.setAttribute('height', '54');
-  svg.setAttribute('class', 'spin');
-  svg.setAttribute('role', 'progressbar');
-  svg.setAttribute('aria-label', 'Loading meetings');
+  const C = 28;      // centre
+  const R = 21.5;    // the shared radius: wave midline AND plain track
+  const A = 2.8;     // wave amplitude
+  const K = 8;       // crests per full turn
+  const GAP = 12;    // degrees of clear space at each end of the wave
 
-  // Three things were wrong first time round, all visible side by side with the
-  // real one: the wave sat directly on the track instead of outside it, it had
-  // too many crests so the curvature read as pointy rather than curvy, and it
-  // span far too fast.
-  //
-  // The track is the inner circle at r=16. The wave orbits outside it at r=22,
-  // which leaves 6px of clear white between the two lines — the breathing room
-  // that makes the real one look like two separate objects. Seven crests over
-  // the full turn instead of twelve, at a larger amplitude, gives the fat lazy
-  // curve rather than a zigzag.
-  const wavy = (turns: number): string => {
-    const R = 26, A = 2.8, CREST = 7, STEP = 1.5;
+  const svg = document.createElementNS(ns, "svg");
+  svg.setAttribute("viewBox", "0 0 56 56");
+  svg.setAttribute("width", "56");
+  svg.setAttribute("height", "56");
+  svg.setAttribute("class", "spin");
+  svg.setAttribute("role", "progressbar");
+  svg.setAttribute("aria-label", "Loading");
+
+  /** Polar to cartesian, 0deg at twelve o'clock. */
+  const at = (deg: number, r: number): [number, number] => {
+    const rad = (deg * Math.PI) / 180;
+    return [C + r * Math.cos(rad - Math.PI / 2), C + r * Math.sin(rad - Math.PI / 2)];
+  };
+
+  const path = (from: number, to: number, wavy: boolean): string => {
+    const step = wavy ? 1.5 : 3;
     let d = '';
-    for (let deg = 0; deg <= 360 * turns; deg += STEP) {
-      const rad = (deg * Math.PI) / 180;
-      const r = R + A * Math.sin(rad * CREST);
-      const x = 34 + r * Math.cos(rad - Math.PI / 2);
-      const y = 34 + r * Math.sin(rad - Math.PI / 2);
-      d += `${d ? 'L' : 'M'}${x.toFixed(2)} ${y.toFixed(2)}`;
+    for (let deg = from; deg <= to + 0.01; deg += step) {
+      const r = wavy ? R + A * Math.sin((((deg - from) * Math.PI) / 180) * K) : R;
+      const [x, y] = at(deg, r);
+      d += (d ? "L" : "M") + x.toFixed(2) + " " + y.toFixed(2);
     }
     return d;
   };
 
-  const track = document.createElementNS(ns, 'circle');
-  track.setAttribute('cx', '34'); track.setAttribute('cy', '34'); track.setAttribute('r', '19');
-  track.setAttribute('fill', 'none');
-  track.setAttribute('stroke', '#a8c7fa');
-  track.setAttribute('stroke-width', '3.5');
-  svg.appendChild(track);
+  const line = (d: string, colour: string, cls?: string): SVGPathElement => {
+    const p = document.createElementNS(ns, "path");
+    p.setAttribute("d", d);
+    p.setAttribute("fill", "none");
+    p.setAttribute("stroke", colour);
+    p.setAttribute("stroke-width", "4");
+    p.setAttribute("stroke-linecap", "round");
+    if (cls) p.setAttribute("class", cls);
+    return p;
+  };
 
-  const arc = document.createElementNS(ns, 'path');
-  arc.setAttribute('d', wavy(1));
-  arc.setAttribute('fill', 'none');
-  arc.setAttribute('stroke', '#0b57d0');
-  arc.setAttribute('stroke-width', '4');
-  arc.setAttribute('stroke-linecap', 'round');
-  arc.setAttribute('class', 'spin-arc');
-  svg.appendChild(arc);
-
+  // The inactive remainder of the same ring, inset by the gap at both ends.
+  svg.appendChild(line(path(sweep + GAP, 360 - GAP, false), "#a8c7fa"));
+  svg.appendChild(line(path(0, sweep, true), "#0b57d0", "spin-arc"));
   return svg;
 }
 

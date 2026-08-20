@@ -1394,20 +1394,14 @@ body.plain { background: #fff; color: #16181c; }
 /* ---- the wavy loader ---------------------------------------------------- */
 .load-pad { display: grid; place-items: center; min-height: 320px; }
 .spin { display: block; }
-.spin      { animation: spin-rot 2.6s linear infinite; }
+.spin      { animation: spin-rot 2s linear infinite; }
 /* Rotating the arc inside the rotating svg is what makes the lit length appear
    to breathe, without animating the path itself. */
-.spin-arc  {
-  transform-origin: 34px 34px;
-  animation: spin-dash 3s cubic-bezier(0.4, 0, 0.2, 1) infinite;
-  stroke-dasharray: 40 260;
-}
+/* No dash animation. The wave and the track are complementary arcs of one ring
+   now, so growing the active arc would slide it out from under its gap and
+   break the geometry. The ring simply turns. */
 @keyframes spin-rot  { to { transform: rotate(360deg); } }
-@keyframes spin-dash {
-  0%   { stroke-dasharray: 22 260; stroke-dashoffset: 0; }
-  50%  { stroke-dasharray: 105 260; stroke-dashoffset: -30; }
-  100% { stroke-dasharray: 22 260; stroke-dashoffset: -152; }
-}
+
 
 /* ---- entrance ----------------------------------------------------------- */
 /* Meet's own animation is called `fadeIn` and runs 500ms. The list arrives

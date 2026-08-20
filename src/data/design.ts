@@ -52,7 +52,8 @@ export const motion: Section = {
       note: 'The meeting list arrives after the shell, not with it. The shell must never wait for the content.',
     },
     { name: 'Cold load order', value: 'spinner, then the list, then the promo', note: 'The shell paints at once; a wavy circular indicator holds the content area alone for about a second; the meeting list fades in over 500ms; then the promo banner arrives above it and pushes the list down. Meet ships that layout shift rather than reserving space for it.' },
-    { name: 'The loader is wavy', value: 'Material 3 expressive, not a plain arc', note: 'A smooth spinning arc reads as the wrong product. 53px painted extent, roughly 5px stroke, #0b57d0 active on a #a8c7fa track, measured off a frame of a cold load.' },
+    { name: 'The loader is wavy', value: 'one ring, split in two', note: 'Not a circle with a squiggle around it. The wave oscillates about the ring’s own radius — crest outside, trough inside, midline exactly on it — and the plain track is only the arc the wave does not occupy, with a gap at each end. R 21.5, amplitude 2.8, eight crests per turn, 4px stroke, #0b57d0 on #a8c7fa.' },
+    { name: 'Sweep signals the load', value: 'short arc for light work', note: 'Meet gives a cold start a long wavy arc and a day switch a short one, so the indicator says how much is actually happening. Reproduced by one parameter.' },
     {
       name: 'Reduced motion',
       value: 'all of the above collapses to ~0s',
