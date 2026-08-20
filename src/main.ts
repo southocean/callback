@@ -77,6 +77,19 @@ function render(): void {
 
   document.body.classList.toggle('plain', key === 'plain');
 
+  // An egg lives at #egg/<id>. It is its own screen rather than a mode of the
+  // call, because it needs almost none of what the call carries and the whole
+  // point is that it loads fast when someone finally finds it.
+  const eggRoute = /^#egg\/([a-z0-9-]+)/.exec(location.hash);
+  if (eggRoute) {
+    mount('egg', () => import('./ui/eggplay.js').then((m) => m.renderEgg({
+      id: eggRoute[1]!,
+      onLeave: () => { history.pushState(null, '', '#home'); store.dispatch({ t: 'screen', screen: 'home' }); },
+      onGo: (id) => { history.pushState(null, '', '#egg/' + id); render(); },
+    })));
+    return;
+  }
+
   if (key === 'plain') {
     mount(key, () => import('./ui/plain.js')
       .then((m) => m.renderPlain(() => store.dispatch({ t: 'plain', on: false }))));

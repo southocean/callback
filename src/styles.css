@@ -1932,3 +1932,49 @@ body.plain { background: #fff; color: #16181c; }
 /* The day-switch indicator sits where the list will be, not centred in the
    viewport — the page is not reloading, one region is. */
 .load-pad-sm { min-height: 180px; }
+
+/* ============================================================================
+   An egg, playing as a shared screen. Uses the call's dark palette so it reads
+   as the same product rather than a lightbox bolted onto it. ============= */
+.egg { position: fixed; inset: 0; background: var(--canvas); display: flex; flex-direction: column; }
+.egg-stage { flex: 1 1 auto; position: relative; display: grid; place-items: center; padding: 24px; min-height: 0; }
+.egg-share {
+  position: relative; max-width: min(100%, 1100px); max-height: 100%;
+  background: #000; border-radius: 16px; overflow: hidden;
+  display: flex; flex-direction: column;
+}
+.egg-share-bar {
+  display: flex; align-items: center; gap: 8px;
+  padding: 8px 14px; background: var(--panel); color: var(--ctl-ink);
+  font: 500 13px/1 var(--font);
+}
+.egg-video { display: block; max-width: 100%; max-height: calc(100vh - 220px); background: #000; }
+/* The self-view, parked where Meet parks it. */
+.egg-tile {
+  position: absolute; right: 32px; bottom: 32px; width: 128px; height: 96px;
+  border-radius: 12px; background: var(--panel); color: var(--ctl-ink);
+  display: grid; place-items: center; font: 500 20px/1 var(--font-title);
+}
+.egg-capt {
+  position: absolute; left: 50%; transform: translateX(-50%); bottom: 20px;
+  max-width: min(90%, 720px);
+  background: rgba(0,0,0,.78); color: #fff; border-radius: 8px;
+  padding: 10px 16px; font: 400 15px/22px var(--font); text-align: center;
+}
+.egg-bar {
+  flex: 0 0 auto; height: var(--callbar); display: flex; align-items: center;
+  justify-content: space-between; gap: 16px; padding: 0 20px; background: var(--canvas);
+}
+.egg-meta { display: flex; flex-direction: column; min-width: 0; }
+.egg-meta b { font: 500 14px/20px var(--font-title); color: var(--ctl-ink); }
+.egg-meta span {
+  font: 400 12px/16px var(--font); color: #9aa0a6;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.egg-ctrls { display: flex; align-items: center; gap: 8px; }
+@media (max-width: 599px) {
+  .egg-tile { width: 84px; height: 64px; right: 12px; bottom: 12px; }
+  .egg-meta { display: none; }
+  .egg-ctrls { margin: 0 auto; }
+  .egg-capt { bottom: 8px; font-size: 13px; }
+}
