@@ -317,6 +317,27 @@ export function renderHome(store: Store, reducedMotion = false, body?: HTMLEleme
       svg.appendChild(el);
     };
     const INK = '#3c4043';
+
+    // Google's illustrations lean on two-stop gradients rather than flat fills
+    // — it is what stops the shapes reading as clip art. Two here: warm on the
+    // cup, cool on the slab, both shading toward the light source in the top
+    // right so they agree with the sun.
+    const defs = document.createElementNS(ns, 'defs');
+    const grad = (id: string, from: string, to: string, x2: string, y2: string): void => {
+      const g = document.createElementNS(ns, 'linearGradient');
+      g.setAttribute('id', id);
+      g.setAttribute('x1', '0'); g.setAttribute('y1', '0');
+      g.setAttribute('x2', x2); g.setAttribute('y2', y2);
+      for (const [off, col] of [['0', from], ['1', to]]) {
+        const st = document.createElementNS(ns, 'stop');
+        st.setAttribute('offset', off!); st.setAttribute('stop-color', col!);
+        g.appendChild(st);
+      }
+      defs.appendChild(g);
+    };
+    grad('ea-cup', '#FDE293', '#F9AB00', '0', '1');
+    grad('ea-slab', '#FAD2E1', '#E8A0BF', '1', '1');
+    svg.appendChild(defs);
     // 1.25, not 2. Meet's illustrations are drawn with a hairline — the weight
     // is what separates an illustration from a diagram, and ours read as a
     // diagram. Every filled shape carries the same line, including the ones
@@ -331,7 +352,7 @@ export function renderHome(store: Store, reducedMotion = false, body?: HTMLEleme
     add('path', { d: 'M196 62 C 214 30, 236 26, 244 32', ...line });
 
     // A pink slab behind the cup, for depth.
-    add('path', { d: 'M52 128 L52 96 A 22 22 0 0 1 96 96 L96 128 Z', fill: '#F8BBD0', ...line });
+    add('path', { d: 'M52 128 L52 96 A 22 22 0 0 1 96 96 L96 128 Z', fill: 'url(#ea-slab)', ...line });
 
     // The notebook: a leaning page with a sketch on it.
     add('path', { d: 'M170 128 L186 58 L272 58 L256 128 Z', fill: '#fff', ...line });
@@ -340,7 +361,7 @@ export function renderHome(store: Store, reducedMotion = false, body?: HTMLEleme
     add('path', { d: 'M206 100 L222 82 L236 100', ...line });
 
     // The cup, with a yellow fill that stops short of the rim.
-    add('path', { d: 'M104 84 L146 84 L140 126 L110 126 Z', fill: '#FDD663', ...line });
+    add('path', { d: 'M104 84 L146 84 L140 126 L110 126 Z', fill: 'url(#ea-cup)', ...line });
     add('path', { d: 'M146 92 C 160 92, 160 108, 146 108', ...line });
     // Steam.
     add('path', { d: 'M119 76 C 114 70, 124 66, 119 60', ...line });
