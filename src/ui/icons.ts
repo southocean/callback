@@ -29,7 +29,11 @@ export type IconName =
   // Added for the pre-join chip row, which mirrors Meet's four exactly:
   // mic_none for "Mic not found", volume_up for the speaker, blur_on for the
   // effects control (Meet's own glyph there, where we had auto_awesome).
-  | 'mic_none' | 'volume_up' | 'blur_on';
+  | 'mic_none' | 'volume_up' | 'blur_on'
+  // The pre-join tile's overflow menu, the device menus, and the three rows
+  // that Other ways to join expands into.
+  | 'error' | 'feedback' | 'troubleshoot' | 'meeting_room' | 'phone_forwarded'
+  | 'expand_less' | 'photo_camera' | 'auto_fix_high';
 
 export interface SymOpts {
   /** Meet fills the glyph for the selected nav item. */

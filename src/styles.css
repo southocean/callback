@@ -2712,3 +2712,251 @@ body.plain { background: #fff; color: #16181c; }
 /* Meet's round-control glyphs are 24px, not 22: measured at dx 16, dy 12 inside
    the 56x48 button, which is (56-24)/2 and (48-24)/2 — dead centre. */
 .round-ctl > .ms { font-size: 24px; width: 24px; height: 24px; }
+
+/* ============ THE SECOND SWEEP: clicking, not just hovering ============== */
+/* Nam's note was that I still had not clicked enough, and he was right. Every
+   block below comes from actually toggling and opening things on the original
+   rather than reading its stylesheet.
+                                                                              */
+
+/* --- .m-btn never centred its content ----------------------------------- */
+/* This is the bug behind the left-aligned "Join now" label, and the same one Nam
+   then spotted on the offer card's "Start". .m-btn is inline-flex with no
+   justify-content, so every button on the site was relying on symmetric padding
+   to look centred; give one a fixed width and its content goes left. Fixed at
+   the source this time instead of per-button. */
+.m-btn { justify-content: center; }
+
+/* --- the round controls: on, off, disabled ------------------------------- */
+/* Measured by toggling Meet's, which is the only way the off state ever shows:
+     on        radius 24, #dde3ea, ink #1f1f1f
+     off       radius 12, #f9dedc, ink #410e0b
+     disabled  radius 24, rgba(221,227,234,.4), ink rgba(31,31,31,.4)
+   So off is a rounded SQUARE in a reddish tint and on is a pill in a cool grey,
+   exactly as Nam described them.
+
+   And the morph is Meet's own value, which I would never have guessed:
+
+     transition: border-radius, background-color .2s steps(6, jump-none)
+
+   Six discrete steps, not a smooth curve. That stepping is the whole reason the
+   toggle has a small mechanical snap instead of a glide. */
+.ctl-wrap { position: relative; display: inline-flex; }
+.round-ctl {
+  overflow: hidden;
+  width: 56px; height: 48px; border-radius: 24px;
+  border: 0; background-color: #dde3ea; color: #1f1f1f;
+  transition: border-radius .2s steps(6, jump-none),
+              background-color .2s steps(6, jump-none);
+  --sl: #1f1f1f;
+}
+.round-ctl.off { border-radius: 12px; background-color: #f9dedc; color: #410e0b; --sl: #410e0b; }
+.round-ctl[aria-disabled="true"], .round-ctl:disabled {
+  background-color: rgba(221, 227, 234, .4); color: rgba(31, 31, 31, .4); cursor: default;
+}
+
+/* --- the ! badge on a control whose device is missing -------------------- */
+/* An SVG at dx 40, dy -2 on the 56x48 button, so it straddles the top-right
+   corner. The path is a 12x16 stadium at radius 6 filled #fbbc04 — taller than
+   it is wide, which is not what it looks like at a glance. */
+.ctl-warn {
+  position: absolute; left: 40px; top: -2px; z-index: 4;
+  width: 12px; height: 16px; border-radius: 6px; background-color: #fbbc04;
+  display: grid; place-items: center; pointer-events: none;
+}
+.ctl-warn-mark { font: 700 9px/1 var(--font-title); color: #41260a; }
+
+/* --- the level meter in the tile's bottom-left --------------------------- */
+/* A 26px #a8c7fa circle inset 16 from the left and 16 from the bottom, holding
+   three 4px bars at dx 5 / 11 / 17 — 4 wide with 2px gaps, centred. Meet's bars
+   track the input level; with no mic found they sit at the floor, which is the
+   three dots Nam saw, and ours has no input either. */
+.mic-meter {
+  position: absolute; left: 16px; bottom: 16px; z-index: 3;
+  width: 26px; height: 26px; border-radius: 50%; background-color: #a8c7fa;
+  display: flex; align-items: center; justify-content: center; gap: 2px;
+}
+.mic-meter i { width: 4px; height: 4px; border-radius: 2px; background-color: #0b57d0; }
+
+/* --- the dark notice inside the tile ------------------------------------- */
+/* The same component as the achievement toast, measured there, so the numbers
+   are already settled: 386 wide, #3c4043, radius 8, elevation 2, error glyph
+   24px at dx 21 / dy 34, title 400 16/24 white at dx 51, body 400 14/20 white
+   at dx 21 / dy 72, close 24px #c4c7c5 at 11,11.
+
+   It sits 23px above the control row, centred on the control it belongs to, with
+   a tail pointing down at it. The tail is the one part not measured — it is
+   neither a child element nor a pseudo-element anywhere in Meet's DOM, so this
+   is a CSS triangle matched to Nam's screenshot. */
+.tile-notice-slot { position: absolute; inset: 0; z-index: 4; pointer-events: none; }
+.tile-notice {
+  /* 23px clear of the control row, measured: Meet's card ends at 574 and the
+     controls start at 597. The tile is 416 tall, so that is 87 from its bottom.
+     The anchor offset shifts it onto the control it belongs to — the camera sits
+     on the tile centre so its offset is 0, and the mic is 72 to the left. */
+  position: absolute; left: 50%; bottom: 87px;
+  transform: translateX(calc(-50% + var(--anchor, 0px)));
+  width: 386px; box-sizing: border-box; padding: 34px 21px 35px;
+  border-radius: 8px; background-color: #3c4043; color: #fff;
+  box-shadow: 0 2px 2px rgba(0, 0, 0, .14), 0 3px 1px -2px rgba(0, 0, 0, .12),
+              0 1px 5px rgba(0, 0, 0, .2);
+  pointer-events: auto;
+  animation: notice-in .2s cubic-bezier(0, 0, 0.2, 1) both;
+}
+@keyframes notice-in {
+  from { opacity: 0; transform: translateX(calc(-50% + var(--anchor, 0px))) translateY(4px); }
+}
+.tile-notice::after {
+  content: ''; position: absolute; left: 50%; bottom: -8px; margin-left: -7px;
+  width: 14px; height: 8px; background-color: #3c4043;
+  clip-path: polygon(0 0, 100% 0, 50% 100%);
+}
+.tile-notice-row { display: flex; align-items: flex-start; gap: 6px; padding-right: 24px; }
+.tile-notice-row .ms { color: #fbbc04; }
+.tile-notice-t { font: 400 16px/24px var(--font); letter-spacing: .1px; }
+.tile-notice-b { font: 400 14px/20px var(--font); letter-spacing: .2px; margin-top: 14px; }
+.tile-notice-x {
+  position: absolute; top: 11px; right: 11px; width: 24px; height: 24px;
+  padding: 0; border: 0; background: none; color: #c4c7c5; cursor: pointer;
+  display: grid; place-items: center; border-radius: 50%; --sl: #fff;
+}
+.tile-notice-x:focus-visible { outline: 2px solid #a8c7fa; outline-offset: 2px; }
+
+/* --- the tile's overflow ------------------------------------------------- */
+/* 48x48 radius 24 at the tile's top-right, inset 10 and 10, white glyph 24px.
+   Its tooltip goes below, the default side, unlike the control row's. */
+.tile-more {
+  position: absolute; top: 10px; right: 10px; z-index: 5;
+  width: 48px; height: 48px; border-radius: 24px; color: #fff;
+  background: none; border: 0; --sl: #fff; overflow: hidden; cursor: pointer;
+  display: grid; place-items: center;
+}
+
+/* --- the press ripple ---------------------------------------------------- */
+/* Sampled frame by frame on a real click of a device chip:
+     ::before  flat state layer, opacity 0 -> .08 in about 75ms
+     ::after   radial-gradient(closest-side, ink max(100% - 70px, 65%),
+                               transparent 100%)
+               opacity 0 -> .1 in about 110ms, scale 1 -> ~7, decelerating
+
+   translate() BEFORE scale() is load-bearing. `translate(X) scale(S)` maps a
+   point p to X + S*p, so the gradient's own centre — p = 0 — stays on X for
+   every S, and the disc grows about the press point. Meet's matrix keeps e at
+   ~71 while the scale runs 1 -> 6.7, which is the fingerprint of exactly that
+   order. Reverse it and the ripple slides across the control instead of
+   blooming from the finger. */
+.device-chip::after, .round-ctl::after, .tile-more::after,
+.gm-item::after, .other-ways::after, .other-row::after {
+  content: ''; position: absolute; inset: 0; border-radius: inherit;
+  pointer-events: none; opacity: 0;
+  background-image: radial-gradient(closest-side, var(--sl, #1f1f1f) max(100% - 70px, 65%), rgba(0, 0, 0, 0) 100%);
+  transform: translate(var(--rx, 0px), var(--ry, 0px)) scale(1);
+  transition: opacity .11s linear;
+}
+.device-chip.is-pressed::after, .round-ctl.is-pressed::after, .tile-more.is-pressed::after,
+.gm-item.is-pressed::after, .other-ways.is-pressed::after, .other-row.is-pressed::after {
+  opacity: .1;
+  transform: translate(var(--rx, 0px), var(--ry, 0px)) scale(7);
+  transition: opacity .11s linear, transform .45s cubic-bezier(0.2, 0, 0, 1);
+}
+.device-chip.is-off::after { display: none; }
+
+/* The chip rings and flips its caret on PRESS, not only on keyboard focus —
+   both were in the sampled frames, and the ring runs Meet's own pair:
+   gm3-focus-ring-outward-grows .15s then -shrinks .45s on
+   cubic-bezier(0.2, 0, 0, 1). */
+.device-chip > .focus-ring { border-radius: 19px; }
+.device-chip:focus > .focus-ring {
+  opacity: 1; animation: gm3-ring-settle .5s cubic-bezier(0.2, 0, 0, 1) both;
+}
+.device-chip > .caret { transition: transform .18s cubic-bezier(0.2, 0, 0, 1); }
+.device-chip[aria-expanded="true"] > .caret { transform: rotate(180deg); }
+
+/* --- the menu surface ---------------------------------------------------- */
+/* #f0f4f9, radius 12, NO shadow, 8px top and bottom. Rows 48 tall (60 with a
+   second line) at padding 8px 12px, icon 24px #444746 at dx 12, label
+   500 14/20 #1f1f1f at dx 52, sub 400 14/20 #444746. Warning rows put the icon
+   in rgb(255,141,65).
+
+   The absent shadow is the counter-intuitive part: on a white page the fill
+   alone is what separates it, and adding one reads immediately as not-Meet. */
+.gm-pop { position: fixed; z-index: 330; }
+.gm-menu {
+  list-style: none; margin: 0; padding: 8px 0; min-width: 183px;
+  background-color: #f0f4f9; border-radius: 12px; overflow: hidden;
+  animation: gm-pop-in .16s cubic-bezier(0, 0, 0.2, 1) both;
+}
+@keyframes gm-pop-in { from { opacity: 0; transform: translateY(-4px); } }
+.gm-item {
+  position: relative; overflow: hidden;
+  display: flex; align-items: center; gap: 16px; padding: 8px 12px;
+  min-height: 32px; cursor: pointer; --sl: #1f1f1f;
+}
+.gm-item .ms { color: #444746; flex: 0 0 auto; }
+.gm-item.is-warn .ms { color: rgb(255, 141, 65); }
+.gm-item.is-checked .ms { color: #0b57d0; }
+.gm-noicon { width: 24px; height: 24px; flex: 0 0 auto; }
+.gm-text { display: flex; flex-direction: column; min-width: 0; }
+.gm-label { font: 500 14px/20px var(--font-title); color: #1f1f1f; white-space: nowrap; }
+.gm-sub { font: 400 14px/20px var(--font); color: #444746; white-space: nowrap; }
+.gm-item:focus-visible { outline: 2px solid #0b57d0; outline-offset: -2px; }
+.gm-rule { height: 1px; background-color: #c4c7c5; margin: 8px 0; }
+
+/* --- Other ways to join, expanding in place ------------------------------ */
+/* Rows 40 tall at radius 20, transparent, padding 0 16 0 12, icon 18px #0b57d0
+   at dx 12, label 500 14px #0b57d0 at dx 38, pitch 44 — so a 4px gap. They
+   appear ABOVE the trigger, and the trigger becomes "Show fewer options" with
+   its caret flipped.
+
+   max-height rather than grid-template-rows here: the earlier 0fr trap resolves
+   to minmax(auto, 0fr) and floors at content height, and these rows are only
+   ever 132px, so a max-height is honest and animates cleanly. */
+.other-rows {
+  display: flex; flex-direction: column; align-items: center; gap: 4px;
+  max-height: 0; opacity: 0; overflow: hidden;
+  transition: max-height .28s cubic-bezier(0.2, 0, 0, 1), opacity .18s linear;
+}
+.other-rows.is-open { max-height: 140px; opacity: 1; }
+.other-row {
+  position: relative; overflow: hidden;
+  height: 40px; border-radius: 20px; border: 0; background: none;
+  display: inline-flex; align-items: center; gap: 8px;
+  padding: 0 16px 0 12px; cursor: pointer;
+  color: #0b57d0; font: 500 14px/1 var(--font-title); --sl: #0b57d0;
+}
+.other-row .ms { color: #0b57d0; }
+.other-ways { position: relative; overflow: hidden; cursor: pointer; }
+.other-ways .ms { transition: transform .18s cubic-bezier(0.2, 0, 0, 1); }
+.other-ways.is-open .ms { transform: rotate(180deg); }
+
+@media (prefers-reduced-motion: reduce) {
+  .round-ctl { transition: none; }
+  .tile-notice, .gm-menu { animation: none; }
+  .other-rows { transition: none; }
+  .device-chip::after, .round-ctl::after, .tile-more::after,
+  .gm-item::after, .other-ways::after, .other-row::after { transition: none; }
+}
+
+/* A two-line row is 60 tall in Meet, not 56: 8 + 44 + 8, so the text block gets
+   44 rather than the 40 that two 20px lines occupy on their own. */
+.gm-item.has-sub { min-height: 44px; }
+
+/* Row heights, stated in border-box terms because that is what the project's
+   reset uses — min-height on the content box would have been ignored, which is
+   exactly what happened on the first attempt: rows stayed 40 and 56.
+
+     one line   48 tall   ->  8 + 32 + 8   (the overflow menu)
+     two lines  60 tall   ->  8 + 44 + 8   (the device menus)
+
+   With those, the overflow menu comes to 8 + 48*4 + 17 + 8 = 225, which is
+   Meet's total, and the rule's 17px is 1px between 8px margins. */
+.gm-item { min-height: 48px; }
+.gm-item.has-sub { min-height: 60px; }
+
+/* The fade keeps the scale: the disc dissolves where it is rather than snapping
+   back to a dot while still partly opaque. */
+.device-chip.is-fading::after, .round-ctl.is-fading::after, .tile-more.is-fading::after,
+.gm-item.is-fading::after, .other-ways.is-fading::after, .other-row.is-fading::after {
+  opacity: 0;
+  transition: opacity .15s linear, transform .45s cubic-bezier(0.2, 0, 0, 1);
+}

@@ -11,7 +11,9 @@
 import { h, clear } from '../dom.js';
 import { sym, spinner, focusRing, dropCaret } from './icons.js';
 import type { IconName } from './icons.js';
-import { tipAllAbove } from './tooltip.js';
+import { tipAllAbove, tipAll } from './tooltip.js';
+import { ripple, attachMenu, warnBadge, micMeter, noticeCard } from './gm3.js';
+import type { MenuItem } from './gm3.js';
 import type { Store } from '../state.js';
 import { profile } from '../data/cv.js';
 
@@ -44,6 +46,25 @@ const OFFER_MS = 260;
 
 let greeted = false;
 
+/**
+ * The pre-join device state lives here rather than in the store, and finding out
+ * why was its own small lesson.
+ *
+ * The mic control used to dispatch { t: 'mic' } on every toggle. That is a store
+ * write, the store re-renders the screen, and the re-render throws away the tile
+ * — including the control that was just toggled and the notice it had raised.
+ * Verified: after a click, `document.contains(theButton)` is false and the fresh
+ * button is back in its default state. So the toggle had been visibly doing
+ * nothing, and the notice never survived the frame it was created in.
+ *
+ * Nothing outside this screen needs to know what the pre-join toggles say until
+ * you actually join, so they are local, and the store is written once on join.
+ * Module scope rather than closure scope so a re-render for any other reason
+ * still comes back to the same state.
+ */
+let preMic = true;
+let preNotice: { title: string; body: string; anchor: number } | null = null;
+
 let keysWired = false;
 function wireKeys(): void {
   if (keysWired) return;
@@ -61,89 +82,142 @@ function wireKeys(): void {
 }
 
 export function renderLobby(store: Store, media: Media): HTMLElement {
-  const warn = h('div', {});
 
-  const avatar = h('div', {}, h('div', { class: 'preview-avatar', 'aria-hidden': 'true' }, 'NN'),
+  /**
+   * The three round controls. Measured on Meet by actually toggling them, which
+   * is the only way the off state shows up at all:
+   *
+   *   on        56x48 radius 24, #dde3ea, ink #1f1f1f
+   *   off       56x48 radius 12, #f9dedc, ink #410e0b
+   *   disabled  56x48 radius 24, rgba(221,227,234,.4), ink rgba(31,31,31,.4)
+   *   glyph     24px, centred at dx 16 / dy 12
+   *
+   * So "off" is a rounded SQUARE in a reddish tint and "on" is a pill in a cool
+   * grey, exactly as Nam described. And the shape change carries
+   *
+   *   transition: border-radius, background-color .2s steps(6, jump-none)
+   *
+   * — a six-step morph, not a smooth one. That is Meet's own value and it is
+   * what gives the toggle its mechanical little snap.
+   */
+  const ctl = (
+    glyph: IconName,
+    label: string,
+    opts: { key?: string; off?: boolean; disabled?: boolean; warn?: boolean; tip?: string } = {},
+  ): { wrap: HTMLElement; btn: HTMLButtonElement } => {
+    const btn = h('button', {
+      class: 'round-ctl' + (opts.off ? ' off' : ''),
+      type: 'button',
+      'aria-label': label,
+      ...(opts.key ? { 'data-key': opts.key } : {}),
+      ...(opts.disabled ? { 'aria-disabled': 'true' } : {}),
+      ...(opts.tip ? { 'data-tip': opts.tip } : {}),
+    }, sym(glyph, 24)) as HTMLButtonElement;
+    ripple(btn);
+    const wrap = h('span', { class: 'ctl-wrap' }, btn);
+    if (opts.warn) wrap.appendChild(warnBadge());
+    return { wrap, btn };
+  };
+
+  const micCtl = ctl(preMic ? 'mic' : 'mic_off',
+    preMic ? 'Turn off microphone' : 'Turn on microphone',
+    { key: 'ctrl + d', warn: true, off: !preMic });
+  const camCtl = ctl('videocam', 'Turn off camera', { key: 'ctrl + e', warn: true });
+  // Disabled, with Meet's own label. Nam asked for exactly this: the effects
+  // control is not available before you join, and its tooltip still reads.
+  const fxCtl = ctl('blur_on', 'Turn on background blur', { disabled: true });
+
+  const notice = h('div', { class: 'tile-notice-slot' });
+
+  /**
+   * Meet shows the dark notice when you turn a device ON that it cannot find —
+   * which for this page is both of them. Turning the mic on therefore raises
+   * "Microphone not found", and that is true here rather than borrowed: this
+   * page never requests a microphone.
+   */
+  const showNotice = (title: string, body: string, anchorLeft: number): void => {
+    preNotice = { title, body, anchor: anchorLeft };
+    paintNotice();
+  };
+  const hideNotice = (): void => { preNotice = null; clear(notice); };
+  function paintNotice(): void {
+    clear(notice);
+    if (!preNotice) return;
+    const card = noticeCard(preNotice.title, preNotice.body, hideNotice);
+    card.style.setProperty('--anchor', `${preNotice.anchor}px`);
+    notice.appendChild(card);
+    tipAll(...card.querySelectorAll<HTMLElement>('.tile-notice-x'));
+  }
+  paintNotice();
+
+  micCtl.btn.addEventListener('click', () => {
+    preMic = !preMic;
+    micCtl.btn.classList.toggle('off', !preMic);
+    micCtl.btn.setAttribute('aria-label', preMic ? 'Turn off microphone' : 'Turn on microphone');
+    // Rebuild the glyph, keeping the ring that clear() would otherwise take.
+    const glyph = micCtl.btn.querySelector('.ms');
+    if (glyph) micCtl.btn.replaceChild(sym(preMic ? 'mic' : 'mic_off', 24), glyph);
+    // Meet raises the notice when you turn a device ON that it cannot find,
+    // which here is both of them — and honestly so: this page never asks for a
+    // microphone, so turning one on really does find nothing.
+    if (preMic) showNotice('Microphone not found', 'Make sure your microphone is plugged in', -72);
+    else hideNotice();
+  });
+
+  const avatar = h('div', { class: 'preview-ask-wrap' },
+    h('div', { class: 'preview-avatar', 'aria-hidden': 'true' }, 'NN'),
     h('p', { class: 'preview-ask', style: 'margin:0' }, 'Do you want people to see you in the meeting?'));
+
+  /**
+   * The tile's overflow. Meet's menu is 225 wide, #f0f4f9 at radius 12 with no
+   * shadow, four 48-tall rows at padding 8px 12px, icon 24px #444746 at dx 12
+   * and label 500 14/20 at dx 52, with a rule after the first row.
+   *
+   * Every item here is deliberately inert. Nam's call, and the right one: each
+   * of these opens a panel that would take days to clone, and the goal is a page
+   * that LOOKS identical, not one that does Meet's job. They are still real
+   * buttons — focusable, clickable, rippling — because a menu whose rows do not
+   * respond feels broken in a way that an inert one does not.
+   */
+  const moreBtn = h('button', {
+    class: 'tile-more icon-btn', type: 'button', 'aria-label': 'More options',
+  }, sym('more_vert', 24)) as HTMLButtonElement;
+  ripple(moreBtn);
+  tipAll(moreBtn);
+  attachMenu(moreBtn, (): MenuItem[] => [
+    { icon: 'blur_on', label: 'Backgrounds and effects' },
+    { icon: 'feedback', label: 'Report a problem', ruleBefore: true },
+    { icon: 'troubleshoot', label: 'Troubleshooting & help' },
+    { icon: 'settings', label: 'Settings' },
+  ], { align: 'right', side: 'overlap', dx: 3, dy: -3, width: 225 });
 
   const stage = h(
     'div',
     { class: 'preview' },
     h('span', { class: 'preview-name' }, profile.name),
+    moreBtn,
     media.video,
     avatar,
-    warn,
-    h(
-      'div',
-      { class: 'preview-ctls' },
-      h(
-        'button',
-        {
-          class: 'round-ctl off',
-          type: 'button',
-          'aria-label': 'Turn on microphone',
-          'data-key': 'ctrl + d',
-          onclick: (e: Event) => {
-            const b = e.currentTarget as HTMLButtonElement;
-            const on = b.classList.toggle('off');
-            b.setAttribute('aria-label', on ? 'Turn on microphone' : 'Turn off microphone');
-            clear(b);
-            b.appendChild(sym(on ? 'mic_off' : 'mic', 24));
-            store.dispatch({ t: 'mic', on: !on });
-          },
-        },
-        sym('mic_off', 24),
-      ),
-      h(
-        'button',
-        {
-          class: 'round-ctl off',
-          type: 'button',
-          'aria-label': 'Turn on camera',
-          'data-key': 'ctrl + e',
-          onclick: (e: Event) => {
-            void media.toggleCamera().then(() => {
-              const b = e.currentTarget as HTMLButtonElement;
-              const on = media.cameraOn();
-              b.classList.toggle('off', !on);
-              b.setAttribute('aria-label', on ? 'Turn off camera' : 'Turn on camera');
-              clear(b);
-              b.appendChild(sym(on ? 'videocam' : 'videocam_off', 24));
-              avatar.style.display = on ? 'none' : '';
-              if (!on) {
-                clear(warn);
-                warn.appendChild(
-                  h(
-                    'div',
-                    { class: 'preview-warn', role: 'status' },
-                    h('b', {}, 'Camera off'),
-                    h('span', {}, 'Entirely fine. Nothing on this page needs it, and nothing would leave your machine if it did.'),
-                  ),
-                );
-                window.setTimeout(() => clear(warn), 4500);
-              } else {
-                clear(warn);
-              }
-            });
-          },
-        },
-        sym('videocam_off', 24),
-      ),
-      h(
-        'button',
-        {
-          class: 'round-ctl',
-          type: 'button',
-          'aria-label': 'Backgrounds and effects',
-          onclick: () => {
-            store.dispatch({ t: 'join' });
-            store.dispatch({ t: 'engTab', tab: 'fx' });
-          },
-        },
-        sym('blur_on', 24),
-      ),
-    ),
+    notice,
+    micMeter(),
+    h('div', { class: 'preview-ctls' }, micCtl.wrap, camCtl.wrap, fxCtl.wrap),
   );
+
+  camCtl.btn.addEventListener('click', () => {
+    void media.toggleCamera().then(() => {
+      const on = media.cameraOn();
+      camCtl.btn.classList.toggle('off', !on);
+      camCtl.btn.setAttribute('aria-label', on ? 'Turn off camera' : 'Turn on camera');
+      clear(camCtl.btn);
+      camCtl.btn.appendChild(sym(on ? 'videocam' : 'videocam_off', 24));
+      avatar.style.display = on ? 'none' : '';
+      stage.classList.toggle('cam-on', on);
+      promoteChips(on);
+      if (on) showNotice('Camera unavailable', 'Close other apps that might be using your camera', 0);
+      else hideNotice();
+    });
+  });
+
 
   // Four chips at 179px with 8px gaps is 740 — exactly the tile width, which is
   // why Meet has four. Ours say what is true of this page rather than naming
@@ -181,27 +255,83 @@ export function renderLobby(store: Store, media: Media): HTMLElement {
    * which also means it stays correct when the row narrows and chips that fit at
    * 740 stop fitting at 448.
    */
-  const chip = (icon: IconName, label: string, live: boolean): HTMLElement => h(
-    'button',
-    {
-      class: 'device-chip' + (live ? '' : ' is-off'),
-      type: 'button',
-      ...(live ? {} : { 'aria-disabled': 'true' }),
-      'aria-label': label,
-    },
-    sym(icon, 20),
-    h('span', { class: 'chip-label' }, label),
-    dropCaret(20),
-  );
+  const chip = (
+    icon: IconName,
+    label: string,
+    live: boolean,
+    items?: () => MenuItem[],
+  ): HTMLElement => {
+    const el = h(
+      'button',
+      {
+        class: 'device-chip ring-host' + (live ? '' : ' is-off'),
+        type: 'button',
+        ...(live ? {} : { 'aria-disabled': 'true' }),
+        'aria-label': label,
+      },
+      focusRing(),
+      sym(icon, 20),
+      h('span', { class: 'chip-label' }, label),
+      dropCaret(20),
+    ) as HTMLButtonElement;
+    // Sampling a real click on Meet's chip turned up three things at once: the
+    // press ripple, the gm3 focus ring (grows .15s then settles over .45s on
+    // cubic-bezier(0.2, 0, 0, 1)), and the caret rotating a full 180 degrees in
+    // about 180ms. All three fire on pointer-press, not just on keyboard focus.
+    ripple(el);
+    if (items) attachMenu(el, items, { align: 'left' });
+    return el;
+  };
 
-  const chips = h(
-    'div',
-    { class: 'devices' },
-    chip('mic_none', 'Mic not found', true),
-    chip('volume_up', 'Speaker not found', true),
-    chip('videocam', 'Permission needed', false),
-    chip('blur_on', 'Permission needed', false),
-  );
+  /**
+   * Meet's first two chips open a menu; the last two are disabled until the
+   * camera is allowed, at which point they become live and gain menus of their
+   * own. Contents taken from Meet's, with ours substituted where a real device
+   * name would be a fiction.
+   *
+   * Every row here is inert by design — same reasoning as the overflow menu.
+   */
+  const camMenu = (): MenuItem[] => [
+    { label: 'Integrated Camera', checked: true },
+    { icon: 'photo_camera', label: 'Make a test recording' },
+    { icon: 'error', label: 'Camera unavailable', sub: 'Show more info', warn: true, ruleBefore: true },
+  ];
+  const fxMenu = (): MenuItem[] => [
+    { label: 'Touch-up appearance' },
+    { label: 'Generate an AI background' },
+    { label: 'Choose backgrounds and effects' },
+  ];
+
+  const chipMic = chip('mic_none', 'Mic not found', true, () => [
+    { icon: 'error', label: 'Microphone not found', sub: 'Show more info', warn: true },
+  ]);
+  const chipSpk = chip('volume_up', 'Speaker not found', true, () => [
+    { icon: 'error', label: 'Speaker not found', sub: 'Show more info', warn: true },
+  ]);
+  const chipCam = chip('videocam', 'Permission needed', false);
+  const chipFx = chip('blur_on', 'Permission needed', false);
+
+  const chips = h('div', { class: 'devices' }, chipMic, chipSpk, chipCam, chipFx);
+
+  /**
+   * Allowing the camera promotes the last two chips, which is what Meet does:
+   * they stop saying "Permission needed", take the device name and the effects
+   * label, and become real dropdowns.
+   */
+  const promoteChips = (on: boolean): void => {
+    for (const [c, offLabel, onLabel, items] of [
+      [chipCam, 'Permission needed', 'Integrated Camera', camMenu],
+      [chipFx, 'Permission needed', 'Backgrounds…', fxMenu],
+    ] as [HTMLButtonElement, string, string, () => MenuItem[]][]) {
+      c.classList.toggle('is-off', !on);
+      if (on) c.removeAttribute('aria-disabled'); else c.setAttribute('aria-disabled', 'true');
+      const l = c.querySelector('.chip-label');
+      if (l) l.textContent = on ? onLabel : offLabel;
+      c.setAttribute('aria-label', on ? onLabel : offLabel);
+      if (on && !c.dataset.menu) { c.dataset.menu = '1'; attachMenu(c, items, { align: 'left' }); }
+    }
+    requestAnimationFrame(tipClipped);
+  };
 
   // Tip only the ones whose label actually clips, which is Meet's rule. This has
   // to run after the row is IN the document, not just built: off-document,
@@ -237,6 +367,40 @@ export function renderLobby(store: Store, media: Media): HTMLElement {
   const subLine = h('p', { class: 'join-sub' }, 'Looking for others in the call…');
   window.setTimeout(() => { subLine.textContent = 'Nam Nguyen is already here'; }, 750);
 
+  /**
+   * Other ways to join. Meet expands it IN PLACE: the three options appear
+   * above the trigger, and the trigger itself becomes "Show fewer options"
+   * with the caret flipped. Measured:
+   *
+   *   row     40 tall, radius 20, transparent, padding 0 16 0 12
+   *   icon    18px #0b57d0 at dx 12
+   *   label   500 14px #0b57d0 at dx 38
+   *   pitch   44, so a 4px gap between rows
+   *   centred on the panel line, each row only as wide as its content
+   *
+   * All three are inert, for the same reason as the overflow menu: Companion
+   * mode, presenting and dial-in are three products we are not cloning. The
+   * shape of the screen is the point.
+   */
+  const otherRows = h('div', { class: 'other-rows' },
+    ...([['meeting_room', 'Use Companion mode'], ['present_to_all', 'Present'],
+      ['phone_forwarded', 'Join and use a phone for audio']] as [IconName, string][])
+      .map(([ic, label]) => {
+        const b = h('button', { class: 'other-row', type: 'button' }, sym(ic, 18), h('span', {}, label));
+        ripple(b);
+        return b;
+      }));
+
+  const otherWays = h('button', { class: 'other-ways', type: 'button', 'aria-expanded': 'false' },
+    h('span', { class: 'other-ways-t' }, 'Other ways to join'), sym('expand_more', 18)) as HTMLButtonElement;
+  ripple(otherWays);
+  otherWays.addEventListener('click', () => {
+    const open = otherWays.classList.toggle('is-open');
+    otherRows.classList.toggle('is-open', open);
+    const t = otherWays.querySelector('.other-ways-t');
+    if (t) t.textContent = open ? 'Show fewer options' : 'Other ways to join';
+    otherWays.setAttribute('aria-expanded', String(open));
+  });
   const col = h(
     'div',
     { class: 'join-col' },
@@ -265,7 +429,11 @@ export function renderLobby(store: Store, media: Media): HTMLElement {
           // ring around it, so the machinery is already ours.
           class: 'm-btn m-filled join-now ring-host',
           type: 'button',
-          onclick: () => store.dispatch({ t: 'join' }),
+          onclick: () => {
+            // The one place the pre-join toggles reach the store.
+            store.dispatch({ t: 'mic', on: preMic });
+            store.dispatch({ t: 'join' });
+          },
         },
         focusRing(),
         h('span', {}, 'Join now'),
@@ -285,15 +453,8 @@ export function renderLobby(store: Store, media: Media): HTMLElement {
           dropCaret(20),
         ),
       ),
-      // Meet opens dial-in numbers here. We have no phone number, so this keeps
-      // the shape of the screen and does nothing — a deliberate choice, recorded
-      // in the plan, rather than an unfinished control.
-      h(
-        'button',
-        { class: 'other-ways', type: 'button', 'aria-disabled': 'true' },
-        'Other ways to join',
-        sym('expand_more', 18),
-      ),
+      otherRows,
+      otherWays,
     ),
   );
 
