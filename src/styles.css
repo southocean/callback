@@ -2960,3 +2960,28 @@ body.plain { background: #fff; color: #16181c; }
   opacity: 0;
   transition: opacity .15s linear, transform .45s cubic-bezier(0.2, 0, 0, 1);
 }
+
+/* --- the tile once the camera is on but unavailable ---------------------- */
+/* Matched to Nam's screenshot rather than measured: the live product only shows
+   this when a camera is genuinely busy, and mine would not oblige on demand.
+   Typography follows the conventions the rest of the tile already establishes —
+   the warning glyph in #fbbc04, the title at the notice card's 16/24, the advice
+   a step down at 14/20, and the action in Meet's on-dark link blue. */
+.preview-unavail {
+  display: none; position: relative; z-index: 2;
+  text-align: center; color: #fff; max-width: 34ch;
+}
+.preview-unavail .pu-row {
+  display: flex; align-items: center; justify-content: center; gap: 8px;
+}
+.preview-unavail .pu-row .ms { color: #fbbc04; }
+.pu-t { font: 400 16px/24px var(--font); letter-spacing: .1px; }
+.pu-b { font: 400 14px/20px var(--font); letter-spacing: .2px; color: #e3e3e3; margin: 8px 0 0; }
+.pu-retry {
+  position: relative; overflow: hidden;
+  margin-top: 12px; height: 36px; padding: 0 12px; border: 0; border-radius: 18px;
+  background: none; color: #8ab4f8; cursor: pointer;
+  font: 500 14px/1 var(--font-title); --sl: #8ab4f8;
+}
+.preview.cam-on .preview-unavail { display: block; }
+.preview.cam-on .preview-ask-wrap { display: none; }

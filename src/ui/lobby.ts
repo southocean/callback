@@ -164,6 +164,19 @@ export function renderLobby(store: Store, media: Media): HTMLElement {
     else hideNotice();
   });
 
+  /**
+   * What the tile shows once the camera is on but unavailable, which is the
+   * state a visitor lands in: a warning glyph and title, a line of advice, and
+   * a Try again. Matched to the screenshot rather than measured — the live
+   * product only reaches this state when a camera is genuinely busy, and mine
+   * was not going to cooperate on demand.
+   */
+  const retry = h('button', { class: 'pu-retry', type: 'button' }, 'Try again') as HTMLButtonElement;
+  ripple(retry);
+  const unavail = h('div', { class: 'preview-unavail' },
+    h('div', { class: 'pu-row' }, sym('error', 20), h('span', { class: 'pu-t' }, 'Camera unavailable')),
+    h('p', { class: 'pu-b' }, 'Close other apps that might be using your camera'),
+    retry);
   const avatar = h('div', { class: 'preview-ask-wrap' },
     h('div', { class: 'preview-avatar', 'aria-hidden': 'true' }, 'NN'),
     h('p', { class: 'preview-ask', style: 'margin:0' }, 'Do you want people to see you in the meeting?'));
@@ -198,6 +211,7 @@ export function renderLobby(store: Store, media: Media): HTMLElement {
     moreBtn,
     media.video,
     avatar,
+    unavail,
     notice,
     micMeter(),
     h('div', { class: 'preview-ctls' }, micCtl.wrap, camCtl.wrap, fxCtl.wrap),
