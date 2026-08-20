@@ -317,12 +317,16 @@ export function renderHome(store: Store, reducedMotion = false, body?: HTMLEleme
       svg.appendChild(el);
     };
     const INK = '#3c4043';
-    // 1.25, not 2. Meet's illustrations are drawn with a hairline — the weight
-    // is what separates an illustration from a diagram, and ours read as a
-    // diagram. Every filled shape carries the same line, including the ones
-    // that are purely decorative: an unoutlined block next to outlined ones
-    // looks like a rendering fault rather than a choice.
-    const line = { stroke: INK, 'stroke-width': '1.25', 'stroke-linecap': 'round', 'stroke-linejoin': 'round' };
+    // 0.9, down from 2. The weight is most of what separates an illustration
+    // from a diagram, and this is about as fine as it can go: the drawing is
+    // authored at 300x160 and rendered at 300 wide, so 0.9 lands just under one
+    // device pixel and antialiasing carries it. Thinner starts dropping out on
+    // non-retina screens instead of looking finer.
+    //
+    // Every filled shape carries the same line, including purely decorative
+    // ones — an unoutlined block next to outlined ones reads as a rendering
+    // fault rather than a choice.
+    const line = { stroke: INK, 'stroke-width': '0.9', 'stroke-linecap': 'round', 'stroke-linejoin': 'round' };
 
     // Sun, off to the right and clipped by nothing — the one bright note.
     add('circle', { cx: '258', cy: '30', r: '13', fill: '#FBBC04', ...line });

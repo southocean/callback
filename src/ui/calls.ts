@@ -130,7 +130,9 @@ function art(): SVGSVGElement {
     r.setAttribute('width', '100'); r.setAttribute('height', '114');
     r.setAttribute('rx', '16'); r.setAttribute('fill', fill);
     // Same hairline as the empty-day drawing, so the two read as one hand.
-    r.setAttribute('stroke', '#3c4043'); r.setAttribute('stroke-width', '1.25');
+    // The tiles are drawn larger than the desk scene, so they take a slightly
+    // heavier line to look like the same weight on screen.
+    r.setAttribute('stroke', '#3c4043'); r.setAttribute('stroke-width', '1');
     svg.appendChild(r);
     const head = document.createElementNS(ns, 'circle');
     head.setAttribute('cx', String(x + 50)); head.setAttribute('cy', String(y + 46));
