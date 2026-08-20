@@ -2025,3 +2025,17 @@ body.plain { background: #fff; color: #16181c; }
   .calls-empty { padding-top: 48px; }
   .calls-band { padding: 16px 0 0; }
 }
+
+
+/* Captions sit clear of the control bar AND of the self-view tile, which is the
+   overlap that was reported. Narrower and lower, and it never covers the tile
+   in the bottom-right because it stops short of it. */
+.cc {
+  bottom: calc(var(--botbar) + 12px);
+  width: min(640px, calc(100% - 320px));
+  background: rgba(0,0,0,.72);
+}
+@media (max-width: 899px) {
+  /* No room to sit beside the tile, so it goes above it instead. */
+  .cc { width: calc(100% - 32px); bottom: calc(var(--botbar) + 116px); }
+}

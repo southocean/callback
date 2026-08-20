@@ -1,1 +1,0 @@
-import{a,b,c,d,e,f,g,h,i,j,k,l,m,n}from"./chunk-EHVIPO3C.js";export{d as caseStudies,e as chat,h as education,j as honours,n as meta,k as offstage,b as pitch,a as profile,m as referralBlurb,l as requirementMap,c as roles,g as skills,i as teaching,f as transcript};

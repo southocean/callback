@@ -79,24 +79,6 @@ export const pitch =
 
 export const roles: Role[] = [
   {
-    id: 'nobisoft',
-    org: 'Nobisoft',
-    title: 'Sales representative',
-    from: 2025.85,
-    to: null,
-    fromLabel: 'Nov 2025',
-    toLabel: 'present',
-    place: 'Sweden & Scandinavia',
-    kind: 'commercial',
-    gist: 'A deliberate detour into the customer side, held alongside the engineering work.',
-    bullets: [
-      'Outsourcing solutions for Scandinavian markets: find the pain point, scope the fix, price it.',
-      'Worked alongside the delivery team through onboarding, translating what a client said into what an engineer needed.',
-      'Taken on while continuing to lead front end at Mahjong Logic — the two overlap on purpose.',
-      'What it bought: the habit of arguing for a technical decision in the language of the person paying for it. Useful in a design review.',
-    ],
-  },
-  {
     id: 'mahjong',
     org: 'Mahjong Logic',
     title: 'Lead front-end developer',

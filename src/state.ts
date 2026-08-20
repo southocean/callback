@@ -55,7 +55,10 @@ export const initial: State = {
   spotlight: null,
   cameraOn: false,
   micOn: false,
-  captionsOn: true,
+  // Off by default. Nam reported the transcript sitting on top of other things
+  // on screen, and a caption nobody asked for that also covers the content is
+  // worse than no caption — the button is right there on the bar.
+  captionsOn: false,
   handRaised: false,
   readyCard: true,
   fx: 'off',

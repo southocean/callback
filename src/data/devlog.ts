@@ -513,7 +513,6 @@ export const actionItems = [
   'Supply real magnitudes for Mahjong Logic — players, concurrent tables, release cadence, platform split. Every one was left out rather than guessed.',
   'Record a 20-second pitch clip for the host tile. The page works without it and is better with it.',
   'Confirm the target role. The copy is written for the senior posting.',
-  'Read the Nobisoft framing in the People panel and confirm it says what you want it to say.',
 ];
 
 export interface QaFinding {
