@@ -15,6 +15,9 @@
 
 import { h, clear } from '../dom.js';
 import { sym } from './icons.js';
+import { ripple, attachMenu, micMeter, menu as gmMenu } from './gm3.js';
+import { tipAll } from './tooltip.js';
+import type { MenuItem } from './gm3.js';
 import type { IconName } from './icons.js';
 import type { Store, Panel } from '../state.js';
 import { captionAt, clock } from '../state.js';
@@ -98,6 +101,60 @@ export function renderCall(store: Store, quests: Quests, deps: CallDeps): HTMLEl
       h('span', { class: 'vtile-mic' }, sym(kind === 'commercial' ? 'mic_off' : 'mic', 16)),
     );
 
+  /**
+   * Nam's instruction for this screen was "clone exactly everything we see in
+   * the original… we make it right first, then we make it ours after". So the
+   * call view is Meet's single-participant view, measured:
+   *
+   *   tile        55,72 1329x748 radius 24   (16,72 1032x748 with a panel open)
+   *   layer 1     participant colour #c4b3dc
+   *   layer 2     the avatar again, blown up and blurred, filling the tile
+   *   layer 3     a scrim, rgba(0, 46, 105, 0.5)
+   *   layer 4     the crisp avatar, 96x96, centred
+   *   name        16 in from the left, 15 up from the bottom, 500 16/24 white
+   *
+   * That stack is where the dark blue "gradient" comes from — it is a blue wash
+   * over a blurred copy of the same photo, not a gradient at all.
+   *
+   * We have no photo asset, only initials, so layer 2 is a soft radial in the
+   * avatar's own colour rather than a real blur. Flagged rather than pretended:
+   * the structure and the scrim are Meet's, the blur source is not.
+   *
+   * THE GRID BELOW IS KEPT AND NOT RENDERED. It is the whole CV — the pitch, the
+   * roles, the clips — and tomorrow's work adds it back on top of this. Deleting
+   * it would make that job start with archaeology.
+   */
+  const soloTile = (): HTMLElement => {
+    const t = h(
+      'div',
+      { class: 'solo', role: 'group', 'aria-label': profile.name },
+      h('div', { class: 'solo-blur', 'aria-hidden': 'true' }),
+      h('div', { class: 'solo-scrim', 'aria-hidden': 'true' }),
+      h('div', { class: 'solo-av', 'aria-hidden': 'true' }, 'NN'),
+      h('span', { class: 'solo-name' }, profile.name),
+      micMeter(),
+    );
+    // The three controls Meet floats over its own tile, at 656 / 700 / 744.
+    const fx = (icon: IconName, label: string, cls: string): HTMLElement => {
+      const b = h('button', { class: 'solo-ctl ' + cls, type: 'button', 'aria-label': label }, sym(icon, 20)) as HTMLButtonElement;
+      ripple(b);
+      tipAll(b);
+      return b;
+    };
+    const more = fx('more_vert', 'More options for ' + profile.name, 'solo-more');
+    attachMenu(more, (): MenuItem[] => [
+      { label: 'Remove this tile' },
+      { icon: 'close_fullscreen', label: 'Minimize' },
+      { icon: 'keep', label: 'Pin to the screen' },
+      { icon: 'aspect_ratio', label: 'Show my full video to everyone' },
+    ], { align: 'right', side: 'above', width: 247, cls: 'gm-dark' });
+    t.append(h('div', { class: 'solo-ctls' },
+      fx('frame_person', 'Reframe', ''),
+      fx('blur_on', 'Backgrounds and effects', ''),
+      more));
+    return t;
+  };
+
   const tiles = h(
     'div',
     { class: 'grid', role: 'list', 'aria-label': 'People in this call' },
@@ -149,6 +206,9 @@ export function renderCall(store: Store, quests: Quests, deps: CallDeps): HTMLEl
     releaseTrap?.();
     releaseTrap = null;
     clear(panelHost);
+    // Meet shrinks the tile when a panel opens rather than overlaying it:
+    // 16 + 1032 + 17 + 358 + 17 = 1440. The class is what lets the CSS do that.
+    document.body.classList.toggle('has-panel', s.panel !== 'none');
     if (s.panel === 'none') return;
 
     const title = TITLES[s.panel];
@@ -204,7 +264,11 @@ export function renderCall(store: Store, quests: Quests, deps: CallDeps): HTMLEl
     onClick: () => void,
     state?: () => { on: boolean; icon?: IconName; label?: string },
   ): Btn => {
-    const b = h('button', { class: `cbtn ${cls}`, type: 'button', 'aria-label': label, onclick: onClick }, sym(icon, 22)) as Btn;
+    const b = h('button', { class: `cbtn ${cls}`, type: 'button', 'aria-label': label, onclick: onClick }, sym(icon, 24)) as Btn;
+    // Meet tips every bar control, and the glyphs are 24px not 22 — measured at
+    // dx 12 / dy 12 inside the 48x48 buttons.
+    ripple(b);
+    tipAll(b);
     if (state) {
       b.sync = () => {
         const st = state();
@@ -217,8 +281,14 @@ export function renderCall(store: Store, quests: Quests, deps: CallDeps): HTMLEl
     return b;
   };
 
-  const chev = (label: string, onClick: () => void): HTMLButtonElement =>
-    h('button', { class: 'chev', type: 'button', 'aria-label': label, onclick: onClick }, sym('keyboard_arrow_up', 20)) as HTMLButtonElement;
+  const chev = (label: string, onClick: () => void): HTMLButtonElement => {
+    const b = h('button', { class: 'chev', type: 'button', 'aria-label': label, onclick: onClick }, sym('keyboard_arrow_up', 20)) as HTMLButtonElement;
+    // Inert device pickers — this page has no devices to choose between — but
+    // they ripple and they tip, same call as the pre-join carets.
+    ripple(b);
+    tipAll(b);
+    return b;
+  };
 
   const micBtn = cbtn('Turn on microphone', 'mic_off', 'w48', () => {
     const on = !store.get().micOn;
@@ -404,35 +474,83 @@ export function renderCall(store: Store, quests: Quests, deps: CallDeps): HTMLEl
     window.setTimeout(() => el.remove(), 6000);
   }
 
+  /**
+   * Reactions, and this is the one Nam asked about directly. Measured on the
+   * live call rather than guessed:
+   *
+   *   - they do NOT appear in the middle or above the speaker. Six consecutive
+   *     reactions landed at x = 159, 56, 168, 47, 177, 100 against a tile
+   *     spanning 55..1384 — a randomised band about 130px wide at the tile's
+   *     BOTTOM-LEFT. One of them, 47, is outside the tile's left edge.
+   *   - each starts about 55px above the tile's bottom.
+   *   - the rise is 9px every 66ms, dead constant: 132 px/s, LINEAR, no easing,
+   *     and x never changes once it has spawned.
+   *   - the emoji is 53px, and it travels a 508px track, so ~3.8s end to end.
+   *
+   * Our own emoji set, per Nam. The behaviour is what is being mirrored.
+   */
+  const REACT_SET = ['🎲', '🀄', '🪂', '🎤', '👏', '🧟'];
+  const BAND = 130;      // measured spread of the spawn x
+  const RISE = 132;      // px per second, linear
+  const TRACK = 508;     // px travelled before it is gone
+  let reactSeq = 0;
+
   function reactions(): void {
     quests.unlock('react');
-    const set = ['🎲', '🀄', '🪂', '🎤', '👏', '🧟'];
-    const pick = set[Math.floor(((performance.now() / 97) % set.length))] ?? '👏';
+    const pick = REACT_SET[reactSeq % REACT_SET.length] ?? '👏';
+    reactSeq += 1;
     const el = h('div', { class: 'reaction' }, pick);
-    el.style.setProperty('--dx', `${((performance.now() % 80) - 40).toFixed(0)}px`);
+    // Randomised across the band, and fixed for this reaction's whole life.
+    el.style.setProperty('--rx', `${Math.round(Math.random() * BAND) - 8}px`);
+    el.style.setProperty('--rise', `${TRACK}px`);
+    el.style.setProperty('--dur', `${(TRACK / RISE).toFixed(2)}s`);
     layer.appendChild(el);
-    window.setTimeout(() => el.remove(), 2400);
+    const chip = h('div', { class: 'reaction-who' }, 'You');
+    chip.style.setProperty('--rx', el.style.getPropertyValue('--rx'));
+    layer.appendChild(chip);
+    window.setTimeout(() => { el.remove(); chip.remove(); }, (TRACK / RISE) * 1000 + 200);
   }
 
+  /**
+   * Meet's bar overflow, measured at 886,243 225x578 — eleven rows of 48 plus
+   * two 17px rules, which is exactly what 8 + 11*48 + 8 = 544 against 578
+   * accounts for.
+   *
+   * Every row is inert. Nam's call, and the right one for a clone: each of these
+   * opens a product we are not cloning. They still ripple, still take focus,
+   * still close — a row that does not respond feels broken in a way an inert one
+   * does not.
+   *
+   * Five glyphs are substitutions, because Meet draws from Google Symbols and we
+   * ship the open Material Symbols subset: youtube_live -> bolt,
+   * radio_button_checked -> science, dashboard -> apps, dropdown ->
+   * present_to_all, report -> shield.
+   */
   function menu(): void {
-    if (layer.querySelector('.menu')) { clear(layer); return; }
-    const item = (icon: IconName, label: string, run: () => void): HTMLElement =>
-      h('button', { class: 'menu-item', type: 'button', onclick: () => { clear(layer); run(); } }, sym(icon, 20), label);
-    const box = h(
-      'div',
-      { class: 'menu', role: 'menu', 'aria-label': 'More options' },
-      item('mood', 'Off the clock', () => store.dispatch({ t: 'panel', panel: 'offclock' })),
-      item('auto_awesome', 'Apply visual effects', () => store.dispatch({ t: 'engTab', tab: 'fx' })),
-      item('science', 'Run the test suite', () => store.dispatch({ t: 'engTab', tab: 'tests' })),
-      item('description', 'Read it as a document', () => store.dispatch({ t: 'plain', on: true })),
-      item('keyboard', 'Keyboard shortcuts', () => window.dispatchEvent(new KeyboardEvent('keydown', { key: '?' }))),
-    );
-    layer.appendChild(box);
-    (box.querySelector('button') as HTMLButtonElement | null)?.focus();
-    const off = (e: MouseEvent): void => {
-      if (!box.contains(e.target as Node)) { clear(layer); document.removeEventListener('click', off, true); }
+    if (layer.querySelector('.gm-menu')) { clear(layer); return; }
+    const rows: MenuItem[] = [
+      { icon: 'bolt', label: 'Streaming' },
+      { icon: 'science', label: 'Recording' },
+      { icon: 'apps', label: 'Adjust view', ruleBefore: true },
+      { icon: 'aspect_ratio', label: 'Full screen' },
+      { icon: 'present_to_all', label: 'Open picture-in-picture' },
+      { icon: 'blur_on', label: 'Backgrounds and effects' },
+      { icon: 'phone_forwarded', label: 'Use a phone for audio' },
+      { icon: 'feedback', label: 'Report a problem', ruleBefore: true },
+      { icon: 'shield', label: 'Report abuse' },
+      { icon: 'troubleshoot', label: 'Troubleshooting & help' },
+      { icon: 'settings', label: 'Settings' },
+    ];
+    const box = gmMenu(rows, 225);
+    box.classList.add('gm-dark');
+    const wrap = h('div', { class: 'gm-pop call-more' }, box);
+    layer.appendChild(wrap);
+    const first = box.querySelector('li');
+    if (first) (first as HTMLElement).focus();
+    const off = (e: Event): void => {
+      if (!wrap.contains(e.target as Node)) { clear(layer); document.removeEventListener('pointerdown', off, true); }
     };
-    window.setTimeout(() => document.addEventListener('click', off, true), 0);
+    window.setTimeout(() => document.addEventListener('pointerdown', off, true), 0);
   }
 
   // ------------------------------------------------------------------ sync --
@@ -463,8 +581,16 @@ export function renderCall(store: Store, quests: Quests, deps: CallDeps): HTMLEl
 
   // --------------------------------------------------------------- assemble --
 
-  const stage = h('main', { class: 'grid-wrap', id: 'main', tabindex: '-1' }, tiles);
-  rovingGrid(tiles, '.vtile:not(.host)');
+  /**
+   * MEET_CLONE is Nam's "make it right first, then make it ours after". While it
+   * is on, the call view is Meet's single-participant view and the CV grid is
+   * built but not mounted — so tomorrow's work is one line and an append, not an
+   * excavation. The whole CV is still reachable in plain-document mode.
+   */
+  const MEET_CLONE = true;
+  const stage = h('main', { class: 'grid-wrap' + (MEET_CLONE ? ' is-solo' : ''), id: 'main', tabindex: '-1' },
+    MEET_CLONE ? soloTile() : tiles);
+  if (!MEET_CLONE) rovingGrid(tiles, '.vtile:not(.host)');
   tiles.addEventListener('keydown', (e: KeyboardEvent) => { if (e.key.startsWith('Arrow')) quests.unlock('a11y'); });
 
   const shell = h(

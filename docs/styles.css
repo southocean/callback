@@ -3084,17 +3084,260 @@ body.plain { background: #fff; color: #16181c; }
 .warn-text {
   opacity: 0; transition: opacity .1s linear .07s;
 }
-/* The state layer sits on the 16px disc, not on the pill, which is why the
-   leading circle reads darker than the body it grew out of. */
-.warn-dot { position: relative; overflow: hidden; }
-.warn-dot::before {
-  content: ''; position: absolute; inset: 0; border-radius: inherit;
-  background-color: #6D3A01; opacity: 0;
-  transition: opacity .075s linear;
+/* And the darkening is not a state layer at all — it is a colour INVERSION,
+   which is a better detail than the one I guessed. Measured on the expanded
+   pill: the leading disc is 16x16 at dx 2 with background #6D3A01 and its
+   glyph in #FCBD00. Collapsed it is the other way round, a #FCBD00 disc with a
+   #6D3A01 mark. So the badge does not dim on hover; the disc swaps its two
+   colours as the pill grows out of it. */
+.warn-dot {
+  background-color: #FCBD00; color: #6D3A01;
+  transition: background-color .18s linear, color .18s linear;
 }
-.warn-pill:hover .warn-dot::before,
-.warn-pill:focus-visible .warn-dot::before { opacity: .16; }
+.warn-pill:hover .warn-dot, .warn-pill:focus-visible .warn-dot {
+  background-color: #6D3A01; color: #FCBD00;
+}
+/* Measured offsets in the expanded pill: disc at dx 2, label at dx 24, caret at
+   dx 149, all inside 169x20. */
+.warn-pill:hover, .warn-pill:focus-visible { padding: 0 5px 0 2px; }
 
 @media (prefers-reduced-motion: reduce) {
-  .warn-pill, .warn-text, .warn-dot::before { transition: none; }
+  .warn-pill, .warn-text, .warn-dot { transition: none; }
 }
+
+/* ==================== THE IN-CALL SCREEN, CLONED ========================= */
+/* Measured on the live call at 1440x900; the findings are in
+   QA/Original/VideoCall/ and the plan in _private/PLAN-videocall.md.
+                                                                              */
+
+/* --- the frame ---------------------------------------------------------- */
+/* Page #131314. Tile 55,72 1329x748 radius 24 with no panel, and 16,72
+   1032x748 with one — which is one sum: 16 + 1032 + 17 + 358 + 17 = 1440. */
+.grid-wrap.is-solo {
+  position: absolute; inset: 72px 56px 80px 55px;
+  display: block; padding: 0; overflow: visible;
+}
+body.has-panel .grid-wrap.is-solo { inset: 72px 375px 80px 16px; }
+
+.solo {
+  position: relative; width: 100%; height: 100%;
+  border-radius: 24px; overflow: hidden;
+  /* Layer 1: the participant colour. Meet assigns one per person; this is the
+     one it gave Nam. */
+  background-color: #c4b3dc;
+  display: grid; place-items: center;
+}
+/* Layer 2. Meet fills the tile with the avatar again, blown up and blurred. We
+   have initials rather than a photo, so this is a soft radial in the avatar's
+   own colour — the structure and the scrim are Meet's, the blur source is not.
+   Flagged rather than pretended. */
+.solo-blur {
+  position: absolute; inset: 0;
+  background-image: radial-gradient(60% 50% at 50% 45%, #6f5f8a 0%, #3d3652 55%, #241f33 100%);
+}
+/* Layer 3: the scrim, and this is the exact value — it is what turns a purple
+   tile into the dark blue everyone reads as "Meet". */
+.solo-scrim { position: absolute; inset: 0; background-color: rgba(0, 46, 105, .5); }
+/* Layer 4: the crisp avatar, 96x96, centred. */
+.solo-av {
+  position: relative; z-index: 2;
+  width: 96px; height: 96px; border-radius: 50%;
+  background-color: #8ab4f8; color: #0b2545;
+  display: grid; place-items: center;
+  font: 500 34px/1 var(--font-title);
+}
+/* 16 in from the left, 15 up from the bottom. */
+/* 71,785 96x20 against a tile ending at 820: so 16 in from the left, 15 up from
+   the bottom, and a 20px line box rather than 24 — the glyphs are 16px on a 24px
+   line but the box Meet measures is 20 tall. */
+.solo-name {
+  position: absolute; left: 16px; bottom: 15px; z-index: 3;
+  font: 500 16px/20px var(--font-title); color: #fff;
+}
+/* No level meter on the in-call tile. The 26px meter I measured was on the
+   PRE-JOIN tile; nothing like it appeared in the call, so putting one here would
+   be inventing. */
+.solo .mic-meter { display: none; }
+
+
+/* --- the three controls Meet floats on its own tile --------------------- */
+/* Reframe 656,424 44x44 r22 · Backgrounds 700,424 44x44 r22 · More 744,426
+   40x40 r20 — so centred horizontally as a group and vertically on the tile. */
+.solo-ctls {
+  position: absolute; z-index: 4; left: 50%; top: 50%;
+  /* Dead centre on the tile, which means they sit ON TOP of the avatar — Meet's
+     are at y 424..468 and its avatar at 398..494, both centred on 446. Only
+     visible on hover, so the overlap is by design rather than a clash. */
+  transform: translate(-50%, -50%);
+  display: flex; align-items: center; gap: 0;
+  opacity: 0; transition: opacity .12s linear;
+}
+.solo:hover .solo-ctls, .solo:focus-within .solo-ctls { opacity: 1; }
+.solo-ctl {
+  position: relative; overflow: hidden;
+  width: 44px; height: 44px; border-radius: 22px;
+  border: 0; background: none; color: #fff; cursor: pointer;
+  display: grid; place-items: center; --sl: #fff;
+}
+.solo-ctl.solo-more { width: 40px; height: 40px; border-radius: 20px; }
+
+/* --- side panels: all four are the same box ----------------------------- */
+/* 1065,73 358x746, #1e1f20, radius 0. Only the 18px heading changes. */
+.side {
+  position: fixed; top: 73px; right: 17px; width: 358px; height: 746px;
+  background-color: #1e1f20; border-radius: 0;
+  display: flex; flex-direction: column; z-index: 40;
+}
+.side-head {
+  height: 64px; flex: 0 0 auto; display: flex; align-items: center;
+  padding: 0 8px 0 24px; gap: 8px;
+  font: 400 18px/24px var(--font-title); color: #e3e3e3;
+}
+.side-body { flex: 1 1 auto; overflow: auto; padding: 0 24px 24px; }
+
+/* --- the bar's three states -------------------------------------------- */
+/* on      radius 24, #333537, ink #e3e3e3
+   off     radius 12, #f9dedc, ink #601410   <- NOT the pre-join's #410e0b
+   active  radius 24, #a8c7fa
+
+   "active" is its own state, separate from "on": captions and raise-hand go
+   #a8c7fa when engaged and swap to the filled glyph. Two different things that
+   both look like "the button is lit". */
+.cbtn { transition: border-radius .2s steps(6, jump-none), background-color .2s steps(6, jump-none); }
+.cbtn.off { border-radius: 12px; background-color: #f9dedc; color: #601410; --sl: #601410; }
+.cbtn.is-active { background-color: #a8c7fa; color: #062e6f; --sl: #062e6f; }
+
+/* --- the dark menu surface --------------------------------------------- */
+/* Same component as the pre-join's, on the dark side of the palette. */
+.gm-menu.gm-dark { background-color: #282a2c; }
+.gm-dark .gm-label { color: #e3e3e3; }
+.gm-dark .gm-sub { color: #9aa0a6; }
+.gm-dark .gm-item { --sl: #e3e3e3; }
+.gm-dark .gm-item .ms { color: #c4c7c5; }
+.gm-dark .gm-rule { background-color: #444746; }
+.gm-pop.call-more { position: fixed; left: 886px; bottom: 79px; top: auto; }
+
+/* --- reactions ---------------------------------------------------------- */
+/* Measured, and none of it was what I would have guessed:
+     - they spawn in a randomised band ~130px wide at the tile's BOTTOM-LEFT,
+       not centred and not above the speaker. Six in a row landed at
+       x = 159, 56, 168, 47, 177, 100 against a tile spanning 55..1384.
+     - each starts ~55px above the tile's bottom.
+     - the rise is 9px every 66ms. 132 px/s, LINEAR, no easing, and x never
+       changes once it has spawned.
+     - the emoji is 53px and travels 508px, so ~3.8s end to end. */
+.reaction {
+  position: absolute; left: 0; bottom: 55px; z-index: 6;
+  transform: translateX(var(--rx, 0px));
+  font-size: 44px; line-height: 53px; width: 53px; text-align: center;
+  pointer-events: none;
+  animation: react-rise var(--dur, 3.85s) linear both;
+}
+@keyframes react-rise {
+  from { transform: translateX(var(--rx, 0px)) translateY(0); opacity: 1; }
+  85%  { opacity: 1; }
+  to   { transform: translateX(var(--rx, 0px)) translateY(calc(var(--rise, 508px) * -1)); opacity: 0; }
+}
+/* The name chip that rides with it: 41x22, #8ab4f8, at the tile's bottom-left. */
+/* The name chip does NOT follow the emoji's random x — Meet's sits at a fixed
+   58, which is the tile's left edge plus 3, while the emoji beside it wanders
+   across the band. Ours was inheriting --rx and drifting with it. */
+.reaction-who {
+  position: absolute; left: 3px; bottom: 27px; z-index: 6;
+  height: 22px; padding: 0 8px; border-radius: 11px;
+  background-color: #8ab4f8; color: #062e6f;
+  font: 500 14px/22px var(--font-title); pointer-events: none;
+  animation: react-who 1.6s cubic-bezier(0, 0, 0.2, 1) both;
+}
+@keyframes react-who { from { opacity: 0; } 20% { opacity: 1; } 80% { opacity: 1; } to { opacity: 0; } }
+
+@media (prefers-reduced-motion: reduce) {
+  .cbtn { transition: none; }
+  .reaction, .reaction-who { animation-duration: .01s; }
+  .solo-ctls { transition: none; }
+}
+
+/* The older .side rule set top via a shorthand that won on cascade order and
+   left the panel 4px low. Meet's is 1065,73 358x746 exactly. */
+.side { top: 73px !important; height: 746px; }
+
+/* --- four corrections after measuring ours against Meet's ---------------- */
+
+/* 1. The panel was landing at y=77 against Meet's 73. `top: 73px` was right;
+      the older .side rule's `margin: 4px 0 8px` was shifting a FIXED element by
+      its own margin. A fixed box still honours margins. */
+.side { margin: 0 !important; }
+
+/* 2. The tile with a panel open must be 1032 wide, not 1049. The panel starts at
+      1065 with a 17px gap, so the tile's right edge is 1048 and the inset is
+      1440 - 1048 = 392. */
+body.has-panel .grid-wrap.is-solo { inset: 72px 392px 80px 16px; }
+
+/* 3. The existing code writes `.active`, not `.is-active`. */
+.cbtn.active { background-color: #a8c7fa; color: #062e6f; --sl: #062e6f; }
+
+/* 4. The split controls are not two half-rounded halves. Meet's audio control is
+      an 88x48 pill at radius 24 in #282a2c, with a FULL 48x48 round button in
+      #333537 sitting on its right end — which is why the screenshots read as a
+      small caret tab next to a separate round button rather than one capsule.
+      Ours had `r24 0 0 24` + `0 24 24 0`, a joined capsule, which is a different
+      shape entirely once the mic goes to its off radius of 12. */
+.unit { position: relative; display: flex; align-items: center; }
+.unit > .chev {
+  width: 88px; height: 48px; border-radius: 24px; margin-right: -48px;
+  display: flex; align-items: center; justify-content: flex-start; padding-left: 13px;
+  background-color: #282a2c;
+}
+/* The caret glyph sits at dx 13, dy 14 inside the pill, and it is #8e918f — a
+   dimmer grey than the button glyphs beside it. */
+.unit > .chev .ms { color: #8e918f; font-size: 20px; }
+.unit > .cbtn { position: relative; border-radius: 24px; }
+.unit > .cbtn.off { border-radius: 12px; }
+
+/* --- the top row sits at y=24 --------------------------------------------- */
+/* Meet's row: time at 24,24 (500 16/24 white), the meridiem as its own box at
+   61, the meeting name at 111, and the info glyph 17px at 168,28 inside a 29x29
+   button at 159,22. Ours was centring inside --callbar and landing at y=16.
+   align-items: flex-start with 24px of top padding puts the text row where
+   Meet's is, and the info button back on the text's own centre line. */
+.call-top { align-items: flex-start; padding-top: 24px; }
+.call-top > .icon-btn { margin-top: -3px; width: 29px; height: 29px; }
+.call-top > .icon-btn .ms { font-size: 17px; }
+.call-top-right { margin-top: -7px; }
+/* The participant count reads 500 12/16 #e3e3e3 in Meet, not 13px white. */
+.count-chip { font: 500 12px/16px var(--font-title); color: #e3e3e3; }
+
+/* --- reactions have to be anchored to the TILE, not the viewport ---------- */
+/* The spawn band and the start height are both measured relative to the tile:
+   x from the tile's left edge minus 8, y about 55 above the tile's bottom. The
+   reaction layer is full-bleed (it also carries menus and toasts), so left and
+   bottom have to restate the tile's own insets — and follow them when a panel
+   opens and the tile slides to x=16.
+
+   Meet's observed band was 47..177 against a tile at 55; ours was landing at
+   -7..113 against a layer at 0, which is the same band in the wrong place. */
+.reaction, .reaction-who { left: 55px; }
+body.has-panel .reaction, body.has-panel .reaction-who { left: 16px; }
+
+
+/* --- the top row's internal gap ------------------------------------------ */
+/* Meet: time ends at 86, meeting name starts at 111. Ours had a 16px gap and
+   landed the name at 119; 12 puts it on 111. */
+.call-top { gap: 12px; }
+
+/* In clone mode the top-right is the participant count alone, as Meet's is.
+   The network chip is ours, and it comes back with the rest of the CV. */
+.grid-wrap.is-solo ~ * .count-chip[style*="transparent"],
+body:has(.grid-wrap.is-solo) .count-chip[style*="transparent"] { display: none; }
+
+/* Re-reading the measurement: Meet's emoji box is 159,767 53x53 and the tile
+   ends at 820 — so 767 + 53 = 820, and the emoji starts FLUSH with the tile's
+   bottom edge rather than 55px above it. I had read the 55 off the gap to the
+   name row, which is a different thing. The viewport is 900 and the tile ends 80
+   up from it, so bottom: 80 puts the top on 767 exactly.
+
+   The height has to be explicit too: a 44px glyph on a 53px line still gave the
+   div an 86px box, which was dragging the start point up with it. */
+.reaction { bottom: 80px; height: 53px; }
+/* The name chip: 58,793 41x22, so its bottom is 815 — 85 up from the viewport. */
+.reaction-who { bottom: 85px; }

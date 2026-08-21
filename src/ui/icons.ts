@@ -33,7 +33,9 @@ export type IconName =
   // The pre-join tile's overflow menu, the device menus, and the three rows
   // that Other ways to join expands into.
   | 'error' | 'feedback' | 'troubleshoot' | 'meeting_room' | 'phone_forwarded'
-  | 'expand_less' | 'photo_camera' | 'auto_fix_high';
+  | 'expand_less' | 'photo_camera' | 'auto_fix_high'
+  // The in-call tile's own overflow menu.
+  | 'close_fullscreen' | 'keep' | 'aspect_ratio';
 
 export interface SymOpts {
   /** Meet fills the glyph for the selected nav item. */
