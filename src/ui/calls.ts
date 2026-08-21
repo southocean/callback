@@ -2,39 +2,57 @@
 // opening the tab, focusing the field, selecting a contact, pressing Continue,
 // opening the dialog's menu, and hovering every control on the way.
 //
+// The numbers here are a summary; the full baseline, including every easing and
+// the resolved GM3 elevation scale, is tools/baseline-calls.md.
+//
 // COLLAPSED
-//   band          720x96,  #f0f4f9, radius 28
+//   band          720x96,  #f0f4f9, radius 28, GM3 elevation 2
 //   pill          680x56,  #fff,    radius 28   (inset 20 all round)
 //   input         616x40,  16/24 Google Sans Text, #1f1f1f, at dx 52 in the pill
-//   illustration  348x152, centred
-//   headline      45/52 Google Sans, #1f1f1f
-//   subtitle      22/28 Google Sans, #1f1f1f
+//   illustration  348x152, centred, 110 below the reserved band footprint
+//   headline      45/52 Google Sans, #1f1f1f, no margin
+//   subtitle      22/28 Google Sans, #1f1f1f, no margin
+//
+// THE BAND IS OUT OF FLOW, and that is the load-bearing fact on this screen:
+// absolute, pinned to the top of the content column, centred in it, with the
+// column reserving its collapsed 112px. Expanding it therefore moves nothing.
 //
 // The bar above it carries NO composer on this tab: no code field, no New
 // button. That is measured, not inferred — a sweep for either control on the
 // live Calls tab comes back empty. renderHome drops it.
 //
 // EXPANDED (the field has focus)
-//   band grows 96 -> 406, same x/y/width/radius; the pill loses its white fill
-//   list          starts 72 below the band's top, rows 712x72, pitch 72
+//   band grows 96 -> 406 with NO transition — measured; Meet snaps this open
+//   pill          loses its white fill AND tightens: inset 14, 7px to the list
+//   list          starts 77 below the band's top, capped at 256; rows 712x72
 //   row           avatar 40 at dx 16 dy 16; name 16/24 #1f1f1f at dx 72 dy 14;
 //                 address 14/20 #444746 at dx 72 dy 38
-//   hover/select  GM3 state layer, ::before #444746 at .08 — not a background
-//   footer        Continue 125x40, #0b57d0, radius 20, padding 0 16 0 24
+//   hover/select  GM3 state layer, ::before #444746 at .08 — not a background,
+//                 and with no transition, unlike the home screen's 75ms
+//   footer        72 tall; Continue 125x40, #0b57d0, radius 20, padding 0 16 0 24
 //
 // SELECTED
-//   a chip lands in the field: 174x32, #dde3ea, fully rounded, ink #444746
-//   the row's avatar becomes a blue disc with a white check, aria-selected=true
-//   a trailing close button appears, which clears the whole selection
+//   a chip lands in the field: 174x32, #dde3ea, fully rounded, ink #444746,
+//   with a 28px avatar at a 2px inset — and the placeholder STAYS
+//   a blue disc grows over the avatar: scale(0->1), 150ms ease-out, opacity snaps
+//   a trailing close button appears, 16 from the pill's right edge
 //
 // DIALOG (after Continue)
-//   panel   512x532, #e9eef6, radius 28, over a scrim
-//   more_vert + close, 40x40 each, at dy 16 from the panel top
+//   the band collapses and drops focus; the chip stays
+//   entrance  scrim opacity 150ms linear, wrapper opacity 75ms linear,
+//             panel scale(.8)->1 150ms cubic-bezier(0, 0, .2, 1)
+//   scrim   rgba(0,0,0,.32), fixed, z-index -1 inside a z-2001 layer
+//   panel   512x532, #e9eef6, radius 28, GM3 elevation 3
+//   more_vert + close, 40x40 each, dy 16, at 64 and 16 from the right, 8 apart
 //   avatar  88 round, centred, dy 104
-//   name    28/36 Google Sans, dy 208;  address 16/24, #444746, dy 248
-//   voice   150x56, #c2e7ff, radius 28, label 500 16/20, ink #001d35
+//   name    28/36 Google Sans, dy 208, #444746;  address 16/24, #444746, dy 248
+//   voice   150x56, #c2e7ff, radius 28, label 500 16/20, ink #001d35 — ENABLED
 //   video   152x56, #0b57d0, radius 28, label 500 16/20, white; 16 between them
-//   menu    one item, "Block user"
+//   hover   every control: ::before, its own on-colour at .08, 75ms linear
+//   notice  480x88 at a 16 inset, #dde3ea, radius 28, padding 16
+//   menu    131x64, radius 12, elevation 2, one item, "Block user"
+//   NOT present: any tooltip on the two call buttons, and no elevation change
+//   on hover — the state layer is the entire feedback
 //
 // WHERE THIS DIVERGES, AND WHY
 //   - Meet selects many contacts and then rings them as a group. Selection here

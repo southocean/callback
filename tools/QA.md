@@ -302,3 +302,177 @@ The top-bar cluster is the interesting one: Meet's gaps are 0, 5 and 8 px, not
 a uniform rhythm. Support and Settings touch; the last two carry the shared
 account bar's own margins. Ours had an even 4px gap, which put all four in the
 wrong place while looking perfectly deliberate.
+
+---
+
+## 9. The Calls tab, and three traps that only show up in motion
+
+The full measured baseline for this screen is `tools/baseline-calls.md`. This
+section is only the method — the parts that generalise to the next screen.
+
+Nam's QA pass listed six faults. Every one of them was a *behaviour*, not a
+static style: a missing shadow, a panel that pushed the page instead of covering
+it, a check that appeared instead of growing, a dialog with no entrance, controls
+that were inert to the pointer, and a screen that never loaded. Sections 1-8
+above are built around comparing two still frames, and a still frame cannot see
+any of that. So the loop needed a third technique.
+
+### 9.1 Ask the page what is animating, do not watch it
+
+The obvious probe is to poll every frame and diff:
+
+    requestAnimationFrame(function tick() { snapshot(); ... })
+
+It returns nothing. Not "no animation" — literally an empty log, every time.
+**The automated tab is a background tab, and `requestAnimationFrame` does not
+fire in one.** The same throttling means CSS transitions do not advance either,
+so a fixed `setTimeout` then a re-read returns the *start* value and looks like a
+property that never changed.
+
+The replacement is not a better sampler, it is not sampling at all:
+
+    document.getAnimations()          // live Animation objects
+      -> a.effect.getTiming()         // duration, delay, easing, fill
+      -> a.effect.getKeyframes()      // the actual from/to values
+
+Called directly, this works in a background tab and is *better* data than
+sampling: it gives the authored duration and curve rather than an interpolated
+value you then have to fit a curve to. The whole dialog entrance came out of one
+call:
+
+| target | property | from -> to | duration | easing |
+|---|---|---|---|---|
+| wrapper | `opacity` | 0 -> 1 | 75ms | linear |
+| panel | `transform` | `scale(0.8)` -> none | 150ms | `cubic-bezier(0, 0, .2, 1)` |
+| scrim | `opacity` | 0 -> 1 | 150ms | linear |
+
+Three elements, three durations. No single-node implementation could have
+matched it, and no screenshot would have suggested it.
+
+Corollary, and it bit twice: `getComputedStyle(el).transition` reads `all` /
+`0s` on almost every element in Meet, because the transitions are installed
+per-interaction. **A `0s` reading is not evidence that nothing animates.** Check
+`getAnimations()` before concluding a surface is static — and when it genuinely
+is static, say so explicitly, because that is also a measurement (the band's
+96 -> 406 expand really has no transition, and the row hover layer really is `0s`
+where every home-screen control is 75ms).
+
+### 9.2 A shadow that is on no element
+
+The band obviously has a soft shadow. Every ancestor reports
+`box-shadow: none`. So does the band. So does every descendant.
+
+It is painted by a GM3 helper class on `::before` *and* `::after`, and the two
+offsets are `calc()` expressions over a single custom property holding the
+elevation **level**. Resolving that formula by hand is what turns one screen's
+shadow into a reusable scale — level 2 for the search band and the overflow
+menu, level 3 for the call dialog — instead of a magic number copied off one
+surface. The table is in the baseline doc.
+
+Generalises: when a visible effect is on no element, scan **pseudo-elements
+across the whole document**, not the ancestor chain. `tools/hover-sweep.js`
+already does this for state layers (section 6); the same blind spot produced the
+same class of miss here. The one-liner:
+
+    for (const el of document.querySelectorAll('*'))
+      for (const pe of ['::before', '::after'])
+        if (getComputedStyle(el, pe).boxShadow !== 'none') report(el, pe)
+
+### 9.3 The layout bug was one property
+
+Ours pushed the illustration and headline down the page when the panel opened.
+Meet's wrapper is `position: absolute` with the column reserving its collapsed
+height as flow space, so growing it 96 -> 406 cannot move anything. That is the
+entire mechanism, and it was one property in the wrong state — with the visible
+symptom being "the animation is wrong", which is the wrong place to look.
+
+Worth internalising: **before treating a motion complaint as a timing problem,
+check whether the thing is even in the flow.** Nothing about the transition was
+at fault.
+
+### 9.4 A correct transition that still snaps
+
+This one is the best trap of the three, because the fix looked finished and
+measured clean.
+
+The check's growth is `transition: transform .15s ease-out` on an overlay disc.
+That was implemented exactly, verified against the original property by property
+— and it still snapped. A transition needs the element to **survive** the change
+so there is a previous computed value to interpolate from, and `paint()` rebuilt
+every row on selection. The "newly selected" row was a brand-new node born with
+`aria-selected="true"` and `scale(1)` already applied. Nothing to animate from.
+
+Nothing in the CSS is wrong. The only way to see it is to ask:
+
+    row.click();
+    void getComputedStyle(disc).transform;     // force a style flush
+    disc.getAnimations()                       // -> [] means no transition exists
+
+`[]` after a click that visibly changed the screen is the whole diagnosis. The
+fix was to split painting: rebuild rows only when the *set* of rows changes,
+and let selection flip an attribute on the row already on screen.
+
+So: **verify an animation by asking whether a transition object was created, not
+by confirming the CSS says what you meant.** Twice now this project has had
+correct CSS defeated by something else — the cascade in section 7, the DOM
+lifecycle here.
+
+And the positive confirmation, once it was right: one tick after the click,
+`opacity` had snapped to 1 while `transform` was still `scale(0)`. Two properties
+on one element behaving differently in the same frame is the fingerprint of a
+transition list that names only one of them — which is exactly what Meet
+authored.
+
+### 9.5 Traps specific to this screen
+
+- **The Calls tab is `/home?calling=1`.** `meet.google.com/calls` is a 404.
+- **`.focus()` does not dispatch a focus event in a background tab**, so
+  anything gated on focus never opens. Dispatch the event the handler actually
+  listens for, or drive a real pointer.
+- **Boxes measured during an entrance are scaled.** The dialog enters at
+  `scale(0.8)`; every child box read mid-flight is 80% of its real size. Wait
+  for `transform: none` or divide. Reading 410 and recording it as the panel
+  width would have been an easy, invisible error — the real number is 512.
+- **`gap` counts empty flex children.** An empty chips container has no width,
+  but the pill's 12px gap applies on both sides of it, which put our caret 12px
+  right of Meet's with nothing selected. `:empty { display: none }`.
+- **A screenshot forces a paint**, which advances a transition the throttled tab
+  had frozen. Useful as a deliberate tool; misleading if you forget you did it.
+
+### 9.6 What this pass found
+
+| | Was | Should be |
+|---|---|---|
+| Band shadow | none | GM3 elevation 2, both halves |
+| Band in flow | pushed the page down | `position: absolute`, 112px reserved |
+| Band y | 102 | **80** (the Calls tab drops the Meetings tab's 22px) |
+| List cap | 334px | **256px** (334 includes the footer) |
+| Expanded pill inset | 20 all round | **14, with a 7px gap** to the first row |
+| First row | band + 96 | **band + 77** |
+| Check on select | node swap, instant | overlay disc, `scale(0->1)` 150ms ease-out |
+| Selection repaint | rebuilt every row | attribute flip, node persists |
+| Placeholder with a chip | blanked | **kept** |
+| Chip avatar | 24 | **28** |
+| Pill right padding | 12 | **16** |
+| Caret with no chip | x 1056 | **1044** (empty flex child ate a gap) |
+| Continue pressed | panel left open | **band collapses, focus drops** |
+| Dialog entrance | none | 75 / 150 / 150ms, three elements |
+| Dialog scrim | none | **rgba(0,0,0,.32)**, fades 150ms |
+| Dialog shadow | none | GM3 elevation 3 |
+| Button hover | nothing at all | state layer, own on-colour @ .08, 75ms |
+| Press ripple | wired in JS, no CSS | added to both selector lists |
+| Voice call | permanently disabled | **live**, as it is on the original |
+| Dialog name ink | `--ink` #1f1f1f | **#444746** |
+| Notice | #f0f4f9, radius 12 | **#dde3ea, radius 28**, padding 16 |
+| Notice title | 14/20 body face | **12/16 Google Sans**, 500 |
+| "Got it" ink | `--nav-label` #00639b | **#0b57d0** |
+| Referral note | spinner forever | loads (see below) |
+
+The referral note was not a Calls bug at all. `render()` bumped its staleness
+ticket **above** the early-return guard, so any caller that dispatched twice —
+set the screen, then set the panel, which is exactly what that button does —
+started the call chunk on ticket N and then moved the ticket to N+1 while
+returning early and painting nothing. The chunk arrived, found itself stale, and
+threw itself away. An early return paints nothing, so it has nothing to
+invalidate; the bump belongs below the guard. One line, and it had made a whole
+screen unreachable with no error anywhere.
