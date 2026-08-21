@@ -159,3 +159,58 @@ Meet uses document PiP, so it is real DOM in a separate window.
 Sweep the rest: every control in the bar, both panels, and whatever each one
 opens. Click and hover all of it, cascade into what appears, screenshot
 throughout.
+
+---
+
+## Status after the 2026-08-21 evening session
+
+**The live measurement pass did not happen.** Three separate failure modes, all
+worth knowing before the next attempt:
+
+1. `Use Companion mode` was hit twice instead of `Join now`. It is directly
+   beneath it and the green room reflows while the join is pending, so a
+   coordinate captured from a screenshot can be stale by the time it is clicked.
+2. `javascript_tool` on the Chrome MCP returns `{}` for any async IIFE that
+   awaits more than briefly. Use synchronous expressions and poll across
+   separate calls instead.
+3. The third join stalled in a pending state — button greyed, never entered the
+   call, no error.
+
+**Reliable recipe for next time:** navigate to the meeting URL, then in ONE
+synchronous call do `[...document.querySelectorAll('button')].find(b =>
+/^Join now$/.test(b.textContent.trim())).click()`. Then poll with separate
+synchronous calls until a `Leave call` button exists. Do not click any
+coordinates after the JS click — that is what landed in Companion mode both
+times, because the JS click had already worked.
+
+### One contradiction to resolve first
+
+`src/ui/call.ts` documents the reaction spawn as measured: a randomised band
+about **130px wide at the tile's bottom-left**, with the name chip pinned at a
+fixed x. Nam's spam screenshot flatly contradicts it — emoji across most of the
+tile's width at many different heights, with a `You` chip under most of them.
+
+One of the two is wrong and it matters, because the whole spawn geometry hangs
+off it. Possibilities worth testing: the original measurement sampled too few
+reactions; or Meet widens the band under load; or the band is proportional to
+tile size and was measured at a smaller tile. **Re-measure with 15+ reactions
+in quick succession**, at a known tile size, before touching the numbers. Do not
+just widen `BAND` to match the screenshot — that would replace one unverified
+number with another.
+
+### Built and pushed this session
+
+On branch `calls-tab-and-the-hand`, not main, because `docs/` is served by Pages
+from main and the scare is untuned.
+
+- Item 6, the raise-hand jump scare, is done: `slap()` in `call.ts`, CSS under
+  "THE HAND THAT HITS THE GLASS", and a secret `slap` achievement. `SCARE` is
+  the single dial, currently 0.85. Fires once per raise, on the way up only.
+- Nothing else from this batch is built.
+
+### Deliberately not built, to avoid inventing numbers
+
+Items 1, 3, 4, 5 and 7 all need the live pass. In particular the messages panel
+clipping (item 2) looked tempting to fix blind, but the fix depends on what
+Meet's panel width and padding actually are, and guessing that is how a clone
+stops being a clone.
