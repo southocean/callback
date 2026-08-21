@@ -40,6 +40,7 @@ export const quests: Quest[] = [
   { id: 'plain', name: 'Just give me the CV', hint: 'Read it as a document instead.' },
   { id: 'konami', name: 'You know the code', hint: '', secret: true },
   { id: 'patient', name: 'Read the whole spec', hint: '', secret: true },
+  { id: 'slap', name: 'Talk to the hand', hint: '', secret: true },
 ];
 
 const KEY = 'callback.quests';

@@ -5,12 +5,12 @@
 // the block written for the person who has to file the referral (review H4).
 
 import { h, icon, icons } from '../dom.js';
-import { profile, referralBlurb, meta } from '../data/cv.js';
+import { profile, referralBlurb, meta, SITE } from '../data/cv.js';
 import type { Quests } from '../achievements.js';
 
 export function renderEnd(store: { dispatch: (a: { t: 'join' }) => unknown }, quests: Quests, onPlain: () => void): HTMLElement {
   const address = `${profile.emailUser}@${profile.emailHost}`;
-  const url = location.href.split('#')[0] ?? '';
+  const url = SITE;
   const { got, total } = quests.count();
 
   const blurbText = referralBlurb + url;

@@ -34,7 +34,7 @@ Four screens, all deep-linkable:
 | [`#call`](https://southocean.github.io/callback/#call) | Tile grid, control bar, captions, six side panels |
 | [`#plain`](https://southocean.github.io/callback/#plain) | The whole CV as one printable page |
 
-**Where it deliberately differs from Meet.** A faithful clone on its own would be an empty call, so seven things diverge:
+**Where it deliberately differs from Meet.** A faithful clone on its own would be an empty call, so eight things diverge:
 
 - **People** — every participant tile is a role, not a person. The panel draws the career as a timeline, including the two positions that genuinely overlap.
 - **Presenting** — the screen share holds four case studies.
@@ -43,6 +43,9 @@ Four screens, all deep-linkable:
 - **Off the clock** — a seventh tile that is not a job. A forty-second reel, click to play, sound off until you ask for it.
 - **Host controls** — the handover: PDF, plain document, email, and a referral note already written.
 - **Document mode** — no equivalent in Meet. Press <kbd>D</kbd>, or take *CV* in the rail.
+- **Calls** — Meet's Calls tab rings someone you know. This one reaches the people who can vouch for the work. The screen is a clone down to the chips and the selection model; the contents are references, and the dialog gains one line Meet has no reason to carry — what that person can actually speak to.
+
+Two smaller, deliberate departures, both documented where they live: the pre-join mic meter fades out instead of vanishing (Meet uses `display: none` with no transition), and Calls opens a one-person dialog where Meet would ring a group — a screen never measured is a screen not guessed at.
 
 Press <kbd>?</kbd> for the shortcuts. There are two easter eggs; one of them is older than the web.
 
@@ -73,7 +76,7 @@ The typefaces are Google's own — Google Sans, Google Sans Text and Product San
 ## Engineering
 
 ```
-Initial payload   41.4 kB gzipped JavaScript   (budget 50 kB, enforced in CI)
+Initial payload   16.0 kB gzipped JavaScript   (budget 50 kB, enforced in CI)
 Dev portal        13.1 kB, a deferred chunk nobody who misses it ever fetches
 Runtime deps      0
 Third-party       Google Fonts only — the typeface is Google's and is licensed

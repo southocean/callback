@@ -66,6 +66,23 @@ const media = { video, toggleCamera, cameraOn: () => store.get().cameraOn };
 
 let lastKey: string | null = null;
 
+/**
+ * Every deferred screen takes a ticket, and a chunk that resolves after the
+ * ticket has moved on throws its result away.
+ *
+ * The bug this fixes: only mount() took a ticket, and the home and plain
+ * branches below render straight into the root without one. So an in-flight
+ * mount stayed "current" across a navigation that never called mount, and its
+ * promise landed on top of the screen that had already replaced it. Pressing
+ * Back from Calls rendered Meetings and then had Calls painted back over it one
+ * millisecond later — the hash said #home and the screen said Calls.
+ *
+ * Bumping here, on every render that actually paints, is what makes the guard
+ * mean what it claims: anything still in flight from a previous render is stale
+ * by definition.
+ */
+let renderTicket = 0;
+
 function render(): void {
   const s = store.get();
   const key = s.plain ? 'plain' : s.screen;
@@ -78,15 +95,34 @@ function render(): void {
   // dispatches { t: 'camera' }, so before this every camera click rebuilt the
   // tile from scratch and the click appeared to do nothing.
   if (key === lastKey && (key === 'call' || key === 'lobby')) return;
+
+  // The bump belongs BELOW that guard, and putting it above was a real bug.
+  // Any caller that sets the screen and then the panel — Calls -> the referral
+  // note is the one that shipped — dispatches twice. The first render started
+  // the call chunk on ticket N; the second returned early here, but had already
+  // moved the ticket to N+1, so the chunk that was still loading resolved as
+  // stale and threw itself away. The result was the spinner, forever, with no
+  // way out: the screen the user asked for was fetched, discarded, and never
+  // retried.
+  //
+  // An early return paints nothing, so it has nothing to invalidate. Only a
+  // render that is about to replace the screen may declare earlier work stale.
+  renderTicket += 1;
   lastKey = key;
 
   document.body.classList.toggle('plain', key === 'plain');
 
   // The Calls tab. A real second tab rather than a link, because Meet has
   // exactly two and a third would be the tell.
-  if (location.hash.startsWith('#calls')) {
+  if (key === 'calls') {
     mount('calls', () => import('./ui/calls.js').then((m) => m.renderCalls({
-      onOpenReferral: () => { history.pushState(null, '', '#call/host'); store.dispatch({ t: 'screen', screen: 'call' }); store.dispatch({ t: 'panel', panel: 'host' }); },
+      // No pushState here: the store subscriber derives the hash from state, and
+      // it canonicalises a host panel to "#host". Pushing "#call/host" first
+      // just wrote a URL that was overwritten a tick later.
+      onOpenReferral: () => {
+        store.dispatch({ t: 'screen', screen: 'call' });
+        store.dispatch({ t: 'panel', panel: 'host' });
+      },
     })).then((node) => renderHome(store, store.get().reducedMotion, node)));
     return;
   }
@@ -169,8 +205,6 @@ function mount(key: string, load: () => Promise<HTMLElement>): void {
   });
   void key;
 }
-
-let renderTicket = 0;
 
 // --------------------------------------------------------------- routing ----
 

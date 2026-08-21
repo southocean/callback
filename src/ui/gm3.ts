@@ -5,7 +5,7 @@
 //
 // The measurements each primitive is built from are recorded on the primitive.
 
-import { h } from '../dom.js';
+import { h, icon } from '../dom.js';
 import { sym, dropCaret } from './icons.js';
 import type { IconName } from './icons.js';
 
@@ -92,6 +92,12 @@ export function ripple(el: HTMLElement): void {
 
 export interface MenuItem {
   icon?: IconName;
+  /**
+   * An SVG path for the leading slot, for the few glyphs the 7 kB Material
+   * subset does not carry. Takes precedence over `icon`. The Calls dialog's
+   * "Block user" is the only current user.
+   */
+  svgPath?: string;
   label: string;
   /** Second line — the device menus use it for "Show more info". */
   sub?: string;
@@ -126,9 +132,11 @@ export function menu(items: MenuItem[], width?: number): HTMLElement {
       { class: 'gm-item' + (it.sub ? ' has-sub' : ''), role: 'menuitem', tabindex: '0' },
       it.checked
         ? sym('check', 24)
-        : it.icon
-          ? sym(it.icon, 24)
-          : h('span', { class: 'gm-noicon', 'aria-hidden': 'true' }),
+        : it.svgPath
+          ? icon(it.svgPath, 24)
+          : it.icon
+            ? sym(it.icon, 24)
+            : h('span', { class: 'gm-noicon', 'aria-hidden': 'true' }),
       h(
         'span',
         { class: 'gm-text' },

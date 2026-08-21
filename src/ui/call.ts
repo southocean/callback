@@ -21,7 +21,7 @@ import type { MenuItem } from './gm3.js';
 import type { IconName } from './icons.js';
 import type { Store, Panel } from '../state.js';
 import { captionAt, clock } from '../state.js';
-import { profile, pitch, roles, transcript, referralBlurb } from '../data/cv.js';
+import { profile, pitch, roles, transcript, referralBlurb, SITE } from '../data/cv.js';
 import { renderChat, renderPeople, renderPresent } from './panels.js';
 import { renderOffClock } from './offclock.js';
 import { renderEng } from './eng.js';
@@ -315,6 +315,7 @@ export function renderCall(store: Store, quests: Quests, deps: CallDeps): HTMLEl
   const handBtn = cbtn('Raise hand', 'back_hand', '', () => {
     const on = !store.get().handRaised;
     store.dispatch({ t: 'hand', on });
+    if (on) slap();
     if (on) {
       quests.unlock('hand');
       toast('You raised your hand', 'Noted. That is more or less what this whole page is.');
@@ -423,7 +424,7 @@ export function renderCall(store: Store, quests: Quests, deps: CallDeps): HTMLEl
             class: 'm-btn m-filled',
             type: 'button',
             onclick: () => {
-              void navigator.clipboard?.writeText(referralBlurb + location.href.split('#')[0]).then(
+              void navigator.clipboard?.writeText(referralBlurb + SITE).then(
                 () => toast('Copied', 'A fact-only referral paragraph, ready to paste into the form.'),
                 () => toast('Clipboard blocked', 'It is in Host controls too, where you can select it by hand.'),
               );
@@ -437,14 +438,14 @@ export function renderCall(store: Store, quests: Quests, deps: CallDeps): HTMLEl
         h(
           'div',
           { class: 'ready-link' },
-          h('span', {}, location.href.split('#')[0].replace(/^https?:\/\//, '')),
+          h('span', {}, SITE.replace(/^https?:\/\//, '')),
           h(
             'button',
             {
               class: 'icon-btn',
               type: 'button',
               'aria-label': 'Copy link',
-              onclick: () => { void navigator.clipboard?.writeText(location.href.split('#')[0]); toast('Link copied', ''); },
+              onclick: () => { void navigator.clipboard?.writeText(SITE); toast('Link copied', ''); },
             },
             sym('content_copy', 20),
           ),
@@ -509,6 +510,51 @@ export function renderCall(store: Store, quests: Quests, deps: CallDeps): HTMLEl
     chip.style.setProperty('--rx', el.style.getPropertyValue('--rx'));
     layer.appendChild(chip);
     window.setTimeout(() => { el.remove(); chip.remove(); }, (TRACK / RISE) * 1000 + 200);
+  }
+
+  /**
+   * THE ONE CONTROL THAT MISBEHAVES.
+   *
+   * Everything else in this build is a clone, measured and deferred to. This is
+   * not, and it is deliberate: a page that only ever copies proves diligence and
+   * nothing else. The reactions already carry Nam's own set rather than Meet's;
+   * this escalates that. You press a control you have pressed a hundred times in
+   * the real product, and a hand comes at the glass.
+   *
+   * It is built to be tuned rather than argued about. SCARE is the only dial:
+   * 0 is a polite nudge, 1 is the full slap. Everything below scales off it, so
+   * Nam can find the level without touching the choreography.
+   *
+   * Three deliberate restraints, none of them a climbdown:
+   *   - it fires ONCE per raise, on the way up only. Lowering your hand is
+   *     quiet, so the gag cannot be farmed into an annoyance.
+   *   - it is one flash, not a strobe. A repeating flash would be a genuinely
+   *     different thing — the audit panel asserts nothing above 3 Hz, and a
+   *     single transition is not a frequency.
+   *   - pointer-events stay off throughout, so it never eats a click. A
+   *     recruiter who presses this by accident loses no progress.
+   *
+   * Nam ruled out a reduced-motion exemption for this and that is respected:
+   * the joke lands the same for everyone. The audit will say what it says.
+   */
+  const SCARE = 0.85;
+
+  function slap(): void {
+    quests.unlock('hand');
+    quests.unlock('slap');
+    const hand = h('div', { class: 'slap-hand', 'aria-hidden': 'true' }, '✋');
+    const flash = h('div', { class: 'slap-flash', 'aria-hidden': 'true' });
+    const wrap = h('div', { class: 'slap' }, flash, hand);
+    wrap.style.setProperty('--scare', String(SCARE));
+    layer.appendChild(wrap);
+    // The shake rides the whole call surface, not the overlay, so the interface
+    // itself takes the hit rather than the drawing of the hand.
+    stage.classList.add('slapped');
+    window.setTimeout(() => stage.classList.remove('slapped'), 420);
+    window.setTimeout(() => wrap.remove(), 1500);
+    // Said out loud for anyone on a screen reader, who gets the joke as text
+    // rather than as motion.
+    announce('A hand hits the screen. That was the one control that lied to you.');
   }
 
   /**
@@ -616,7 +662,7 @@ export function renderCall(store: Store, quests: Quests, deps: CallDeps): HTMLEl
 // --------------------------------------------------------------------------
 
 function hostControls(store: Store): HTMLElement {
-  const url = location.href.split('#')[0] ?? '';
+  const url = SITE;
   const text = referralBlurb + url;
   const copy = h(
     'button',

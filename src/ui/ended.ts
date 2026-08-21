@@ -7,12 +7,12 @@
 import { h } from '../dom.js';
 import { sym } from './icons.js';
 import type { Store } from '../state.js';
-import { profile, referralBlurb, meta } from '../data/cv.js';
+import { profile, referralBlurb, meta, SITE } from '../data/cv.js';
 import type { Quests } from '../achievements.js';
 
 export function renderEnded(store: Store, quests: Quests): HTMLElement {
   const address = `${profile.emailUser}@${profile.emailHost}`;
-  const url = location.href.split('#')[0] ?? '';
+  const url = SITE;
   const { got, total } = quests.count();
   const text = referralBlurb + url;
 

@@ -205,6 +205,30 @@ export function renderHome(store: Store, reducedMotion = false, body?: HTMLEleme
     if ((e as KeyboardEvent).key === 'Enter') tryCode();
   });
 
+  // The code field and the New button. Hoisted out of the bar because Meet's
+  // Calls tab carries neither — measured on the live product, where that bar
+  // holds only the lockup and the right-hand cluster.
+  const composer = h(
+    'div',
+    { class: 'home-composer' },
+    h('div', { class: 'composer-pill' }, sym('keyboard', 24), input, join),
+    h(
+      'button',
+      {
+        class: 'm-btn m-tonal m-new',
+        type: 'button',
+        // Meet's own label, which also gives the tooltip something better than
+        // the button's own text to read.
+        'aria-label': 'New meeting',
+        onclick: () => joining(() => store.dispatch({ t: 'screen', screen: 'lobby' })),
+      },
+      sym('video_call', 20),
+      // Wrapped so the breakpoint can drop the word and keep the icon, which
+      // is what Meet does below 1240.
+      h('span', { class: 'm-new-label' }, 'New'),
+    ),
+  );
+
   const bar = h(
     'header',
     { class: 'home-bar' },
@@ -223,26 +247,7 @@ export function renderHome(store: Store, reducedMotion = false, body?: HTMLEleme
       ),
       lockup(reducedMotion, () => store.dispatch({ t: 'screen', screen: 'home' })),
     ),
-    h(
-      'div',
-      { class: 'home-composer' },
-      h('div', { class: 'composer-pill' }, sym('keyboard', 24), input, join),
-      h(
-        'button',
-        {
-          class: 'm-btn m-tonal m-new',
-          type: 'button',
-          // Meet's own label, which also gives the tooltip something better than
-          // the button's own text to read.
-          'aria-label': 'New meeting',
-          onclick: () => joining(() => store.dispatch({ t: 'screen', screen: 'lobby' })),
-        },
-        sym('video_call', 20),
-        // Wrapped so the breakpoint can drop the word and keep the icon, which
-        // is what Meet does below 1240.
-        h('span', { class: 'm-new-label' }, 'New'),
-      ),
-    ),
+    composer,
     h(
       'div',
       { class: 'home-bar-right' },
@@ -275,7 +280,15 @@ export function renderHome(store: Store, reducedMotion = false, body?: HTMLEleme
     { class: 'rail', 'aria-label': 'Sections' },
     h(
       'button',
-      { class: 'rail-item', type: 'button', 'aria-current': 'true' },
+      {
+        class: 'rail-item',
+        type: 'button',
+        'aria-current': 'true',
+        // This had no onclick, so Calls was a one-way door: the rail rendered
+        // Meetings as a button and then ignored every press. Nam found it by
+        // trying to go back. Mirrors the Calls item below.
+        onclick: () => store.dispatch({ t: 'screen', screen: 'home' }),
+      },
       h('span', { class: 'rail-pill' }, sym('event', 24, { fill: true })),
       h('span', { class: 'rail-label' }, 'Meetings'),
     ),
@@ -285,7 +298,7 @@ export function renderHome(store: Store, reducedMotion = false, body?: HTMLEleme
         class: 'rail-item',
         type: 'button',
         'aria-current': 'false',
-        onclick: () => { location.hash = '#calls'; store.dispatch({ t: 'screen', screen: 'home' }); },
+        onclick: () => store.dispatch({ t: 'screen', screen: 'calls' }),
       },
       h('span', { class: 'rail-pill' }, sym('call', 24)),
       h('span', { class: 'rail-label' }, 'Calls'),
@@ -711,7 +724,16 @@ export function renderHome(store: Store, reducedMotion = false, body?: HTMLEleme
     // A different tab inside the same shell: no day view, no boot sequence, and
     // the rail shows Calls as current.
     boot = 'done';
+    // The Meetings tab starts its content 22px below the bar; the Calls tab does
+    // not — its search band is pinned to the very top of the content column and
+    // carries its own 16px. Measured: band at y=80 against a column starting at
+    // 64. Leaving the 22px on put ours at 102, which is the offset Nam saw.
+    main.classList.add('home-main-tab');
     main.appendChild(body);
+    // Meet's Calls tab has no composer: no code field, no New button. Measured
+    // on the live product, where the bar holds only the lockup and the right
+    // cluster. Removing rather than hiding keeps it out of the tab order.
+    composer.remove();
     if (!reducedMotion) settleLockup(bar);
     const items = rail.querySelectorAll('.rail-item');
     items[0]?.setAttribute('aria-current', 'false');
@@ -749,15 +771,23 @@ export function renderHome(store: Store, reducedMotion = false, body?: HTMLEleme
   // The New button is the one control whose tooltip is NOT its accessible name:
   // Meet labels it "New meeting" for screen readers and tips it as just "New".
   // Falling back to the label gave us "New meeting" in the bubble.
-  tip(bar.querySelector<HTMLElement>('.m-new')!, 'New');
-  tip(wrap.querySelector<HTMLElement>('.composer-pill')!, 'Enter a code or link');
-  // Touching Join dismisses the field's tooltip rather than leaving it up — and
-  // leaving Join re-arms it, because moving back onto the field is movement
-  // inside the field and fires no pointerenter of its own.
-  const pillEl = wrap.querySelector<HTMLElement>('.composer-pill')!;
-  const joinEl = wrap.querySelector<HTMLElement>('.composer-join');
-  joinEl?.addEventListener('pointerenter', hideTip);
-  joinEl?.addEventListener('pointerleave', () => rearm(pillEl));
+  // All three of these live inside the composer, and the Calls tab has no
+  // composer. They were written with non-null assertions, so the moment that
+  // tab stopped rendering one, tip(null) threw and the whole screen fell back
+  // to "That screen failed to load" — a crash produced entirely by the `!`.
+  // Guarding the group is the fix; the tooltips simply have nothing to attach
+  // to on that tab.
+  const pillEl = wrap.querySelector<HTMLElement>('.composer-pill');
+  if (pillEl) {
+    tip(bar.querySelector<HTMLElement>('.m-new')!, 'New');
+    tip(pillEl, 'Enter a code or link');
+    // Touching Join dismisses the field's tooltip rather than leaving it up —
+    // and leaving Join re-arms it, because moving back onto the field is
+    // movement inside the field and fires no pointerenter of its own.
+    const joinEl = wrap.querySelector<HTMLElement>('.composer-join');
+    joinEl?.addEventListener('pointerenter', hideTip);
+    joinEl?.addEventListener('pointerleave', () => rearm(pillEl));
+  }
   // Above, not below: the week strip tips upward because downward would land on
   // the meeting list. The day columns get one too — including today, whose
   // label is the word "Selected".

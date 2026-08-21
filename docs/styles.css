@@ -672,7 +672,12 @@ button { font: inherit; }
   display: flex; align-items: center; gap: 8px; background-color: var(--surface);
   border-radius: 8px; padding: 8px 8px 8px 14px; margin: 12px 0;
 }
-.ready-link span {
+/* :not(.ms) is load-bearing. sym() returns a <span>, so a bare `.ready-link
+   span` selector matches the glyph too, and this rule's `font` shorthand
+   resets font-family off 'Material Symbols Outlined' — the ligature then never
+   resolves and the literal word "content_copy" renders in the box. The font is
+   not the problem: every one of the 56 names in the subset resolves. */
+.ready-link span:not(.ms) {
   font: 400 13px/20px var(--font); color: var(--ink2); flex: 1 1 auto;
   overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
 }
@@ -1992,52 +1997,6 @@ body.plain { background: #fff; color: #16181c; }
   .egg-capt { bottom: 8px; font-size: 13px; }
 }
 
-/* ============================================================================
-   The Calls tab. The band and pill are Meet's measurements; the 45px headline
-   is the striking one — far larger than anything else in the product, which is
-   what makes an empty tab read as an invitation rather than a failure. ==== */
-.calls { display: flex; flex-direction: column; align-items: center; padding: 0 16px 64px; }
-.calls-band { width: 100%; max-width: 720px; padding: 24px 20px 0; box-sizing: border-box; }
-.calls-pill {
-  display: flex; align-items: center; gap: 12px;
-  height: 56px; padding: 0 8px 0 16px; border-radius: 28px;
-  background-color: var(--w); box-shadow: 0 1px 2px rgba(0,0,0,.06), 0 1px 3px 1px rgba(0,0,0,.08);
-}
-.calls-pill .ms { color: var(--sec); flex: 0 0 auto; }
-.calls-input {
-  flex: 1 1 auto; min-width: 0; border: 0; outline: none; background: transparent;
-  font: 400 16px/24px var(--font); color: var(--ink); padding: 0;
-}
-.calls-input::placeholder { color: var(--sec); }
-
-.calls-results { margin-top: 8px; }
-.calls-row {
-  position: relative; width: 100%; display: flex; align-items: center; gap: 16px;
-  padding: 12px 16px; border: 0; border-radius: 28px; background-color: var(--sched-idle);
-  cursor: pointer; text-align: left; font: inherit; color: inherit; --sl: #1f1f1f;
-}
-.calls-av {
-  flex: 0 0 auto; width: 40px; height: 40px; border-radius: 20px;
-  background: linear-gradient(145deg, #8ab4f8, #34a853); color: #10221a;
-  display: grid; place-items: center; font: 500 16px/1 var(--font-title);
-}
-.calls-row-t { display: flex; flex-direction: column; min-width: 0; }
-.calls-row-t b { font: 500 14px/20px var(--font-title); color: var(--ink); }
-.calls-row-t span { font: 400 13px/18px var(--font); color: var(--sec); }
-.calls-none { font: 400 14px/20px var(--font); color: var(--sec); padding: 12px 16px; margin: 0; }
-
-.calls-empty { display: flex; flex-direction: column; align-items: center; text-align: center; gap: 12px; padding-top: 96px; }
-.calls-art { width: 348px; max-width: 100%; }
-.calls-art svg { width: 100%; height: auto; }
-.calls-h { margin: 8px 0 0; font: 400 45px/52px var(--font-title); color: var(--ink); max-width: 22ch; }
-.calls-s { margin: 0; font: 400 16px/24px var(--font); color: var(--sec); max-width: 56ch; }
-.calls-empty .m-new { margin-top: 12px; }
-
-@media (max-width: 599px) {
-  .calls-h { font-size: 30px; line-height: 36px; }
-  .calls-empty { padding-top: 48px; }
-  .calls-band { padding: 16px 0 0; }
-}
 
 
 /* Captions sit clear of the control bar AND of the self-view tile, which is the
@@ -2555,6 +2514,30 @@ body.plain { background: #fff; color: #16181c; }
  * And the gap was 20 degrees at each end where Google bakes 21 degrees TOTAL
  * into its own track geometry. Back to 10.5 each side.
  *
+ * CORRECTION, after Nam saw the two ends touching on first load. 10.5 degrees
+ * is the right number for the PATHS and the wrong one for the PAINT, because
+ * both strokes have round caps. A cap adds S/2 = 2px beyond the path's end, so
+ * a 10.5deg gap — 4.03 units of arc at r 22 — is consumed almost exactly twice
+ * over: 2px from the track's cap, and 2 * cos(29.8deg) = 1.74 from the wave's,
+ * whose tangent at a midline crossing is tilted atan(A*K/R) = atan(12.6/22)
+ * off the circumference. Net visible gap: 0.03px. They touch.
+ *
+ * Google's own answer is in the live sheet, under the same custom properties
+ * the spin-cpi block below decodes: --XJrZW is a 4px gap, and every dash in
+ * gm3-cpi-active-grow ends in "- var(--EscQs, 4px)" — the dash is shortened by
+ * one stroke width so the caps fill back in and the gap you SEE is 4px.
+ *
+ * Applying that rule here: the paint gap wants 4px, the caps eat 3.74, so the
+ * path gap is 7.74 units = 20.15 degrees. Which is 20 degrees, one half-wave —
+ * the same lattice everything else on this spinner sits on. So:
+ *
+ *   gap    20deg each side      7.68 units, 3.94px visible after caps
+ *   track  360 - arc - 40       (260deg -> 99.83, 140deg -> 53.76)
+ *   offset (arc + 20) * 0.384   (80deg -> 30.72, 200deg -> 76.79)
+ *
+ * The arc itself does not move: it stays on half-wave multiples, so its ends
+ * still land on the circle. Only the track gives ground.
+ *
  * Light — the lobby's "Getting ready". Fixed at 3 half-waves, 60 degrees, which
  * is what the reference frames show. Nothing animates but the rotation, so the
  * ends sit on the circle in every frame rather than only at the extremes. A
@@ -2565,16 +2548,16 @@ body.plain { background: #fff; color: #16181c; }
 }
 .spin-light .spin-track {
   animation: none;
-  stroke-dasharray: 107.13 138.23;
-  stroke-dashoffset: -27.07;
+  stroke-dasharray: 99.83 138.23;
+  stroke-dashoffset: -30.72;
 }
 /* Cold — the first paint, where Meet's arc does breathe. Kept, but both ends of
    the breath are now on half-wave multiples (3 -> 9, so 60 to 180 degrees), so
    the extremes join cleanly and only the middle of the sweep drifts off. */
 @keyframes arc-cold2 { from { stroke-dasharray: 24.82 148.94; } to { stroke-dasharray: 74.47 148.94; } }
 @keyframes trk-cold2 {
-  from { stroke-dasharray: 107.13 138.23; stroke-dashoffset: -27.07; }
-  to   { stroke-dasharray: 61.05 138.23;  stroke-dashoffset: -73.15; }
+  from { stroke-dasharray: 99.83 138.23; stroke-dashoffset: -30.72; }
+  to   { stroke-dasharray: 53.76 138.23; stroke-dashoffset: -76.79; }
 }
 .spin-cold .spin-arc { animation-name: arc-cold2; }
 .spin-cold .spin-track { animation-name: trk-cold2; }
@@ -2582,7 +2565,7 @@ body.plain { background: #fff; color: #16181c; }
 @media (prefers-reduced-motion: reduce) {
   /* Still a clean 3 half-waves rather than an arbitrary slice. */
   .spin-arc { stroke-dasharray: 24.82 148.94; }
-  .spin-track { stroke-dasharray: 107.13 138.23; stroke-dashoffset: -27.07; }
+  .spin-track { stroke-dasharray: 99.83 138.23; stroke-dashoffset: -30.72; }
 }
 
 /* --- Join now: the label's own size ------------------------------------- */
@@ -2778,6 +2761,36 @@ body.plain { background: #fff; color: #16181c; }
 }
 .mic-meter i { width: 4px; height: 4px; border-radius: 2px; background-color: #0b57d0; }
 
+/* --- the meter goes away with the mic ----------------------------------- */
+/* Nam asked for this and he is right that Meet does it: turn the mic off in the
+   green room and the level meter leaves the tile. Confirmed on the live product
+   — an ancestor picks up a state class and the rule is, in Meet's own minified
+   names, ".eVWJjd.XDitY .BJ4pKc { display: none }".
+ *
+ * What Meet does NOT do is animate it. That rule is display:none against a
+ * computed "transition: all 0s", so the meter vanishes between two frames. Nam
+ * asked for a smooth exit instead, so this is a deliberate divergence and is
+ * listed as one — the seventh in a page that already documents six.
+ *
+ * display cannot transition, so the exit is opacity plus a small scale, which
+ * is GM3's own exit shape. 150ms on the standard easing this file uses
+ * everywhere; the meter is absolutely positioned, so nothing reflows around it.
+ * It is aria-hidden either way, so the fade is purely visual and there is no
+ * announcement to suppress. */
+.mic-meter {
+  transition: opacity 150ms cubic-bezier(0.4, 0, 0.2, 1),
+              transform 150ms cubic-bezier(0.4, 0, 0.2, 1);
+}
+.mic-meter.is-hidden {
+  opacity: 0;
+  transform: scale(0.8);
+  pointer-events: none;
+}
+/* Honour the same contract as the rest of the page: no motion, just gone. */
+@media (prefers-reduced-motion: reduce) {
+  .mic-meter { transition: none; }
+}
+
 /* --- the dark notice inside the tile ------------------------------------- */
 /* The same component as the achievement toast, measured there, so the numbers
    are already settled: 386 wide, #3c4043, radius 8, elevation 2, error glyph
@@ -2845,8 +2858,17 @@ body.plain { background: #fff; color: #16181c; }
    ~71 while the scale runs 1 -> 6.7, which is the fingerprint of exactly that
    order. Reverse it and the ripple slides across the control instead of
    blooming from the finger. */
+/* The Calls-tab controls are on these lists because ripple() was already
+   attached to every one of them in JS and none of them drew anything: the
+   behaviour is opt-in by selector, and adding a control in TypeScript without
+   adding it here gives you a fully wired press with no pixels. Worth knowing
+   before wiring the next one — a ripple that does nothing looks exactly like a
+   ripple nobody asked for. The 450ms cubic-bezier(0.2, 0, 0, 1) below was
+   re-confirmed on this pass, off a real press of Continue. */
 .device-chip::after, .round-ctl::after, .tile-more::after,
-.gm-item::after, .other-ways::after, .other-row::after {
+.gm-item::after, .other-ways::after, .other-row::after,
+.calls-row::after, .calls-continue::after,
+.cd-btn::after, .cd-icon::after, .cd-got::after {
   content: ''; position: absolute; inset: 0; border-radius: inherit;
   pointer-events: none; opacity: 0;
   background-image: radial-gradient(closest-side, var(--sl, #1f1f1f) max(100% - 70px, 65%), rgba(0, 0, 0, 0) 100%);
@@ -2854,7 +2876,9 @@ body.plain { background: #fff; color: #16181c; }
   transition: opacity .11s linear;
 }
 .device-chip.is-pressed::after, .round-ctl.is-pressed::after, .tile-more.is-pressed::after,
-.gm-item.is-pressed::after, .other-ways.is-pressed::after, .other-row.is-pressed::after {
+.gm-item.is-pressed::after, .other-ways.is-pressed::after, .other-row.is-pressed::after,
+.calls-row.is-pressed::after, .calls-continue.is-pressed::after,
+.cd-btn.is-pressed::after, .cd-icon.is-pressed::after, .cd-got.is-pressed::after {
   opacity: .1;
   transform: translate(var(--rx, 0px), var(--ry, 0px)) scale(7);
   transition: opacity .11s linear, transform .45s cubic-bezier(0.2, 0, 0, 1);
@@ -2956,7 +2980,9 @@ body.plain { background: #fff; color: #16181c; }
 /* The fade keeps the scale: the disc dissolves where it is rather than snapping
    back to a dot while still partly opaque. */
 .device-chip.is-fading::after, .round-ctl.is-fading::after, .tile-more.is-fading::after,
-.gm-item.is-fading::after, .other-ways.is-fading::after, .other-row.is-fading::after {
+.gm-item.is-fading::after, .other-ways.is-fading::after, .other-row.is-fading::after,
+.calls-row.is-fading::after, .calls-continue.is-fading::after,
+.cd-btn.is-fading::after, .cd-icon.is-fading::after, .cd-got.is-fading::after {
   opacity: 0;
   transition: opacity .15s linear, transform .45s cubic-bezier(0.2, 0, 0, 1);
 }
@@ -3025,15 +3051,14 @@ body.plain { background: #fff; color: #16181c; }
   background-color: rgba(221, 227, 234, .4);
 }
 
-/* 4. content_copy was rendering as the literal text "content_copy". ------ */
-/* `.ready-link span` sets a `font` shorthand, which resets font-family, and it
-   outranks .ms — so the ligature never resolved and the word overflowed the
-   box. The same trap as the offer card's icon, and the fix is the same. */
-.ready-link span:not(.ms) {
-  font: 400 13px/20px var(--font); color: var(--ink2); flex: 1 1 auto;
-  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
-}
-.ready-link > .ms { flex: 0 0 auto; }
+/* 4. content_copy rendered as the literal text "content_copy". ----------- */
+/* Diagnosed twice. The first pass added a `:not(.ms)` twin of the offending
+   rule and left the original in place, so the glyph still matched the bare
+   `.ready-link span` selector and still lost its font-family. Fixed at source
+   instead — see the note on that rule. The glyph sits inside the copy button,
+   so it is not a direct child of .ready-link; this keeps it from being
+   stretched by the row's flex. */
+.ready-link .ms { flex: 0 0 auto; }
 /* And this selector never matched anything: sym() returns a span, not an svg. */
 .ready-fine > .ms { flex: 0 0 auto; color: var(--blue); margin-top: 1px; }
 
@@ -3341,3 +3366,426 @@ body:has(.grid-wrap.is-solo) .count-chip[style*="transparent"] { display: none; 
 .reaction { bottom: 80px; height: 53px; }
 /* The name chip: 58,793 41x22, so its bottom is 815 — 85 up from the viewport. */
 .reaction-who { bottom: 85px; }
+
+/* ======================= THE CALLS TAB, REBUILT ========================== */
+/* Measured by driving the live product rather than reading a screenshot: open
+   the tab, focus the field, select a contact, press Continue, open the dialog's
+   menu. Every number below came off that pass.
+
+     band      720x96, #f0f4f9, radius 28
+     pill      680x56, #fff, radius 28 — so the band's padding is 20 all round
+     input     616x40, 16/24 Google Sans Text, #1f1f1f, at dx 52 inside the pill
+     art       348x152
+     headline  45/52 Google Sans, #1f1f1f
+     subtitle  22/28 Google Sans, #1f1f1f
+
+   Two things I had wrong before and would not have found by looking:
+   - the band was 96 tall, not 112;
+   - the subtitle is 22/28, which is larger than anything else on the screen
+     except the headline itself. */
+
+/* The Meetings tab indents its content 22px below the bar. The Calls tab does
+   not: its band is pinned to the very top of the content column. */
+.home-main-tab { padding-top: 0; }
+
+/* THE STRUCTURAL POINT, and the one worth reading before changing anything here.
+   Meet's band is NOT in the flow. Its wrapper is
+
+     position: absolute; top: 0; left: 860px; right: 860px;
+     margin: 0 8px; padding: 16px 0 0; width: 720px; z-index: 2
+
+   pinned to the top of the content column, centred in it, with the column
+   reserving the collapsed height (112px) as flow space. That is the whole reason
+   focusing the field can grow the panel 96 -> 406 without moving a pixel of the
+   page: there is nothing below it to move. Ours had the band in normal flow, so
+   opening it shoved the illustration and the headline down the screen — the
+   thing Nam described as "pushing the whole content below to go even lower".
+   Absolute positioning is not a styling preference here; it is the mechanism. */
+.calls { position: relative; display: flex; flex-direction: column; align-items: center;
+  width: 100%; padding: 0 16px 60px; }
+
+.calls-band {
+  position: absolute; z-index: 2;
+  top: 16px; left: 0; right: 0; margin: 0 auto;
+  width: 720px; max-width: calc(100% - 32px);
+  background-color: #f0f4f9; border-radius: 28px;
+  display: flex; flex-direction: column;
+  /* GM3 elevation level 2. Meet paints no box-shadow on the band itself — the
+     shadow comes from a helper class whose ::before and ::after each carry one
+     half of it, both offsets computed from a single elevation-level custom
+     property. Resolved at level 2 the pair is exactly this, and the colour is
+     flat #000 with the alpha carried by the layer's own opacity (.3 and .15).
+     Level 3, for reference, is the call dialog. */
+  box-shadow: 0 1px 2px 0 rgba(0, 0, 0, .3), 0 2px 6px 2px rgba(0, 0, 0, .15);
+  /* Measured on Meet's own elevation helper, and it matters when a surface
+     changes level rather than appearing outright. */
+  transition: box-shadow 75ms linear;
+}
+
+/* The pill's 20px inset IS the band's padding — 720 - 680 = 40, halved. */
+.calls-pill {
+  height: 56px; margin: 20px; border-radius: 28px; background-color: #fff;
+  display: flex; align-items: center; gap: 12px; padding: 0 16px;
+  /* 16 padding + 24 glyph + 12 gap = 52, which is where the input starts — and
+     also where the chip starts once one lands. Symmetric 16: the clear button
+     sits 16 from the pill's right edge, measured, not the 12 we had. */
+}
+.calls-pill > svg { flex: 0 0 auto; color: var(--sec); }
+.calls-input {
+  flex: 1 1 auto; min-width: 0; height: 40px; border: 0; background: transparent;
+  outline: none; font: 400 16px/24px var(--font); color: var(--ink);
+}
+.calls-input::placeholder { color: var(--sec); }
+
+/* Focus opens the panel. The pill gives up its white fill when it does — the
+   panel is the surface now, and two stacked fills would read as a seam.
+   It also TIGHTENS: the 20px inset becomes 14, and the gap down to the first row
+   is 7, not another 20. Measured — the expanded pill is 692 wide inside the 720
+   band (14 each side) and the first row starts 77 below the band's top, which is
+   14 + 56 + 7. Keeping 20 all round put our list 19px too low and made the whole
+   panel taller than the original. */
+.calls-band.open .calls-pill { background-color: transparent; margin: 14px 14px 7px; }
+
+/* The list is all but full-bleed: rows measured 712 inside a 720 band, and the
+   missing 8 is the scrollbar gutter, not a margin. */
+/* Re-measured: the list viewport is capped at 256px, not the 334 we had. 334 is
+   the height of the wrapper that holds the list AND the 72px footer, so using it
+   for the list alone made the panel 78px too tall. The expanded band is
+   406 = 72 (pill zone) + 256 (list) + 72 (footer) + the 6 of internal gaps. */
+.calls-list { display: none; }
+.calls-band.open .calls-list {
+  display: block; max-height: 256px; overflow-y: auto; overscroll-behavior: contain;
+}
+
+.calls-row {
+  position: relative; overflow: hidden;
+  width: 100%; height: 72px; border: 0; background: transparent; cursor: pointer;
+  display: flex; align-items: center; gap: 16px; padding: 0 16px; text-align: left;
+  /* 16 padding + 40 avatar + 16 gap = 72, where the name starts. */
+  font: inherit; color: inherit; --sl: #444746;
+}
+.calls-row-t { display: flex; flex-direction: column; min-width: 0; }
+.calls-row-t b { font: 400 16px/24px var(--font); color: var(--ink); }
+.calls-row-t > span {
+  font: 400 14px/20px var(--font); color: var(--sec);
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+
+/* Hover AND selected are the same GM3 state layer, not a background: #444746 at
+   .08. Selected simply keeps it on, which is why the two look identical in a
+   still and only differ by the avatar's tick. */
+/* Note the absent transition, which was measured and is not an omission: the
+   home screen's controls all fade their state layer over 75ms, but these rows
+   read `all 0s ease` on the live product. Rows snap. One rule does not cover
+   both surfaces, so this one is stated rather than inherited. */
+.calls-row::before {
+  content: ''; position: absolute; inset: 0; background-color: #444746;
+  opacity: 0; pointer-events: none;
+}
+.calls-row:hover::before, .calls-row[aria-selected="true"]::before { opacity: .08; }
+.calls-row:focus-visible { outline: 2px solid var(--blue); outline-offset: -2px; }
+
+/* The avatar. Meet uses a photo when it has one and a tinted monogram when it
+   does not; ours is always the monogram, because a reference's photo is even
+   more theirs to give than their address. */
+.calls-av {
+  position: relative;
+  flex: 0 0 auto; width: var(--s); height: var(--s); border-radius: 50%;
+  background-color: var(--bg); color: var(--fg);
+  display: grid; place-items: center;
+  font: 500 calc(var(--s) / 2.9) / 1 var(--font-title); letter-spacing: .3px;
+}
+
+/* Selected: a blue disc GROWS over the avatar. Measured on the live product,
+   where it is a separate absolutely-positioned node, not a swapped avatar:
+
+     opacity 0 -> 1        no transition — it snaps
+     transform scale(0) -> scale(1)   150ms ease-out
+
+   `transform` is the only property in the transition list, which is what makes
+   this read as the check inflating rather than fading. Ours replaced one node
+   with another, and a node swap has no start state to animate from, so the tick
+   simply appeared — the abruptness Nam flagged.
+
+   The avatar underneath is left in place, as Meet leaves it, so deselecting
+   shrinks the disc back and reveals the monogram again on the same curve. */
+.calls-av-check {
+  position: absolute; inset: 0; border-radius: 50%;
+  background-color: var(--blue); color: #fff;
+  display: grid; place-items: center;
+  opacity: 0; transform: scale(0);
+  transition: transform 150ms ease-out;
+  pointer-events: none;
+}
+.calls-row[aria-selected="true"] .calls-av-check { opacity: 1; transform: scale(1); }
+
+/* --- the chips ----------------------------------------------------------- */
+/* 174x32, #dde3ea, fully rounded, ink #444746. The avatar inside is the same
+   node at 40, scaled down by the chip's own height rather than re-measured. */
+.calls-chips { display: flex; align-items: center; gap: 8px; flex: 0 0 auto; }
+/* An empty flex child is still a flex child: it has no width but the pill's own
+   12px gap is applied on BOTH sides of it, so with nothing selected the caret
+   started 12px right of where Meet's does (1056 against 1044). Worth
+   remembering — `gap` counts empty boxes, and this is invisible until measured. */
+.calls-chips:empty { display: none; }
+.calls-chip {
+  display: flex; align-items: center; gap: 8px; height: 32px; padding: 0 4px 0 6px;
+  border-radius: 999px; background-color: var(--composer-h); color: var(--sec);
+  max-width: 220px;
+}
+/* 28 at a 2px inset in a 32-tall chip, measured. It was 24. */
+.calls-chip .calls-av { width: 28px; height: 28px; font-size: 11px; }
+.calls-chip-t {
+  font: 500 14px/20px var(--font); color: var(--sec);
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.calls-chip-x {
+  flex: 0 0 auto; width: 24px; height: 24px; border: 0; border-radius: 50%;
+  background: transparent; color: var(--sec); cursor: pointer;
+  display: grid; place-items: center; padding: 0;
+}
+.calls-chip-x:hover { background-color: rgba(68, 71, 70, .08); }
+
+/* The trailing clear, which appears only once something is selected and wipes
+   the whole selection rather than one chip. */
+.calls-x { flex: 0 0 auto; }
+.calls-x[hidden] { display: none; }
+
+/* --- the footer --------------------------------------------------------- */
+/* Continue measured 125x40 at 16 from the band's bottom and right, #0b57d0 at
+   radius 20, padding 0 16 0 24 — asymmetric because the chevron sits closer to
+   the edge than the label does. */
+.calls-foot { display: none; }
+.calls-band.open .calls-foot { display: flex; justify-content: flex-end; padding: 16px; }
+.calls-continue {
+  position: relative; overflow: hidden;
+  height: 40px; border: 0; border-radius: 20px; cursor: pointer;
+  padding: 0 16px 0 24px; display: inline-flex; align-items: center; gap: 4px;
+  font: 500 14px/1 var(--font); background-color: var(--blue); color: #fff; --sl: #fff;
+}
+.calls-continue:disabled {
+  background-color: var(--disabled-bg); color: var(--disabled-fg); cursor: default;
+}
+.calls-none { font: 400 14px/20px var(--font); color: var(--sec); margin: 0; padding: 16px; }
+
+/* --- the empty state ---------------------------------------------------- */
+/* The band is out of flow, so this block reserves its collapsed footprint —
+   112px, the holder's full height — and everything below is measured from
+   there. Meet: flow content starts at y=176 against a column top of 64, and its
+   wrapper then adds 110px of its own padding, putting the illustration at 286.
+   112 + 110 = 222, and 64 + 222 = 286. That is the whole vertical rhythm.
+
+   The two text blocks carry NO margin on the live product. The only gap in the
+   group is the 110 above the art; ours had 8 and 12 sprinkled in, which is what
+   pushed the headline and subtitle off by a compounding amount. */
+.calls-empty { display: flex; flex-direction: column; align-items: center; text-align: center;
+  padding-top: 112px; }
+.calls-art { margin-top: 110px; }
+.calls-art svg { display: block; max-width: 100%; height: auto; }
+.calls-h {
+  font: 400 45px/52px var(--font-title); color: var(--ink);
+  margin: 0; max-width: 720px;
+}
+.calls-s { font: 400 22px/28px var(--font-title); color: var(--ink); margin: 0; max-width: 690px; }
+.calls-empty .m-new { margin-top: 28px; }
+
+@media (max-width: 760px) {
+  .calls-band { width: 100%; }
+  .calls-h { font: 400 32px/40px var(--font-title); }
+  .calls-s { font: 400 18px/24px var(--font-title); }
+  .calls-art { margin-top: 32px; }
+  /* The band is still absolute and still ~96 tall, so the reservation stands;
+     only the padding above the art comes down. */
+}
+
+/* --- the call dialog ---------------------------------------------------- */
+/* 512x532, #e9eef6, radius 28, GM3 elevation level 3, centred on the VIEWPORT
+   (not on the content column, which is what the band centres on).
+   The layer is position:fixed at z-index 2001, which is Meet's own number.
+
+   CORRECTION to what this comment used to claim. It said Meet has "no scrim and
+   no shadow" and that the panel's own fill was the only separation. Both halves
+   were wrong, and both were wrong because the page was only ever looked at, not
+   driven: the shadow is on an elevation helper's pseudo-elements (so it reads as
+   `box-shadow: none` on the panel itself), and the scrim is a real
+   rgba(0,0,0,.32) node that fades in — it is invisible in a still taken before
+   the transition finishes, which is exactly the still that got measured. */
+.cd-scrim {
+  position: fixed; inset: 0; z-index: 2001;
+  display: grid; place-items: center; padding: 16px;
+}
+
+/* The dim. A separate node at z-index -1 inside the layer, which is how Meet
+   keeps it behind the panel without opening a second stacking context. */
+.cd-shade {
+  position: fixed; inset: 0; z-index: -1;
+  background-color: rgba(0, 0, 0, .32);
+  animation: cd-shade-in 150ms linear both;
+}
+/* The opacity fade is on the wrapper and the scale is on the panel — two
+   elements, two durations (75 and 150). Putting both on one node would be a
+   different, and visibly cheaper, animation. */
+.cd-wrap { display: grid; place-items: center; animation: cd-wrap-in 75ms linear both; }
+
+@keyframes cd-shade-in { from { opacity: 0; } to { opacity: 1; } }
+@keyframes cd-wrap-in { from { opacity: 0; } to { opacity: 1; } }
+@keyframes cd-pop-in { from { transform: scale(.8); } to { transform: none; } }
+
+.cd {
+  width: 512px; max-width: 100%; background-color: var(--composer);
+  border-radius: 28px;
+  /* Meet builds this out of three stacked blocks with different insets rather
+     than one padded panel: header `16px 16px 0 0`, body `32px 32px 0`, and a
+     notice that sits 16 from the panel edge — outside the body, not inside it.
+     So the body's 32 is the panel's padding here, and the two blocks that want
+     16 out-dent themselves by the difference. */
+  padding: 0 32px 24px;
+  display: flex; flex-direction: column; align-items: center; text-align: center;
+  /* Elevation level 3, resolved from the same two-pseudo system as the band. */
+  box-shadow: 0 1px 3px 0 rgba(0, 0, 0, .3), 0 4px 8px 3px rgba(0, 0, 0, .15);
+  animation: cd-pop-in 150ms cubic-bezier(0, 0, .2, 1) both;
+}
+/* More options and Close, 40x40, 16 from the top and the right, 8 apart. The
+   right inset is 16 and the body's is 32, so the bar has to out-dent itself. */
+.cd-bar { align-self: stretch; display: flex; justify-content: flex-end; gap: 8px;
+  margin-right: -16px; padding-top: 16px; }
+.cd-icon {
+  position: relative; overflow: hidden;
+  width: 40px; height: 40px; border-radius: 20px; color: var(--sec);
+  --sl: var(--sec);
+}
+
+/* Header 56 (16 + 40) + body padding 32 + the avatar's own 16 = 104, which is
+   where the avatar sits. It was landing at 88. */
+.cd .calls-av { margin-top: 48px; }
+/* #444746, measured — not the near-black --ink we had it at. */
+.cd-name { font: 400 28px/36px var(--font-title); color: var(--sec); margin: 16px 0 0; }
+.cd-mail { font: 400 16px/24px var(--font-title); color: var(--sec); margin: 4px 0 0; }
+/* Ours, not Meet's: Meet knows who your contacts are and has no reason to say. */
+.cd-rel { font: 400 14px/20px var(--font); color: var(--sec); margin: 12px 0 0; max-width: 380px; }
+
+.cd-btns { display: flex; gap: 16px; margin-top: 24px; }
+.cd-btn {
+  position: relative; overflow: hidden;
+  height: 56px; border-radius: 28px; padding: 0 24px; border: 0; cursor: pointer;
+  display: inline-flex; align-items: center; gap: 8px; text-decoration: none;
+  font: 500 16px/20px var(--font-title);
+}
+.cd-voice { background-color: var(--nav-pill); color: var(--nav-icon); --sl: var(--nav-icon); }
+.cd-video { background-color: var(--blue); color: #fff; --sl: #fff; }
+.cd-btn[aria-disabled="true"] {
+  background-color: var(--disabled-bg); color: var(--disabled-fg); pointer-events: none;
+}
+
+/* THE STATE LAYERS, which were missing outright — every control in this dialog
+   was inert to the pointer.
+
+   The rule, confirmed on all five controls here: a ::before at inset 0 with the
+   radius inherited, tinted with THE CONTROL'S OWN ON-COLOUR, opacity 0 -> .08
+   over 75ms linear. Never a neutral black. Read off the live product:
+
+     Voice call    #c2e7ff fill -> #001d35 layer
+     Video call    #0b57d0 fill -> #ffffff layer
+     Got it        transparent  -> #0b57d0 layer
+     more / close  transparent  -> #444746 layer
+
+   Each of those layer colours is exactly the control's own label and icon
+   colour, which is why the hover reads as the control gaining more of itself
+   rather than as grey being poured over it. `--sl` already carries that colour
+   on every one of these for the ripple, so the layer can just use it. */
+.cd-btn::before, .cd-icon::before, .cd-got::before {
+  content: ''; position: absolute; inset: 0; border-radius: inherit;
+  background-color: var(--sl); opacity: 0;
+  transition: opacity 75ms linear; pointer-events: none;
+}
+.cd-btn:hover::before, .cd-icon:hover::before, .cd-got:hover::before { opacity: .08; }
+/* Focus is .12 on the same layer, which is the GM3 figure and keeps a
+   keyboard user's position visible without a second treatment. */
+.cd-btn:focus-visible::before, .cd-icon:focus-visible::before,
+.cd-got:focus-visible::before { opacity: .12; }
+.cd-btn[aria-disabled="true"]::before { display: none; }
+.cd-as { font: 400 14px/20px var(--font); color: var(--sec); margin: 16px 0 0; }
+
+/* The notice. Re-measured on the live dialog rather than borrowed from the
+   Meetings tab's offer row, which is where the old #f0f4f9 / radius 12 came
+   from: it is #dde3ea at radius 28 with an even 16 of padding, and it sits 16
+   from the panel's edge — outside the body's 32, hence the out-dent. */
+.cd-notice {
+  margin: 16px -16px 0; align-self: stretch; display: flex; align-items: center; gap: 16px;
+  background-color: var(--composer-h); border-radius: 28px; padding: 16px; text-align: left;
+}
+/* Both lines are 12/16 Google Sans at #444746 with .1px tracking — the title is
+   the same size as the body and differs only by weight. Ours had the title at
+   14/20 in the body face, which made the card read as a heading plus small
+   print rather than as one note. */
+.cd-notice-t { display: flex; flex-direction: column; min-width: 0; gap: 8px; }
+.cd-notice-t b { font: 500 12px/16px var(--font-title); color: var(--sec); letter-spacing: .1px; }
+.cd-notice-t > span { font: 400 12px/16px var(--font-title); color: var(--sec); letter-spacing: .1px; }
+/* The outlined button. The 1px #747775 border is right and was already right;
+   the label is #0b57d0, not the --nav-label #00639b it was using. */
+.cd-got {
+  flex: 0 0 auto; position: relative; overflow: hidden;
+  height: 40px; border-radius: 20px; padding: 0 24px; cursor: pointer;
+  border: 1px solid #747775; background: transparent; color: var(--blue);
+  font: 500 14px/20px var(--font-title); --sl: var(--blue);
+}
+
+@media (max-width: 560px) {
+  .cd { padding: 16px 20px 20px; }
+  .cd-btns { flex-direction: column; width: 100%; }
+  .cd-btn { justify-content: center; }
+}
+
+/* ===================== THE HAND THAT HITS THE GLASS ====================== */
+/* The only control in this build that lies to you. Nam's idea, and the point of
+   it: a clone that never deviates proves diligence and nothing else. The
+   reactions already carry his own emoji set rather than Meet's; this escalates
+   that, on a button a recruiter has pressed a hundred times in the real product.
+ *
+ * --scare is set on the element from one constant in call.ts and is the only
+ * dial. Everything here scales off it, so the level can be tuned without
+ * rewriting the choreography.
+ *
+ * One flash, not a strobe — a single opacity transition is not a frequency, and
+ * the audit panel's 3 Hz assertion is about frequencies. The shake is applied to
+ * the call surface rather than to this overlay, so the interface takes the hit
+ * instead of the drawing of the hand. Pointer events stay off the whole time so
+ * it can never swallow a click. */
+.slap {
+  position: fixed; inset: 0; z-index: 60; pointer-events: none;
+  display: grid; place-items: center; overflow: hidden;
+}
+.slap-flash {
+  position: absolute; inset: 0; background-color: #fff;
+  animation: slap-flash 460ms linear both;
+}
+.slap-hand {
+  font-size: 42vmin; line-height: 1; user-select: none;
+  filter: drop-shadow(0 18px 40px rgba(0, 0, 0, .55));
+  animation: slap-rush 1.25s cubic-bezier(0.16, 0.84, 0.24, 1) both;
+}
+/* Comes from far off, overshoots the glass, then sits there a beat too long. */
+@keyframes slap-rush {
+  from { transform: scale(.12) rotate(-10deg); opacity: 0; }
+  8%   { opacity: 1; }
+  46%  { transform: scale(calc(1.20 + .55 * var(--scare, 1))) rotate(3deg); }
+  58%  { transform: scale(calc(1.02 + .42 * var(--scare, 1))) rotate(-1deg); }
+  82%  { transform: scale(calc(1.06 + .44 * var(--scare, 1))) rotate(0deg); opacity: 1; }
+  to   { transform: scale(calc(1.10 + .46 * var(--scare, 1))) rotate(0deg); opacity: 0; }
+}
+/* Peaks on impact, not on arrival — the flash is the contact, not the approach. */
+@keyframes slap-flash {
+  from { opacity: 0; }
+  38%  { opacity: 0; }
+  46%  { opacity: calc(.26 * var(--scare, 1)); }
+  to   { opacity: 0; }
+}
+/* The interface itself recoiling. Rides the call surface, four beats, done. */
+.slapped { animation: slap-shake 420ms cubic-bezier(0.36, 0.07, 0.19, 0.97) both; }
+@keyframes slap-shake {
+  0%, 100% { transform: translate3d(0, 0, 0); }
+  18%  { transform: translate3d(-9px, 4px, 0) rotate(-.35deg); }
+  38%  { transform: translate3d(7px, -5px, 0) rotate(.3deg); }
+  58%  { transform: translate3d(-5px, 3px, 0) rotate(-.2deg); }
+  78%  { transform: translate3d(3px, -2px, 0) rotate(.1deg); }
+}

@@ -71,6 +71,15 @@ export const profile = {
   languages: 'Vietnamese (native) · English C2 · Swedish C1',
 } as const;
 
+/**
+ * Where this page actually lives. Hard-coded rather than read off
+ * location.href: the share card, the copy buttons and the referral note all
+ * quote a URL a stranger has to be able to type, and during development
+ * location.href is localhost:4173. GitHub Pages serves docs/ from the repo
+ * root, so this is the whole of it.
+ */
+export const SITE = 'https://southocean.github.io/callback/';
+
 /** The one-liner. Five seconds to land (review U5). */
 export const pitch =
   'I have spent seven years leading the front end of a real-time multiplayer client — ' +

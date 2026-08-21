@@ -143,6 +143,15 @@ export function renderLobby(store: Store, media: Media): HTMLElement {
   const notice = h('div', { class: 'tile-notice-slot' });
 
   /**
+   * The level meter, hoisted out of the tile's child list because the mic now
+   * hides it. Meet only shows the meter while the mic is on; with the mic off
+   * there is no level to show, so the corner goes empty. preMic survives a
+   * revisit, so the initial state has to be read from it rather than assumed.
+   */
+  const meter = micMeter();
+  meter.classList.toggle('is-hidden', !preMic);
+
+  /**
    * Meet shows the dark notice when you turn a device ON that it cannot find —
    * which for this page is both of them. Turning the mic on therefore raises
    * "Microphone not found", and that is true here rather than borrowed: this
@@ -166,6 +175,7 @@ export function renderLobby(store: Store, media: Media): HTMLElement {
   micCtl.btn.addEventListener('click', () => {
     preMic = !preMic;
     micCtl.btn.classList.toggle('off', !preMic);
+    meter.classList.toggle('is-hidden', !preMic);
     micCtl.btn.setAttribute('aria-label', preMic ? 'Turn off microphone' : 'Turn on microphone');
     // Rebuild the glyph, keeping the ring that clear() would otherwise take.
     const glyph = micCtl.btn.querySelector('.ms');
@@ -226,7 +236,7 @@ export function renderLobby(store: Store, media: Media): HTMLElement {
     avatar,
     unavail,
     notice,
-    micMeter(),
+    meter,
     h('div', { class: 'preview-ctls' }, micCtl.wrap, camCtl.wrap, fxCtl.wrap),
   );
 

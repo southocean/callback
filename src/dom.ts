@@ -88,4 +88,9 @@ export const icons = {
   end: 'M12 9c-1.6 0-3.2.3-4.7.7v3.1c0 .4-.2.7-.6.9-1 .5-2 1.2-2.8 2-.2.2-.4.3-.7.3s-.5-.1-.7-.3l-2.5-2.5a1 1 0 0 1 0-1.4C3.2 8.9 7.4 7 12 7s8.8 1.9 12 4.8c.4.4.4 1 0 1.4L21.5 15.7c-.2.2-.4.3-.7.3s-.5-.1-.7-.3c-.8-.8-1.8-1.5-2.8-2-.4-.2-.6-.5-.6-.9v-3.1C15.2 9.3 13.6 9 12 9Z',
   doc: 'M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8l-6-6Zm2 16H8v-2h8v2Zm0-4H8v-2h8v2Zm-3-5V3.5L18.5 9H13Z',
   copy: 'M16 1H4a2 2 0 0 0-2 2v14h2V3h12V1Zm3 4H8a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h11a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2Zm0 16H8V7h11v14Z',
+  // Two glyphs the Calls tab needs that the 7 kB Material subset does not
+  // carry, drawn here rather than growing the font: the search field's
+  // magnifier, and the block mark on the call dialog's one menu item.
+  search: 'M10 4a6 6 0 1 0 3.7 10.7l4.8 4.8 1.4-1.4-4.8-4.8A6 6 0 0 0 10 4Zm0 2a4 4 0 1 1 0 8 4 4 0 0 1 0-8Z',
+  block: 'M12 3a9 9 0 1 0 0 18 9 9 0 0 0 0-18Zm0 2c1.6 0 3.1.5 4.2 1.4L6.4 16.2A7 7 0 0 1 12 5Zm0 14c-1.6 0-3.1-.5-4.2-1.4l9.8-9.8A7 7 0 0 1 12 19Z',
 };

@@ -4,7 +4,7 @@
 // The screen list mirrors Meet's actual flow — home, lobby, call, ended — so the
 // clone covers the whole journey rather than one screenshot of it (review V1).
 
-export type Screen = 'home' | 'lobby' | 'call' | 'ended';
+export type Screen = 'home' | 'calls' | 'lobby' | 'call' | 'ended';
 export type Panel = 'none' | 'chat' | 'people' | 'present' | 'offclock' | 'tools' | 'host';
 export type EngTab = 'spec' | 'design' | 'tests' | 'a11y' | 'perf' | 'fx' | 'net' | 'reqs';
 export type FxPreset = 'off' | 'soften' | 'normalise' | 'edges' | 'kaleido';
@@ -187,6 +187,7 @@ export function parseRoute(hash: string): Route {
 
   if (head === 'plain') return { screen: 'call', panel: 'none', plain: true };
   if (head === 'ended') return { screen: 'ended', panel: 'none' };
+  if (head === 'calls') return { screen: 'calls', panel: 'none' };
   if (head === 'lobby') return { screen: 'lobby', panel: 'none' };
   if (head === 'call') return { screen: 'call', panel: 'none' };
   if (head === '' || head === 'home') return { screen: 'home', panel: 'none' };
@@ -208,6 +209,7 @@ export function parseRoute(hash: string): Route {
 export function routeToHash(s: State): string {
   if (s.plain) return '#plain';
   if (s.screen === 'home') return '#home';
+  if (s.screen === 'calls') return '#calls';
   if (s.screen === 'lobby') return '#lobby';
   if (s.screen === 'ended') return '#ended';
   if (s.panel === 'tools') return `#tools/${s.engTab}`;
