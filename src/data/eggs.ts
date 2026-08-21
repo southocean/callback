@@ -11,8 +11,9 @@
 //
 // One egg sits inside the current week no matter when the page is opened, so the
 // mark is always discoverable without hunting. The rest are on real dates —
-// Halloween has the prosthetics, and the Robinson audition sits on the day it
-// was actually filmed. Finding those is the game.
+// Halloween has the prosthetics, the Robinson audition sits on the day it was
+// actually filmed, and the premiere is the day Tomma Händer screened. Finding
+// those is the game.
 
 export interface Egg {
   /** Stable id, used in the URL so an egg can be linked directly. */
@@ -70,13 +71,27 @@ export const eggs: Egg[] = [
     caption: 'Sharing screen — standup.mp4',
   },
   {
-    id: 'acting',
-    on: [11, 20],
-    title: 'Tomma Händer',
-    blurb: 'A friend’s film. Not a hobby by the end of it.',
-    clip: 'media/acting.mp4',
-    poster: 'media/acting.jpg',
-    caption: 'Sharing screen — acting.mp4',
+    // Was pointing at the living-room self-tape as a stand-in. This is the film
+    // itself now — Nam picked the cut, 11:20 to 11:50, which is the sequence
+    // with the most shouting in it. English subtitles are burned into the print.
+    id: 'premiere',
+    on: [8, 28],
+    title: 'Movie premier',
+    blurb: 'Tomma Händer, on a real screen. Thirty seconds of the loudest part.',
+    clip: 'media/premiere.mp4',
+    poster: 'media/premiere.jpg',
+    caption: 'Sharing screen — premiere.mp4',
+  },
+  {
+    // Early October, which is when a Halloween park casts its monsters — and far
+    // enough from the 31st that it does not collide with the prosthetics egg.
+    id: 'zombie',
+    on: [10, 4],
+    title: 'Furuviksparken scariest monster',
+    blurb: 'Audition tape. The brief was “scariest”, and there is no dignified way to go for it.',
+    clip: 'media/zombie.mp4',
+    poster: 'media/zombie.jpg',
+    caption: 'Sharing screen — zombie.mp4',
   },
 ];
 
