@@ -3789,3 +3789,271 @@ body:has(.grid-wrap.is-solo) .count-chip[style*="transparent"] { display: none; 
   58%  { transform: translate3d(-5px, 3px, 0) rotate(-.2deg); }
   78%  { transform: translate3d(3px, -2px, 0) rotate(.1deg); }
 }
+
+/* ============ THE TILE IS 16:9, AND EVERYTHING ELSE FOLLOWS ============== */
+/* Measured 2026-08-22 (tools/baseline-call.md). Meet's tile is aspect-locked
+   and letterboxed inside whatever area is left; ours stretched to fill. That
+   single difference is why we had no frame-shrink — with a stretch-fit tile
+   there is nothing for a reserved strip to shrink.
+ *
+ *   plain        1889x1063    tray open   1797x1011    captions  1505x847
+ *   1889/1063  =  1797/1011  =  1505/847  =  1.777
+ *
+ * So there is one rule, not three layouts: reserve height, and the tile refits.
+ *
+ * container-type: size plus cqw/cqh is the ONE css-only formulation that fits a
+ * ratio box to a container in both axes. The obvious attempts fail silently:
+ * `width:100%` makes width definite so max-height clamps the height and breaks
+ * the ratio, and `height:100%` breaks it the other way. Do not "simplify" this
+ * back to max-width/max-height. */
+.grid-wrap.is-solo { display: grid; place-items: center; container-type: size; }
+.solo {
+  width: min(100cqw, calc(100cqh * 16 / 9));
+  height: auto;
+  aspect-ratio: 16 / 9;
+}
+
+/* The reservations, measured: the tray takes 52, captions take 216. They
+   compose additively when both are on, which needs no special case — and the
+   caption band's top edge lands exactly on the tile's bottom, measured at
+   y 919 against a tile ending at 919. */
+body.tray-open .grid-wrap.is-solo { bottom: calc(var(--botbar) + 52px); }
+body.cc-on .grid-wrap.is-solo { bottom: calc(var(--botbar) + 216px); }
+body.tray-open.cc-on .grid-wrap.is-solo { bottom: calc(var(--botbar) + 268px); }
+
+/* --- the reactions tray -------------------------------------------------- */
+/* 40x40 buttons on a 40px pitch, sitting above the bar in the 52 it reserves.
+   Meet puts a skin-tone control after a 12px gap; ours does not, because it
+   configures a Google account preference we have no equivalent for, and an
+   inert control that looks configurable is worse than no control. */
+.tray {
+  position: absolute; left: 50%; transform: translateX(-50%);
+  bottom: calc(var(--botbar) + 6px); z-index: 7;
+  display: flex; align-items: center; gap: 0;
+  padding: 0 4px; border-radius: 24px; background-color: rgba(32, 33, 36, .9);
+}
+.tray-btn {
+  width: 40px; height: 40px; border: 0; border-radius: 9999px; padding: 0;
+  background: transparent; cursor: pointer; font-size: 22px; line-height: 1;
+  display: grid; place-items: center; --sl: #fff; position: relative; overflow: hidden;
+}
+.tray-btn:hover { background-color: rgba(255, 255, 255, .1); }
+.tray-btn:focus-visible { outline: 2px solid #a8c7fa; outline-offset: -2px; }
+
+/* The active control state, measured on the bar: radius 24 -> 12 and a #a8c7fa
+   fill, carrying Meet's own six-step morph. This is the same shape language as
+   the pre-join round controls — a pill becoming a rounded square in a tint —
+   so it reuses that curve rather than inventing a second one. */
+.cbtn.is-active {
+  background-color: #a8c7fa; color: #001d35; border-radius: 12px;
+  transition: border-radius .2s steps(6, jump-none), background-color .2s;
+}
+
+/* --- reactions, re-measured --------------------------------------------- */
+/* Two corrections, both against values this stylesheet previously carried as
+   measured. Evidence in tools/baseline-call.md.
+ *
+ * The band is anchored to the CALL AREA, not the tile. At 2560 every reaction
+ * landed between x 73 and x 327 while the tile started at 384 — they rise
+ * through the left margin, outside the tile completely. --rx is now an absolute
+ * offset from the call area's left edge, set in call.ts, so these rules stop
+ * pinning a `left` of their own.
+ *
+ * And the chip RIDES WITH the emoji. It is not a fixed marker that fades while
+ * the emoji flies off: every chip sat directly beneath its own emoji at every
+ * height sampled. So it gets the same rise, the same duration, and a -50% to
+ * centre it under the emoji's 53px box. */
+.reaction, .reaction-who { left: 0; }
+body.has-panel .reaction, body.has-panel .reaction-who { left: 0; }
+.reaction-who {
+  left: 26px;                       /* half the emoji box, so -50% centres it */
+  animation: react-rise-chip var(--dur, 3.85s) linear both;
+}
+@keyframes react-rise-chip {
+  from { transform: translateX(var(--rx, 0px)) translateY(0) translateX(-50%); opacity: 1; }
+  85%  { opacity: 1; }
+  to   { transform: translateX(var(--rx, 0px)) translateY(calc(var(--rise, 508px) * -1)) translateX(-50%); opacity: 0; }
+}
+
+/* --- the chat panel ------------------------------------------------------ */
+/* Measured: panel #1e1f20 (we had #202124), and the bubble capped at 244 inside
+   a 358 panel — about 68%. Ours had no cap at all, so a bubble ran the full
+   312px content box and collided with the scrollbar, which is the clipping Nam
+   reported. Expressed as a fraction rather than 244px so it survives the panel
+   being a different width from Meet's.
+ *
+ * Radius 20 and padding 12, both measured. Bubbles stay LEFT-aligned and grey:
+ * Meet right-aligns your own messages in #004a77, but this panel is Nam talking
+ * to the visitor, so the visitor is reading someone else's messages. The fiction
+ * is right; only the geometry was wrong. */
+:root { --panel: #1e1f20; }
+.msg-body {
+  max-width: 68%;
+  border-radius: 20px;
+  padding: 12px;
+}
+
+/* ================== SCREEN SHARE — THE AUGMENTED ONE ===================== */
+/* A drawing of Chrome's share dialog, not a clone of a Meet surface. The real
+   picker is a native dialog: it never appears in a tab screenshot and cannot be
+   read from the page, so nothing here is measured — it is matched to the
+   reference shot Nam sent, and that is said plainly rather than dressed up as a
+   spec. Everything the picker offers is content we author. See ui/share.ts. */
+.sp-scrim {
+  position: fixed; inset: 0; z-index: 2100;
+  background-color: rgba(0, 0, 0, .45);
+  display: grid; place-items: center; padding: 16px;
+}
+.sp {
+  width: 640px; max-width: 100%; max-height: 88vh;
+  background-color: #292a2d; color: #e3e3e3;
+  border-radius: 8px; padding: 20px 24px 16px;
+  display: flex; flex-direction: column;
+  box-shadow: 0 12px 32px rgba(0, 0, 0, .5);
+}
+.sp-h { font: 400 18px/24px var(--font-title); margin: 0; color: #e3e3e3; }
+.sp-s { font: 400 13px/18px var(--font); color: #9aa0a6; margin: 6px 0 14px; }
+
+.sp-tabs { display: flex; border-bottom: 1px solid #3c4043; }
+.sp-tab {
+  flex: 1 1 auto; height: 40px; border: 0; background: transparent; cursor: pointer;
+  color: #9aa0a6; font: 500 13px/1 var(--font); border-bottom: 2px solid transparent;
+}
+.sp-tab[aria-selected="true"] { color: #8ab4f8; border-bottom-color: #8ab4f8; }
+.sp-tab:hover { background-color: rgba(255, 255, 255, .06); }
+
+.sp-body { display: flex; gap: 16px; padding: 14px 0; min-height: 0; }
+.sp-list { flex: 1 1 auto; min-width: 0; overflow-y: auto; max-height: 260px; }
+.sp-row {
+  position: relative; overflow: hidden;
+  width: 100%; display: flex; align-items: center; gap: 12px; padding: 8px 10px;
+  border: 0; background: transparent; color: inherit; cursor: pointer; text-align: left;
+  border-radius: 6px; --sl: #fff;
+}
+.sp-row[aria-selected="true"] { background-color: #1a73e8; }
+.sp-row:hover:not([aria-selected="true"]) { background-color: rgba(255, 255, 255, .08); }
+.sp-fav { flex: 0 0 auto; width: 16px; height: 16px; display: grid; place-items: center; }
+.sp-fav-dot {
+  width: 16px; height: 16px; border-radius: 4px; background-color: #8ab4f8; color: #062e6f;
+  font: 700 10px/16px var(--font); text-align: center;
+}
+.sp-row-t { display: flex; flex-direction: column; min-width: 0; }
+.sp-row-t b { font: 400 13px/18px var(--font); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.sp-row-t > span { font: 400 11px/15px var(--font); color: #9aa0a6; }
+
+.sp-preview { flex: 0 0 240px; display: flex; flex-direction: column; gap: 8px; }
+.sp-thumb {
+  height: 150px; border-radius: 6px; background-color: #1f2023; border: 1px solid #3c4043;
+  overflow: hidden; padding: 10px;
+}
+.sp-thumb-page { height: 100%; background-color: #fff; border-radius: 3px; padding: 8px; }
+.sp-thumb-bar { height: 8px; background-color: #dadce0; border-radius: 2px; margin-bottom: 8px; }
+.sp-thumb-line { height: 5px; background-color: #e8eaed; border-radius: 2px; margin-bottom: 5px; }
+.sp-thumb-desk { background-color: #1b2a44; position: relative; }
+.sp-thumb-win { position: absolute; left: 14px; top: 16px; width: 62%; height: 54%; background-color: #f1f3f4; border-radius: 3px; }
+.sp-thumb-win2 { left: 42%; top: 40%; width: 50%; height: 46%; background-color: #dfe3e8; }
+.sp-cap { font: 400 12px/16px var(--font); color: #9aa0a6; margin: 0; }
+
+.sp-foot { display: flex; align-items: center; gap: 12px; padding-top: 10px; border-top: 1px solid #3c4043; }
+.sp-audio { display: flex; align-items: center; gap: 8px; font: 400 13px/1 var(--font); color: #e3e3e3; }
+.sp-acts { margin-left: auto; display: flex; gap: 8px; }
+.sp-share, .sp-cancel {
+  position: relative; overflow: hidden;
+  height: 36px; padding: 0 20px; border-radius: 4px; cursor: pointer;
+  font: 500 14px/1 var(--font); border: 0;
+}
+.sp-share { background-color: #8ab4f8; color: #062e6f; --sl: #062e6f; }
+.sp-share:disabled { background-color: #3c4043; color: #80868b; cursor: default; }
+.sp-cancel { background: transparent; color: #8ab4f8; --sl: #8ab4f8; }
+.sp-cancel:hover { background-color: rgba(138, 180, 248, .1); }
+
+/* --- what the call shows once something is shared ------------------------ */
+/* OURS, not Meet's. What a live share does to Meet's own layout — the banner,
+   how the tiles rearrange, where the stop control sits — was never measured,
+   because finishing a share needs the native dialog driven. So this is built in
+   the language of the rest of the call rather than guessed at. */
+.shot-wrap { position: absolute; inset: 0; z-index: 5; display: flex; flex-direction: column; background-color: #202124; }
+.shot { flex: 1 1 auto; min-height: 0; display: flex; flex-direction: column; overflow: hidden; }
+.shot-chrome { flex: 0 0 auto; background-color: #35363a; padding: 6px 8px 0; }
+.shot-tabs { display: flex; }
+.shot-tab-pill {
+  max-width: 260px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  background-color: #202124; color: #e3e3e3; font: 400 11px/1 var(--font);
+  padding: 7px 12px; border-radius: 8px 8px 0 0;
+}
+.shot-omni {
+  display: flex; align-items: center; gap: 6px; background-color: #202124;
+  padding: 6px 10px; color: #9aa0a6; font: 400 11px/1 var(--font);
+}
+.shot-omni > span { background-color: #35363a; border-radius: 999px; padding: 4px 10px; flex: 1 1 auto; }
+.shot-page { flex: 1 1 auto; min-height: 0; overflow: auto; background-color: #fff; }
+.shot-desk { background-color: #16233c; }
+
+.shot-banner {
+  flex: 0 0 auto; display: flex; align-items: center; gap: 12px;
+  background-color: rgba(0, 0, 0, .55); color: #fff;
+  font: 500 13px/1 var(--font); padding: 8px 12px;
+}
+.shot-banner > span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.shot-stop {
+  position: relative; overflow: hidden;
+  margin-left: auto; flex: 0 0 auto; height: 32px; padding: 0 16px; border: 0;
+  border-radius: 16px; background-color: #dc362e; color: #fff; cursor: pointer;
+  font: 500 13px/1 var(--font); --sl: #fff;
+}
+
+/* --- the authored pages -------------------------------------------------- */
+/* Every line of content here comes from src/data/cv.ts. Nothing is invented to
+   fill a mockup: if a page claims he did something, the CV claims it too. */
+.pg { padding: 22px 26px; color: #202124; font: 400 13px/19px var(--font); }
+.pg-h { font: 400 26px/32px var(--font-title); margin: 0 0 4px; }
+.pg-sub { color: #5f6368; margin: 0 0 14px; font-size: 12px; }
+.pg-lead { font-size: 14px; line-height: 21px; margin: 0 0 16px; max-width: 62ch; }
+.pg-roles { display: grid; gap: 8px; }
+.pg-role { display: flex; flex-direction: column; border-left: 3px solid #0b57d0; padding-left: 10px; }
+.pg-role b { font: 500 13px/18px var(--font); }
+.pg-role span { color: #5f6368; font-size: 12px; }
+.pg-reqs { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
+.pg-req { display: flex; gap: 10px; align-items: flex-start; }
+.pg-req b { display: block; font: 500 13px/18px var(--font); }
+.pg-req span span { color: #5f6368; font-size: 12px; }
+.pg-tick {
+  flex: 0 0 18px; width: 18px; height: 18px; border-radius: 50%; text-align: center;
+  font: 700 11px/18px var(--font); background-color: #c4eed0; color: #072711;
+}
+/* The honest rows get a different mark, because a tick on a requirement he only
+   partly meets would be the one dishonest pixel on the whole page. */
+.pg-req.is-honest .pg-tick { background-color: #fef7cd; color: #4a3b00; }
+.pg-cards { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.pg-card { background-color: #f1f3f4; border-radius: 8px; padding: 12px; }
+.pg-card b { display: block; margin-bottom: 4px; font: 500 13px/18px var(--font); }
+.pg-card span { color: #5f6368; font-size: 12px; }
+.pg-note { color: #5f6368; font-size: 12px; margin: 12px 0 0; }
+
+/* The mahjong board: a drawing, not the client. The real one needs a server. */
+.pg-mj { background-color: #0f5132; color: #fff; }
+.mj-board { display: grid; gap: 10px; place-items: center; }
+.mj-side { display: flex; gap: 3px; }
+.mj-left, .mj-right { flex-direction: column; }
+.mj-mid { display: flex; gap: 18px; align-items: center; }
+.mj-centre { text-align: center; background-color: rgba(0, 0, 0, .25); border-radius: 6px; padding: 10px 18px; }
+.mj-centre span { display: block; font-size: 11px; opacity: .8; }
+.mj-tile { display: block; width: 14px; height: 20px; border-radius: 2px; background-color: #f7f4ea; box-shadow: inset 0 -2px 0 #cfc8b4; }
+.mj-hand .mj-tile { width: 18px; height: 26px; }
+.pg-mj .pg-note { color: rgba(255, 255, 255, .7); text-align: center; }
+
+/* The desktop. One convincing window rather than four thin ones — the folder
+   tree with real names carries the value; a trash can would be set dressing. */
+.dk { height: 100%; padding: 26px; }
+.dk-win { background-color: #f1f3f4; border-radius: 8px; overflow: hidden; color: #202124; box-shadow: 0 10px 30px rgba(0, 0, 0, .35); }
+.dk-bar { display: flex; align-items: center; gap: 6px; background-color: #e3e6e8; padding: 8px 10px; }
+.dk-dot { width: 10px; height: 10px; border-radius: 50%; background-color: #c4c7c5; }
+.dk-title { margin-left: 8px; font: 500 12px/1 var(--font); }
+.dk-cols { display: flex; min-height: 190px; }
+.dk-tree { flex: 0 0 46%; border-right: 1px solid #dadce0; padding: 8px; }
+.dk-files { flex: 1 1 auto; padding: 8px; }
+.dk-item, .dk-file { display: flex; align-items: center; gap: 8px; padding: 6px 8px; border-radius: 6px; font: 400 12px/16px var(--font); }
+.dk-item:hover, .dk-file:hover { background-color: #e8eaed; }
+.dk-folder { width: 16px; height: 13px; border-radius: 2px; background-color: #f7c948; flex: 0 0 auto; }
+.dk-name { flex: 1 1 auto; }
+.dk-count { color: #80868b; font-size: 11px; }

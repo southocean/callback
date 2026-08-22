@@ -304,10 +304,11 @@ export function renderCall(store: Store, quests: Quests, deps: CallDeps): HTMLEl
     return { on, icon: on ? 'videocam' : 'videocam_off', label: on ? 'Turn off camera' : 'Turn on camera' };
   });
 
-  const presentBtn = cbtn('Present now', 'present_to_all', '', () => store.dispatch({ t: 'panel', panel: 'present' }),
+  const presentBtn: Btn = cbtn('Share screen', 'present_to_all', '', () => { void openPicker(); },
     () => ({ on: store.get().panel === 'present' }));
 
-  const reactBtn = cbtn('Send a reaction', 'mood', '', () => reactions(), () => ({ on: false }));
+  const reactBtn = cbtn('Send a reaction', 'mood', '', () => setTray(!trayOpen),
+    () => ({ on: trayOpen }));
 
   const ccBtn = cbtn('Turn on captions', 'closed_caption', '', () => store.dispatch({ t: 'captions', on: !store.get().captionsOn }),
     () => ({ on: store.get().captionsOn, label: store.get().captionsOn ? 'Turn off captions' : 'Turn on captions' }));
@@ -491,25 +492,120 @@ export function renderCall(store: Store, quests: Quests, deps: CallDeps): HTMLEl
    * Our own emoji set, per Nam. The behaviour is what is being mirrored.
    */
   const REACT_SET = ['🎲', '🀄', '🪂', '🎤', '👏', '🧟'];
-  const BAND = 130;      // measured spread of the spawn x
-  const RISE = 132;      // px per second, linear
-  const TRACK = 508;     // px travelled before it is gone
-  let reactSeq = 0;
 
-  function reactions(): void {
+  /**
+   * Re-measured 2026-08-22, and it corrected two things this file previously
+   * asserted as measured. Both are in tools/baseline-call.md.
+   *
+   * 1. The band is NOT at the tile's bottom-left. At 2560 it sits in the call
+   *    area's LEFT MARGIN, outside the tile entirely — two bursts of six put
+   *    every reaction between x 73 and x 327 against a tile starting at 384.
+   *    We were anchoring inside the tile, which at a wide viewport puts them
+   *    somewhere Meet never does. The two only coincide when the tile fills the
+   *    width, which is why the old reading and Nam's screenshot could both look
+   *    right.
+   * 2. The name chip TRACKS its emoji. Every chip sat directly under its own
+   *    emoji at the same x. The old code pinned it at a fixed 3px and carried a
+   *    comment insisting Meet did the same. It does not.
+   *
+   * Reactions are not in the DOM in Meet — no nodes, no canvas, no shadow root —
+   * so all of this is read off screenshots, and the timing was never captured.
+   * RISE is therefore still the older figure and is NOT re-measured; it is the
+   * one number here left on trust rather than evidence.
+   */
+  const BAND_X = 73;     // px from the call area's left edge
+  const BAND_W = 254;    // measured spread, one viewport only — may not scale
+  const RISE = 132;      // px per second, linear. NOT re-measured.
+
+  function fire(pick: string): void {
     quests.unlock('react');
-    const pick = REACT_SET[reactSeq % REACT_SET.length] ?? '👏';
-    reactSeq += 1;
+    // The rise covers the tile's height rather than a fixed track, so it stays
+    // right when the tray or the captions shrink the tile.
+    const tileH = document.querySelector('.solo')?.getBoundingClientRect().height ?? 508;
+    const rx = BAND_X + Math.round(Math.random() * BAND_W);
     const el = h('div', { class: 'reaction' }, pick);
-    // Randomised across the band, and fixed for this reaction's whole life.
-    el.style.setProperty('--rx', `${Math.round(Math.random() * BAND) - 8}px`);
-    el.style.setProperty('--rise', `${TRACK}px`);
-    el.style.setProperty('--dur', `${(TRACK / RISE).toFixed(2)}s`);
-    layer.appendChild(el);
+    el.style.setProperty('--rx', `${rx}px`);
+    el.style.setProperty('--rise', `${Math.round(tileH)}px`);
+    el.style.setProperty('--dur', `${(tileH / RISE).toFixed(2)}s`);
     const chip = h('div', { class: 'reaction-who' }, 'You');
-    chip.style.setProperty('--rx', el.style.getPropertyValue('--rx'));
-    layer.appendChild(chip);
-    window.setTimeout(() => { el.remove(); chip.remove(); }, (TRACK / RISE) * 1000 + 200);
+    chip.style.setProperty('--rx', `${rx}px`);
+    layer.append(el, chip);
+    window.setTimeout(() => { el.remove(); chip.remove(); }, (tileH / RISE) * 1000 + 200);
+  }
+
+  /**
+   * The tray. Meet reserves 52px for it and the tile refits — see the keystone
+   * note in styles.css. Buttons are 40x40 on a 40px pitch, measured.
+   *
+   * Meet also carries a skin-tone control after a 12px gap. Left out: it sets a
+   * Google account preference we have no equivalent for, and an inert control
+   * that looks configurable is worse than one that is absent.
+   */
+  let trayOpen = false;
+  const tray = h('div', { class: 'tray', role: 'group', 'aria-label': 'Send a reaction' });
+  for (const e of REACT_SET) {
+    const b = h('button', { class: 'tray-btn', type: 'button', 'aria-label': e }, e) as HTMLButtonElement;
+    b.addEventListener('click', () => fire(e));
+    ripple(b);
+    tray.appendChild(b);
+  }
+  tray.hidden = true;
+
+  function setTray(v: boolean): void {
+    trayOpen = v;
+    tray.hidden = !v;
+    document.body.classList.toggle('tray-open', v);
+    reactBtn.classList.toggle('is-active', v);
+    reactBtn.sync?.();
+  }
+
+  /**
+   * Screen share. The picker and everything it offers is a mockup — Chrome's
+   * real dialog is native, invisible to a tab screenshot, and unmeasurable from
+   * the page, so there was never anything to clone. See ui/share.ts for why it
+   * renders as DOM rather than iframes (the CSP forbids frames outright).
+   *
+   * Deferred, because it carries four authored pages and a desktop and the
+   * initial bundle is budgeted at 50 kB gzip in CI.
+   */
+  const shareHost = h('div', {});
+  let sharing: { el: HTMLElement } | null = null;
+
+  async function openPicker(): Promise<void> {
+    const m = await import('./share.js');
+    const close = (): void => {
+      const cur = shareHost.firstElementChild as (HTMLElement & { dispose?: () => void }) | null;
+      cur?.dispose?.();
+      clear(shareHost);
+    };
+    shareHost.appendChild(m.renderPicker({
+      onCancel: close,
+      onShare: (src) => { close(); startShare(m.renderShared(src), src.title); },
+    }));
+  }
+
+  function startShare(content: HTMLElement, title: string): void {
+    stopShare();
+    const stop = h('button', { class: 'shot-stop', type: 'button' }, 'Stop sharing') as HTMLButtonElement;
+    ripple(stop);
+    stop.addEventListener('click', () => stopShare());
+    const wrap = h('div', { class: 'shot-wrap' },
+      content,
+      h('div', { class: 'shot-banner' }, h('span', {}, `You are presenting ${title}`), stop));
+    const solo = stage.querySelector('.solo');
+    (solo ?? stage).appendChild(wrap);
+    sharing = { el: wrap };
+    presentBtn.classList.add('is-active');
+    presentBtn.sync?.();
+    quests.unlock('present');
+    announce(`Presenting ${title}`);
+  }
+
+  function stopShare(): void {
+    sharing?.el.remove();
+    sharing = null;
+    presentBtn.classList.remove('is-active');
+    presentBtn.sync?.();
   }
 
   /**
@@ -615,6 +711,8 @@ export function renderCall(store: Store, quests: Quests, deps: CallDeps): HTMLEl
     hostTile.classList.toggle('speaking-ring', s.captionsOn);
 
     cc.style.display = s.captionsOn ? '' : 'none';
+    // Captions reserve 216px and the tile refits, exactly as the tray does.
+    document.body.classList.toggle('cc-on', s.captionsOn);
     if (s.captionsOn) startCC(); else stopCC();
 
     pipeline.set(s.fx, s.reducedMotion);
@@ -645,6 +743,8 @@ export function renderCall(store: Store, quests: Quests, deps: CallDeps): HTMLEl
     top,
     h('div', { class: 'call-mid' }, stage, panelHost),
     cc,
+    tray,
+    shareHost,
     bar,
     readyHost,
     layer,
