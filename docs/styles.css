@@ -4128,7 +4128,14 @@ body.has-panel .reaction, body.has-panel .reaction-who { left: 0; }
    nine  40x40 on a 40 pitch, no gaps, 540..900
    tone  912,780 40x40 — OUTSIDE the pill, its own control, hence the 12px gap */
 .tray-wrap {
-  position: absolute; left: 50%; bottom: calc(var(--botbar) + 6px);
+  /* Nam: the gap above the tray read smaller than the gap below. It was — but
+     not where it looked. Both offsets were 6px from the BAR, and the bar's
+     buttons are 48 tall centred in 80, so the visible gap under the tray was
+     6 + 16 = 22 against 6 above it. Meet, measured on the live call at
+     1875x947: tile bottom 815, tray 827..867, button tops 883. So 12 above and
+     16 below. Sitting the tray's bottom edge exactly on the bar's top edge
+     gives 16 to the buttons, and the tile's existing +52 gives the 12. */
+  position: absolute; left: 50%; bottom: var(--botbar);
   transform: translateX(-50%); z-index: 7;
   display: flex; align-items: center; gap: 12px;
 }
@@ -4525,83 +4532,170 @@ body.tray-open .cc { bottom: calc(var(--botbar) + 52px + 12px); }
 }
 
 /* ================= THE RAISED HAND, ON THE TILE ========================== */
-/* Two faults. It showed with the button off, and it floated outside the frame.
+/* Rebuilt from Google's OWN keyframes. Nam got a live session back, so instead
+ * of sampling a screenshot I read the running animations off the real product
+ * with document.getAnimations() — which returns each animation's target, its
+ * exact timing, and its keyframes as authored. That is not a reconstruction of
+ * the effect, it IS the effect, names included.
  *
- * The visibility bug is the SAME trap as the reactions tray: the JS sets
- * handPill.hidden = true, `[hidden]` is a UA rule of display:none, and any
- * author `display` beats it — .hand-pill declared display:inline-flex. Second
- * time this exact shape has bitten in one project, so it is worth stating as a
- * rule: if you set `hidden` from script, restate it in CSS.
+ * Four animations, all cubic-bezier(0.4, 0, 0.2, 1), all fill:none:
  *
- * Geometry sampled from the PNG of Nam's screenshot rather than eyeballed from
- * the chat image — dominant-colour histogram over the pill region:
+ *   expandPill          .S41QRd  1000ms  delay 0
+ *   popUpIconLargeTile  wrapper   750ms  delay 0
+ *   rotateIcon          icon      900ms  delay 750
+ *   expandName          label    1000ms  delay 0
  *
- *     fill  rgb(109,213,140)  #6dd58c
- *     ink   rgb(10,56,24)     #0a3818
- *     box   140x32            so radius 16
+ * The sequence that produces is richer than the "rise then extend" I built from
+ * Nam's description. Nam had the shape of it right and the missing beat is the
+ * best part: after the pill settles, THE HAND WAVES — rotateIcon is a six-swing
+ * damped oscillation, +14, -9, +14, -9, +5, 0.
  *
- * It takes the name plate's slot and replaces it: there is no separate name in
- * the original once the hand is up.
+ * fill:none matters. Every keyframe set ends where the resting style already is,
+ * so nothing is held: the animation plays and then simply stops existing. This
+ * is why the pill can stay expanded forever without a `forwards` fill — 140px IS
+ * its base width. I checked that directly, screenshotting at 1s and 4s after a
+ * raise: "Nam Nguyen" still there both times. An earlier reading of mine that
+ * said it collapses was a throttled-tab artefact, not the product.
  *
- * THE ANIMATION is Nam's description — "hand icon rise up first, then extend the
- * label to add my name" — and I could not verify it live: both test meetings had
- * expired and the browser pane's Google session is gone. So the sequencing is
- * his, the geometry is measured, and the curve is GM3's standard easing. Flagged
- * rather than presented as measured.
+ * Measured geometry, at the settled state:
  *
- * Two stages on one timeline, using the trick GM3's focus ring taught: stagger
- * with a delay instead of fighting over one property.
- *   0-260ms    the disc rises 12px and fades in, alone
- *   260-520ms  the pill extends to full width, the name fading in behind it */
+ *   frame   140x35   overflow hidden, flex, align-items center
+ *   pill    140x32   radius 16, #6dd58c on #0a3818
+ *   inset   left 8, bottom 8   from the tile's edge  (was 16/15 — wrong)
+ *   icon    front_hand 16x16, centred at x 17
+ *   label   96x24 at x 32, 500 16px Google Sans, so 12px of right padding
+ *
+ * The width is content-driven, not a magic number: 32 for the icon zone, the
+ * text's own width, 12 of right padding. "Nam Nguyen" at 500 16px happens to
+ * measure 96, which is where the 140 comes from.
+ */
 .hand-pill[hidden] { display: none !important; }
 
 .hand-pill {
-  position: absolute; left: 16px; bottom: 15px; z-index: 8;
-  display: inline-flex; align-items: center;
-  height: 32px; padding: 0 20px 0 8px; border-radius: 16px;
-  /* 140 wide is measured; the padding is what is left once the parts that are
-     also measured are subtracted. 20px icon + 84px of glyphs at 500 14px = 104,
-     so 36px of inset to distribute: 8 before the icon, 8 between, 20 after the
-     text. The 8px gap lives on .hand-name as padding-left so stage 2 can
-     animate it open with the label. */
-  background-color: #6dd58c; color: #0a3818;
-  font: 500 14px/1 var(--font-title);
-  white-space: nowrap;
-  animation: hand-rise .26s cubic-bezier(0.2, 0, 0, 1) both;
+  position: absolute; left: 8px; bottom: 8px; z-index: 8;
+  display: flex; align-items: center; height: 35px;
+  /* The clipping frame. expandName grows the label from 0 inside it, so the
+     frame's own width follows the content and the pill fills whatever it is. */
+  overflow: hidden;
+  color: #0a3818;
+  animation: hand-frame .001s linear;
 }
-.hand-ico { display: grid; place-items: center; width: 20px; height: 20px; flex: 0 0 auto; }
-
-/* Stage 2 drives the LABEL, not the pill.
- *
- * The first attempt animated the pill's own width across two keyframe sets and
- * it stuck at 40px forever. `animation-fill-mode: both` includes forwards, and
- * with only a `from` keyframe the last keyframe IS the from — so `both` pinned
- * the collapsed width permanently. GM3's focus ring gets away with a `to`-less
- * keyframe precisely because it sets no fill-mode, letting the property fall
- * back to the base rule when the animation ends.
- *
- * Animating the label's max-width sidesteps the whole question: the pill has no
- * width of its own to fight over and simply follows its content. It also means
- * the reveal is a true clip rather than a re-layout.
- */
+/* The green pill is a layer BEHIND the content, not the box holding it, because
+   expandPill scales it from 0 and a scaled box would drag the label with it. */
+.hand-bg {
+  position: absolute; left: 0; top: 1px; height: 32px; width: 100%;
+  border-radius: 16px; background-color: #6dd58c;
+  animation: expandPill 1s cubic-bezier(0.4, 0, 0.2, 1);
+}
+.hand-ico {
+  position: relative; display: grid; place-items: center;
+  width: 16px; height: 16px; flex: 0 0 auto; margin-left: 9px;
+  animation: popUpIconLargeTile .75s cubic-bezier(0.4, 0, 0.2, 1),
+             rotateIcon .9s cubic-bezier(0.4, 0, 0.2, 1) .75s;
+}
 .hand-name {
-  display: inline-block; overflow: hidden; max-width: 0; opacity: 0;
-  animation: hand-extend .3s cubic-bezier(0.2, 0, 0, 1) .26s both;
+  position: relative; display: inline-block; overflow: hidden;
+  margin-left: 7px; padding-right: 12px;
+  font: 500 16px/24px var(--font-title); white-space: nowrap;
+  animation: expandName 1s cubic-bezier(0.4, 0, 0.2, 1);
 }
-@keyframes hand-rise {
-  from { opacity: 0; transform: translateY(12px); }
-  to   { opacity: 1; transform: none; }
+
+/* Google's four, transcribed. The odd offsets are theirs, not rounding of mine:
+   36.7% and 48.93% and 20.33% are what getKeyframes() reported. */
+@keyframes expandPill {
+  0%     { transform: scale(0);   margin-left: 4px; width: 24px; }
+  36.7%  { transform: scale(1.1); margin-left: 4px; width: 24px; }
+  75%    { transform: scale(1);   margin-left: 4px; width: 24px; }
+  100%   { transform: none;       margin-left: 0;   width: 100%; }
 }
-@keyframes hand-extend {
-  from { max-width: 0;     opacity: 0; padding-left: 0; }
-  40%  {                   opacity: 0; }
-  to   { max-width: 200px; opacity: 1; padding-left: 8px; }
+@keyframes popUpIconLargeTile {
+  0%     { transform: translateY(32px); }
+  22%    { transform: translateY(32px); }
+  48.93% { transform: translateY(-5px); }
+  100%   { transform: translateY(0); }
 }
+/* The wave. Six swings, damped: this is the beat Nam's description was missing
+   and the one that makes the whole thing feel alive. */
+@keyframes rotateIcon {
+  0%     { transform: rotate(0deg); }
+  20.33% { transform: rotate(14deg); }
+  38.89% { transform: rotate(-9deg); }
+  57.44% { transform: rotate(14deg); }
+  74.11% { transform: rotate(-9deg); }
+  88.89% { transform: rotate(5deg); }
+  100%   { transform: none; }
+}
+/* Held at 0 for three quarters of the second, then out in the last 250ms —
+   which is what makes the pill read as two stages on one timeline. */
+@keyframes expandName {
+  0%, 75% { width: 0; }
+  100%    { width: 100%; }
+}
+/* A no-op that exists only so the frame has an animation to restart: re-adding
+   the class is how the sequence replays on a second raise. */
+@keyframes hand-frame { from { opacity: 1; } }
 
 /* The name plate steps aside while the hand is up — the original shows one or
    the other, never both. */
 .solo:has(.hand-pill:not([hidden])) .solo-name { opacity: 0; }
 .solo-name { transition: opacity .2s linear; }
+
+/* ================= THE MIC BUBBLE ======================================== */
+/* Nam: "enabling the audio should trigger this bubble, which then clicking
+ * close will then disable the mic. Very good UI and we should replicate it."
+ *
+ * Both halves verified on the live product. Turning the mic on with no device
+ * raises the card; clicking its X flipped the button's accessible name from
+ * "Turn off microphone" back to "Turn on microphone" — so the close really is
+ * the off switch, it is not just dismissing a warning.
+ *
+ * The animation, off getAnimations() rather than off the description:
+ *
+ *   enter   max-height 56px -> 125px   200ms  cubic-bezier(0, 0, 0.2, 1)
+ *   exit    opacity 1 -> 0             100ms  linear
+ *
+ * That is the whole trick, and it explains what Nam saw. The card is anchored
+ * by its BOTTOM edge and its overflow is visible, so growing max-height moves
+ * the TOP edge up by 69px in 200ms. The close button is pinned to that top
+ * edge — which is exactly "the X text going very fast from left to the top
+ * right corner". Nothing travels left-to-right; the box grows upward and the
+ * furniture pinned to its top rides along.
+ *
+ * Only max-height was captured on the way in, so the opacity fade-in here is
+ * mirrored off the measured exit rather than measured itself.
+ *
+ * Geometry is the pre-join card's, which already measures 386x127: its
+ * 34/21/35 padding with a 24px title and a 20px body line sums to exactly the
+ * 127 the live in-call card reports. Same component, so same numbers.
+ */
+.mic-note {
+  /* 22px above the control row's buttons, centred on the mic button — the left
+     offset is set from the button's real rect at show time, because the bar's
+     layout shifts with the viewport. */
+  position: fixed; bottom: calc(var(--botbar) + 6px); left: 0;
+  transform: none; z-index: 60;
+  max-height: 125px; overflow: visible;
+  animation: mic-note-in .2s cubic-bezier(0, 0, 0.2, 1),
+             mic-note-fade .1s linear;
+}
+@keyframes mic-note-in { from { max-height: 56px; } }
+@keyframes mic-note-fade { from { opacity: 0; } }
+/* Leaving is the measured 100ms linear fade, and nothing else. */
+.mic-note.is-out { animation: mic-note-fade .1s linear reverse both; }
+/* The in-call tail is 22 wide where the pre-join one is 14 — same shape, longer
+   reach, because it has further to go to touch the control row. */
+.mic-note::after {
+  /* --tail is set from the mic button's real centre, so the point still lands on
+     the button when a narrow viewport has clamped the card sideways. */
+  left: var(--tail, 50%); margin-left: -11px;
+  width: 22px; height: 15px; bottom: -15px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .hand-pill, .hand-bg, .hand-ico, .hand-name { animation: none; }
+  .solo-name { transition: none; }
+  .mic-note, .mic-note.is-out { animation: none; }
+}
 
 /* ================= THE WINDOWS DESKTOP, PROPERLY ========================= */
 /* Nam: "does NOT look like a windows machine at all", and use real graphics.

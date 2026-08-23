@@ -15,7 +15,7 @@
 
 import { h, clear } from '../dom.js';
 import { sym } from './icons.js';
-import { ripple, attachMenu, micMeter, menu as gmMenu, warnBadge } from './gm3.js';
+import { ripple, attachMenu, micMeter, menu as gmMenu, warnBadge, noticeCard } from './gm3.js';
 import { tipAll } from './tooltip.js';
 import type { MenuItem } from './gm3.js';
 import type { IconName } from './icons.js';
@@ -131,8 +131,21 @@ export function renderCall(store: Store, quests: Quests, deps: CallDeps): HTMLEl
    * 140x32, so radius 16. It REPLACES the name plate; there is no separate name
    * in the original once the hand is up.
    */
+  /*
+   * Three parts, because Google's animation needs three targets: a background
+   * layer it scales from zero, an icon it pops up and then WAVES, and a label it
+   * expands from zero width. Scaling the box that holds the text would drag the
+   * text with it, which is why the green is a sibling layer rather than the
+   * container's own background.
+   *
+   * The icon: Meet's glyph is front_hand, ours is back_hand. Not a choice — the
+   * self-hosted symbols font is a fixed 7 kB subset of 56 names and front_hand
+   * is not one of them, so asking for it would render the literal string. Same
+   * gesture, one fewer font rebuild.
+   */
   const handPill = h('div', { class: 'hand-pill', role: 'status' },
-    h('span', { class: 'hand-ico' }, sym('back_hand', 20)),
+    h('div', { class: 'hand-bg', 'aria-hidden': 'true' }),
+    h('span', { class: 'hand-ico', 'aria-hidden': 'true' }, sym('back_hand', 16)),
     h('span', { class: 'hand-name' }, profile.name)) as HTMLElement;
   handPill.hidden = true;
 
@@ -306,7 +319,7 @@ export function renderCall(store: Store, quests: Quests, deps: CallDeps): HTMLEl
   const micBtn = cbtn('Turn on microphone', 'mic_off', 'w48', () => {
     const on = !store.get().micOn;
     store.dispatch({ t: 'mic', on });
-    if (on) toast('Microphone on', 'There is no audio here to send. The transcript in the captions is the script.');
+    if (on) micNotice();
   }, () => {
     const on = store.get().micOn;
     return { on, icon: on ? 'mic' : 'mic_off', label: on ? 'Turn off microphone' : 'Turn on microphone' };
@@ -330,9 +343,18 @@ export function renderCall(store: Store, quests: Quests, deps: CallDeps): HTMLEl
     const on = !store.get().handRaised;
     store.dispatch({ t: 'hand', on });
     if (on) slap();
+    if (on) quests.unlock('hand');
+    // Nam: "This bubble when you raise your hand, that can go, totally
+    // unnecessary." Agreed, and the pill on the tile already says it.
+    //
+    // Replaying the sequence on a re-raise needs the animations restarted, and
+    // an element that was display:none has no running animation to restart. So
+    // unhide first, then force a reflow, then re-add the class.
     if (on) {
-      quests.unlock('hand');
-      toast('You raised your hand', 'Noted. That is more or less what this whole page is.');
+      handPill.hidden = false;
+      handPill.classList.remove('hand-pill');
+      void handPill.offsetWidth;
+      handPill.classList.add('hand-pill');
     }
   }, () => ({ on: store.get().handRaised, label: store.get().handRaised ? 'Lower hand' : 'Raise hand' }));
 
@@ -479,6 +501,57 @@ export function renderCall(store: Store, quests: Quests, deps: CallDeps): HTMLEl
 
   const layer = h('div', {});
 
+  /**
+   * Meet's mic bubble, and the behaviour is the interesting half.
+   *
+   * Turning the mic on with no device raises a card, and clicking that card's X
+   * turns the mic back OFF. Verified on the live product rather than assumed: the
+   * button's accessible name went "Turn off microphone" -> click the X -> "Turn
+   * on microphone". The close is the off switch, not a dismissal.
+   *
+   * Which makes it a genuinely good pattern to borrow. The failure and its
+   * remedy are the same gesture, so there is no way to acknowledge the problem
+   * and leave the control lying about its state.
+   *
+   * The card is centred on the mic button and sits 22px above the button tops.
+   * The offset is computed from the button's real rect because the bar's layout
+   * moves with the viewport, and clamped so a narrow window cannot push a 386px
+   * card off the edge.
+   */
+  let micNote: HTMLElement | null = null;
+
+  function closeMicNote(alsoMute: boolean): void {
+    const card = micNote;
+    if (!card) return;
+    micNote = null;
+    card.classList.add('is-out');
+    // The measured exit is a 100ms linear fade; remove on the way out so the
+    // card is not still catching clicks while it is invisible.
+    window.setTimeout(() => card.remove(), 110);
+    if (alsoMute && store.get().micOn) store.dispatch({ t: 'mic', on: false });
+  }
+
+  function micNotice(): void {
+    closeMicNote(false);
+    const card = noticeCard(
+      'Microphone not found',
+      'Make sure your microphone is plugged in',
+      () => closeMicNote(true),
+    );
+    card.classList.add('mic-note');
+    micNote = card;
+    layer.appendChild(card);
+    const anchor = micBtn.getBoundingClientRect();
+    const w = card.offsetWidth || 386;
+    const left = Math.round(
+      Math.max(8, Math.min(anchor.left + anchor.width / 2 - w / 2, window.innerWidth - w - 8)),
+    );
+    card.style.left = `${left}px`;
+    // The tail points at the button even when the clamp has moved the card.
+    const tail = Math.round(anchor.left + anchor.width / 2 - left);
+    card.style.setProperty('--tail', `${tail}px`);
+  }
+
   function toast(title: string, body: string): void {
     const el = h(
       'div',
@@ -505,7 +578,26 @@ export function renderCall(store: Store, quests: Quests, deps: CallDeps): HTMLEl
    *
    * Our own emoji set, per Nam. The behaviour is what is being mirrored.
    */
-  const REACT_SET = ['🎲', '🀄', '🪂', '🎤', '👏', '🧟'];
+  /*
+   * Nam's brief, and the reasoning is his: lead with the emoji people already
+   * know from Meet so the tray reads as familiar, then hand off to ours. "Add
+   * all of those, then remove the last two original emojis, the thumb down and
+   * the thinking face, then add back our creative emojis, the mahjong, tandem
+   * and zombie."
+   *
+   * Meet's nine, read off the live tray as Noto Emoji codepoints rather than
+   * guessed from a screenshot:
+   *
+   *   1f496 heart   1f44d thumb   1f389 party   1f44f clap   1f602 joy
+   *   1f62e open    1f622 cry     1f914 think   1f44e down
+   *
+   * Drop think and down, append ours. Ten slots against Meet's nine, which the
+   * 40px pitch absorbs without touching the layout.
+   *
+   * Losing 1f3b2 dice and 1f3a4 mic to make room was not in the brief either
+   * way; they were the two of ours that said least.
+   */
+  const REACT_SET = ['💖', '👍', '🎉', '👏', '😂', '😮', '😢', '🀄', '🪂', '🧟'];
 
   /**
    * Re-measured 2026-08-22, and it corrected two things this file previously

@@ -333,3 +333,121 @@ everything after it. Then reactions (4), then the tile controls (5), the badges
 (9) and the hand (10) as small independent fixes. Then the tooltip machine (7),
 the Gemini panel (6), captions (11), and the share window (8) last because it is
 the largest and least entangled.
+
+---
+
+## Round 4 — measured with `document.getAnimations()`, 2026-08-23
+
+Nam restored a live session, which changed the method. Instead of sampling
+screenshots and inferring curves, I read the running animations straight off the
+product: `document.getAnimations()` returns every active animation with its
+target, its resolved timing, and its keyframes as authored. That is not a
+reconstruction of an effect, it IS the effect — Google's own keyframe names
+included.
+
+Two practical notes for next time:
+
+- **Synthetic `.click()` does not reach Meet's jsaction handlers** for some
+  controls. Reactions never fired from script; a real pointer event through the
+  `computer` tool did (and produced the MDC ripple to prove it). Use real clicks
+  when the thing you want to observe is downstream of a jsaction.
+- **An unfocused tab throttles `setInterval` to ~1Hz**, which silently produced a
+  4-sample "trace" I nearly read as a steady state. If a capture returns
+  implausibly few frames, the tab lost focus — do not interpret the samples.
+
+### The raised hand
+
+| animation | target | dur | delay |
+|---|---|---|---|
+| `expandPill` | green background | 1000 | 0 |
+| `popUpIconLargeTile` | icon wrapper + icon | 750 | 0 |
+| `rotateIcon` | icon | 900 | 750 |
+| `expandName` | label | 1000 | 0 |
+
+All four `cubic-bezier(0.4, 0, 0.2, 1)`, all `fill: none`.
+
+```
+expandPill          0% scale(0)   ml 4px  w 24px
+                 36.7% scale(1.1) ml 4px  w 24px
+                   75% scale(1)   ml 4px  w 24px
+                  100% none       ml 0    w 100%
+
+popUpIconLargeTile  0% translateY(32px)
+                   22% translateY(32px)
+                48.93% translateY(-5px)
+                  100% translateY(0)
+
+rotateIcon          0% 0deg   20.33% 14deg   38.89% -9deg
+                57.44% 14deg  74.11% -9deg   88.89% 5deg   100% 0
+
+expandName       0,75% w 0     100% w 100%
+```
+
+`fill: none` is the load-bearing detail. Every keyframe set ends where the
+resting style already is, so nothing needs holding — the animation plays and
+stops existing. That is how the pill stays expanded with no `forwards` fill:
+140px IS its base width. Verified by screenshotting 1s and 4s after a raise,
+because an earlier reading of mine said it collapsed; that reading was the
+throttled-tab artefact above, not the product.
+
+The beat my earlier build was missing: **the hand waves.** `rotateIcon` fires the
+moment the pill settles and swings six times, damped.
+
+Geometry, settled: frame `140x35` `overflow: hidden`; pill `140x32` r16
+`#6dd58c` on `#0a3818`; inset **left 8, bottom 8** from the tile (I had 16/15);
+icon `front_hand` 16x16 centred at x17; label `96x24` at x32, 500 16px Google
+Sans, 12px right padding. Width is content-driven — 32 + text + 12 — and
+"Nam Nguyen" at 500 16px measures 96, which is where 140 comes from.
+
+Our icon stays `back_hand`: the self-hosted symbols font is a fixed 7 kB subset
+of 56 names and `front_hand` is not one of them, so asking for it would render
+the literal string.
+
+### The reactions tray
+
+Tile bottom 815 · tray `758,827 360x40` · button tops 883. So **12px above the
+tray, 16px below** — the numbers behind item 1. Tray `#282a2c` r36, nine 40x40
+buttons on a 40 pitch with zero padding, skin-tone button a further 12px out.
+
+Ours read 6 above and 22 below, and the asymmetry was not where it looked: both
+offsets were 6px from the *bar*, but the bar's buttons are 48 tall centred in 80,
+so 16px of bar sat under the tray. Sitting the tray's bottom edge on the bar's
+top edge gives 16 to the buttons, and the tile's existing +52 gives the 12.
+
+Meet's nine, as Noto Emoji codepoints rather than guesses from a screenshot:
+`1f496` `1f44d` `1f389` `1f44f` `1f602` `1f62e` `1f622` `1f914` `1f44e`.
+
+### The mic bubble
+
+Card `386x127` `#3c4043` r8, MDC elevation-2 shadow, centred on the mic button,
+22px above the button tops, tail 22x34 dead-centre.
+
+```
+enter   max-height 56px -> 125px   200ms  cubic-bezier(0, 0, 0.2, 1)
+exit    opacity 1 -> 0             100ms  linear
+```
+
+That is the whole animation, and it explains what Nam described. The card is
+anchored by its BOTTOM edge with `overflow: visible`, so growing max-height moves
+the TOP edge up 69px in 200ms, and the close button pinned to that top edge rides
+along — "the X going very fast from left to the top right corner". Nothing
+travels left-to-right; the box grows upward and its furniture follows.
+
+Behaviour verified, not assumed: the button's accessible name went "Turn off
+microphone" → click the X → "Turn on microphone". **The close is the off switch.**
+
+Ours measures 386x125 against their 386x127. The 2px is a 1px border in the same
+colour as the card (their outer div is 386x127 around a 384x125 inner). Left
+alone deliberately: matching it with a real border would trade an invisible 2px
+of height for a visible 2px of content width.
+
+### Bonus, not asked for but worth having
+
+The mic button's own on/off morph, which settles a question from an earlier
+round: `background-color` `#333537` → `#f9dedc` and `border-radius` `24px` →
+`12px`, both **200ms `steps(6, jump-none)`**. A stepped, six-frame transition —
+so the circle-to-squarish morph Nam described is deliberately chunky, not smooth.
+
+The GM3 ripple, again from the live product: 450ms `cubic-bezier(0.2, 0, 0, 1)`,
+a 9px dot translated from the pointer to the centre and scaled ~17x. Hover state
+layer opacity 0.08–0.10, confirming the token values.

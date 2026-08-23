@@ -39,6 +39,7 @@ const enters = new WeakMap<HTMLElement, () => void>();
 const LINGER = 260;
 let hideTimer = 0;
 
+let tipAnchor: HTMLElement | null = null;
 let primedUntil = 0;
 let showTimer = 0;
 let current: HTMLElement | null = null;
@@ -86,6 +87,7 @@ function place(anchor: HTMLElement, text: string, where: Placement): void {
   // Next frame, so the transition has a from-state to animate out of.
   requestAnimationFrame(() => tip.classList.add('in'));
   current = tip;
+  tipAnchor = anchor;
 }
 
 function hideNow(): void {
@@ -94,6 +96,7 @@ function hideNow(): void {
   showTimer = 0;
   current?.remove();
   current = null;
+  tipAnchor = null;
 }
 
 /**
@@ -170,9 +173,21 @@ export function tip(el: HTMLElement, text?: string, where: Placement = 'below'):
   enters.set(el, enter);
   el.addEventListener('pointerenter', enter);
   el.addEventListener('pointerleave', leave);
-  // Keyboard users get it immediately — for them it is not a hint that they
-  // hesitated, it is the only way to see the label at all.
+  /*
+   * Keyboard users get it immediately — for them it is not a hint that they
+   * hesitated, it is the only way to see the label at all.
+   *
+   * But :focus-visible, not focus. This was Nam's stuck "Raise hand" label:
+   * clicking a control focuses it, focus fired, and a tooltip shown from focus
+   * has no hide scheduled — only blur and click remove it. The click that
+   * focused the button had already been dispatched by then, so the label sat
+   * there until something else took focus, long after the pointer had gone.
+   *
+   * Gating on :focus-visible is also just what the real product does: clicking a
+   * Meet control never leaves its tooltip up, tabbing to one always does.
+   */
   el.addEventListener('focus', () => {
+    if (!el.matches(':focus-visible')) return;
     const t = label();
     if (t) place(el, t, where);
   });
@@ -220,3 +235,23 @@ export function tipAllAbove(...els: (HTMLElement | null | undefined)[]): void {
 // Scrolling or leaving the window should drop it, or it hangs in mid-air.
 window.addEventListener('scroll', hideNow, true);
 window.addEventListener('blur', hideNow);
+
+/*
+ * And a backstop for the whole class of bug, not just the one instance.
+ *
+ * Every route that shows a tooltip pairs with a route that hides it, and any
+ * mismatch strands a label on screen — pointerleave that never fires because the
+ * element was replaced mid-interaction, a focus with no matching blur, a control
+ * that unmounts while tipped. Rather than keep finding these one at a time,
+ * assert the invariant continuously: a tooltip may only be up while its anchor
+ * is genuinely hovered or genuinely focused.
+ *
+ * Cheap enough to run on pointermove — two matches() calls against one element,
+ * and only when a tooltip actually exists.
+ */
+document.addEventListener('pointermove', () => {
+  if (!current || !tipAnchor) return;
+  if (!tipAnchor.isConnected) { hideNow(); return; }
+  if (tipAnchor.matches(':hover') || tipAnchor.matches(':focus-visible')) return;
+  if (!hideTimer) hideTimer = window.setTimeout(hideNow, LINGER);
+}, { passive: true });
