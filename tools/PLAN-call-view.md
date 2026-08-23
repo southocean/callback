@@ -451,3 +451,105 @@ so the circle-to-squarish morph Nam described is deliberately chunky, not smooth
 The GM3 ripple, again from the live product: 450ms `cubic-bezier(0.2, 0, 0, 1)`,
 a 9px dot translated from the pointer to the centre and scaled ~17x. Hover state
 layer opacity 0.08–0.10, confirming the token values.
+
+---
+
+## Round 5 — the device rows, the level meter, the mute badge
+
+### The `...` is one component wearing two faces
+
+The best find of this round. Google's tile mute badge (`.JHK7jb`) and the control
+bar's level meter (`.IisKdb`) **share their sizing rules** — `1.625em` normally,
+`1.75em` under `.iPFm3e` (the 28px tile size) — and a state class swaps which
+face shows: `.FTMc0c` hides the three-bar meter and reveals the crossed mic. So
+an unmuted tile shows a *live meter* inside that same circle. One component, two
+sizes, two states.
+
+### The level meter is a sprite, not a keyframe
+
+```
+.IisKdb > .DwvCqe, .HPxjXe, .UBNDXc { width: .25em; height: 1em; background: url(data:image/png…) }
+.IisKdb > .HPxjXe { margin-left: .125em; margin-right: .125em; animation-delay: .2s }
+.IisKdb > .DwvCqe { animation-delay: .4s }
+.IisKdb.gjg47c > * { animation-name: none; background-position-x: 0 }
+```
+
+Each bar is a `0.25em × 1em` window onto a PNG strip and the **level is a
+`background-position-x` step** — five of them (`0`, `-0.3125`, `-0.625`,
+`-0.9375`, `-1.25em`) with the middle bar reading a different set (`0`,
+`-1.5625`, `-1.875`, `-2.1875`, `-2.5em`) so it never matches its neighbours.
+Level classes in order: `gjg47c` (silent) → `OgVli` → `HX2H7` → `wEsLMd` →
+`I8fSpb`/`Oaajhc`.
+
+Bars measure 5px on a 6px pitch at x 15/21/27 inside a 20×20 slot. Idle is not a
+slower wobble — it is `animation-name: none`, dead stop.
+
+We rebuild the mechanism rather than ship the sprite: three drawn bars stepping
+height, keeping the real 0.2s/0.4s stagger.
+
+**Hover** is a plain `display` swap in that one slot — `display:none` on the
+meter, `inline-block` on the `keyboard_arrow_up`. No crossfade.
+
+### The settings rows
+
+One shell, two fillings, both **576×56** at the same position, `#202124` r36:
+
+```
+audio   Mic not found 223x32 · Speaker not found 277x32 · gear 40x40
+video   Permission needed 148x32 · Blur background 157x32 ·
+        Backgrounds and effects 187x32 · gear 40x40
+```
+
+The chips **flex, they are not sized to content**. The audio pair sums to exactly
+500 and the video trio to 492 — in both cases the 576 shell less its 20 of
+insets, the 40 gear and the 8px gaps. The text only decides how the slack splits.
+
+```
+enter   max-width 56px -> 576px   200ms  cubic-bezier(0, 0, 0.2, 1)
+        opacity   0 -> 1          100ms  linear
+exit    opacity   1 -> 0          100ms  linear
+```
+
+Two behaviours worth recording. Opening a row **dismisses the mic bubble**, and
+unlike the emoji tray the row **does not shrink the tile** — it floats over the
+bottom 52px (tile stayed 748 tall with the row open).
+
+Caret is `keyboard_arrow_up` collapsed, `keyboard_arrow_down` expanded, with
+`aria-expanded` tracking it.
+
+**One correction to the brief.** Nam described the motion as "going up and fading
+in, going down and fading out". There is no translate on the row at all — what
+reads as rising is the 56px seed opening to 576 while it fades. The up-and-fade
+is the emoji tray's own entrance, which really is a 10px lift (Google's
+`fadeInUp`: `translateY(0.625rem)` plus a fade). So the tray keeps the lift and
+gains a symmetrical exit; the row gets the expansion it actually has.
+
+### The mic device check
+
+**535ms** from clicking the mic to the card appearing, timed on the live product.
+Suspiciously close to the tooltip's 540ms cold delay — looks like one house number
+for "long enough to read as thinking".
+
+Also a refinement on the bubble: it grows from a **56px seed in both axes**
+(`max-height 56→125` in one capture, `max-width 56→384` in another), not just
+height.
+
+### The mute badge
+
+28×28 at inset 10/10 from the tile's top-right, `#002e69` fill, 18px glyph in
+`#adc6ff`.
+
+### Still on the shelf
+
+`fadeOutPill` (`0% 1 · 87.5% 1 · 100% 0`) and `whitenName` (`#202124` + no shadow
+→ `#fff` + `0 1px 2px rgba(0,0,0,.6), 0 0 2px rgba(0,0,0,.3)`) mean the raised-hand
+pill **eventually fades out and its label whitens into the ordinary name plate**.
+That reconciles the two readings from Round 4 — it holds, then hands over. The
+delay before it fires is unmeasured, so it is not built.
+
+`reaction-overlay-emoji-scuttle` (`0% -5deg · 25% -5deg · 75% 5deg · 100% 5deg`)
+is the reaction wobble, and it is **±5° with holds**, where ours uses 7° and no
+holds. Cheap fix next time reactions come up.
+
+The mic button's own on/off morph: `background-color` `#333537` → `#f9dedc` and
+`border-radius` `24px` → `12px`, both 200ms **`steps(6, jump-none)`**.

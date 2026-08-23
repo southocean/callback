@@ -4839,3 +4839,150 @@ body.tray-open .cc { bottom: calc(var(--botbar) + 52px + 12px); }
   .hand-pill, .hand-name { animation: none; }
   .solo-name { transition: none; }
 }
+
+/* ================= THE DEVICE SETTINGS ROWS =============================== */
+/* Nam: "the ... is actually the mic output signal... on hover it becomes a down
+ * arrow, which on click expands the setting row up while removing the emoji
+ * list". Captured live rather than built from the description.
+ *
+ * THE ROW is one shell with two possible fillings — both measured at exactly
+ * 576x56 in the same position, so only the contents differ:
+ *
+ *   audio   Mic not found 223x32 · Speaker not found 277x32 · gear 40x40
+ *   video   Permission needed 148x32 · Blur background 157x32 ·
+ *           Backgrounds and effects 187x32 · gear 40x40
+ *
+ * 10px end insets, 8px gaps, chips r16 with a 1px #444746 outline and 0/16
+ * padding, gear r20. Shell #202124 r36.
+ *
+ *   enter   max-width 56px -> 576px   200ms  cubic-bezier(0, 0, 0.2, 1)
+ *           opacity   0 -> 1          100ms  linear
+ *   exit    opacity   1 -> 0          100ms  linear
+ *
+ * Worth being straight about one thing. Nam described the motion as "going up
+ * and fading in, going down and fading out", and there is no translate on the
+ * row at all — what reads as rising is the 56px seed opening out to 576 while it
+ * fades. The up-and-fade Nam is remembering is the emoji tray's own entrance,
+ * which really is a 10px lift (Google's `fadeInUp`: translateY(0.625rem) plus a
+ * fade). So the tray keeps its lift and gets a symmetrical exit, and the row
+ * gets the expansion it actually has.
+ *
+ * The row also does NOT shrink the tile, where the tray does — it floats over
+ * the tile's bottom 52px. Verified: tile stayed 748 tall with the row open. */
+.set-row {
+  /* 12px under the row against the tray's 16, because the row is 56 tall where
+     the tray is 40 — so its bottom edge sits 4px lower than the tray's. */
+  position: fixed; left: 50%; bottom: calc(var(--botbar) - 4px);
+  transform: translateX(-50%); z-index: 7;
+  box-sizing: border-box; width: 576px; height: 56px; max-width: 576px;
+  padding: 0 10px; border-radius: 36px; background-color: #202124;
+  display: flex; align-items: center; gap: 8px; overflow: hidden;
+  animation: set-row-in .2s cubic-bezier(0, 0, 0.2, 1),
+             set-row-fade .1s linear;
+}
+.set-row[hidden] { display: none !important; }
+@keyframes set-row-in { from { max-width: 56px; } }
+@keyframes set-row-fade { from { opacity: 0; } }
+/* The measured exit is the fade and nothing else — no reverse expansion. */
+.set-row.is-out { animation: set-row-fade .1s linear reverse both; }
+
+/* The chips FLEX, they are not sized to content. Meet's two audio chips
+   measure 223 and 277, which sum to exactly 500 — the 576 shell less its 20 of
+   insets, the 40 gear and 16 of gaps. The three video chips sum to 492 against
+   the same arithmetic. So the row always fills, and the text each chip carries
+   only decides how the slack is split. */
+.set-chip {
+  flex: 1 1 auto; min-width: 0; height: 32px; padding: 0 16px; border-radius: 16px;
+  border: 1px solid #444746; background: none; color: #e3e3e3;
+  font: 400 13.3px/1 var(--font); cursor: pointer;
+  display: inline-flex; align-items: center; gap: 8px;
+  position: relative; overflow: hidden; --sl: #fff;
+}
+.set-chip .ms { font-size: 18px; }
+/* Meet tints only the warning glyphs, the same #fbbc04 the notice card uses. */
+.set-chip .ms.is-warn { color: #fbbc04; }
+.set-chip:focus-visible { outline: 2px solid #a8c7fa; outline-offset: 2px; }
+.set-chip > .caret { margin-left: auto; opacity: .9; flex: 0 0 auto; }
+.set-chip > span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.set-gear {
+  flex: 0 0 auto; margin-left: auto; width: 40px; height: 40px;
+  border: 0; border-radius: 20px; padding: 10px; box-sizing: border-box;
+  background: none; color: #e3e3e3; cursor: pointer;
+  display: grid; place-items: center; position: relative; overflow: hidden; --sl: #fff;
+}
+.set-gear:focus-visible { outline: 2px solid #a8c7fa; outline-offset: 2px; }
+
+/* --- the level meter, and the caret it becomes -------------------------- */
+/* The three bars are 5px wide on a 6px pitch inside a 20x20 slot, and Google
+ * drives them from a PNG sprite: each bar is a 0.25em x 1em window and the
+ * level is a background-position-x step, five of them, with the middle bar
+ * reading a different frame of the same sheet. The idle class kills the
+ * animation outright (`animation-name: none`).
+ *
+ * We are not going to ship Google's sprite, so this is the mechanism rebuilt
+ * rather than the asset copied: three drawn bars whose height steps, staggered
+ * by the 0.2s and 0.4s delays their rules actually carry. Same read, no
+ * borrowed image.
+ *
+ * Hover is a straight display swap in one slot — meter out, caret in. Not a
+ * crossfade: measured display:none on the meter and inline-block on the glyph. */
+.chev-slot { position: relative; width: 20px; height: 20px; display: grid; place-items: center; }
+.lvl { display: flex; align-items: center; gap: 1px; height: 18px; }
+.lvl-b {
+  width: 5px; height: 6px; border-radius: 2.5px; background-color: #8e918f;
+  transform-origin: center;
+}
+/* Live only when the mic is on. Meet's idle state is not a slower wobble, it is
+   no animation at all, so ours stops dead too. */
+.mic-live .lvl-b { animation: lvl-jump .9s ease-in-out infinite; }
+.mic-live .lvl-b:nth-child(2) { animation-delay: .2s; }
+.mic-live .lvl-b:nth-child(3) { animation-delay: .4s; }
+@keyframes lvl-jump {
+  0%, 100% { height: 6px; }
+  50%      { height: 18px; }
+}
+/* The caret hides behind the meter until you ask for it — or until the row is
+   open, when the button has to keep showing which way it will go next. */
+.chev-caret { display: none; }
+.chev.has-meter:hover .lvl,
+.chev.has-meter[aria-expanded="true"] .lvl { display: none; }
+.chev.has-meter:hover .chev-caret,
+.chev.has-meter[aria-expanded="true"] .chev-caret,
+.chev:not(.has-meter) .chev-caret { display: block; }
+/* keyboard_arrow_down is not in our 56-glyph subset, so the down caret is the up
+   one turned over. That also guarantees the pair matches, which two different
+   Material chevrons would not. */
+.chev-caret { transition: transform .15s cubic-bezier(0, 0, 0.2, 1); }
+.chev[aria-expanded="true"] .chev-caret { transform: rotate(180deg); }
+
+/* --- the tile's muted badge --------------------------------------------- */
+/* Nam: "That button should be on if the mic is not enabled. Basically for the
+ * scope of this project, it should be on at all times."
+ *
+ * Measured 28x28 at inset 10/10 from the tile's top-right, #002e69 fill with an
+ * #adc6ff glyph at 18px.
+ *
+ * The nice find here is that this badge and the control bar's level meter are
+ * the SAME component in Google's markup — .JHK7jb and .IisKdb share their sizing
+ * rules, and a state class swaps the three-bar meter for the crossed mic. So an
+ * unmuted tile shows a live meter in this exact circle. We only ever render the
+ * muted face, which is why ours is a plain badge. */
+.solo-mute {
+  position: absolute; top: 10px; right: 10px; z-index: 6;
+  width: 28px; height: 28px; border-radius: 50%;
+  background-color: #002e69; color: #adc6ff;
+  display: grid; place-items: center;
+}
+.solo-mute[hidden] { display: none !important; }
+.solo-mute .ms { font-size: 18px; }
+
+/* The tray's exit, made symmetrical with its entrance — see the note above on
+   where Nam's up-and-down actually lives. */
+.tray-wrap.is-out { animation: tray-out .18s cubic-bezier(0.4, 0, 1, 1) both; }
+@keyframes tray-out { to { opacity: 0; transform: translateX(-50%) translateY(10px); } }
+
+@media (prefers-reduced-motion: reduce) {
+  .set-row, .set-row.is-out, .tray-wrap.is-out { animation: none; }
+  .lvl-b { animation: none !important; }
+  .chev-caret { transition: none; }
+}

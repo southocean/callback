@@ -15,7 +15,7 @@
 
 import { h, clear } from '../dom.js';
 import { sym } from './icons.js';
-import { ripple, attachMenu, micMeter, menu as gmMenu, warnBadge, noticeCard } from './gm3.js';
+import { ripple, attachMenu, micMeter, menu as gmMenu, warnBadge, noticeCard, dropCaret } from './gm3.js';
 import { tipAll } from './tooltip.js';
 import type { MenuItem } from './gm3.js';
 import type { IconName } from './icons.js';
@@ -143,6 +143,18 @@ export function renderCall(store: Store, quests: Quests, deps: CallDeps): HTMLEl
    * is not one of them, so asking for it would render the literal string. Same
    * gesture, one fewer font rebuild.
    */
+  /**
+   * The tile's muted badge. Measured 28x28 at inset 10/10, #002e69 with an
+   * #adc6ff glyph at 18px.
+   *
+   * In Google's markup this circle and the control bar's level meter are the
+   * same component — they share their sizing rules and a state class swaps the
+   * three-bar meter for the crossed mic. An unmuted tile shows a live meter in
+   * this exact circle. We only ever render the muted face.
+   */
+  const muteBadge = h('div', { class: 'solo-mute', role: 'img', 'aria-label': 'Your microphone is off' },
+    sym('mic_off', 18)) as HTMLElement;
+
   const handPill = h('div', { class: 'hand-pill', role: 'status' },
     h('div', { class: 'hand-bg', 'aria-hidden': 'true' }),
     h('span', { class: 'hand-ico', 'aria-hidden': 'true' }, sym('back_hand', 16)),
@@ -157,6 +169,7 @@ export function renderCall(store: Store, quests: Quests, deps: CallDeps): HTMLEl
       h('div', { class: 'solo-scrim', 'aria-hidden': 'true' }),
       h('div', { class: 'solo-av', 'aria-hidden': 'true' }, 'NN'),
       h('span', { class: 'solo-name' }, profile.name),
+      muteBadge,
       handPill,
       micMeter(),
     );
@@ -307,19 +320,54 @@ export function renderCall(store: Store, quests: Quests, deps: CallDeps): HTMLEl
     return b;
   };
 
-  const chev = (label: string, onClick: () => void): HTMLButtonElement => {
-    const b = h('button', { class: 'chev', type: 'button', 'aria-label': label, onclick: onClick }, sym('keyboard_arrow_up', 20)) as HTMLButtonElement;
-    // Inert device pickers — this page has no devices to choose between — but
-    // they ripple and they tip, same call as the pre-join carets.
+  /**
+   * The caret tab beside the mic and camera buttons.
+   *
+   * On the audio side it is not a caret at rest — it is the microphone's level
+   * meter, three bars in a 20x20 slot, and the caret only appears on hover.
+   * Google drives those bars from a PNG sprite: each is a 0.25em window onto a
+   * strip and the level is a background-position-x step. We rebuild the
+   * mechanism rather than ship their asset, keeping the 0.2s and 0.4s stagger
+   * their own rules carry.
+   *
+   * The swap is a plain display change, not a crossfade — measured display:none
+   * on the meter against inline-block on the glyph.
+   */
+  const caretGlyph = (): HTMLElement => { const g = sym('keyboard_arrow_up', 20); g.classList.add('chev-caret'); return g; };
+  const chev = (label: string, kind: 'audio' | 'video'): HTMLButtonElement => {
+    const meter = kind === 'audio'
+      ? h('span', { class: 'lvl', 'aria-hidden': 'true' },
+          h('i', { class: 'lvl-b' }), h('i', { class: 'lvl-b' }), h('i', { class: 'lvl-b' }))
+      : null;
+    const b = h('button', {
+      class: 'chev' + (kind === 'audio' ? ' has-meter' : ''),
+      type: 'button', 'aria-label': label, 'aria-expanded': 'false',
+      onclick: () => setSettings(kind),
+    }, h('span', { class: 'chev-slot' }, meter, caretGlyph())) as HTMLButtonElement;
     ripple(b);
     tipAll(b);
     return b;
   };
+  const audioChev = chev('Audio settings', 'audio');
+  const videoChev = chev('Video settings', 'video');
 
   const micBtn = cbtn('Turn on microphone', 'mic_off', 'w48', () => {
     const on = !store.get().micOn;
     store.dispatch({ t: 'mic', on });
-    if (on) micNotice();
+    // Nam: "we should have a small delay after enabling the mic, kinda like the
+    // computer is checking if we actually have a mic". It does, and it is 535ms
+    // — timed on the live product from the click to the card appearing. Close
+    // enough to the tooltip's own 540ms cold delay to look like one house
+    // number for "long enough to read as thinking".
+    //
+    // Guarded: if the mic goes off again inside that window, the check is
+    // abandoned rather than firing a card about a state we have left.
+    if (on) {
+      window.clearTimeout(micCheck);
+      micCheck = window.setTimeout(() => { if (store.get().micOn) micNotice(); }, 535);
+    } else {
+      window.clearTimeout(micCheck);
+    }
   }, () => {
     const on = store.get().micOn;
     return { on, icon: on ? 'mic' : 'mic_off', label: on ? 'Turn off microphone' : 'Turn on microphone' };
@@ -383,8 +431,8 @@ export function renderCall(store: Store, quests: Quests, deps: CallDeps): HTMLEl
     h(
       'div',
       { class: 'bar-group', 'aria-label': 'Call controls', role: 'group' },
-      h('div', { class: 'unit' }, chev('Audio settings', () => store.dispatch({ t: 'engTab', tab: 'net' })), micBtn, warnBadge()),
-      h('div', { class: 'unit' }, chev('Video settings', () => store.dispatch({ t: 'engTab', tab: 'fx' })), camBtn, warnBadge()),
+      h('div', { class: 'unit' }, audioChev, micBtn, warnBadge()),
+      h('div', { class: 'unit' }, videoChev, camBtn, warnBadge()),
       presentBtn, reactBtn, ccBtn, handBtn, moreBtn, leaveBtn,
     ),
     h('div', { class: 'bar-right' }, chatBtn, toolsBtn, hostBtn),
@@ -519,6 +567,7 @@ export function renderCall(store: Store, quests: Quests, deps: CallDeps): HTMLEl
    * card off the edge.
    */
   let micNote: HTMLElement | null = null;
+  let micCheck = 0;
 
   function closeMicNote(alsoMute: boolean): void {
     const card = micNote;
@@ -748,7 +797,86 @@ export function renderCall(store: Store, quests: Quests, deps: CallDeps): HTMLEl
   const trayWrap = h('div', { class: 'tray-wrap' }, tonePop, tray, toneBtn);
   trayWrap.hidden = true;
 
+  /**
+   * The device settings rows, both measured at exactly 576x56 in the same
+   * position — one shell, two fillings.
+   *
+   * Opening one takes the emoji tray's place and dismisses the mic bubble, both
+   * of which the live product does. Closing it puts the tray back only if the
+   * tray was what you had open, which is the behaviour that makes the pair feel
+   * like one slot rather than two things fighting over it.
+   *
+   * Unlike the tray, the row does NOT shrink the tile — it floats over the
+   * bottom 52px. Verified rather than assumed: the tile stayed 748 tall with the
+   * row open where the tray takes it to 696.
+   */
+  let settingsKind: 'audio' | 'video' | null = null;
+  let trayBeforeSettings = false;
+  let settingsRowEl: HTMLElement | null = null;
+
+  function paintChevs(): void {
+    audioChev.setAttribute('aria-expanded', String(settingsKind === 'audio'));
+    videoChev.setAttribute('aria-expanded', String(settingsKind === 'video'));
+  }
+
+  function settingsChip(icon: IconName | null, label: string, warn: boolean, caret: boolean): HTMLElement {
+    let glyph: HTMLElement | null = null;
+    if (icon) { glyph = sym(icon, 18); if (warn) glyph.classList.add('is-warn'); }
+    const b = h('button', { class: 'set-chip', type: 'button', 'aria-label': label },
+      glyph,
+      h('span', {}, label),
+      caret ? dropCaret(20) : null) as HTMLButtonElement;
+    ripple(b);
+    return b;
+  }
+
+  function settingsRow(kind: 'audio' | 'video'): HTMLElement {
+    const gear = h('button', { class: 'set-gear', type: 'button', 'aria-label': 'Settings' }, sym('settings', 20)) as HTMLButtonElement;
+    ripple(gear);
+    tipAll(gear);
+    // Meet's own labels. This page really has no microphone, speaker or camera,
+    // so they are not placeholders standing in for something — they are true.
+    const kids = kind === 'audio'
+      ? [settingsChip('mic_none', 'Mic not found', false, true),
+         settingsChip('error', 'Speaker not found', true, true)]
+      : [settingsChip('videocam', 'Permission needed', false, true),
+         settingsChip('blur_on', 'Blur background', false, false),
+         settingsChip(null, 'Backgrounds and effects', false, false)];
+    return h('div', { class: 'set-row', role: 'group', 'aria-label': kind === 'audio' ? 'Audio settings' : 'Video settings' },
+      ...kids, gear) as HTMLElement;
+  }
+
+  function setSettings(kind: 'audio' | 'video' | null): void {
+    const next = settingsKind === kind ? null : kind;
+    // The measured exit is a 100ms linear fade, so the old row has to outlive
+    // the state change by that long.
+    if (settingsRowEl) {
+      const dying = settingsRowEl;
+      settingsRowEl = null;
+      dying.classList.add('is-out');
+      window.setTimeout(() => dying.remove(), 110);
+    }
+    if (next !== null) {
+      if (settingsKind === null) trayBeforeSettings = trayOpen;
+      closeMicNote(false);
+      if (trayOpen) setTray(false);
+      const row = settingsRow(next);
+      settingsRowEl = row;
+      layer.appendChild(row);
+    } else {
+      const restore = trayBeforeSettings;
+      trayBeforeSettings = false;
+      if (restore) setTray(true);
+    }
+    settingsKind = next;
+    paintChevs();
+  }
+
   function setTray(v: boolean): void {
+    // The tray and the settings row share one slot; asking for one puts the
+    // other away. Guarded on settingsKind so the restore path below cannot
+    // bounce back into here.
+    if (v && settingsKind !== null) { trayBeforeSettings = false; setSettings(null); }
     trayOpen = v;
     tray.hidden = !v;
     trayWrap.hidden = !v;
@@ -906,6 +1034,11 @@ export function renderCall(store: Store, quests: Quests, deps: CallDeps): HTMLEl
     // bottom left for as long as the hand is up, and Nam asked for it back.
     // Colour and entrance are screenshot-derived, flagged in styles.css.
     handPill.hidden = !s.handRaised;
+    // Nam wants this on whenever the mic is not enabled, which on this page is
+    // effectively always — turning the mic on raises a card whose close turns it
+    // straight back off.
+    muteBadge.hidden = s.micOn;
+    audioChev.classList.toggle('mic-live', s.micOn);
     ccBtn.classList.toggle('active', s.captionsOn);
     presentBtn.classList.toggle('active', s.panel === 'present');
 
