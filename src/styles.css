@@ -2488,11 +2488,9 @@ body.plain { background: #fff; color: #16181c; }
  * when it opens. The reveal is instant. Against the "everything is a
  * transition" rule, but it is what the product does, so it is what this does. */
 .warn-pill { transition: none; }
-.warn-caret, .warn-pill > .caret {
-  flex: 0 0 auto; width: 15px; height: 15px; opacity: 0;
-}
-.warn-pill > .caret { margin-right: 5px; }
-.warn-pill:hover > .caret, .warn-pill:focus-visible > .caret { opacity: 1; }
+/* The badge has no caret. See the note in lobby.ts: Meet has the element and
+   does not paint it, and ours was painting it in white. */
+.warn-pill > .caret { display: none; }
 
 /* --- the spinner: why the wave was leaving the circle -------------------- */
 /* Nam's frames of the "Getting ready" screen show a near-complete pale ring
@@ -4427,3 +4425,113 @@ body.tray-open .cc { bottom: calc(var(--botbar) + 52px + 12px); }
   font-size: 40px; line-height: 1;
 }
 .reaction { bottom: 53px; }
+
+/* --- the badge label rides the spring, and that fixes the padding too ---- */
+/* Nam: the bounce applies to the yellow AND the text, and ours only sprang the
+   background. Tracking the dark ink frame by frame in his clip, excluding the
+   disc and the pill's own antialiased edge:
+ *
+ *     pill 180  ->  text left 96, width 132
+ *     pill 172  ->  text left 88, width 132
+ *     pill 160  ->  text left 84, width 125
+ *     pill 174  ->  text left 90, width 131
+ *
+ * The text's WIDTH is constant while its LEFT EDGE moves — so it translates, it
+ * does not stretch. A scaleX on the pill would have squashed the glyphs, and it
+ * does not. The ratio is about 0.6 of the pill's change, which is what centring
+ * gives you (0.5, plus a couple of px of measurement noise on a compressed
+ * video), not right-anchoring (which would be 1.0).
+ *
+ * At rest: pill 62..233, disc 62..78, ink 88..219 — 10px clear of the disc and
+ * ~12 to the right edge. Centred in the space after the disc.
+ *
+ * So the label is not pinned after the disc, it is centred in what is left, and
+ * a springing width carries it. One declaration, and it also answers the other
+ * half of Nam's note: ours put every spare pixel on the right, which is exactly
+ * the "empty space on the right is a bit much". Centring splits it. */
+.warn-text { flex: 1 1 auto; min-width: 0; text-align: center; }
+/* Symmetric now that the slack is shared rather than dumped on one side. The
+   disc still sits at dx 2, which is where Meet's is. */
+.warn-pill:hover, .warn-pill:focus-visible { padding: 0 2px; }
+/* The text arrives a little later than I had it: ink first shows around t=617
+   against an expansion starting at t=433, so ~185ms in rather than 80. */
+.warn-text { transition: opacity .1s linear .15s; }
+
+/* The settled label sat a touch far from the disc. Meet's DOM puts its label box
+   at dx 24 against our ink landing at 29, and the video read is +/-2px from
+   antialiasing, so the last few pixels here are Nam's eye against the reference
+   rather than a number I can defend to the pixel — said plainly instead of
+   dressed up as measured.
+ *
+   The centring is what makes the text ride the spring, so it stays; the resting
+   point moves by shortening the centring area on the RIGHT, which pulls the
+   centre left without pinning anything:
+ *
+     area 22..159 (137 wide), ink 131  ->  centred at 25, was 29 */
+.warn-pill:hover, .warn-pill:focus-visible { padding: 0 10px 0 2px; }
+
+/* ============ THE FOCUS RING, FROM GM3's ACTUAL SOURCE ==================== */
+/* Research turned up something better than docs: Google's GM3 Sass is on GitHub,
+   MIT, with the internal comments left in —
+   material-web/material-components-web-angular-shared-styles, in
+   focusring/_focus_ring_outward.scss. It contains the two keyframe names I had
+   already found in Meet's live CSSOM, verbatim: gm3-focus-ring-outward-grows and
+   -shrinks. So this is no longer reverse-engineered, it is the source:
+ *
+ *     box-shadow: 0 0 0 $track-width $ring-color;      // base, 3px
+ *     outline: $track-width solid transparent;         // see HCM note below
+ *
+ *     grows:   from { 0 0 0 0 }  to { 0 0 0 8px }
+ *     shrinks: from { 0 0 0 8px }                      // NO `to`
+ *
+ *     animation-name: grows, shrinks
+ *     animation-duration: 150ms, 450ms
+ *     animation-delay: 0s, 150ms
+ *     animation-timing-function: cubic-bezier(0.2, 0, 0, 1) both
+ *
+ * Which finally explains my own bug. I had tried exactly this, found that
+ * `grows` never rendered, concluded two animations on one property cannot work,
+ * and collapsed it into a single 8->3px settle. The missing piece is the DELAY
+ * plus the absence of a backwards fill: before 150ms `shrinks` has not started
+ * and contributes nothing, so `grows` owns the property; at 150ms `shrinks`
+ * takes over, and because it has no `to` it lands on whatever the base rule
+ * says — the 3px. Two animations, one property, no conflict.
+ *
+ * 150 + 450 = 600ms, which is md.sys.motion.duration.long4 split 25/75.
+ *
+ * And the transparent outline is not decoration. Windows High Contrast Mode
+ * ignores box-shadow outright, so without it the ring simply does not exist for
+ * those users. GM3 layers an outline of the same width underneath to put it
+ * back. We did not have that.
+ *
+ * One footnote worth keeping: md.sys.motion.easing.emphasized has NO CSS value
+ * in the spec — the real curve is a two-segment path Android expresses as a
+ * pathInterpolator, and CSS is told to fall back to Standard. That is why
+ * cubic-bezier(0.2, 0, 0, 1) turns up everywhere in Meet: it IS emphasized, as
+ * far as the web is concerned. */
+.focus-ring {
+  box-shadow: 0 0 0 3px #00639b;
+  outline: 3px solid transparent;
+}
+.ring-host.is-selected > .focus-ring,
+.ring-host:focus-visible > .focus-ring,
+.device-chip:focus > .focus-ring {
+  opacity: 1;
+  animation-name: gm3-focus-ring-outward-grows, gm3-focus-ring-outward-shrinks;
+  animation-duration: 150ms, 450ms;
+  animation-delay: 0s, 150ms;
+  animation-timing-function: cubic-bezier(0.2, 0, 0, 1), cubic-bezier(0.2, 0, 0, 1);
+  animation-fill-mode: none, none;
+}
+@keyframes gm3-focus-ring-outward-grows {
+  from { box-shadow: 0 0 0 0 #00639b; }
+  to   { box-shadow: 0 0 0 8px #00639b; }
+}
+@keyframes gm3-focus-ring-outward-shrinks {
+  from { box-shadow: 0 0 0 8px #00639b; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .ring-host.is-selected > .focus-ring,
+  .ring-host:focus-visible > .focus-ring,
+  .device-chip:focus > .focus-ring { animation: none; }
+}

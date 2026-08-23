@@ -501,9 +501,16 @@ export function renderLobby(store: Store, media: Media): HTMLElement {
           { class: 'warn-pill', role: 'note', tabindex: '0' },
           h('span', { class: 'warn-dot', 'aria-hidden': 'true' }, '!'),
           h('span', { class: 'warn-text' }, 'You’re joining without mic'),
-          // The expanded badge ends in a caret in Meet too — 15px, #6D3A01,
-          // finishing 5px short of the pill's right edge.
-          dropCaret(20),
+          // No caret. Meet HAS an arrow_drop_down element here — I measured one
+          // at dx 149 reporting colour #6D3A01 — but it is not painted, and a
+          // computed colour is not evidence that something is drawn. Its box
+          // overlaps the label (label 24..157, caret 149..164), and the original
+          // renders the text clean to the edge with no triangle on it.
+          //
+          // Ours drew it, and white: dropCaret fills with currentColor, and the
+          // pill never sets #6D3A01 — the dot and the label each set their own,
+          // so the caret inherited the button's white and became the most
+          // visible thing in the badge.
         ),
       ),
       otherRows,
