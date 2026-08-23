@@ -47,7 +47,7 @@ const TABS: Source[] = [
 ];
 
 const WINDOWS: Source[] = [
-  { id: 'files', kind: 'window', title: 'Files — Work' },
+  { id: 'files', kind: 'window', title: 'File Explorer — Work' },
 ];
 
 const SCREENS: Source[] = [
@@ -169,8 +169,8 @@ function favFor(src: Source): Element {
  * What the call shows once something is "shared". Chrome frames a tab, so a
  * shared tab gets browser chrome around it; a window and a screen do not.
  */
-export function renderShared(src: Source): HTMLElement {
-  const body = contentFor(src);
+export function renderShared(src: Source, onOpen: (id: string) => void = () => {}): HTMLElement {
+  const body = contentFor(src, onOpen);
   if (src.kind === 'tab') {
     return h('div', { class: 'shot shot-tab' },
       h('div', { class: 'shot-chrome' },
@@ -186,13 +186,46 @@ export function renderShared(src: Source): HTMLElement {
   return h('div', { class: 'shot shot-desk' }, body);
 }
 
-function contentFor(src: Source): HTMLElement {
+/**
+ * Nam asked for the Chrome-tab sources to be REAL pages in an iframe, so the
+ * responsive UI is actually responsive rather than a drawing of one.
+ *
+ * Two of the four can be. Our own pages are same-origin, so an iframe of
+ * `./#plain` is the real document, laying itself out for whatever width the
+ * share frame gives it — which is the point. That needed one CSP change:
+ * frame-src 'self' on a policy that shipped default-src 'none'. Scoped to our
+ * own origin, so nothing third-party can be framed.
+ *
+ * careers.google.com cannot be, and not because of our policy: Google serves it
+ * with frame-ancestors of its own and the browser will refuse. Nam said he likes
+ * the authored version, so that one stays authored — a recreation from the real
+ * posting rather than a broken grey box.
+ */
+function frameOf(hash: string, title: string, fallback: () => HTMLElement): HTMLElement {
+  // The authored page renders first and the iframe goes over it. If the frame
+  // loads, the drawing is dropped; if it is refused — a policy change, an
+  // offline build, anything — the drawing is what stays. A blank grey frame is
+  // the one outcome worth engineering away.
+  const behind = fallback();
+  const f = h('iframe', {
+    class: 'pg-frame', src: './' + hash, title,
+    loading: 'lazy', referrerpolicy: 'no-referrer',
+  }) as HTMLIFrameElement;
+  const wrap = h('div', { class: 'pg pg-live' }, behind, f);
+  f.addEventListener('load', () => { behind.remove(); wrap.classList.add('is-live'); });
+  window.setTimeout(() => { if (!wrap.classList.contains('is-live')) f.remove(); }, 4000);
+  return wrap;
+}
+function contentFor(src: Source, onOpen: (id: string) => void): HTMLElement {
   switch (src.id) {
-    case 'cv': return pageCv();
+    // The real thing, framed.
+    case 'cv': return frameOf('#plain', 'Nam Nguyen — the CV as a document', pageCv);
+    case 'work': return frameOf('#tools/tests', 'Four things I built, and what broke', pageWork);
+    // Authored, because the original refuses to be framed.
     case 'jobad': return pageJobAd();
-    case 'work': return pageWork();
     case 'riichi': return pageRiichi();
-    default: return pageDesktop();
+    case 'files': return pageWindow(onOpen);
+    default: return pageDesktop(onOpen);
   }
 }
 
@@ -250,26 +283,137 @@ function pageRiichi(): HTMLElement {
   );
 }
 
-function pageDesktop(): HTMLElement {
-  const folder = (name: string, n: number): HTMLElement =>
-    h('div', { class: 'dk-item' },
-      h('span', { class: 'dk-folder', 'aria-hidden': 'true' }),
-      h('span', { class: 'dk-name' }, name),
-      h('span', { class: 'dk-count' }, String(n)));
-  return h('div', { class: 'dk' },
-    h('div', { class: 'dk-win' },
-      h('div', { class: 'dk-bar' },
-        h('span', { class: 'dk-dot' }), h('span', { class: 'dk-dot' }), h('span', { class: 'dk-dot' }),
-        h('span', { class: 'dk-title' }, 'Work')),
-      h('div', { class: 'dk-cols' },
-        h('div', { class: 'dk-tree' },
-          folder('Real-time client', 4),
-          folder('Tools', 6),
-          folder('This CV', 1),
-          folder('Off the clock', 7)),
-        h('div', { class: 'dk-files' },
-          h('div', { class: 'dk-file' }, icon(icons.doc, 18), h('span', {}, 'NamNguyen_CV_2026.pdf')),
-          h('div', { class: 'dk-file' }, icon(icons.doc, 18), h('span', {}, 'requirement-map.md')),
-          h('div', { class: 'dk-file' }, icon(icons.doc, 18), h('span', {}, 'measured-spec.md'))))),
-  );
+/**
+ * The Explorer window. Nam's note was blunt and correct: ours looked like macOS.
+ * It had three traffic-light dots and Finder proportions, on a page whose whole
+ * premise is that this machine is a Windows box.
+ *
+ * So it is Windows now, and the behaviours that come with that are honoured
+ * rather than decorated — because they are the established ones, and a window
+ * that looks like Explorer and then behaves like nothing is worse than a plain
+ * rectangle:
+ *
+ *   - text does not select (Explorer does not let you drag-select a filename)
+ *   - a second click on a selected name renames, as does F2, as does the
+ *     context menu — all three, because all three work in Explorer
+ *   - Escape cancels a rename, Enter commits
+ *   - the window resizes from its bottom-right corner
+ *   - double-clicking a file opens the thing it names
+ *
+ * Opening is the part that matters most: NamNguyen_CV_2026.pdf did nothing at
+ * all, which made the whole window a picture of a window.
+ */
+interface Node { name: string; kind: 'folder' | 'file'; n?: number; open?: () => void; }
+
+function explorerWindow(opts: { onOpen: (id: string) => void }): HTMLElement {
+  const TREE = ['Real-time client', 'Tools', 'This CV', 'Off the clock'];
+  const FILES: Node[] = [
+    { name: 'NamNguyen_CV_2026.pdf', kind: 'file', open: () => opts.onOpen('plain') },
+    { name: 'requirement-map.md', kind: 'file', open: () => opts.onOpen('requirements') },
+    { name: 'measured-spec.md', kind: 'file', open: () => opts.onOpen('spec') },
+  ];
+
+  let selected: HTMLElement | null = null;
+
+  const rename = (row: HTMLElement): void => {
+    const label = row.querySelector<HTMLElement>('.wx-name');
+    if (!label || row.querySelector('input')) return;
+    const was = label.textContent ?? '';
+    const input = h('input', { class: 'wx-rename', type: 'text', value: was }) as HTMLInputElement;
+    label.replaceWith(input);
+    input.focus();
+    // Explorer selects the stem and leaves the extension alone.
+    const dot = was.lastIndexOf('.');
+    input.setSelectionRange(0, dot > 0 ? dot : was.length);
+    const finish = (commit: boolean): void => {
+      const next = h('span', { class: 'wx-name' }, commit && input.value.trim() ? input.value.trim() : was);
+      input.replaceWith(next);
+    };
+    input.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') { e.preventDefault(); finish(true); }
+      if (e.key === 'Escape') { e.preventDefault(); finish(false); }
+    });
+    input.addEventListener('blur', () => finish(true));
+  };
+
+  const row = (n: Node): HTMLElement => {
+    const el = h('div', { class: 'wx-row wx-' + n.kind, tabindex: '0', role: 'listitem' },
+      h('span', { class: 'wx-ico ' + (n.kind === 'folder' ? 'wx-folder' : 'wx-file'), 'aria-hidden': 'true' }),
+      h('span', { class: 'wx-name' }, n.name),
+      n.n !== undefined ? h('span', { class: 'wx-count' }, String(n.n)) : null);
+    el.addEventListener('click', () => {
+      // The second click on an already-selected row renames. Explorer's rule.
+      if (selected === el) { rename(el); return; }
+      if (selected) selected.classList.remove('is-sel');
+      selected = el; el.classList.add('is-sel');
+    });
+    el.addEventListener('dblclick', () => { if (n.open) n.open(); });
+    el.addEventListener('contextmenu', (e) => { e.preventDefault(); rename(el); });
+    el.addEventListener('keydown', (e) => {
+      if (e.key === 'F2') { e.preventDefault(); rename(el); }
+      if (e.key === 'Enter' && n.open) { e.preventDefault(); n.open(); }
+    });
+    return el;
+  };
+
+  const win = h('div', { class: 'wx' },
+    h('div', { class: 'wx-bar' },
+      h('span', { class: 'wx-bar-ico', 'aria-hidden': 'true' }),
+      h('span', { class: 'wx-title' }, 'Work'),
+      h('span', { class: 'wx-btns' },
+        h('span', { class: 'wx-min' }, '\u2013'),
+        h('span', { class: 'wx-max' }, '\u25A1'),
+        h('span', { class: 'wx-close' }, '\u2715'))),
+    h('div', { class: 'wx-crumb' },
+      h('span', {}, 'This PC'), h('span', { class: 'wx-sep' }, '\u203A'),
+      h('span', {}, 'Documents'), h('span', { class: 'wx-sep' }, '\u203A'),
+      h('span', { class: 'wx-here' }, 'Work')),
+    h('div', { class: 'wx-cols' },
+      h('div', { class: 'wx-tree', role: 'list' }, ...TREE.map((t, i) => row({ name: t, kind: 'folder', n: [4, 6, 1, 7][i] }))),
+      h('div', { class: 'wx-files', role: 'list' }, ...FILES.map(row))),
+    h('div', { class: 'wx-status' }, FILES.length + ' items'),
+    h('span', { class: 'wx-grip', 'aria-hidden': 'true' }));
+
+  // Resize from the corner grip.
+  const grip = win.querySelector<HTMLElement>('.wx-grip');
+  if (grip) {
+    grip.addEventListener('pointerdown', (e) => {
+      e.preventDefault();
+      const b = win.getBoundingClientRect();
+      const x0 = e.clientX, y0 = e.clientY;
+      const move = (m: PointerEvent): void => {
+        win.style.width = Math.max(420, b.width + (m.clientX - x0)) + 'px';
+        win.style.height = Math.max(240, b.height + (m.clientY - y0)) + 'px';
+      };
+      const up = (): void => {
+        window.removeEventListener('pointermove', move);
+        window.removeEventListener('pointerup', up);
+      };
+      window.addEventListener('pointermove', move);
+      window.addEventListener('pointerup', up);
+    });
+  }
+  return win;
+}
+
+/** The Window source: the Explorer window on its own, nothing behind it. */
+function pageWindow(onOpen: (id: string) => void): HTMLElement {
+  return h('div', { class: 'pg pg-win' }, explorerWindow({ onOpen }));
+}
+
+/**
+ * The Screen source, which is NOT the same picture. Nam: "window and screen get
+ * you the same food". Sharing an entire screen shows the desktop — wallpaper,
+ * taskbar, and the window sitting on it — where sharing a window shows only the
+ * window. That difference is the whole reason the picker has two tabs.
+ */
+function pageDesktop(onOpen: (id: string) => void): HTMLElement {
+  return h('div', { class: 'pg pg-desk' },
+    h('div', { class: 'dk-wall', 'aria-hidden': 'true' }),
+    explorerWindow({ onOpen }),
+    h('div', { class: 'dk-taskbar' },
+      h('span', { class: 'dk-start', 'aria-hidden': 'true' }),
+      h('span', { class: 'dk-task is-on', 'aria-hidden': 'true' }),
+      h('span', { class: 'dk-task', 'aria-hidden': 'true' }),
+      h('span', { class: 'dk-tray' }, h('span', {}, '13\u00B0C'), h('span', {}, '02:47'))));
 }

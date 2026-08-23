@@ -192,3 +192,144 @@ sat entirely outside it. It is not a bug: the band is anchored in absolute px to
 the call area, so at a narrow viewport the tile grows into it. That is also what
 Nam's own narrow-window screenshot shows. One absolute band explains both
 observations, where a proportional one would explain neither.
+
+---
+
+# Round 3 — Nam's QA of 2026-08-23, measured live in "Test" (wge-xywx-srv)
+
+Twelve faults. Analysis phase done the way the last two rounds established: join a
+real call, drive synthetic pointer sequences (Meet ignores `el.click()`), and read
+geometry and computed styles back out. Everything below is measured at 1440x900
+unless stated.
+
+## 1. The reaction tray must be gated, and it animates in
+
+Ours renders the strip permanently. Meet's only exists while the button is on.
+
+    emoji pill    540,780 360x40, #282a2c, radius 36
+    nine emoji    540..900, 40x40 each, pitch 40, no gaps
+    skin tone     912,780 40x40 — OUTSIDE the pill, its own control
+    tray opens    float up + fade in
+
+The skin-tone button being outside the pill is why the screenshots read as a row
+plus a separate circle.
+
+## 2. The skin tone popup
+
+    popup    695,732 256x40, #282a2c, radius 8, WITH a shadow
+    six      703 / 743 / 783 / 823 / 863 / 903, 40x40, y 732
+    labels   Unspecified · Light · Medium-light · Medium · Medium-dark · Dark
+    aria     "Skin tone. Unspecified skin tone selected."
+
+Right-aligned to its button (row ends 943, button ends 952), 48px above the emoji
+row, and it floats up and fades in the same way the tray does. It carries a
+tooltip like every other control.
+
+## 3. The frame resize is animated, and ours snaps
+
+Sampling the tile every 16ms while the tray opens:
+
+    t=170  748    t=361  724    t=553  698
+    t=218  747    t=410  713    t=602  697
+    t=268  744    t=457  706    t=649  696
+    t=316  734    t=506  701
+
+So: ~200ms of nothing, then 52px over ~430ms on an S-curve — slow, fast, slow.
+Same mechanism must drive the captions reserve. Ours changes size instantly,
+which is the single most un-Google thing left on the screen.
+
+## 4. Reactions — four separate faults
+
+The emoji is an **animated WebP**: `img src=.../1f44f/512.webp`, 53x53. Not a
+still glyph, which is what Nam meant. Ours is a text emoji and static.
+
+    chip        41,770 41x22, #8ab4f8, radius 22, 500 14px, ink #3c4043
+    emoji       35,711 53x53
+    gap         chipTop 770 - emojiBottom 764 = 6px
+    centring    emoji 35..88 centre 61.5; chip 41..82 centre 61.5 — centred
+
+Ours overlaps them and pins the chip at a fixed offset.
+
+Fade: the chip's opacity holds 1.0 until t=2851 at y=368, then 0.86 / 0.64 / 0.41
+/ 0.19, and both emoji and chip are gone at t=3651. Viewport 900, so the fade
+begins at y 368 — **just above the midpoint**, exactly as Nam described. Rise is
+140 px/s linear over the whole life.
+
+Ours fades the chip out early and the emoji seconds later. They must go together,
+over the same ~800ms window, starting just above half height.
+
+## 5. The tile controls have a background, and only on hover
+
+    container  656,398 128x44, #202124, radius 44
+    Reframe    656,398 44x44 r22, frame_person
+    Effects    700,398 44x44 r22, visual_effects
+    More       744,400 40x40 r20, more_vert
+
+128 = 44 + 44 + 40 with no gaps. Hidden until the tile is hovered, and each of
+the three carries a tooltip. Ours has no container, the wrong glyphs and no tips.
+
+## 6. The Gemini notes panel, which opens on entering the meeting
+
+    panel     1103,65 320x536, #282a2c, radius 16
+    heading   "Let Gemini take notes for this meeting" @1127,89 272x64, 500 24px,
+              painted with a gradient fill (computed colour is transparent)
+    row 1     email glyph 20px #c4c7c5 @1139,191
+              "Send notes to:" 400 12px #c4c7c5 @1175,185
+              "The host and co-hosts" 400 12px #a8c7fa @1175,201
+              caret in a 28x32 r16 #333537 button @1371,185
+              options: All invited guests / Invited guests in your organization /
+                       The host and co-hosts
+    row 2     language glyph @1139,251, "English" #a8c7fa @1279,253 (a link)
+    expander  "More settings" @1119,439 288x50, radius 12 12 0 0
+              holds Notes length: Standard · Sections: Summary, Details, Next steps
+    primary   "Start taking notes (English)" @1119,509 288x56, #a8c7fa, radius 16
+
+## 7. The tooltip flow Nam described, which is a three-state machine
+
+1. Cold: hovering a control waits a grace period before the label appears.
+2. Primed: once one has shown, moving to another control shows its label with no
+   delay — the "lock".
+3. Leaving does not hide it instantly; it lingers briefly.
+
+We have 1 and 2. The linger is missing, which is what makes it feel abrupt.
+
+## 8. Screen share — the biggest gap
+
+- The mock file window is macOS: traffic-light dots, Finder proportions. It has
+  to be **Windows Explorer**.
+- Text must not be selectable, but right-click, a second click on a selected
+  name, or F2 renames — established Windows behaviour, so it should be honoured.
+- The window must be resizable.
+- Clicking a file must open that resource. NamNguyen_CV_2026.pdf currently does
+  nothing.
+- "Window" and "Entire screen" currently return the same content. They must not.
+- The Chrome-tab share should show the real pages in an iframe so the responsive
+  UI is genuinely responsive. Our own pages can be framed; careers.google.com
+  cannot (it will refuse), and Nam likes the authored version, so that one stays
+  authored. This needs `frame-src 'self'` added to a CSP that currently ships
+  `default-src 'none'`.
+
+## 9. The ! badges belong on the in-call mic and camera
+
+Present in Meet whenever the device is genuinely missing, absent otherwise —
+never unconditional.
+
+## 10. The raised hand leaves a pill
+
+After the scare, a green pill with a hand glyph and the name sits at the bottom
+left. Colour and animation to be matched from Nam's screenshot; I could not
+reproduce the state in the DOM before leaving the call, so this one is
+screenshot-derived and flagged as such.
+
+## 11. Captions overlap the reaction tray
+
+They occupy the same band. The captions reserve and the tray reserve have to
+compose rather than collide — which the aspect-locked tile now makes possible.
+
+## Order
+
+Gating and animation first (1, 2, 3), because the resize transition is shared by
+everything after it. Then reactions (4), then the tile controls (5), the badges
+(9) and the hand (10) as small independent fixes. Then the tooltip machine (7),
+the Gemini panel (6), captions (11), and the share window (8) last because it is
+the largest and least entangled.

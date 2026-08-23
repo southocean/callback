@@ -15,7 +15,7 @@
 
 import { h, clear } from '../dom.js';
 import { sym } from './icons.js';
-import { ripple, attachMenu, micMeter, menu as gmMenu } from './gm3.js';
+import { ripple, attachMenu, micMeter, menu as gmMenu, warnBadge } from './gm3.js';
 import { tipAll } from './tooltip.js';
 import type { MenuItem } from './gm3.js';
 import type { IconName } from './icons.js';
@@ -348,8 +348,8 @@ export function renderCall(store: Store, quests: Quests, deps: CallDeps): HTMLEl
     h(
       'div',
       { class: 'bar-group', 'aria-label': 'Call controls', role: 'group' },
-      h('div', { class: 'unit' }, chev('Audio settings', () => store.dispatch({ t: 'engTab', tab: 'net' })), micBtn),
-      h('div', { class: 'unit' }, chev('Video settings', () => store.dispatch({ t: 'engTab', tab: 'fx' })), camBtn),
+      h('div', { class: 'unit' }, chev('Audio settings', () => store.dispatch({ t: 'engTab', tab: 'net' })), micBtn, warnBadge()),
+      h('div', { class: 'unit' }, chev('Video settings', () => store.dispatch({ t: 'engTab', tab: 'fx' })), camBtn, warnBadge()),
       presentBtn, reactBtn, ccBtn, handBtn, moreBtn, leaveBtn,
     ),
     h('div', { class: 'bar-right' }, chatBtn, toolsBtn, hostBtn),
@@ -463,6 +463,10 @@ export function renderCall(store: Store, quests: Quests, deps: CallDeps): HTMLEl
 
   // ------------------------------------------------------ toasts, menus ----
 
+  const handPill = h('div', { class: 'hand-pill', role: 'status' },
+    sym('back_hand', 20), h('span', {}, profile.name)) as HTMLElement;
+  handPill.hidden = true;
+
   const layer = h('div', {});
 
   function toast(title: string, body: string): void {
@@ -513,24 +517,52 @@ export function renderCall(store: Store, quests: Quests, deps: CallDeps): HTMLEl
    * RISE is therefore still the older figure and is NOT re-measured; it is the
    * one number here left on trust rather than evidence.
    */
+  let reactSeq = 0;
   const BAND_X = 73;     // px from the call area's left edge
   const BAND_W = 254;    // measured spread, one viewport only — may not scale
   const RISE = 132;      // px per second, linear. NOT re-measured.
 
+  /**
+   * ONE element, not two. The emoji and its chip were siblings with separate
+   * animations, which is exactly why Nam saw the chip fade out early and the
+   * emoji follow seconds later: two timelines started in the same frame drift
+   * the moment their durations differ. A wrapper makes desync impossible, and
+   * hands us the 6px gap and the centring for free from flex.
+   *
+   * Measured live:
+   *
+   *   emoji  53x53, and in Meet an ANIMATED WebP (.../1f44f/512.webp)
+   *   chip   41x22, #8ab4f8, radius 22, 500 14px, ink #3c4043
+   *   gap    chipTop 770 - emojiBottom 764 = 6
+   *   centre emoji 35..88 -> 61.5, chip 41..82 -> 61.5
+   *   rise   140 px/s linear, x fixed for the whole life
+   *   fade   holds 1.0 to t=2851 at y=368 on a 900 viewport — just above the
+   *          midpoint — and both are gone by t=3651
+   */
   function fire(pick: string): void {
     quests.unlock('react');
-    // The rise covers the tile's height rather than a fixed track, so it stays
-    // right when the tray or the captions shrink the tile.
-    const tileH = document.querySelector('.solo')?.getBoundingClientRect().height ?? 508;
+    // A FIXED travel, not the tile height. The previous round tied it to the
+    // tile so it would stay right when the tray shrinks things — a reasonable
+    // instinct that breaks the measured fade, because Meet fades at a screen
+    // POSITION (y 368 on a 900 viewport, just above the midpoint) and that only
+    // lands at 78% of the life if the travel is Meet's own ~510px. Tying it to
+    // a 696px tile pushed the fade up to y 224, far too high and far too late.
+    const tileH = 510;
     const rx = BAND_X + Math.round(Math.random() * BAND_W);
-    const el = h('div', { class: 'reaction' }, pick);
+    const el = h(
+      'div',
+      { class: 'reaction' },
+      h('span', { class: 'reaction-em' }, pick),
+      h('span', { class: 'reaction-who' }, 'You'),
+    );
     el.style.setProperty('--rx', `${rx}px`);
     el.style.setProperty('--rise', `${Math.round(tileH)}px`);
     el.style.setProperty('--dur', `${(tileH / RISE).toFixed(2)}s`);
-    const chip = h('div', { class: 'reaction-who' }, 'You');
-    chip.style.setProperty('--rx', `${rx}px`);
-    layer.append(el, chip);
-    window.setTimeout(() => { el.remove(); chip.remove(); }, (tileH / RISE) * 1000 + 200);
+    // A different phase per reaction so a burst does not pulse in lockstep.
+    el.style.setProperty('--phase', `-${(reactSeq % 6) * 130}ms`);
+    reactSeq += 1;
+    layer.appendChild(el);
+    window.setTimeout(() => el.remove(), (tileH / RISE) * 1000 + 200);
   }
 
   /**
@@ -545,15 +577,80 @@ export function renderCall(store: Store, quests: Quests, deps: CallDeps): HTMLEl
   const tray = h('div', { class: 'tray', role: 'group', 'aria-label': 'Send a reaction' });
   for (const e of REACT_SET) {
     const b = h('button', { class: 'tray-btn', type: 'button', 'aria-label': e }, e) as HTMLButtonElement;
-    b.addEventListener('click', () => fire(e));
+    // The one place a skin tone means anything on this page: the hand glyphs.
+    b.addEventListener('click', () => {
+      const tinted = /\u{1F44F}|\u{1F44D}|\u{1F44E}/u.test(e) && tone ? e + tone : e;
+      fire(tinted);
+    });
     ripple(b);
     tray.appendChild(b);
   }
+  /**
+   * The skin tone control sits OUTSIDE the emoji pill — 912,780 against a pill
+   * ending at 900 — which is why the screenshots read as a row plus a separate
+   * circle. Its popup is 695,732 256x40, #282a2c at radius 8 WITH a shadow,
+   * right-aligned to the button and 48 above the emoji row.
+   *
+   * Six tones, Meet's own labels. It sets a real preference here: the chosen
+   * tone is applied to the hand glyphs in our set, which is the only place a
+   * skin tone means anything on this page.
+   */
+  const TONES: [string, string][] = [
+    ['', 'Unspecified skin tone'],
+    ['\u{1F3FB}', 'Light skin tone'],
+    ['\u{1F3FC}', 'Medium-light skin tone'],
+    ['\u{1F3FD}', 'Medium skin tone'],
+    ['\u{1F3FE}', 'Medium-dark skin tone'],
+    ['\u{1F3FF}', 'Dark skin tone'],
+  ];
+  let tone = '';
+  const tonePop = h('div', { class: 'tone-pop', role: 'radiogroup', 'aria-label': 'Skin tone' });
+  tonePop.hidden = true;
+  const toneBtn = h('button', {
+    class: 'tone-btn', type: 'button',
+    'aria-label': 'Skin tone. Unspecified skin tone selected.',
+    'aria-expanded': 'false',
+  }, h('span', { class: 'tone-swatch' })) as HTMLButtonElement;
+  ripple(toneBtn);
+  tipAll(toneBtn);
+  const setTone = (t: string, label: string): void => {
+    tone = t;
+    toneBtn.setAttribute('aria-label', `Skin tone. ${label} selected.`);
+    toneBtn.style.setProperty('--tone', t ? 'none' : 'none');
+    for (const b of tonePop.querySelectorAll('button')) {
+      b.setAttribute('aria-checked', b.getAttribute('data-tone') === t ? 'true' : 'false');
+    }
+    toneBtn.dataset.tone = t;
+  };
+  for (const [t, label] of TONES) {
+    const b = h('button', {
+      class: 'tone-opt', type: 'button', role: 'radio', 'aria-label': label,
+      'data-tone': t, 'aria-checked': t === '' ? 'true' : 'false',
+    }, h('span', { class: 'tone-swatch', 'data-tone': t })) as HTMLButtonElement;
+    ripple(b);
+    b.addEventListener('click', () => { setTone(t, label); toneOpen(false); });
+    tonePop.appendChild(b);
+  }
+  const toneOpen = (v: boolean): void => {
+    tonePop.hidden = !v;
+    toneBtn.setAttribute('aria-expanded', String(v));
+  };
+  toneBtn.addEventListener('click', () => toneOpen(tonePop.hidden === true));
+  document.addEventListener('pointerdown', (e) => {
+    if (tonePop.hidden) return;
+    if (tonePop.contains(e.target as Node) || toneBtn.contains(e.target as Node)) return;
+    toneOpen(false);
+  }, true);
+
   tray.hidden = true;
+  const trayWrap = h('div', { class: 'tray-wrap' }, tonePop, tray, toneBtn);
+  trayWrap.hidden = true;
 
   function setTray(v: boolean): void {
     trayOpen = v;
     tray.hidden = !v;
+    trayWrap.hidden = !v;
+    if (!v) toneOpen(false);
     document.body.classList.toggle('tray-open', v);
     reactBtn.classList.toggle('is-active', v);
     reactBtn.sync?.();
@@ -703,6 +800,10 @@ export function renderCall(store: Store, quests: Quests, deps: CallDeps): HTMLEl
     micBtn.classList.toggle('off', !s.micOn);
     camBtn.classList.toggle('off', !s.cameraOn);
     handBtn.classList.toggle('active', s.handRaised);
+    // The scare is the moment; the pill is the state. Meet leaves a pill at the
+    // bottom left for as long as the hand is up, and Nam asked for it back.
+    // Colour and entrance are screenshot-derived, flagged in styles.css.
+    handPill.hidden = !s.handRaised;
     ccBtn.classList.toggle('active', s.captionsOn);
     presentBtn.classList.toggle('active', s.panel === 'present');
 
@@ -743,7 +844,8 @@ export function renderCall(store: Store, quests: Quests, deps: CallDeps): HTMLEl
     top,
     h('div', { class: 'call-mid' }, stage, panelHost),
     cc,
-    tray,
+    trayWrap,
+    handPill,
     shareHost,
     bar,
     readyHost,

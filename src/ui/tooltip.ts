@@ -27,6 +27,18 @@ const GAP = 4;
 /** The enter handler for each tipped element, so it can be re-armed. */
 const enters = new WeakMap<HTMLElement, () => void>();
 
+/**
+ * How long a tooltip stays up after the pointer leaves.
+ *
+ * Nam described the whole flow as a three-state machine, and the third state was
+ * the one we were missing: cold wait, then a primed window where the next
+ * control tips instantly, and then — on the way out — the label LINGERS rather
+ * than snapping away. Without the linger, sweeping along the bar reads as a
+ * strobe: each label appears the moment the last one vanishes.
+ */
+const LINGER = 260;
+let hideTimer = 0;
+
 let primedUntil = 0;
 let showTimer = 0;
 let current: HTMLElement | null = null;
@@ -47,6 +59,7 @@ function root(): HTMLElement {
 type Placement = 'above' | 'below';
 
 function place(anchor: HTMLElement, text: string, where: Placement): void {
+  window.clearTimeout(hideTimer);
   hideNow();
   const tip = document.createElement('div');
   tip.className = 'tt';
@@ -76,15 +89,29 @@ function place(anchor: HTMLElement, text: string, where: Placement): void {
 }
 
 function hideNow(): void {
+  window.clearTimeout(hideTimer);
   window.clearTimeout(showTimer);
   showTimer = 0;
   current?.remove();
   current = null;
 }
 
+/**
+ * Leaving does not hide it — it schedules the hide. That is the third state of
+ * the machine Nam described, and the one we were missing: cold wait, primed
+ * window, and then a LINGER on the way out. Without it, sweeping along the bar
+ * strobes, because each label appears exactly as the last one vanishes.
+ *
+ * A hide already scheduled is cancelled the moment a tooltip is shown, so
+ * moving between controls inside the primed window swaps the label rather than
+ * blanking and re-showing it.
+ */
 function leave(): void {
   if (current) primedUntil = Date.now() + PRIMED_WINDOW;
-  hideNow();
+  window.clearTimeout(showTimer);
+  showTimer = 0;
+  window.clearTimeout(hideTimer);
+  hideTimer = window.setTimeout(hideNow, LINGER);
 }
 
 /**

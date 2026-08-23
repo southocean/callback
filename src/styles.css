@@ -4057,3 +4057,373 @@ body.has-panel .reaction, body.has-panel .reaction-who { left: 0; }
 .dk-folder { width: 16px; height: 13px; border-radius: 2px; background-color: #f7c948; flex: 0 0 auto; }
 .dk-name { flex: 1 1 auto; }
 .dk-count { color: #80868b; font-size: 11px; }
+
+/* --- the warning badge: the spring, and a disc that is actually round ----- */
+/* Nam caught two things, and both were mine.
+ *
+ * THE DISC WAS A ROUNDED SQUARE. .warn-dot never had a border-radius. Collapsed
+ * that is invisible — the pill is 16x16 at radius 9999 with overflow: hidden, so
+ * it clips the square fill into a circle for free. Expanded, the pill becomes a
+ * 169x20 stadium and there is nothing left to clip the corners against. The bug
+ * was always there and only the second state could show it.
+ *
+ * THE ANIMATION IS A SPRING, not the decelerate I built. Measured off Nam's own
+ * 60fps clip by thresholding the yellow and reading the pill's width every
+ * 16.7ms — the left edge never moves, so it is pure width:
+ *
+ *     t=0    16px   collapsed
+ *     t=134  214px  <- peak, +27% past target
+ *     t=284  160px  <- undershoot, -8%
+ *     t=434  174px  <- second peak, +1.3%
+ *     t=520  172px  settled
+ *
+ * Three visible bounces over 520ms, half-period ~172ms, so about 2.9Hz. I had
+ * this as 180ms of cubic-bezier(0.2, 0, 0, 1), which is the right shape for the
+ * first sixth of it and misses the entire character.
+ *
+ * (Widths are video pixels. The settled 172 against a real 169 is ~3px of
+ * antialias bleed, and the same +2..3 shows on the collapsed 16 and on the
+ * height, so progress is normalised against the measured 172 rather than 169 —
+ * otherwise the curve would end at 1.02 instead of 1.)
+ *
+ * Encoded as linear() straight from those samples rather than fitted to a
+ * spring formula: a fit would be a guess about the easing Google used, and the
+ * samples are the thing itself.
+ *
+ * Only the opening springs. Collapsing is quick and plain — the clip shows no
+ * bounce on the way out, which makes sense: nobody is watching it leave. */
+.warn-dot { border-radius: 50%; }
+
+.warn-pill {
+  transition: width .12s ease, height .12s ease, padding .12s ease;
+}
+.warn-pill:hover, .warn-pill:focus-visible {
+  transition:
+    width .52s linear(0, 0.122 3.3%, 0.372 6.5%, 0.603 9.8%, 0.808 12.9%, 0.974 16.2%, 1.128 19.4%, 1.218 22.5%, 1.269 25.8%, 1.205 32.1%, 1.103 38.5%, 1 45%, 0.949 51.3%, 0.923 54.6%, 0.949 64.2%, 0.987 73.8%, 1.013 83.5%, 1.013 96.2%, 1 100%),
+    height .52s linear(0, 0.122 3.3%, 0.372 6.5%, 0.603 9.8%, 0.808 12.9%, 0.974 16.2%, 1.128 19.4%, 1.218 22.5%, 1.269 25.8%, 1.205 32.1%, 1.103 38.5%, 1 45%, 0.949 51.3%, 0.923 54.6%, 0.949 64.2%, 0.987 73.8%, 1.013 83.5%, 1.013 96.2%, 1 100%),
+    padding .52s cubic-bezier(0.2, 0, 0, 1);
+}
+/* The label arrives while the pill is still on its way out to the peak — at
+   16% of the way through, the pill is already at full width. */
+.warn-text { transition: opacity .1s linear .08s; }
+
+@media (prefers-reduced-motion: reduce) {
+  .warn-pill, .warn-pill:hover, .warn-pill:focus-visible { transition: none; }
+}
+
+/* ============ ROUND 3: NAM'S QA OF 2026-08-23, MEASURED LIVE ============= */
+/* Analysis in tools/PLAN-call-view.md, "Round 3". Measured at 1440x900 in a
+   real call unless a line says otherwise.
+                                                                              */
+
+/* --- 1. The tray was visible with the button off ------------------------- */
+/* The JS sets tray.hidden = true. It had no effect, because `[hidden]` is a UA
+   rule of display:none and ANY author `display` beats it — and .tray declares
+   display:flex. So the strip was permanently on screen while the button read as
+   off, which is exactly what Nam saw. One selector fixes it, and it is worth
+   knowing this trap costs nothing to avoid: if you set `hidden` from script,
+   restate it in CSS. */
+.tray[hidden], .tray-wrap[hidden], .tone-pop[hidden] { display: none !important; }
+
+/* --- The tray's real geometry, and it floats up ------------------------- */
+/* pill  540,780 360x40, #282a2c, radius 36
+   nine  40x40 on a 40 pitch, no gaps, 540..900
+   tone  912,780 40x40 — OUTSIDE the pill, its own control, hence the 12px gap */
+.tray-wrap {
+  position: absolute; left: 50%; bottom: calc(var(--botbar) + 6px);
+  transform: translateX(-50%); z-index: 7;
+  display: flex; align-items: center; gap: 12px;
+}
+.tray {
+  position: static; transform: none; bottom: auto; left: auto;
+  padding: 0; border-radius: 36px; background-color: #282a2c;
+  animation: tray-in .22s cubic-bezier(0, 0, 0.2, 1) both;
+}
+/* Float up and fade in — Nam's words, and it is the same entrance the skin tone
+   popup uses. 10px is enough to read as movement without looking like a slide. */
+@keyframes tray-in { from { opacity: 0; transform: translateY(10px); } }
+
+/* --- 2. The skin tone control ------------------------------------------- */
+/* button  912,780 40x40, outside the pill
+   popup   695,732 256x40, #282a2c, radius 8, WITH a shadow, right-aligned to
+           the button and 48 above the emoji row
+   six     703 / 743 / 783 / 823 / 863 / 903 */
+.tone-btn {
+  position: relative; overflow: hidden;
+  width: 40px; height: 40px; border: 0; border-radius: 9999px; padding: 0;
+  background: transparent; cursor: pointer; display: grid; place-items: center;
+  --sl: #fff;
+}
+.tone-pop {
+  position: absolute; right: 0; bottom: 48px;
+  display: flex; align-items: center; gap: 0;
+  height: 40px; padding: 0; border-radius: 8px; background-color: #282a2c;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, .3), 0 4px 8px 3px rgba(0, 0, 0, .15);
+  animation: tray-in .18s cubic-bezier(0, 0, 0.2, 1) both;
+}
+.tone-opt {
+  position: relative; overflow: hidden;
+  width: 40px; height: 40px; border: 0; border-radius: 9999px; padding: 0;
+  background: transparent; cursor: pointer; display: grid; place-items: center;
+  --sl: #fff;
+}
+/* The swatches are the five Fitzpatrick tones Meet offers, plus "unspecified"
+   as the Simpsons yellow every emoji font defaults to. */
+.tone-swatch {
+  width: 22px; height: 22px; border-radius: 50%; background-color: #f7cf5d;
+  box-shadow: inset 0 0 0 1px rgba(0, 0, 0, .25);
+}
+.tone-swatch[data-tone="\1F3FB"] { background-color: #f2d3b3; }
+.tone-swatch[data-tone="\1F3FC"] { background-color: #e0b189; }
+.tone-swatch[data-tone="\1F3FD"] { background-color: #c68763; }
+.tone-swatch[data-tone="\1F3FE"] { background-color: #9a6544; }
+.tone-swatch[data-tone="\1F3FF"] { background-color: #5f4230; }
+.tone-opt[aria-checked="true"] .tone-swatch { box-shadow: 0 0 0 2px #a8c7fa; }
+
+/* --- 3. The frame resize is animated ------------------------------------ */
+/* Sampling the tile every 16ms while the tray opens: it holds 748 for ~200ms,
+   then covers 52px in ~430ms on an S-curve — slow, fast, slow. Ours snapped,
+   which Nam correctly called the least Google-like thing on the screen.
+   One transition on the inset serves the tray, the captions and both together,
+   because the reservations already compose. */
+.grid-wrap.is-solo {
+  transition: bottom .43s cubic-bezier(0.2, 0, 0, 1) .12s,
+              inset .43s cubic-bezier(0.2, 0, 0, 1) .12s;
+}
+
+/* --- 4. Reactions ------------------------------------------------------- */
+/* One wrapper now, so the emoji and its chip cannot drift apart. Flex gives the
+   measured 6px gap and the centring; the shared animation gives the sync Nam
+   asked for.
+     emoji  53x53          chip  41x22 #8ab4f8 r22 500 14px ink #3c4043
+     gap    6              rise  140 px/s linear
+     fade   starts at y 368 on a 900 viewport — just above the midpoint — and
+            both are gone ~800ms later */
+.reaction {
+  position: absolute; left: 0; bottom: 80px; z-index: 6;
+  display: flex; flex-direction: column; align-items: center; gap: 6px;
+  width: 53px; pointer-events: none;
+  animation: react-rise var(--dur, 3.65s) linear both;
+}
+.reaction-em {
+  font-size: 44px; line-height: 53px; height: 53px;
+  /* Meet ships animated WebPs per emoji. Ours are text glyphs, so the movement
+     is a CSS loop — the fact that it moves is Meet's, the way it moves is mine.
+     --phase staggers a burst so they do not pulse in lockstep. */
+  animation: react-bob 1.15s ease-in-out infinite;
+  animation-delay: var(--phase, 0ms);
+}
+@keyframes react-bob {
+  0%, 100% { transform: scale(1) rotate(0deg); }
+  25%      { transform: scale(1.14) rotate(-7deg); }
+  60%      { transform: scale(.94) rotate(5deg); }
+}
+.reaction-who {
+  height: 22px; padding: 0 8px; border-radius: 22px; white-space: nowrap;
+  background-color: #8ab4f8; color: #3c4043;
+  font: 500 14px/22px var(--font-title);
+}
+/* Fade in fast — Meet is already at opacity 1 by t=51 — hold, then take BOTH
+   out together over the last ~22% of the life, which is where y crosses just
+   above half the viewport. */
+@keyframes react-rise {
+  0%   { opacity: 0; transform: translateX(var(--rx, 0px)) translateY(0); }
+  2%   { opacity: 1; }
+  78%  { opacity: 1; }
+  100% { opacity: 0; transform: translateX(var(--rx, 0px)) translateY(calc(var(--rise, 508px) * -1)); }
+}
+
+/* --- 5. The tile controls have a container, and only on hover ----------- */
+/* 656,398 128x44, #202124, radius 44 — and 128 is 44 + 44 + 40 with no gaps. */
+.solo-ctls {
+  gap: 0; padding: 0; border-radius: 44px; background-color: #202124;
+}
+.solo-ctl { color: #e3e3e3; }
+
+/* --- 9. The ! badge on the in-call mic and camera ----------------------- */
+/* Same 12x16 stadium as the pre-join, straddling the top-right corner. Shown
+   only while the device is genuinely missing — never unconditionally. */
+.unit { position: relative; }
+.unit > .cbtn > .ctl-warn, .unit .ctl-warn {
+  position: absolute; left: 40px; top: -2px; z-index: 4;
+  width: 12px; height: 16px; border-radius: 6px; background-color: #fbbc04;
+  display: grid; place-items: center; pointer-events: none;
+}
+.unit > .cbtn.off ~ .ctl-warn { display: none; }
+
+/* --- 10. The raised hand leaves a pill ---------------------------------- */
+/* Screenshot-derived, not measured: I could not get the state to appear in the
+   DOM before leaving the call. Google's green container with its on-colour, at
+   the bar's own 40px pill height, entering with the same float-up as the tray. */
+.hand-pill {
+  position: absolute; left: 24px; bottom: calc(var(--botbar) + 16px); z-index: 8;
+  display: inline-flex; align-items: center; gap: 8px;
+  height: 40px; padding: 0 16px 0 12px; border-radius: 20px;
+  background-color: #a8d5b5; color: #0b3d1e;
+  font: 500 14px/1 var(--font-title);
+  animation: hand-in .34s cubic-bezier(0.2, 0, 0, 1) both;
+}
+@keyframes hand-in {
+  from { opacity: 0; transform: translateY(12px) scale(.9); }
+  60%  { transform: translateY(0) scale(1.04); }
+  to   { opacity: 1; transform: none; }
+}
+
+/* --- 11. Captions must not sit on top of the tray ----------------------- */
+/* They occupied the same band. With the tray open the caption block lifts by
+   the tray's own 52px reservation, which is the number the tile already uses. */
+body.tray-open .cc { bottom: calc(var(--botbar) + 52px + 12px); }
+
+@media (prefers-reduced-motion: reduce) {
+  .grid-wrap.is-solo { transition: none; }
+  .tray, .tone-pop, .hand-pill { animation: none; }
+  .reaction-em { animation: none; }
+}
+
+/* --- 8. The share window: Explorer, not Finder --------------------------- */
+/* Nam's note was blunt and right — ours had three traffic-light dots and Finder
+   proportions, on a page whose premise is that this is a Windows box. Windows 11
+   Explorer: a light chrome bar with the caption buttons on the RIGHT, a
+   breadcrumb, a tree, a file pane, and a status line. */
+.pg-win, .pg-desk { position: relative; width: 100%; height: 100%; overflow: hidden; }
+
+.wx {
+  position: relative; width: min(720px, 92%); height: min(420px, 76%);
+  display: flex; flex-direction: column; overflow: hidden;
+  background-color: #f3f3f3; color: #1b1b1b; border-radius: 8px;
+  box-shadow: 0 8px 28px rgba(0, 0, 0, .45);
+  /* Explorer does not let you drag-select a filename. Honouring that is the
+     difference between a window and a picture of one. */
+  user-select: none; -webkit-user-select: none;
+  font: 400 13px/1.4 "Segoe UI", var(--font), sans-serif;
+}
+.pg-desk .wx { position: absolute; left: 6%; top: 8%; }
+.pg-win .wx { margin: auto; }
+
+.wx-bar {
+  height: 34px; flex: 0 0 auto; display: flex; align-items: center; gap: 8px;
+  padding-left: 10px; background-color: #f3f3f3;
+}
+.wx-bar-ico { width: 16px; height: 16px; border-radius: 2px; background-color: #ffc83d; flex: 0 0 auto; }
+.wx-title { font-weight: 400; font-size: 12.5px; }
+/* Caption buttons on the right, and no colour on them — Windows tints only the
+   close button, and only on hover. */
+.wx-btns { margin-left: auto; display: flex; }
+.wx-btns > span {
+  width: 44px; height: 34px; display: grid; place-items: center;
+  font-size: 11px; color: #1b1b1b;
+}
+.wx-close:hover { background-color: #c42b1c; color: #fff; }
+.wx-min:hover, .wx-max:hover { background-color: rgba(0, 0, 0, .06); }
+
+.wx-crumb {
+  height: 38px; flex: 0 0 auto; display: flex; align-items: center; gap: 6px;
+  padding: 0 12px; font-size: 12.5px; color: #444;
+  border-bottom: 1px solid #e5e5e5; background-color: #fbfbfb;
+}
+.wx-sep { color: #9b9b9b; }
+.wx-here { color: #1b1b1b; }
+
+.wx-cols { flex: 1 1 auto; display: grid; grid-template-columns: 200px 1fr; min-height: 0; }
+.wx-tree { border-right: 1px solid #e5e5e5; padding: 6px 4px; overflow: auto; background-color: #fbfbfb; }
+.wx-files { padding: 6px 4px; overflow: auto; background-color: #fff; }
+
+.wx-row {
+  display: flex; align-items: center; gap: 8px; height: 28px; padding: 0 8px;
+  border-radius: 4px; cursor: default; outline: 0;
+}
+.wx-row:hover { background-color: #ededed; }
+.wx-row.is-sel { background-color: #cce4f7; }
+.wx-row:focus-visible { outline: 1px solid #0b57d0; outline-offset: -1px; }
+.wx-ico { width: 16px; height: 16px; flex: 0 0 auto; border-radius: 2px; }
+.wx-folder { background-color: #ffc83d; }
+.wx-file { background-color: #e8ecf1; box-shadow: inset 0 0 0 1px #c8cdd4; }
+.wx-name { flex: 1 1 auto; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.wx-count { color: #6b6b6b; font-size: 12px; }
+/* The rename field: Explorer selects the stem and leaves the extension. */
+.wx-rename {
+  flex: 1 1 auto; min-width: 0; height: 20px; padding: 0 4px;
+  font: inherit; color: #1b1b1b; background: #fff;
+  border: 1px solid #0b57d0; border-radius: 2px; outline: 0;
+  user-select: text; -webkit-user-select: text;
+}
+.wx-status {
+  height: 26px; flex: 0 0 auto; display: flex; align-items: center; padding: 0 12px;
+  font-size: 12px; color: #5c5c5c; border-top: 1px solid #e5e5e5; background-color: #f3f3f3;
+}
+/* Resize from the corner, which is where Windows puts it. */
+.wx-grip {
+  position: absolute; right: 0; bottom: 0; width: 16px; height: 16px;
+  cursor: nwse-resize; touch-action: none;
+}
+
+/* The desktop behind it, which is what makes "Entire screen" a different
+   picture from "Window" — Nam: "window and screen get you the same food". */
+.dk-wall {
+  position: absolute; inset: 0;
+  background-image: radial-gradient(120% 90% at 30% 20%, #1c3f6e 0%, #0d1f38 55%, #060d18 100%);
+}
+.dk-taskbar {
+  position: absolute; left: 0; right: 0; bottom: 0; height: 40px;
+  display: flex; align-items: center; gap: 10px; padding: 0 12px;
+  background-color: rgba(32, 32, 32, .86); backdrop-filter: blur(8px);
+}
+.dk-start { width: 18px; height: 18px; border-radius: 3px; background-color: #4cc2ff; }
+.dk-task { width: 18px; height: 18px; border-radius: 3px; background-color: rgba(255, 255, 255, .28); }
+.dk-task.is-on { background-color: #ffc83d; }
+.dk-tray {
+  margin-left: auto; display: flex; gap: 12px; align-items: center;
+  font-size: 11.5px; color: #e6e6e6;
+}
+
+/* --- the framed pages --------------------------------------------------- */
+/* Our own pages, actually framed, so the responsive layout is real. */
+.pg-live { position: relative; width: 100%; height: 100%; overflow: hidden; background-color: #fff; }
+.pg-frame {
+  position: absolute; inset: 0; width: 100%; height: 100%;
+  border: 0; display: block; background-color: #fff;
+}
+
+/* --- QA corrections on the reaction rewrite ------------------------------ */
+/* Three faults my own QA caught, and the first is the interesting one.
+ *
+ * The chip was landing 138px to the RIGHT of the emoji instead of under it, and
+ * still fading on its own clock. Cause: the previous round's rules make
+ * .reaction-who `position: absolute` with `left: 26px` and its own
+ * `react-rise-chip` animation. That was correct when it was a SIBLING. It is a
+ * child now, and an absolutely positioned child with its own animation is
+ * exactly not in the flex column — so wrapping the two elements fixed nothing
+ * until those rules were taken back off. Restructure and stylesheet have to
+ * agree; changing one and not the other is how a fix looks applied and isn't. */
+.reaction > .reaction-who {
+  position: static; left: auto; right: auto; bottom: auto;
+  animation: none; transform: none;
+}
+/* The column needs its natural height — 53 + 6 + 22 — not the 53 an earlier
+   rule pinned it to. */
+.reaction { height: auto; }
+/* And the glyph needs a box. Without one it rendered 73x65, because a 44px
+   emoji in a 53px line box is simply larger than 53 wide. */
+.reaction-em {
+  width: 53px; height: 53px; font-size: 44px; line-height: 53px;
+  text-align: center; flex: 0 0 auto;
+}
+
+/* Two more from QA.
+ *
+ * The glyph box measured 67x67 against Meet's 53x53, and setting width/height
+ * did nothing: a flex item defaults to `min-height: auto`, which refuses to go
+ * below its content, and a 44px emoji glyph is simply taller than 53. So the box
+ * has to be allowed to clip — min-height: 0 and a grid centre — and the glyph
+ * comes down to 40px to sit inside it.
+ *
+ * And the spawn height. The group is emoji + 6 + chip = 81 tall, and Meet starts
+ * with the EMOJI's bottom flush on the tile's bottom edge (820) — which puts the
+ * chip below the edge, rising into view. 900 - 81 - 766 = 53. At bottom: 80 the
+ * emoji was starting 68px too high. */
+.reaction-em {
+  flex: 0 0 auto; width: 53px; height: 53px; min-width: 0; min-height: 0;
+  overflow: hidden; display: grid; place-items: center;
+  font-size: 40px; line-height: 1;
+}
+.reaction { bottom: 53px; }
