@@ -303,14 +303,122 @@ function pageRiichi(): HTMLElement {
  * Opening is the part that matters most: NamNguyen_CV_2026.pdf did nothing at
  * all, which made the whole window a picture of a window.
  */
-interface Node { name: string; kind: 'folder' | 'file'; n?: number; open?: () => void; }
+interface Node { name: string; kind: 'folder' | 'pdf' | 'md'; n?: number; open?: () => void; }
+
+/**
+ * Windows artwork, drawn rather than borrowed.
+ *
+ * Nam's note was that the share view "does NOT look like a windows machine at
+ * all", and he is right — the old version had a 16px yellow square for a folder
+ * and three coloured rectangles for a taskbar. He also said to ignore the size
+ * budget and make it realistic.
+ *
+ * Everything below is hand-authored SVG, for three reasons and not only the
+ * legal one: Microsoft's actual icon and wallpaper files are not mine to ship,
+ * I have no reliable way to fetch them, and vector artwork scales with the share
+ * frame while a PNG of someone's desktop would not. So these are original
+ * drawings that read as Windows 11 rather than copies of it.
+ */
+const svg = (vb: string, body: string, cls = ''): HTMLElement => {
+  const el = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+  el.setAttribute('viewBox', vb);
+  el.setAttribute('aria-hidden', 'true');
+  if (cls) el.setAttribute('class', cls);
+  el.innerHTML = body;
+  return el as unknown as HTMLElement;
+};
+
+/** Windows 11's folder: a two-tone tab-and-body with a warm gradient. */
+const icFolder = (): HTMLElement => svg('0 0 20 20', `
+  <defs><linearGradient id="wf1" x1="0" y1="0" x2="0" y2="1">
+    <stop offset="0" stop-color="#ffd04d"/><stop offset="1" stop-color="#f5a623"/>
+  </linearGradient>
+  <linearGradient id="wf2" x1="0" y1="0" x2="0" y2="1">
+    <stop offset="0" stop-color="#ffdf85"/><stop offset="1" stop-color="#ffc148"/>
+  </linearGradient></defs>
+  <path d="M1.6 5.2a1.4 1.4 0 0 1 1.4-1.4h3.3c.5 0 .9.2 1.2.6l.9 1.1h7a1.4 1.4 0 0 1 1.4 1.4v1H1.6z" fill="url(#wf1)"/>
+  <path d="M1.6 7.4h16.8v7.2a1.4 1.4 0 0 1-1.4 1.4H3a1.4 1.4 0 0 1-1.4-1.4z" fill="url(#wf2)"/>
+  <path d="M1.6 7.4h16.8v.9H1.6z" fill="#fff" opacity=".35"/>`);
+
+/** A PDF: white sheet, folded corner, red badge. */
+const icPdf = (): HTMLElement => svg('0 0 20 20', `
+  <path d="M4 2.2h7.4L16 6.8v11a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V3.2a1 1 0 0 1 1-1z" fill="#fff" stroke="#c9ced6" stroke-width=".8"/>
+  <path d="M11.4 2.2 16 6.8h-4.6z" fill="#e4e8ee"/>
+  <rect x="3.2" y="10.6" width="11.6" height="5.6" rx="1.1" fill="#d93025"/>
+  <text x="9" y="14.9" font-family="Segoe UI, sans-serif" font-size="4.1" font-weight="700" fill="#fff" text-anchor="middle">PDF</text>`);
+
+/** A markdown file: the same sheet with a slate badge and an M-arrow. */
+const icMd = (): HTMLElement => svg('0 0 20 20', `
+  <path d="M4 2.2h7.4L16 6.8v11a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V3.2a1 1 0 0 1 1-1z" fill="#fff" stroke="#c9ced6" stroke-width=".8"/>
+  <path d="M11.4 2.2 16 6.8h-4.6z" fill="#e4e8ee"/>
+  <rect x="3.2" y="10.6" width="11.6" height="5.6" rx="1.1" fill="#4b5563"/>
+  <path d="M5 15.1v-3.2h1l1 1.4 1-1.4h1v3.2h-.9v-1.8l-1.1 1.5-1.1-1.5v1.8z" fill="#fff"/>
+  <path d="M11.2 11.9h.9v1.7h.9l-1.35 1.6-1.35-1.6h.9z" fill="#fff"/>`);
+
+/** The Start button: four panes, Windows 11's blue. */
+const icStart = (): HTMLElement => svg('0 0 20 20', `
+  <rect x="2.4" y="2.4" width="6.6" height="6.6" rx="1" fill="#57b0f4"/>
+  <rect x="11" y="2.4" width="6.6" height="6.6" rx="1" fill="#57b0f4"/>
+  <rect x="2.4" y="11" width="6.6" height="6.6" rx="1" fill="#57b0f4"/>
+  <rect x="11" y="11" width="6.6" height="6.6" rx="1" fill="#57b0f4"/>`);
+
+const icSearch = (): HTMLElement => svg('0 0 20 20', `
+  <circle cx="8.6" cy="8.6" r="5.2" fill="none" stroke="#e6e6e6" stroke-width="1.5"/>
+  <path d="m12.6 12.6 4 4" stroke="#e6e6e6" stroke-width="1.5" stroke-linecap="round"/>`);
+
+const icExplorerTask = (): HTMLElement => svg('0 0 20 20', `
+  <path d="M1.8 5.6a1.3 1.3 0 0 1 1.3-1.3h3.1c.45 0 .85.2 1.1.55l.8 1.05h6.6a1.3 1.3 0 0 1 1.3 1.3v.9H1.8z" fill="#f5a623"/>
+  <path d="M1.8 7.9h14.4v6.5a1.3 1.3 0 0 1-1.3 1.3H3.1a1.3 1.3 0 0 1-1.3-1.3z" fill="#ffc94d"/>`);
+
+const icBrowser = (): HTMLElement => svg('0 0 20 20', `
+  <circle cx="10" cy="10" r="7.6" fill="#4a9df0"/>
+  <path d="M10 2.4a7.6 7.6 0 0 1 6.9 4.4H10a3.2 3.2 0 0 0-3 2.1L4.1 5.1A7.6 7.6 0 0 1 10 2.4z" fill="#f2b53c"/>
+  <path d="M13.2 10a3.2 3.2 0 0 1-4.3 3l-2.6 4.2A7.6 7.6 0 0 0 17 12z" fill="#5cc26a"/>
+  <circle cx="10" cy="10" r="3" fill="#fff"/><circle cx="10" cy="10" r="2.1" fill="#2f7fd6"/>`);
+
+/**
+ * The wallpaper. Windows 11's default is an abstract bloom of translucent
+ * ribbons over a deep blue; this is an original take on the same idea — radial
+ * ground plus four soft petals on a rotated group, so it reads as the same
+ * family without being a copy.
+ */
+const wallpaper = (): HTMLElement => svg('0 0 1200 750', `
+  <defs>
+    <radialGradient id="wg" cx="50%" cy="46%" r="62%">
+      <stop offset="0" stop-color="#1b4e8f"/><stop offset="55%" stop-color="#0d2a55"/>
+      <stop offset="100%" stop-color="#050e1f"/>
+    </radialGradient>
+    <linearGradient id="pt" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#7fd4ff" stop-opacity=".55"/>
+      <stop offset="55%" stop-color="#3f8fe0" stop-opacity=".28"/>
+      <stop offset="100%" stop-color="#122a5c" stop-opacity=".05"/>
+    </linearGradient>
+    <filter id="sf" x="-30%" y="-30%" width="160%" height="160%">
+      <feGaussianBlur stdDeviation="14"/>
+    </filter>
+  </defs>
+  <rect width="1200" height="750" fill="url(#wg)"/>
+  <g filter="url(#sf)" transform="translate(600 360)">
+    <g opacity=".9">
+      <path d="M0 0C120-150 300-190 420-120 300-40 130 40 0 0Z" fill="url(#pt)"/>
+      <path d="M0 0C150 120 190 300 120 420 40 300-40 130 0 0Z" fill="url(#pt)" opacity=".85"/>
+      <path d="M0 0C-120 150-300 190-420 120-300 40-130-40 0 0Z" fill="url(#pt)" opacity=".7"/>
+      <path d="M0 0C-150-120-190-300-120-420-40-300 40-130 0 0Z" fill="url(#pt)" opacity=".8"/>
+    </g>
+  </g>
+  <ellipse cx="600" cy="360" rx="150" ry="150" fill="#bfe6ff" opacity=".10" filter="url(#sf)"/>`, 'dk-wall-art');
 
 function explorerWindow(opts: { onOpen: (id: string) => void }): HTMLElement {
-  const TREE = ['Real-time client', 'Tools', 'This CV', 'Off the clock'];
+  const TREE: Node[] = [
+    { name: 'Real-time client', kind: 'folder', n: 4 },
+    { name: 'Tools', kind: 'folder', n: 6 },
+    { name: 'This CV', kind: 'folder', n: 1 },
+    { name: 'Off the clock', kind: 'folder', n: 7 },
+  ];
   const FILES: Node[] = [
-    { name: 'NamNguyen_CV_2026.pdf', kind: 'file', open: () => opts.onOpen('plain') },
-    { name: 'requirement-map.md', kind: 'file', open: () => opts.onOpen('requirements') },
-    { name: 'measured-spec.md', kind: 'file', open: () => opts.onOpen('spec') },
+    { name: 'NamNguyen_CV_2026.pdf', kind: 'pdf', open: () => opts.onOpen('plain') },
+    { name: 'requirement-map.md', kind: 'md', open: () => opts.onOpen('requirements') },
+    { name: 'measured-spec.md', kind: 'md', open: () => opts.onOpen('spec') },
   ];
 
   let selected: HTMLElement | null = null;
@@ -322,12 +430,10 @@ function explorerWindow(opts: { onOpen: (id: string) => void }): HTMLElement {
     const input = h('input', { class: 'wx-rename', type: 'text', value: was }) as HTMLInputElement;
     label.replaceWith(input);
     input.focus();
-    // Explorer selects the stem and leaves the extension alone.
     const dot = was.lastIndexOf('.');
     input.setSelectionRange(0, dot > 0 ? dot : was.length);
     const finish = (commit: boolean): void => {
-      const next = h('span', { class: 'wx-name' }, commit && input.value.trim() ? input.value.trim() : was);
-      input.replaceWith(next);
+      input.replaceWith(h('span', { class: 'wx-name' }, commit && input.value.trim() ? input.value.trim() : was));
     };
     input.addEventListener('keydown', (e) => {
       if (e.key === 'Enter') { e.preventDefault(); finish(true); }
@@ -336,13 +442,15 @@ function explorerWindow(opts: { onOpen: (id: string) => void }): HTMLElement {
     input.addEventListener('blur', () => finish(true));
   };
 
+  const ico = (k: Node['kind']): HTMLElement =>
+    k === 'folder' ? icFolder() : k === 'pdf' ? icPdf() : icMd();
+
   const row = (n: Node): HTMLElement => {
-    const el = h('div', { class: 'wx-row wx-' + n.kind, tabindex: '0', role: 'listitem' },
-      h('span', { class: 'wx-ico ' + (n.kind === 'folder' ? 'wx-folder' : 'wx-file'), 'aria-hidden': 'true' }),
+    const el = h('div', { class: 'wx-row', tabindex: '0', role: 'listitem' },
+      h('span', { class: 'wx-ico' }, ico(n.kind)),
       h('span', { class: 'wx-name' }, n.name),
       n.n !== undefined ? h('span', { class: 'wx-count' }, String(n.n)) : null);
     el.addEventListener('click', () => {
-      // The second click on an already-selected row renames. Explorer's rule.
       if (selected === el) { rename(el); return; }
       if (selected) selected.classList.remove('is-sel');
       selected = el; el.classList.add('is-sel');
@@ -358,23 +466,39 @@ function explorerWindow(opts: { onOpen: (id: string) => void }): HTMLElement {
 
   const win = h('div', { class: 'wx' },
     h('div', { class: 'wx-bar' },
-      h('span', { class: 'wx-bar-ico', 'aria-hidden': 'true' }),
+      h('span', { class: 'wx-bar-ico' }, icFolder()),
       h('span', { class: 'wx-title' }, 'Work'),
       h('span', { class: 'wx-btns' },
-        h('span', { class: 'wx-min' }, '\u2013'),
-        h('span', { class: 'wx-max' }, '\u25A1'),
-        h('span', { class: 'wx-close' }, '\u2715'))),
+        h('span', { class: 'wx-cap wx-min' }, '\u2500'),
+        h('span', { class: 'wx-cap wx-max' }, '\u2610'),
+        h('span', { class: 'wx-cap wx-close' }, '\u2715'))),
+    // Win11 puts a command bar above the breadcrumb, not below it.
+    h('div', { class: 'wx-cmd' },
+      h('span', { class: 'wx-cmd-btn' }, '+ New'),
+      h('span', { class: 'wx-cmd-sep' }),
+      h('span', { class: 'wx-cmd-ico' }, '\u2702'),
+      h('span', { class: 'wx-cmd-ico' }, '\u29C9'),
+      h('span', { class: 'wx-cmd-ico' }, '\u2398'),
+      h('span', { class: 'wx-cmd-ico' }, '\u1F5D1'),
+      h('span', { class: 'wx-cmd-sep' }),
+      h('span', { class: 'wx-cmd-btn' }, 'Sort'),
+      h('span', { class: 'wx-cmd-btn' }, 'View')),
     h('div', { class: 'wx-crumb' },
+      h('span', { class: 'wx-crumb-ico' }, icFolder()),
       h('span', {}, 'This PC'), h('span', { class: 'wx-sep' }, '\u203A'),
       h('span', {}, 'Documents'), h('span', { class: 'wx-sep' }, '\u203A'),
       h('span', { class: 'wx-here' }, 'Work')),
     h('div', { class: 'wx-cols' },
-      h('div', { class: 'wx-tree', role: 'list' }, ...TREE.map((t, i) => row({ name: t, kind: 'folder', n: [4, 6, 1, 7][i] }))),
-      h('div', { class: 'wx-files', role: 'list' }, ...FILES.map(row))),
-    h('div', { class: 'wx-status' }, FILES.length + ' items'),
-    h('span', { class: 'wx-grip', 'aria-hidden': 'true' }));
+      h('div', { class: 'wx-tree', role: 'list' }, ...TREE.map(row)),
+      h('div', { class: 'wx-files' },
+        h('div', { class: 'wx-head' },
+          h('span', {}, 'Name'), h('span', {}, 'Date modified'), h('span', {}, 'Type')),
+        h('div', { class: 'wx-list', role: 'list' }, ...FILES.map(row)))),
+    h('div', { class: 'wx-status' },
+      h('span', {}, FILES.length + ' items'),
+      h('span', { class: 'wx-status-r' }, 'Documents \u203A Work')),
+    h('span', { class: 'wx-grip' }));
 
-  // Resize from the corner grip.
   const grip = win.querySelector<HTMLElement>('.wx-grip');
   if (grip) {
     grip.addEventListener('pointerdown', (e) => {
@@ -382,8 +506,8 @@ function explorerWindow(opts: { onOpen: (id: string) => void }): HTMLElement {
       const b = win.getBoundingClientRect();
       const x0 = e.clientX, y0 = e.clientY;
       const move = (m: PointerEvent): void => {
-        win.style.width = Math.max(420, b.width + (m.clientX - x0)) + 'px';
-        win.style.height = Math.max(240, b.height + (m.clientY - y0)) + 'px';
+        win.style.width = Math.max(460, b.width + (m.clientX - x0)) + 'px';
+        win.style.height = Math.max(260, b.height + (m.clientY - y0)) + 'px';
       };
       const up = (): void => {
         window.removeEventListener('pointermove', move);
@@ -396,24 +520,30 @@ function explorerWindow(opts: { onOpen: (id: string) => void }): HTMLElement {
   return win;
 }
 
-/** The Window source: the Explorer window on its own, nothing behind it. */
+/** The Window source: the Explorer window alone, nothing behind it. */
 function pageWindow(onOpen: (id: string) => void): HTMLElement {
   return h('div', { class: 'pg pg-win' }, explorerWindow({ onOpen }));
 }
 
 /**
- * The Screen source, which is NOT the same picture. Nam: "window and screen get
- * you the same food". Sharing an entire screen shows the desktop — wallpaper,
- * taskbar, and the window sitting on it — where sharing a window shows only the
- * window. That difference is the whole reason the picker has two tabs.
+ * The Screen source, which must NOT be the same picture — Nam: "window and
+ * screen get you the same food". Sharing a screen shows the desktop: wallpaper,
+ * taskbar, and the window sitting on it.
  */
 function pageDesktop(onOpen: (id: string) => void): HTMLElement {
+  const clock = new Date();
+  const hh = String(clock.getHours()).padStart(2, '0');
+  const mm = String(clock.getMinutes()).padStart(2, '0');
   return h('div', { class: 'pg pg-desk' },
-    h('div', { class: 'dk-wall', 'aria-hidden': 'true' }),
+    wallpaper(),
     explorerWindow({ onOpen }),
     h('div', { class: 'dk-taskbar' },
-      h('span', { class: 'dk-start', 'aria-hidden': 'true' }),
-      h('span', { class: 'dk-task is-on', 'aria-hidden': 'true' }),
-      h('span', { class: 'dk-task', 'aria-hidden': 'true' }),
-      h('span', { class: 'dk-tray' }, h('span', {}, '13\u00B0C'), h('span', {}, '02:47'))));
+      h('div', { class: 'dk-task-mid' },
+        h('span', { class: 'dk-task' }, icStart()),
+        h('span', { class: 'dk-task' }, icSearch()),
+        h('span', { class: 'dk-task is-on' }, icExplorerTask()),
+        h('span', { class: 'dk-task' }, icBrowser())),
+      h('div', { class: 'dk-tray' },
+        h('span', { class: 'dk-weather' }, '13\u00B0C  Cloudy'),
+        h('span', { class: 'dk-clock' }, h('b', {}, hh + ':' + mm), h('i', {}, '23/08/2026')))));
 }

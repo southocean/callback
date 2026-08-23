@@ -4249,23 +4249,11 @@ body.has-panel .reaction, body.has-panel .reaction-who { left: 0; }
 }
 .unit > .cbtn.off ~ .ctl-warn { display: none; }
 
-/* --- 10. The raised hand leaves a pill ---------------------------------- */
-/* Screenshot-derived, not measured: I could not get the state to appear in the
-   DOM before leaving the call. Google's green container with its on-colour, at
-   the bar's own 40px pill height, entering with the same float-up as the tray. */
-.hand-pill {
-  position: absolute; left: 24px; bottom: calc(var(--botbar) + 16px); z-index: 8;
-  display: inline-flex; align-items: center; gap: 8px;
-  height: 40px; padding: 0 16px 0 12px; border-radius: 20px;
-  background-color: #a8d5b5; color: #0b3d1e;
-  font: 500 14px/1 var(--font-title);
-  animation: hand-in .34s cubic-bezier(0.2, 0, 0, 1) both;
-}
-@keyframes hand-in {
-  from { opacity: 0; transform: translateY(12px) scale(.9); }
-  60%  { transform: translateY(0) scale(1.04); }
-  to   { opacity: 1; transform: none; }
-}
+/* --- 10. The raised hand: see "THE RAISED HAND, ON THE TILE" below ----- */
+/* The screenshot-era pill lived here, floating above the bar at left:24px. It
+   was wrong on both counts Nam raised — outside the frame, and its leftover
+   display/height/gap declarations were still winning wherever the measured
+   block did not restate them. Deleted rather than layered over. */
 
 /* --- 11. Captions must not sit on top of the tray ----------------------- */
 /* They occupied the same band. With the tray open the caption block lifts by
@@ -4274,7 +4262,7 @@ body.tray-open .cc { bottom: calc(var(--botbar) + 52px + 12px); }
 
 @media (prefers-reduced-motion: reduce) {
   .grid-wrap.is-solo { transition: none; }
-  .tray, .tone-pop, .hand-pill { animation: none; }
+  .tray, .tone-pop { animation: none; }
   .reaction-em { animation: none; }
 }
 
@@ -4534,4 +4522,226 @@ body.tray-open .cc { bottom: calc(var(--botbar) + 52px + 12px); }
   .ring-host.is-selected > .focus-ring,
   .ring-host:focus-visible > .focus-ring,
   .device-chip:focus > .focus-ring { animation: none; }
+}
+
+/* ================= THE RAISED HAND, ON THE TILE ========================== */
+/* Two faults. It showed with the button off, and it floated outside the frame.
+ *
+ * The visibility bug is the SAME trap as the reactions tray: the JS sets
+ * handPill.hidden = true, `[hidden]` is a UA rule of display:none, and any
+ * author `display` beats it — .hand-pill declared display:inline-flex. Second
+ * time this exact shape has bitten in one project, so it is worth stating as a
+ * rule: if you set `hidden` from script, restate it in CSS.
+ *
+ * Geometry sampled from the PNG of Nam's screenshot rather than eyeballed from
+ * the chat image — dominant-colour histogram over the pill region:
+ *
+ *     fill  rgb(109,213,140)  #6dd58c
+ *     ink   rgb(10,56,24)     #0a3818
+ *     box   140x32            so radius 16
+ *
+ * It takes the name plate's slot and replaces it: there is no separate name in
+ * the original once the hand is up.
+ *
+ * THE ANIMATION is Nam's description — "hand icon rise up first, then extend the
+ * label to add my name" — and I could not verify it live: both test meetings had
+ * expired and the browser pane's Google session is gone. So the sequencing is
+ * his, the geometry is measured, and the curve is GM3's standard easing. Flagged
+ * rather than presented as measured.
+ *
+ * Two stages on one timeline, using the trick GM3's focus ring taught: stagger
+ * with a delay instead of fighting over one property.
+ *   0-260ms    the disc rises 12px and fades in, alone
+ *   260-520ms  the pill extends to full width, the name fading in behind it */
+.hand-pill[hidden] { display: none !important; }
+
+.hand-pill {
+  position: absolute; left: 16px; bottom: 15px; z-index: 8;
+  display: inline-flex; align-items: center;
+  height: 32px; padding: 0 20px 0 8px; border-radius: 16px;
+  /* 140 wide is measured; the padding is what is left once the parts that are
+     also measured are subtracted. 20px icon + 84px of glyphs at 500 14px = 104,
+     so 36px of inset to distribute: 8 before the icon, 8 between, 20 after the
+     text. The 8px gap lives on .hand-name as padding-left so stage 2 can
+     animate it open with the label. */
+  background-color: #6dd58c; color: #0a3818;
+  font: 500 14px/1 var(--font-title);
+  white-space: nowrap;
+  animation: hand-rise .26s cubic-bezier(0.2, 0, 0, 1) both;
+}
+.hand-ico { display: grid; place-items: center; width: 20px; height: 20px; flex: 0 0 auto; }
+
+/* Stage 2 drives the LABEL, not the pill.
+ *
+ * The first attempt animated the pill's own width across two keyframe sets and
+ * it stuck at 40px forever. `animation-fill-mode: both` includes forwards, and
+ * with only a `from` keyframe the last keyframe IS the from — so `both` pinned
+ * the collapsed width permanently. GM3's focus ring gets away with a `to`-less
+ * keyframe precisely because it sets no fill-mode, letting the property fall
+ * back to the base rule when the animation ends.
+ *
+ * Animating the label's max-width sidesteps the whole question: the pill has no
+ * width of its own to fight over and simply follows its content. It also means
+ * the reveal is a true clip rather than a re-layout.
+ */
+.hand-name {
+  display: inline-block; overflow: hidden; max-width: 0; opacity: 0;
+  animation: hand-extend .3s cubic-bezier(0.2, 0, 0, 1) .26s both;
+}
+@keyframes hand-rise {
+  from { opacity: 0; transform: translateY(12px); }
+  to   { opacity: 1; transform: none; }
+}
+@keyframes hand-extend {
+  from { max-width: 0;     opacity: 0; padding-left: 0; }
+  40%  {                   opacity: 0; }
+  to   { max-width: 200px; opacity: 1; padding-left: 8px; }
+}
+
+/* The name plate steps aside while the hand is up — the original shows one or
+   the other, never both. */
+.solo:has(.hand-pill:not([hidden])) .solo-name { opacity: 0; }
+.solo-name { transition: opacity .2s linear; }
+
+/* ================= THE WINDOWS DESKTOP, PROPERLY ========================= */
+/* Nam: "does NOT look like a windows machine at all", and use real graphics.
+   The artwork is hand-authored SVG in share.ts — original drawings that read as
+   Windows 11 rather than copies of Microsoft's files, which are not mine to ship
+   and would not scale with the share frame anyway. */
+
+.pg-win, .pg-desk { position: relative; width: 100%; height: 100%; overflow: hidden; }
+.dk-wall-art { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
+
+/* --- the window ---------------------------------------------------------- */
+/* Win11 chrome: light Mica-ish surface, 8px corners, a real shadow, caption
+   buttons on the RIGHT, a command bar ABOVE the breadcrumb. */
+.wx {
+  position: relative; width: min(760px, 88%); height: min(470px, 78%);
+  display: flex; flex-direction: column; overflow: hidden;
+  background-color: #f9f9f9; color: #1b1b1b;
+  border-radius: 8px; border: 1px solid rgba(255, 255, 255, .18);
+  box-shadow: 0 24px 60px rgba(0, 0, 0, .55), 0 2px 8px rgba(0, 0, 0, .35);
+  user-select: none; -webkit-user-select: none;
+  font: 400 13px/1.45 "Segoe UI", var(--font), sans-serif;
+}
+.pg-desk .wx { position: absolute; left: 7%; top: 9%; }
+.pg-win .wx { margin: auto; }
+
+.wx-bar {
+  height: 38px; flex: 0 0 auto; display: flex; align-items: center; gap: 9px;
+  padding-left: 12px; background-color: #f3f3f3;
+  border-bottom: 1px solid #ebebeb;
+}
+.wx-bar-ico, .wx-crumb-ico { width: 16px; height: 16px; flex: 0 0 auto; display: block; }
+.wx-bar-ico svg, .wx-crumb-ico svg, .wx-ico svg, .dk-task svg { width: 100%; height: 100%; display: block; }
+.wx-title { font-size: 12.5px; }
+.wx-btns { margin-left: auto; display: flex; }
+.wx-cap {
+  width: 46px; height: 38px; display: grid; place-items: center;
+  font-size: 10.5px; color: #1b1b1b;
+}
+.wx-min:hover, .wx-max:hover { background-color: rgba(0, 0, 0, .055); }
+.wx-close:hover { background-color: #c42b1c; color: #fff; }
+
+.wx-cmd {
+  height: 40px; flex: 0 0 auto; display: flex; align-items: center; gap: 4px;
+  padding: 0 10px; background-color: #f9f9f9;
+}
+.wx-cmd-btn {
+  height: 28px; padding: 0 10px; border-radius: 4px;
+  display: inline-flex; align-items: center; font-size: 12.5px; color: #1b1b1b;
+}
+.wx-cmd-ico {
+  width: 30px; height: 28px; border-radius: 4px;
+  display: grid; place-items: center; font-size: 13px; color: #444;
+}
+.wx-cmd-btn:hover, .wx-cmd-ico:hover { background-color: rgba(0, 0, 0, .055); }
+.wx-cmd-sep { width: 1px; height: 18px; background-color: #e0e0e0; margin: 0 5px; }
+
+.wx-crumb {
+  height: 36px; flex: 0 0 auto; display: flex; align-items: center; gap: 7px;
+  padding: 0 12px; font-size: 12.5px; color: #444;
+  background-color: #fff; border: 1px solid #e5e5e5;
+  border-radius: 5px; margin: 0 10px 8px;
+}
+.wx-sep { color: #9b9b9b; }
+.wx-here { color: #1b1b1b; }
+
+.wx-cols { flex: 1 1 auto; display: grid; grid-template-columns: 210px 1fr; min-height: 0; }
+.wx-tree {
+  border-right: 1px solid #ebebeb; padding: 4px; overflow: auto;
+  background-color: #f9f9f9;
+}
+.wx-files { display: flex; flex-direction: column; min-height: 0; background-color: #fff; }
+/* The column header Win11 shows above a details view. */
+.wx-head {
+  flex: 0 0 auto; display: grid; grid-template-columns: 1fr 130px 90px;
+  padding: 6px 12px; font-size: 12px; color: #5c5c5c;
+  border-bottom: 1px solid #ebebeb;
+}
+.wx-list { flex: 1 1 auto; overflow: auto; padding: 4px; }
+
+.wx-row {
+  display: flex; align-items: center; gap: 10px; height: 30px; padding: 0 8px;
+  border-radius: 4px; cursor: default; outline: 0;
+}
+.wx-row:hover { background-color: #f0f0f0; }
+/* Win11 selection is a tinted row with a rounded edge, not a blue block. */
+.wx-row.is-sel { background-color: #e8f1fb; box-shadow: inset 0 0 0 1px #cfe3f7; }
+.wx-row:focus-visible { outline: 1px solid #0f6cbd; outline-offset: -1px; }
+.wx-ico { width: 20px; height: 20px; flex: 0 0 auto; display: block; }
+.wx-name { flex: 1 1 auto; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.wx-count { color: #6b6b6b; font-size: 12px; }
+.wx-rename {
+  flex: 1 1 auto; min-width: 0; height: 22px; padding: 0 4px;
+  font: inherit; color: #1b1b1b; background: #fff;
+  border: 1px solid #0f6cbd; border-radius: 3px; outline: 0;
+  user-select: text; -webkit-user-select: text;
+}
+.wx-status {
+  height: 27px; flex: 0 0 auto; display: flex; align-items: center; gap: 16px;
+  padding: 0 12px; font-size: 12px; color: #5c5c5c;
+  border-top: 1px solid #ebebeb; background-color: #f3f3f3;
+}
+.wx-status-r { margin-left: auto; }
+.wx-grip {
+  position: absolute; right: 0; bottom: 0; width: 18px; height: 18px;
+  cursor: nwse-resize; touch-action: none;
+}
+
+/* --- the taskbar -------------------------------------------------------- */
+/* Win11 centres its icons and floats an acrylic bar. */
+.dk-taskbar {
+  position: absolute; left: 0; right: 0; bottom: 0; height: 48px;
+  display: flex; align-items: center; padding: 0 12px;
+  background-color: rgba(32, 32, 32, .78);
+  backdrop-filter: blur(24px) saturate(140%);
+  border-top: 1px solid rgba(255, 255, 255, .07);
+}
+.dk-task-mid {
+  position: absolute; left: 50%; transform: translateX(-50%);
+  display: flex; align-items: center; gap: 6px;
+}
+.dk-task {
+  width: 40px; height: 40px; border-radius: 6px; padding: 9px;
+  display: grid; place-items: center; position: relative;
+}
+.dk-task:hover { background-color: rgba(255, 255, 255, .09); }
+/* The running-app underline Win11 draws beneath an active icon. */
+.dk-task.is-on::after {
+  content: ''; position: absolute; bottom: 2px; left: 50%; transform: translateX(-50%);
+  width: 16px; height: 3px; border-radius: 2px; background-color: #4cc2ff;
+}
+.dk-tray {
+  margin-left: auto; display: flex; align-items: center; gap: 18px;
+  font-size: 11.5px; color: #e6e6e6;
+}
+.dk-weather { opacity: .9; }
+.dk-clock { display: flex; flex-direction: column; align-items: flex-end; line-height: 1.35; }
+.dk-clock b { font-weight: 400; }
+.dk-clock i { font-style: normal; opacity: .85; }
+
+@media (prefers-reduced-motion: reduce) {
+  .hand-pill, .hand-name { animation: none; }
+  .solo-name { transition: none; }
 }

@@ -124,6 +124,18 @@ export function renderCall(store: Store, quests: Quests, deps: CallDeps): HTMLEl
    * roles, the clips — and tomorrow's work adds it back on top of this. Deleting
    * it would make that job start with archaeology.
    */
+  /**
+   * The raised hand lives ON the tile, in the name plate's slot — not floating
+   * outside it, which is where ours was. Sampled from Nam's screenshot of the
+   * original (the PNG, not the chat image): fill #6dd58c, ink #0a3818, box
+   * 140x32, so radius 16. It REPLACES the name plate; there is no separate name
+   * in the original once the hand is up.
+   */
+  const handPill = h('div', { class: 'hand-pill', role: 'status' },
+    h('span', { class: 'hand-ico' }, sym('back_hand', 20)),
+    h('span', { class: 'hand-name' }, profile.name)) as HTMLElement;
+  handPill.hidden = true;
+
   const soloTile = (): HTMLElement => {
     const t = h(
       'div',
@@ -132,6 +144,7 @@ export function renderCall(store: Store, quests: Quests, deps: CallDeps): HTMLEl
       h('div', { class: 'solo-scrim', 'aria-hidden': 'true' }),
       h('div', { class: 'solo-av', 'aria-hidden': 'true' }, 'NN'),
       h('span', { class: 'solo-name' }, profile.name),
+      handPill,
       micMeter(),
     );
     // The three controls Meet floats over its own tile, at 656 / 700 / 744.
@@ -463,9 +476,6 @@ export function renderCall(store: Store, quests: Quests, deps: CallDeps): HTMLEl
 
   // ------------------------------------------------------ toasts, menus ----
 
-  const handPill = h('div', { class: 'hand-pill', role: 'status' },
-    sym('back_hand', 20), h('span', {}, profile.name)) as HTMLElement;
-  handPill.hidden = true;
 
   const layer = h('div', {});
 
@@ -845,7 +855,6 @@ export function renderCall(store: Store, quests: Quests, deps: CallDeps): HTMLEl
     h('div', { class: 'call-mid' }, stage, panelHost),
     cc,
     trayWrap,
-    handPill,
     shareHost,
     bar,
     readyHost,
