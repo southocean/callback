@@ -83,9 +83,27 @@ let lastKey: string | null = null;
  */
 let renderTicket = 0;
 
+/**
+ * Are we inside someone else's frame?
+ *
+ * The share view puts our own pages in an iframe so their responsive layout is
+ * real rather than drawn. One of those hashes resolved to the call screen, and
+ * the result was a Meet clone rendering a Meet clone inside its own screen
+ * share — Nam's word for it was "recursive", and it looked exactly like that.
+ *
+ * Fixing the one hash fixes the one bug. This fixes the class: a framed copy of
+ * this app will never render the call, the lobby or the calls list no matter
+ * what hash it is given, so no future source can reintroduce the nesting.
+ *
+ * Cross-origin access to window.top throws, and a throw here means we are framed
+ * by someone we cannot see — which is all the more reason to refuse.
+ */
+const EMBEDDED = ((): boolean => { try { return window.self !== window.top; } catch { return true; } })();
+
 function render(): void {
   const s = store.get();
-  const key = s.plain ? 'plain' : s.screen;
+  let key = s.plain ? 'plain' : s.screen;
+  if (EMBEDDED && (key === 'call' || key === 'lobby' || key === 'calls')) key = 'plain';
 
   // The call view owns the GL context, the caption timer and the panel state, so
   // it is built once and reused rather than torn down on every panel change.

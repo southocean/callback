@@ -4697,147 +4697,272 @@ body.tray-open .cc { bottom: calc(var(--botbar) + 52px + 12px); }
   .mic-note, .mic-note.is-out { animation: none; }
 }
 
-/* ================= THE WINDOWS DESKTOP, PROPERLY ========================= */
-/* Nam: "does NOT look like a windows machine at all", and use real graphics.
-   The artwork is hand-authored SVG in share.ts — original drawings that read as
-   Windows 11 rather than copies of Microsoft's files, which are not mine to ship
-   and would not scale with the share frame anyway. */
-
+/* ================= THE WINDOWS DESKTOP, REBUILT ========================== */
+/* Nam's QA, verbatim and all of it fair: "nothing on it was working. The
+ * minimize, maximize, close button, cannot be moved. wrong window background.
+ * Cannot open new explorer window, cannot press window button. Remove the search
+ * icon. Chrome icon is wrong."
+ *
+ * The background was the giveaway that the rest was a drawing. Nam's machine
+ * runs Explorer in DARK mode — his own screenshot shows #202020 chrome over a
+ * #272727 content pane — and ours was shipping the light theme, so it read as a
+ * picture of Windows rather than Windows.
+ *
+ * Everything here is now interactive: drag by the title bar, minimise to the
+ * taskbar and restore from it, maximise, close. The taskbar opens new windows,
+ * Start opens a menu, and hovering a task shows a live preview — a deep clone of
+ * the window scaled to 1:5, so the preview cannot drift from the thing it
+ * previews the way a drawn thumbnail would.
+ */
 .pg-win, .pg-desk { position: relative; width: 100%; height: 100%; overflow: hidden; }
 .dk-wall-art { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
+/* The surface windows live on: everything above the wallpaper, below the bar. */
+.dk-surface { position: absolute; left: 0; right: 0; top: 0; bottom: 48px; overflow: hidden; }
 
 /* --- the window ---------------------------------------------------------- */
-/* Win11 chrome: light Mica-ish surface, 8px corners, a real shadow, caption
-   buttons on the RIGHT, a command bar ABOVE the breadcrumb. */
 .wx {
-  position: relative; width: min(760px, 88%); height: min(470px, 78%);
+  position: absolute; width: min(720px, 82%); height: min(460px, 78%);
   display: flex; flex-direction: column; overflow: hidden;
-  background-color: #f9f9f9; color: #1b1b1b;
-  border-radius: 8px; border: 1px solid rgba(255, 255, 255, .18);
-  box-shadow: 0 24px 60px rgba(0, 0, 0, .55), 0 2px 8px rgba(0, 0, 0, .35);
+  background-color: #272727; color: #fff;
+  border-radius: 8px; border: 1px solid #3a3a3a;
+  box-shadow: 0 28px 64px rgba(0, 0, 0, .62), 0 2px 8px rgba(0, 0, 0, .4);
   user-select: none; -webkit-user-select: none;
   font: 400 13px/1.45 "Segoe UI", var(--font), sans-serif;
 }
-.pg-desk .wx { position: absolute; left: 7%; top: 9%; }
-.pg-win .wx { margin: auto; }
+/* Window-share mode: one window, centred, on nothing. */
+.wx-solo { position: relative; margin: auto; width: min(760px, 90%); height: min(480px, 84%); }
+.pg-win { display: flex; }
+.wx.is-max { left: 0 !important; top: 0 !important; width: 100%; height: 100%; border-radius: 0; }
+.wx.is-min { display: none; }
+.wx.is-drag { transition: none; cursor: grabbing; }
 
 .wx-bar {
-  height: 38px; flex: 0 0 auto; display: flex; align-items: center; gap: 9px;
-  padding-left: 12px; background-color: #f3f3f3;
-  border-bottom: 1px solid #ebebeb;
+  height: 40px; flex: 0 0 auto; display: flex; align-items: center; gap: 9px;
+  padding-left: 12px; background-color: #202020; cursor: grab;
 }
+.wx.is-drag .wx-bar { cursor: grabbing; }
 .wx-bar-ico, .wx-crumb-ico { width: 16px; height: 16px; flex: 0 0 auto; display: block; }
-.wx-bar-ico svg, .wx-crumb-ico svg, .wx-ico svg, .dk-task svg { width: 100%; height: 100%; display: block; }
-.wx-title { font-size: 12.5px; }
+.wx-bar-ico svg, .wx-crumb-ico svg, .wx-ico svg, .dk-task svg, .dk-peek-ico svg,
+.dk-start-app svg, .cb-tab-ico svg { width: 100%; height: 100%; display: block; }
+.wx-title { font-size: 12.5px; color: #fff; }
 .wx-btns { margin-left: auto; display: flex; }
 .wx-cap {
-  width: 46px; height: 38px; display: grid; place-items: center;
-  font-size: 10.5px; color: #1b1b1b;
+  width: 46px; height: 40px; display: grid; place-items: center;
+  font-size: 11px; color: #fff; background: none; border: 0; cursor: pointer;
+  font-family: inherit;
 }
-.wx-min:hover, .wx-max:hover { background-color: rgba(0, 0, 0, .055); }
-.wx-close:hover { background-color: #c42b1c; color: #fff; }
+.wx-min:hover, .wx-max:hover { background-color: rgba(255, 255, 255, .07); }
+.wx-close:hover { background-color: #c42b1c; }
+.wx-cap:focus-visible { outline: 2px solid #4cc2ff; outline-offset: -2px; }
 
+.wx-body { flex: 1 1 auto; min-height: 0; display: flex; flex-direction: column; background-color: #272727; }
 .wx-cmd {
   height: 40px; flex: 0 0 auto; display: flex; align-items: center; gap: 4px;
-  padding: 0 10px; background-color: #f9f9f9;
+  padding: 0 10px; background-color: #272727;
 }
 .wx-cmd-btn {
   height: 28px; padding: 0 10px; border-radius: 4px;
-  display: inline-flex; align-items: center; font-size: 12.5px; color: #1b1b1b;
+  display: inline-flex; align-items: center; font-size: 12.5px; color: #fff;
 }
-.wx-cmd-ico {
-  width: 30px; height: 28px; border-radius: 4px;
-  display: grid; place-items: center; font-size: 13px; color: #444;
-}
-.wx-cmd-btn:hover, .wx-cmd-ico:hover { background-color: rgba(0, 0, 0, .055); }
-.wx-cmd-sep { width: 1px; height: 18px; background-color: #e0e0e0; margin: 0 5px; }
+.wx-cmd-ico { width: 30px; height: 28px; border-radius: 4px; display: grid; place-items: center; font-size: 13px; color: #c5c5c5; }
+.wx-cmd-btn:hover, .wx-cmd-ico:hover { background-color: rgba(255, 255, 255, .07); }
+.wx-cmd-sep { width: 1px; height: 18px; background-color: #3a3a3a; margin: 0 5px; }
 
 .wx-crumb {
-  height: 36px; flex: 0 0 auto; display: flex; align-items: center; gap: 7px;
-  padding: 0 12px; font-size: 12.5px; color: #444;
-  background-color: #fff; border: 1px solid #e5e5e5;
+  height: 34px; flex: 0 0 auto; display: flex; align-items: center; gap: 7px;
+  padding: 0 12px; font-size: 12.5px; color: #c5c5c5;
+  background-color: #303030; border: 1px solid #3a3a3a;
   border-radius: 5px; margin: 0 10px 8px;
 }
-.wx-sep { color: #9b9b9b; }
-.wx-here { color: #1b1b1b; }
+.wx-sep { color: #8a8a8a; }
+.wx-here { color: #fff; }
 
 .wx-cols { flex: 1 1 auto; display: grid; grid-template-columns: 210px 1fr; min-height: 0; }
-.wx-tree {
-  border-right: 1px solid #ebebeb; padding: 4px; overflow: auto;
-  background-color: #f9f9f9;
-}
-.wx-files { display: flex; flex-direction: column; min-height: 0; background-color: #fff; }
-/* The column header Win11 shows above a details view. */
+.wx-tree { border-right: 1px solid #333; padding: 4px; overflow: auto; background-color: #202020; }
+.wx-files { display: flex; flex-direction: column; min-height: 0; background-color: #272727; }
 .wx-head {
   flex: 0 0 auto; display: grid; grid-template-columns: 1fr 130px 90px;
-  padding: 6px 12px; font-size: 12px; color: #5c5c5c;
-  border-bottom: 1px solid #ebebeb;
+  padding: 6px 12px; font-size: 12px; color: #b0b0b0; border-bottom: 1px solid #333;
 }
 .wx-list { flex: 1 1 auto; overflow: auto; padding: 4px; }
 
 .wx-row {
   display: flex; align-items: center; gap: 10px; height: 30px; padding: 0 8px;
-  border-radius: 4px; cursor: default; outline: 0;
+  border-radius: 4px; cursor: default; outline: 0; color: #fff;
 }
-.wx-row:hover { background-color: #f0f0f0; }
-/* Win11 selection is a tinted row with a rounded edge, not a blue block. */
-.wx-row.is-sel { background-color: #e8f1fb; box-shadow: inset 0 0 0 1px #cfe3f7; }
-.wx-row:focus-visible { outline: 1px solid #0f6cbd; outline-offset: -1px; }
+.wx-row:hover { background-color: #2d2d2d; }
+/* Win11 dark selects with a lifted surface and a hairline, not a blue block. */
+.wx-row.is-sel { background-color: #333; box-shadow: inset 0 0 0 1px #3f3f3f; }
+.wx-row:focus-visible { outline: 1px solid #4cc2ff; outline-offset: -1px; }
 .wx-ico { width: 20px; height: 20px; flex: 0 0 auto; display: block; }
 .wx-name { flex: 1 1 auto; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.wx-count { color: #6b6b6b; font-size: 12px; }
+.wx-count { color: #a0a0a0; font-size: 12px; }
 .wx-rename {
   flex: 1 1 auto; min-width: 0; height: 22px; padding: 0 4px;
-  font: inherit; color: #1b1b1b; background: #fff;
-  border: 1px solid #0f6cbd; border-radius: 3px; outline: 0;
+  font: inherit; color: #fff; background: #1c1c1c;
+  border: 1px solid #4cc2ff; border-radius: 3px; outline: 0;
   user-select: text; -webkit-user-select: text;
 }
 .wx-status {
   height: 27px; flex: 0 0 auto; display: flex; align-items: center; gap: 16px;
-  padding: 0 12px; font-size: 12px; color: #5c5c5c;
-  border-top: 1px solid #ebebeb; background-color: #f3f3f3;
+  padding: 0 12px; font-size: 12px; color: #b0b0b0;
+  border-top: 1px solid #333; background-color: #202020;
 }
 .wx-status-r { margin-left: auto; }
-.wx-grip {
-  position: absolute; right: 0; bottom: 0; width: 18px; height: 18px;
-  cursor: nwse-resize; touch-action: none;
-}
+.wx-grip { position: absolute; right: 0; bottom: 0; width: 18px; height: 18px; cursor: nwse-resize; }
 
-/* --- the taskbar -------------------------------------------------------- */
-/* Win11 centres its icons and floats an acrylic bar. */
+/* --- the Chrome window --------------------------------------------------- */
+/* Nam: "Pressing chrome doesnt open the chrome browser with the 4 tabs we allow
+   to share screen with." It does now, and the four are the picker's own list —
+   one array, so they cannot disagree. */
+.cb { background-color: #202020; }
+.cb-strip { flex: 0 0 auto; display: flex; align-items: flex-end; gap: 4px; padding: 6px 8px 0; background-color: #202020; }
+.cb-tab {
+  display: flex; align-items: center; gap: 7px; max-width: 200px;
+  height: 32px; padding: 0 12px; border-radius: 8px 8px 0 0;
+  background-color: #2b2b2b; color: #c5c5c5; font-size: 12px; cursor: pointer;
+}
+.cb-tab.is-on { background-color: #35363a; color: #fff; }
+.cb-tab-ico { width: 14px; height: 14px; flex: 0 0 auto; }
+.cb-tab-t { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.cb-new { width: 28px; height: 28px; display: grid; place-items: center; color: #c5c5c5; border-radius: 4px; }
+.cb-bar { flex: 0 0 auto; display: flex; align-items: center; gap: 10px; padding: 8px 12px; background-color: #35363a; }
+.cb-nav { color: #c5c5c5; font-size: 13px; }
+.cb-omni {
+  flex: 1 1 auto; height: 28px; border-radius: 14px; background-color: #202124;
+  display: flex; align-items: center; padding: 0 14px; color: #c5c5c5; font-size: 12px;
+}
+.cb-page { flex: 1 1 auto; overflow: auto; padding: 26px 30px; background-color: #fff; color: #202124; }
+.cb-page h2 { font: 400 22px/1.3 var(--font-title); margin: 0 0 10px; }
+.cb-page p { font: 400 14px/1.6 var(--font); color: #444746; margin: 0; max-width: 62ch; }
+
+/* --- the taskbar --------------------------------------------------------- */
 .dk-taskbar {
   position: absolute; left: 0; right: 0; bottom: 0; height: 48px;
   display: flex; align-items: center; padding: 0 12px;
-  background-color: rgba(32, 32, 32, .78);
+  background-color: rgba(32, 32, 32, .86);
   backdrop-filter: blur(24px) saturate(140%);
-  border-top: 1px solid rgba(255, 255, 255, .07);
+  border-top: 1px solid rgba(255, 255, 255, .06);
 }
-.dk-task-mid {
+.dk-task-wrap {
   position: absolute; left: 50%; transform: translateX(-50%);
   display: flex; align-items: center; gap: 6px;
 }
+.dk-task-mid { display: flex; align-items: center; gap: 6px; }
 .dk-task {
-  width: 40px; height: 40px; border-radius: 6px; padding: 9px;
+  width: 40px; height: 40px; border-radius: 6px; padding: 9px; box-sizing: border-box;
   display: grid; place-items: center; position: relative;
+  background: none; border: 0; cursor: pointer;
 }
 .dk-task:hover { background-color: rgba(255, 255, 255, .09); }
-/* The running-app underline Win11 draws beneath an active icon. */
+.dk-task:focus-visible { outline: 2px solid #4cc2ff; outline-offset: -2px; }
 .dk-task.is-on::after {
   content: ''; position: absolute; bottom: 2px; left: 50%; transform: translateX(-50%);
   width: 16px; height: 3px; border-radius: 2px; background-color: #4cc2ff;
 }
-.dk-tray {
-  margin-left: auto; display: flex; align-items: center; gap: 18px;
-  font-size: 11.5px; color: #e6e6e6;
-}
+.dk-tray { margin-left: auto; display: flex; align-items: center; gap: 18px; font-size: 11.5px; color: #e6e6e6; }
 .dk-weather { opacity: .9; }
 .dk-clock { display: flex; flex-direction: column; align-items: flex-end; line-height: 1.35; }
 .dk-clock b { font-weight: 400; }
 .dk-clock i { font-style: normal; opacity: .85; }
 
+/* --- the hover preview --------------------------------------------------- */
+/* A real miniature: the window itself, cloned and scaled, rather than a drawing
+   of it. 200/1000 = the 0.2 scale, and the box is sized to match so the clone
+   fills it exactly whatever the window's own size works out to. */
+.dk-peek {
+  position: absolute; bottom: 8px; transform: translateX(-50%); z-index: 40;
+  width: 212px; padding: 8px; border-radius: 8px;
+  background-color: rgba(43, 43, 43, .96);
+  backdrop-filter: blur(20px);
+  border: 1px solid #3a3a3a; box-shadow: 0 8px 24px rgba(0, 0, 0, .5);
+  pointer-events: none;
+}
+.dk-peek-t {
+  display: flex; align-items: center; gap: 7px; margin-bottom: 6px;
+  font: 400 12px/1.3 "Segoe UI", var(--font), sans-serif; color: #fff;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.dk-peek-ico { width: 14px; height: 14px; flex: 0 0 auto; }
+.dk-peek-shot {
+  width: 196px; height: 116px; overflow: hidden; border-radius: 4px;
+  background-color: #272727; position: relative;
+}
+.dk-peek-scale {
+  position: absolute; left: 0; top: 0; width: 980px; height: 580px;
+  transform: scale(.2); transform-origin: 0 0;
+}
+.dk-peek-scale .wx { position: absolute; left: 0; top: 0; width: 980px; height: 580px; box-shadow: none; }
+
+/* --- Start ---------------------------------------------------------------- */
+.dk-start-menu {
+  position: absolute; left: 50%; bottom: 8px; transform: translateX(-50%); z-index: 45;
+  width: 380px; padding: 18px; border-radius: 8px;
+  background-color: rgba(43, 43, 43, .97); backdrop-filter: blur(28px);
+  border: 1px solid #3a3a3a; box-shadow: 0 16px 48px rgba(0, 0, 0, .6);
+  color: #fff; font: 400 13px/1.4 "Segoe UI", var(--font), sans-serif;
+}
+.dk-start-h { font-size: 12.5px; color: #c5c5c5; margin-bottom: 10px; }
+.dk-start-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.dk-start-app {
+  display: flex; flex-direction: column; align-items: center; gap: 8px;
+  padding: 14px 8px; border-radius: 6px; background: none; border: 0;
+  color: #fff; font: inherit; cursor: pointer; text-align: center;
+}
+.dk-start-app > span:first-child { width: 30px; height: 30px; display: block; }
+.dk-start-app:hover { background-color: rgba(255, 255, 255, .07); }
+.dk-start-app:focus-visible { outline: 2px solid #4cc2ff; outline-offset: -2px; }
+.dk-start-foot {
+  display: flex; align-items: center; gap: 10px; margin-top: 16px;
+  padding-top: 14px; border-top: 1px solid #3a3a3a; font-size: 13px;
+}
+.dk-start-av {
+  width: 28px; height: 28px; border-radius: 50%; background-color: #4cc2ff;
+  color: #06283d; display: grid; place-items: center; font-size: 11px; font-weight: 600;
+}
+
+/* ================= PRESENTING: THE SELF TILE STEPS ASIDE ================== */
+/* Nam, from the real product: "when you are sharing screen, the video frame
+ * becomes the shared screen and your video frame actually becomes a small frame
+ * on the right hand side. If you raise your hand, the raised hand UI is shown on
+ * that small video frame instead of the shared screen."
+ *
+ * Which falls out almost for free, because the hand pill already lives INSIDE
+ * .solo rather than floating over the stage — move the tile and the pill goes
+ * with it. That is the second time this session that putting a thing in its real
+ * parent has paid for itself.
+ *
+ * This one is Nam's description rather than my measurement: the tile's exact
+ * size when presenting was not captured live. Flagged rather than dressed up.
+ */
+body.presenting .shot-wrap { position: absolute; inset: 0; z-index: 4; }
+body.presenting .solo {
+  position: absolute; z-index: 6;
+  /* Clear of the presenting banner, which is 48 tall and pinned to the
+     bottom of the share. Sitting the tile on top of it hid the Stop sharing
+     button behind the self view — visible in QA, and a bad thing to hide. */
+  left: auto; right: 16px; top: auto; bottom: 64px;
+  width: 240px; height: 135px; min-width: 0; min-height: 0;
+  border-radius: 8px; overflow: hidden;
+  transition: width .24s cubic-bezier(0.2, 0, 0, 1), height .24s cubic-bezier(0.2, 0, 0, 1);
+}
+/* Everything on the tile scales to the smaller frame. */
+body.presenting .solo-av { width: 56px; height: 56px; font-size: 18px; }
+body.presenting .solo-name { left: 8px; bottom: 6px; font-size: 12px; line-height: 16px; }
+body.presenting .solo-mute { top: 6px; right: 6px; width: 20px; height: 20px; }
+body.presenting .solo-mute .ms { font-size: 13px; }
+body.presenting .solo-ctl { display: none; }
+body.presenting .hand-pill { left: 6px; bottom: 6px; height: 26px; }
+body.presenting .hand-bg { height: 24px; }
+body.presenting .hand-name { font-size: 13px; line-height: 20px; padding-right: 8px; }
+
+@media (max-width: 720px) {
+  body.presenting .solo { width: 132px; height: 76px; right: 8px; bottom: 56px; }
+  body.presenting .solo-av { width: 34px; height: 34px; font-size: 13px; }
+}
+
 @media (prefers-reduced-motion: reduce) {
-  .hand-pill, .hand-name { animation: none; }
-  .solo-name { transition: none; }
+  body.presenting .solo { transition: none; }
 }
 
 /* ================= THE DEVICE SETTINGS ROWS =============================== */

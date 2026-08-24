@@ -161,6 +161,24 @@ export function renderCall(store: Store, quests: Quests, deps: CallDeps): HTMLEl
     h('span', { class: 'hand-name' }, profile.name)) as HTMLElement;
   handPill.hidden = true;
 
+  /**
+   * Restart the four-part raise animation.
+   *
+   * An element that was display:none has no running animation to restart, so the
+   * order matters: unhide, force a reflow, then re-add the class. Called on a
+   * raise, and again when a screen share ends — Nam: "if you exit the shared
+   * screen mode then the video frame pops back into its original place, and the
+   * raise hand animation reruns again." It does, because the tile it lives on
+   * has just changed size and the pill would otherwise sit there mid-scale.
+   */
+  function replayHand(): void {
+    if (!store.get().handRaised) return;
+    handPill.hidden = false;
+    handPill.classList.remove('hand-pill');
+    void handPill.offsetWidth;
+    handPill.classList.add('hand-pill');
+  }
+
   const soloTile = (): HTMLElement => {
     const t = h(
       'div',
@@ -392,18 +410,8 @@ export function renderCall(store: Store, quests: Quests, deps: CallDeps): HTMLEl
     store.dispatch({ t: 'hand', on });
     if (on) slap();
     if (on) quests.unlock('hand');
-    // Nam: "This bubble when you raise your hand, that can go, totally
-    // unnecessary." Agreed, and the pill on the tile already says it.
-    //
-    // Replaying the sequence on a re-raise needs the animations restarted, and
-    // an element that was display:none has no running animation to restart. So
-    // unhide first, then force a reflow, then re-add the class.
-    if (on) {
-      handPill.hidden = false;
-      handPill.classList.remove('hand-pill');
-      void handPill.offsetWidth;
-      handPill.classList.add('hand-pill');
-    }
+    if (on) replayHand();
+
   }, () => ({ on: store.get().handRaised, label: store.get().handRaised ? 'Lower hand' : 'Raise hand' }));
 
   const moreBtn = cbtn('More options', 'more_vert', 'w36', () => menu(), () => ({ on: false }));
@@ -895,6 +903,19 @@ export function renderCall(store: Store, quests: Quests, deps: CallDeps): HTMLEl
    * Deferred, because it carries four authored pages and a desktop and the
    * initial bundle is budgeted at 50 kB gzip in CI.
    */
+  /**
+   * What double-clicking a file in the shared Explorer does.
+   *
+   * These were wired to a no-op default, so the window looked interactive and
+   * was not. The CV opens the plain document view; the two notes open the
+   * tools panel, which is where the requirement map and the measured spec
+   * actually live on this site.
+   */
+  function openDoc(id: string): void {
+    if (id === 'plain') { store.dispatch({ t: 'plain', on: true }); return; }
+    store.dispatch({ t: 'engTab', tab: id === 'spec' ? 'fx' : 'net' });
+  }
+
   const shareHost = h('div', {});
   let sharing: { el: HTMLElement } | null = null;
 
@@ -907,7 +928,13 @@ export function renderCall(store: Store, quests: Quests, deps: CallDeps): HTMLEl
     };
     shareHost.appendChild(m.renderPicker({
       onCancel: close,
-      onShare: (src) => { close(); startShare(m.renderShared(src), src.title); },
+      onShare: (src) => {
+        close();
+        // Sharing a single window ends when the window does, which is what
+        // Windows itself does and what Nam asked for: "if you close it then we
+        // exit the screensharing mode."
+        startShare(m.renderShared(src, openDoc, () => stopShare()), src.title);
+      },
     }));
   }
 
@@ -919,8 +946,13 @@ export function renderCall(store: Store, quests: Quests, deps: CallDeps): HTMLEl
     const wrap = h('div', { class: 'shot-wrap' },
       content,
       h('div', { class: 'shot-banner' }, h('span', {}, `You are presenting ${title}`), stop));
-    const solo = stage.querySelector('.solo');
-    (solo ?? stage).appendChild(wrap);
+    // The share belongs to the STAGE, not to the tile. It used to be appended
+    // inside .solo, which is why the shared screen and the self view were the
+    // same box. Meet splits them: the share takes the stage and the self view
+    // shrinks to a small tile on the right, carrying its own name plate, mute
+    // badge and — the part that matters — its raised hand.
+    stage.appendChild(wrap);
+    document.body.classList.add('presenting');
     sharing = { el: wrap };
     presentBtn.classList.add('is-active');
     presentBtn.sync?.();
@@ -931,6 +963,11 @@ export function renderCall(store: Store, quests: Quests, deps: CallDeps): HTMLEl
   function stopShare(): void {
     sharing?.el.remove();
     sharing = null;
+    document.body.classList.remove('presenting');
+    // The tile has just gone from 240x135 back to the full stage. Anything
+    // mid-animation on it was sized for the small frame, so the hand replays
+    // rather than snapping — which is also what the real product does.
+    replayHand();
     presentBtn.classList.remove('is-active');
     presentBtn.sync?.();
   }
