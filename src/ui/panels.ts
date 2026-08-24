@@ -5,9 +5,11 @@
 // Engineering door, so these three stay narrative.
 
 import { h, clear } from '../dom.js';
+import { sym } from './icons.js';
+import { ripple } from './gm3.js';
 import { layoutTimeline, overlaps } from '../state.js';
 import type { Store } from '../state.js';
-import { chat, roles, caseStudies, transcript } from '../data/cv.js';
+import { chat, roles, caseStudies, transcript, profile } from '../data/cv.js';
 
 /** 2026-08-20 as a decimal year, for timeline geometry. */
 export const NOW = 2026.63;
@@ -30,7 +32,65 @@ export function renderChat(): HTMLElement {
   );
 }
 
-export function renderPeople(): HTMLElement {
+/**
+ * Meet's two participant lists, above our own timeline.
+ *
+ * Nam asked for these mirrored "including the raised hands list and contributors
+ * list — only the raised hands list allow interaction: lower or lower all", and
+ * that restriction is the right one. Meet's contributor row offers mute and an
+ * overflow that this page has nothing behind; rendering them as controls would
+ * be three buttons that lie. They are labels here, and marked as such.
+ *
+ * Geometry measured in the live panel at 1440x900 — see the note in styles.css
+ * for the offsets.
+ */
+export function peopleLists(o: { handRaised: boolean; onLower: () => void; name: string }): HTMLElement {
+  const initials = o.name.split(/\s+/).map((w) => w[0] ?? '').join('').slice(0, 2).toUpperCase();
+
+  const section = (title: string, n: number, body: HTMLElement): HTMLElement => {
+    const caret = h('span', { class: 'ppl-sec-caret' }, sym('expand_more', 24));
+    const sec = h('div', { class: 'ppl-sec' },
+      h('button', { class: 'ppl-sec-toggle', type: 'button', 'aria-expanded': 'true' },
+        h('div', { class: 'ppl-sec-head' }, h('span', {}, title), h('span', { class: 'ppl-sec-n' }, String(n)), caret)),
+      h('div', { class: 'ppl-sec-body' }, body)) as HTMLElement;
+    const btn = sec.querySelector('button') as HTMLButtonElement;
+    btn.addEventListener('click', () => {
+      const shut = sec.classList.toggle('is-shut');
+      btn.setAttribute('aria-expanded', String(!shut));
+    });
+    return sec;
+  };
+
+  const row = (sub: string, action: HTMLElement | null): HTMLElement =>
+    h('div', { class: 'ppl-row' },
+      h('span', { class: 'ppl-av', 'aria-hidden': 'true' }, initials),
+      h('div', { class: 'ppl-who' },
+        h('span', { class: 'ppl-name' }, o.name + ' (You)'),
+        h('span', { class: 'ppl-sub' }, sub)),
+      action);
+
+  const lowerOne = h('button', {
+    class: 'ppl-act', type: 'button', 'aria-label': `Lower ${o.name}'s hand`,
+  }, sym('back_hand', 20)) as HTMLButtonElement;
+  lowerOne.addEventListener('click', o.onLower);
+  ripple(lowerOne);
+
+  const lowerAll = h('button', { class: 'ppl-lowerall-btn', type: 'button', 'aria-label': 'Lower all hands' }, 'Lower all') as HTMLButtonElement;
+  lowerAll.addEventListener('click', o.onLower);
+  ripple(lowerAll);
+
+  const hands = o.handRaised
+    ? h('div', {}, h('div', { class: 'ppl-lowerall' }, lowerAll), row('Meeting host', lowerOne))
+    : h('div', { class: 'ppl-empty' }, 'No one has their hand up.');
+
+  const micLabel = h('span', { class: 'ppl-act is-static', role: 'img', 'aria-label': 'Microphone off' }, sym('mic_off', 20));
+
+  return h('div', { class: 'ppl-lists' },
+    section('Raised hands', o.handRaised ? 1 : 0, hands),
+    section('Contributors', 1, row('Meeting host', micLabel)));
+}
+
+export function renderPeople(o?: { handRaised: boolean; onLower: () => void }): HTMLElement {
   const placed = layoutTimeline(
     roles.map((r) => ({ id: r.id, from: r.from, to: r.to })),
     NOW,
@@ -87,6 +147,7 @@ export function renderPeople(): HTMLElement {
   return h(
     'div',
     {},
+    o ? peopleLists({ handRaised: o.handRaised, onLower: o.onLower, name: profile.name }) : null,
     h('p', { class: 'pnote' }, 'Every participant in this call is a chapter. They joined in this order.'),
     axis,
     note,

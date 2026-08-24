@@ -553,3 +553,62 @@ holds. Cheap fix next time reactions come up.
 
 The mic button's own on/off morph: `background-color` `#333537` → `#f9dedc` and
 `border-radius` `24px` → `12px`, both 200ms **`steps(6, jump-none)`**.
+
+---
+
+## Round 6 — the presenting top bar and the participant lists
+
+### The raised-hand chip
+
+Measured live at 1440×900: `125x36`, radius 48, `#80da88`, holding a 32×32
+`#00381f` disc at inset 2 with `front_hand` at 20px, then the name at x36 in
+500 12px Google Sans on `#00381f`.
+
+**The green is not the tile pill's `#6dd58c`.** Two surfaces, two values. Reusing
+one for both would have been the easy wrong answer.
+
+Clicking the chip does not open a menu of its own — it opens the **People panel**.
+The chip is a shortcut into the list.
+
+### The People panel's two lists
+
+Offsets relative to a 358-wide panel at `1065,73`, background `#1e1f20`:
+
+```
+header "People"   x24 y20    400 18px  #e3e3e3
+close             x314 y20   40x40 r20
+All muted         x19 y78    134x40 r20  bg #004a77
+Add people        x182 y78   147x40 r20  bg #004a77
+section label     x31        500 14px  #e8eaed
+section caret     x303       keyboard_arrow_down
+Lower all         x273       500 14px  #a8c7fa, button 82x40 r20 at x261
+row avatar        x31        32x32 r50%
+name / subtitle   x79        subtitle 500 12px #9aa0a6
+row action        x299       40x40 r20   front_hand / more_vert
+```
+
+Contributors is deliberately inert on our side. Meet's row there offers mute and
+an overflow that this page has nothing behind, and three buttons that lie is
+worse than a label that does not pretend.
+
+### The presenting bar — from screenshots, not measured
+
+This one could not be captured. Presenting requires `getDisplayMedia`, whose
+picker is **browser chrome rather than page DOM**, so there is no way to drive it
+from automation and read the result back. Built from Nam's screenshots and
+flagged in source.
+
+What is not guesswork: the hover tint is M3's state layer at **0.08**, the same
+token every other control on this page already uses, so it is a system value
+rather than something eyeballed to match a picture.
+
+### Two corrections
+
+**The share was too wide.** Ours filled the stage and ran under the self tile.
+It now reserves the tile's column (240 + 16 each side = 272), verified at a 16px
+gap with the side panel both open and closed.
+
+**The folder was too yellow.** `#ffd04b` is the flat brand yellow and against a
+`#272727` pane it was the only thing the eye could find. Windows 11's own folder
+is a desaturated amber with a lighter front and a cool document behind it — now
+`#9c7530` / `#c2a05a` / `#c4cedb`, with the blue strip on the taskbar variant.

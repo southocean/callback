@@ -328,9 +328,16 @@ const svg = (vb: string, body: string, cls = ''): HTMLElement => {
   return el as unknown as HTMLElement;
 };
 
+/* Nam: "the folder icon is so yellow I cant see anything. It should be much
+   more subtle, not full on yellow like this."
+   Right — #ffd04b is the flat brand yellow, and against a #272727 pane it is the
+   only thing the eye can find. Windows 11's own folder is a desaturated amber
+   with a lighter front and a cool document peeking out, so it reads as an object
+   rather than a highlighter. */
 const icFolder = (): HTMLElement => svg('0 0 20 20', `
-  <path d="M1.6 5.2a1.4 1.4 0 0 1 1.4-1.4h3.9l1.7 1.7h7.8a1.4 1.4 0 0 1 1.4 1.4v.5H1.6z" fill="#ffb900"/>
-  <path d="M1.6 6.9h16.8v8.3a1.4 1.4 0 0 1-1.4 1.4H3a1.4 1.4 0 0 1-1.4-1.4z" fill="#ffd04b"/>`);
+  <path d="M1.6 5.2a1.4 1.4 0 0 1 1.4-1.4h3.9l1.7 1.7h7.8a1.4 1.4 0 0 1 1.4 1.4v.5H1.6z" fill="#9c7530"/>
+  <path d="M4.6 6.2h10.8v3.4H4.6z" fill="#c4cedb"/>
+  <path d="M1.6 7.3h16.8v7.9a1.4 1.4 0 0 1-1.4 1.4H3a1.4 1.4 0 0 1-1.4-1.4z" fill="#c2a05a"/>`);
 
 const icPdf = (): HTMLElement => svg('0 0 20 20', `
   <path d="M4 2.2h7.4L16 6.8v11a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1v-14.6a1 1 0 0 1 1-1z" fill="#f4f4f4"/>
@@ -351,10 +358,13 @@ const icStart = (): HTMLElement => svg('0 0 20 20', `
   <rect x="2.4" y="11" width="6.6" height="6.6" rx=".7" fill="#4cc2ff"/>
   <rect x="11" y="11" width="6.6" height="6.6" rx=".7" fill="#4cc2ff"/>`);
 
+/* The taskbar's Explorer icon, matched to Nam's own bar: a muted amber folder
+   with a pale document and the blue strip Windows puts along its front. */
 const icExplorerTask = (): HTMLElement => svg('0 0 20 20', `
-  <path d="M1.4 5a1.3 1.3 0 0 1 1.3-1.3h4l1.6 1.6h8a1.3 1.3 0 0 1 1.3 1.3v.4H1.4z" fill="#ffb900"/>
-  <path d="M1.4 7h17.2v8a1.3 1.3 0 0 1-1.3 1.3H2.7A1.3 1.3 0 0 1 1.4 15z" fill="#ffd04b"/>
-  <path d="M5.6 9.2h8.8v1.4H5.6zm0 2.6h6.2v1.4H5.6z" fill="#e0a800" opacity=".55"/>`);
+  <path d="M1.4 4.8a1.3 1.3 0 0 1 1.3-1.3h4l1.6 1.6h8a1.3 1.3 0 0 1 1.3 1.3v.4H1.4z" fill="#9c7530"/>
+  <path d="M4.4 5.9h11.2v3.6H4.4z" fill="#c4cedb"/>
+  <path d="M1.4 7.1h17.2v8.1a1.3 1.3 0 0 1-1.3 1.3H2.7a1.3 1.3 0 0 1-1.3-1.3z" fill="#c2a05a"/>
+  <path d="M5.4 13.6h9.2v1.5H5.4z" fill="#5b8fd0"/>`);
 
 /* Chrome's mark: the three arcs and the blue hub. Nam's note was that ours was
    not Chrome at all — it was a generic globe. */

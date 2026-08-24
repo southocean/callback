@@ -16,7 +16,7 @@
 import { h, clear } from '../dom.js';
 import { sym } from './icons.js';
 import { ripple, attachMenu, micMeter, menu as gmMenu, warnBadge, noticeCard, dropCaret } from './gm3.js';
-import { tipAll } from './tooltip.js';
+import { tipAll, tip } from './tooltip.js';
 import type { MenuItem } from './gm3.js';
 import type { IconName } from './icons.js';
 import type { Store, Panel } from '../state.js';
@@ -271,7 +271,10 @@ export function renderCall(store: Store, quests: Quests, deps: CallDeps): HTMLEl
     const title = TITLES[s.panel];
     const body =
       s.panel === 'chat' ? h('div', { class: 'side-body' }, renderChat())
-      : s.panel === 'people' ? h('div', { class: 'side-body' }, renderPeople())
+      : s.panel === 'people' ? h('div', { class: 'side-body' }, renderPeople({
+          handRaised: s.handRaised,
+          onLower: () => { store.dispatch({ t: 'hand', on: false }); },
+        }))
       : s.panel === 'present' ? h('div', { class: 'side-body' }, renderPresent(store))
       : s.panel === 'offclock' ? h('div', { class: 'side-body' }, renderOffClock())
       : s.panel === 'host' ? h('div', { class: 'side-body' }, hostControls(store))
@@ -480,6 +483,52 @@ export function renderCall(store: Store, quests: Quests, deps: CallDeps): HTMLEl
   drawNet();
   window.setInterval(drawNet, 1600);
 
+  /**
+   * The top bar's presenting chip, and the Stop presenting beside it.
+   *
+   * Nam, from the real product: "on top it says what is being presented and
+   * from whom, along with a stop presenting button... these both have popup
+   * label and stop presenting has a very very slight tint on hover."
+   *
+   * The tint is M3's hover state layer at 0.08, tinted with the container's own
+   * on-colour — the same token every other control on this page uses, so it is
+   * not a one-off value invented to match a screenshot.
+   *
+   * This one is from Nam's screenshots rather than measured. Presenting cannot
+   * be reached through automation: the capture picker is browser chrome, not
+   * page DOM, so there is no way to drive it and read the result back.
+   */
+  const presStop = h('button', { class: 'pres-stop', type: 'button' }, 'Stop presenting') as HTMLButtonElement;
+  ripple(presStop);
+  presStop.addEventListener('click', () => stopShare());
+  tip(presStop, 'Stop presenting your screen');
+  const presWho = h('span', { class: 'pres-who' }, '');
+  const presChip = h('div', { class: 'pres-chip', role: 'status' },
+    sym('present_to_all', 18), presWho, presStop) as HTMLElement;
+  presChip.hidden = true;
+  tip(presWho, 'You are presenting to everyone in the call');
+
+  /**
+   * The raised hand shows up here too, and clicking it opens the People panel
+   * where it can be lowered — which is exactly what the live product does: the
+   * chip is a shortcut into the list, not a menu of its own.
+   *
+   * Measured at 1440x900: 125x36, radius 48, #80da88 with a 32px #00381f disc
+   * at inset 2 and the name at x36 in 500 12px Google Sans.
+   *
+   * Note the green is NOT the tile pill's #6dd58c. Two surfaces, two values,
+   * and reusing one for both would have been the easy wrong answer.
+   */
+  const handChip = h('button', {
+    class: 'hand-chip', type: 'button',
+    'aria-label': 'You raised your hand. Open the participant list to lower it.',
+    onclick: () => store.dispatch({ t: 'panel', panel: 'people' }),
+  },
+    h('span', { class: 'hand-chip-disc', 'aria-hidden': 'true' }, sym('back_hand', 20)),
+    h('span', {}, profile.name)) as HTMLButtonElement;
+  handChip.hidden = true;
+  ripple(handChip);
+  tip(handChip, 'Raised hands');
   const top = h(
     'header',
     { class: 'call-top' },
@@ -491,7 +540,7 @@ export function renderCall(store: Store, quests: Quests, deps: CallDeps): HTMLEl
       { class: 'icon-btn on-dark', type: 'button', 'aria-label': 'Meeting details', onclick: () => store.dispatch({ t: 'readyCard', on: true }) },
       sym('info', 20),
     ),
-    h('div', { class: 'call-top-right' }, netChip, countChip),
+    h('div', { class: 'call-top-right' }, presChip, handChip, netChip, countChip),
   );
 
   // ------------------------------------------------- "meeting's ready" card --
@@ -953,6 +1002,8 @@ export function renderCall(store: Store, quests: Quests, deps: CallDeps): HTMLEl
     // badge and — the part that matters — its raised hand.
     stage.appendChild(wrap);
     document.body.classList.add('presenting');
+    presWho.textContent = `${profile.name} (You, presenting)`;
+    presChip.hidden = false;
     sharing = { el: wrap };
     presentBtn.classList.add('is-active');
     presentBtn.sync?.();
@@ -964,6 +1015,7 @@ export function renderCall(store: Store, quests: Quests, deps: CallDeps): HTMLEl
     sharing?.el.remove();
     sharing = null;
     document.body.classList.remove('presenting');
+    presChip.hidden = true;
     // The tile has just gone from 240x135 back to the full stage. Anything
     // mid-animation on it was sized for the small frame, so the hand replays
     // rather than snapping — which is also what the real product does.
@@ -1075,6 +1127,9 @@ export function renderCall(store: Store, quests: Quests, deps: CallDeps): HTMLEl
     // effectively always — turning the mic on raises a card whose close turns it
     // straight back off.
     muteBadge.hidden = s.micOn;
+    // The hand shows in two places at once, which is what the original does:
+    // on your own tile, and in the top bar as a way into the list.
+    handChip.hidden = !s.handRaised;
     audioChev.classList.toggle('mic-live', s.micOn);
     ccBtn.classList.toggle('active', s.captionsOn);
     presentBtn.classList.toggle('active', s.panel === 'present');

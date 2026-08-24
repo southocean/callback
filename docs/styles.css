@@ -5111,3 +5111,159 @@ body.presenting .hand-name { font-size: 13px; line-height: 20px; padding-right: 
   .lvl-b { animation: none !important; }
   .chev-caret { transition: none; }
 }
+
+/* ================= PRESENTING, ROUND 2 =================================== */
+/* Three things from Nam's QA, all of them about the presenting state.
+ *
+ * 1. THE SHARE WAS TOO WIDE. Ours filled the stage edge to edge and ran under
+ *    the self tile. Meet insets it: in Nam's screenshot the shared window ends
+ *    well short of the tile, with the tile clear on the right. So the share's
+ *    box now reserves the tile's column, and the content letterboxes inside
+ *    whatever is left rather than being cropped by it.
+ *
+ * 2. THE TOP BAR SAYS WHO IS PRESENTING, with a Stop presenting button. Both
+ *    tipped, and the button takes "a very very slight tint on hover" — which is
+ *    the M3 hover state layer at 0.08, the same token every other control here
+ *    uses.
+ *
+ * 3. THE RAISED HAND APPEARS UP THERE TOO, as a green chip that opens the
+ *    People panel.
+ *
+ * The chip geometry is measured off the live product at 1440x900. The
+ * presenting bar is from Nam's screenshots — presenting cannot be triggered
+ * through automation, because the capture picker is browser chrome rather than
+ * page DOM. Flagged rather than presented as measured.
+ */
+
+/* --- the share reserves the tile's column -------------------------------- */
+/* 240 tile + 16 gutter each side. Only while a tile is actually shown beside
+   it, which is why this hangs off .presenting rather than .shot-wrap. */
+body.presenting .shot-wrap { right: 272px; }
+body.presenting .shot { min-width: 0; }
+@media (max-width: 720px) {
+  body.presenting .shot-wrap { right: 0; bottom: 88px; }
+}
+
+/* --- the presenting chip -------------------------------------------------- */
+.pres-chip {
+  display: inline-flex; align-items: center; gap: 8px;
+  height: 36px; padding: 0 6px 0 8px; border-radius: 18px;
+  background-color: #333537; color: #e3e3e3;
+  font: 500 12px/1 var(--font-title); white-space: nowrap;
+  max-width: 42vw; overflow: hidden;
+  animation: pres-in .2s cubic-bezier(0, 0, 0.2, 1) both;
+}
+@keyframes pres-in { from { opacity: 0; transform: translateY(-6px); } }
+.pres-chip[hidden] { display: none !important; }
+.pres-chip .ms { font-size: 18px; color: #a8c7fa; flex: 0 0 auto; }
+.pres-who { overflow: hidden; text-overflow: ellipsis; }
+/* The one primary control that is not on the bottom bar, so it carries the
+   same tokens the Join button does. */
+.pres-stop {
+  position: relative; overflow: hidden;
+  flex: 0 0 auto; height: 28px; padding: 0 14px; border: 0; border-radius: 14px;
+  background-color: #a8c7fa; color: #062e6f; cursor: pointer;
+  font: 500 12px/1 var(--font-title); --sl: #062e6f;
+}
+/* "A very very slight tint on hover" — M3's hover state layer, 0.08, tinted
+   with the container's own on-colour rather than plain black. */
+.pres-stop::after {
+  content: ''; position: absolute; inset: 0; background-color: currentColor;
+  opacity: 0; transition: opacity .12s linear; pointer-events: none;
+}
+.pres-stop:hover::after { opacity: .08; }
+.pres-stop:focus-visible { outline: 2px solid #a8c7fa; outline-offset: 2px; }
+
+/* --- the raised-hand chip ------------------------------------------------- */
+/* Measured: 125x36, radius 48, #80da88 — note that is NOT the tile pill's
+   #6dd58c. Two different greens for two different surfaces, and using one for
+   both would have been the easy wrong answer.
+   Inside: a 32x32 disc at inset 2 holding front_hand at 20px, then the name at
+   x36 in 500 12px Google Sans on #00381f. */
+.hand-chip {
+  display: inline-flex; align-items: center; gap: 4px;
+  height: 36px; padding: 0 12px 0 2px; border: 0; border-radius: 48px;
+  background-color: #80da88; color: #00381f; cursor: pointer;
+  font: 500 12px/16px var(--font-title); white-space: nowrap;
+  position: relative; overflow: hidden; --sl: #00381f;
+  animation: pres-in .2s cubic-bezier(0, 0, 0.2, 1) both;
+}
+.hand-chip[hidden] { display: none !important; }
+.hand-chip-disc {
+  width: 32px; height: 32px; flex: 0 0 auto; border-radius: 50%;
+  background-color: #00381f; color: #80da88;
+  display: grid; place-items: center;
+}
+.hand-chip-disc .ms { font-size: 20px; }
+.hand-chip:focus-visible { outline: 2px solid #a8c7fa; outline-offset: 2px; }
+
+/* ================= THE PEOPLE PANEL'S TWO LISTS ========================== */
+/* Nam: "the people screen should mirror all interactions too, including the
+ * raised hands list and contributors list — only the raised hands list allows
+ * interaction: lower or lower all."
+ *
+ * Measured in the live panel at 1440x900, offsets relative to a 358-wide panel:
+ *
+ *   section label   x31, 500 14px, #e8eaed
+ *   caret           x303, keyboard_arrow_down
+ *   Lower all       x273, 500 14px, #a8c7fa, in a 82x40 r20 button at x261
+ *   row avatar      32x32 r50% at x31
+ *   name / sub      x79; subtitle 500 12px #9aa0a6
+ *   row action      40x40 r20 at x299 (front_hand / more_vert)
+ *
+ * Contributors is deliberately inert. Meet's row there offers mute and an
+ * overflow that this page has nothing behind, and an inert control that looks
+ * live is worse than one that is plainly a label.
+ */
+.ppl-sec { margin: 0 0 8px; }
+.ppl-sec-head {
+  display: flex; align-items: center; gap: 8px;
+  height: 40px; padding: 0 12px 0 11px;
+  font: 500 14px/20px var(--font-title); color: #e8eaed;
+}
+.ppl-sec-n { margin-left: auto; font: 400 14px/20px var(--font); color: #e8eaed; }
+.ppl-sec-caret {
+  width: 24px; height: 24px; display: grid; place-items: center; flex: 0 0 auto;
+  color: #c4c7c5; transition: transform .15s cubic-bezier(0, 0, 0.2, 1);
+}
+.ppl-sec.is-shut .ppl-sec-caret { transform: rotate(-90deg); }
+.ppl-sec.is-shut .ppl-sec-body { display: none; }
+.ppl-sec-toggle {
+  width: 100%; background: none; border: 0; padding: 0; cursor: pointer;
+  color: inherit; font: inherit; text-align: left;
+}
+.ppl-sec-toggle:focus-visible { outline: 2px solid #a8c7fa; outline-offset: -2px; border-radius: 8px; }
+
+.ppl-lowerall { display: flex; justify-content: flex-end; padding: 0 8px 4px; }
+.ppl-lowerall-btn {
+  position: relative; overflow: hidden;
+  height: 40px; padding: 0 12px; border: 0; border-radius: 20px;
+  background: none; color: #a8c7fa; cursor: pointer;
+  font: 500 14px/20px var(--font-title); --sl: #a8c7fa;
+}
+.ppl-lowerall-btn:focus-visible { outline: 2px solid #a8c7fa; outline-offset: 2px; }
+
+.ppl-row { display: flex; align-items: center; gap: 16px; height: 48px; padding: 0 8px 0 11px; }
+.ppl-av {
+  width: 32px; height: 32px; flex: 0 0 auto; border-radius: 50%;
+  background-color: #a8c7fa; color: #062e6f;
+  display: grid; place-items: center; font: 500 12px/1 var(--font-title);
+}
+.ppl-who { min-width: 0; flex: 1 1 auto; display: flex; flex-direction: column; gap: 1px; }
+.ppl-name { font: 400 14px/20px var(--font); color: #e3e3e3; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ppl-sub { font: 500 12px/15px var(--font); color: #9aa0a6; }
+.ppl-act {
+  position: relative; overflow: hidden; flex: 0 0 auto;
+  width: 40px; height: 40px; border: 0; border-radius: 20px;
+  background: none; color: #c4c7c5; cursor: pointer;
+  display: grid; place-items: center; --sl: #fff;
+}
+.ppl-act:focus-visible { outline: 2px solid #a8c7fa; outline-offset: 2px; }
+/* Contributors carries labels, not controls — see the note above. */
+.ppl-act.is-static { cursor: default; opacity: .8; }
+.ppl-empty { padding: 6px 11px 12px; font: 400 13px/18px var(--font); color: #9aa0a6; }
+
+@media (prefers-reduced-motion: reduce) {
+  .pres-chip, .hand-chip { animation: none; }
+  .ppl-sec-caret, .pres-stop::after { transition: none; }
+}
