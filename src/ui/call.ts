@@ -1699,8 +1699,35 @@ export function renderCall(store: Store, quests: Quests, deps: CallDeps): HTMLEl
    * radio_button_checked -> science, dashboard -> apps, dropdown ->
    * present_to_all, report -> shield.
    */
+  /**
+   * The overflow menu's dismisser, and why the toggle was broken.
+   *
+   * Nam: "you click the button, it appears, and if you click again, it appears
+   * again." The guard below has always been there, so it looked like it should
+   * already toggle. Traced, the single press does both things:
+   *
+   *   click(btn)          menu OPEN      first press
+   *   pointerdown(doc)    menu closed    dismisser, capture phase
+   *   click(btn)          menu OPEN      reopened by the SAME press
+   *
+   * pointerdown precedes click, and the dismisser was listening on document in
+   * the capture phase, so it saw a press on the trigger as a press outside the
+   * menu and closed it. By the time click reached the guard there was nothing
+   * open left to find, so it opened a fresh one. Closed and reopened inside one
+   * gesture, which reads exactly like a menu that will not shut.
+   *
+   * The trigger is not "outside". Ignoring it there leaves the button's own click
+   * to do the toggling, which is where that decision belongs.
+   *
+   * The dismisser is also tracked now rather than left to unbind itself on some
+   * later outside press. Menu items can close the menu themselves, and a
+   * listener that outlives the thing it was watching is how the next version of
+   * this bug gets written.
+   */
+  let closeMenu: (() => void) | null = null;
+
   function menu(): void {
-    if (layer.querySelector('.gm-menu')) { clear(layer); return; }
+    if (closeMenu) { closeMenu(); return; }
     const rows: MenuItem[] = [
       { icon: 'bolt', label: 'Streaming' },
       { icon: 'science', label: 'Recording' },
@@ -1714,7 +1741,11 @@ export function renderCall(store: Store, quests: Quests, deps: CallDeps): HTMLEl
       { icon: 'troubleshoot', label: 'Troubleshooting & help' },
       { icon: 'settings', label: 'Settings' },
     ];
-    const box = gmMenu(rows, 225);
+    // Picking a row closes the menu. gmMenu has always accepted an onPicked and
+    // this call site never passed one, so the rows did nothing and the menu just
+    // sat there. Routed through closeMenu so it resolves at pick time and does
+    // not need close() to exist yet.
+    const box = gmMenu(rows, 225, () => closeMenu?.());
     /*
      * gm-dark goes on the WRAPPER, not on the menu.
      *
@@ -1734,8 +1765,28 @@ export function renderCall(store: Store, quests: Quests, deps: CallDeps): HTMLEl
     const first = box.querySelector('li');
     if (first) (first as HTMLElement).focus();
     const off = (e: Event): void => {
-      if (!wrap.contains(e.target as Node)) { clear(layer); document.removeEventListener('pointerdown', off, true); }
+      const t = e.target as Node;
+      // The trigger is not outside the menu — see the note above.
+      if (wrap.contains(t) || moreBtn.contains(t)) return;
+      close();
     };
+    // Escape, which every menu owes its keyboard users and this one did not have.
+    // Bound on document because focus starts on the first row but can be moved
+    // off it, and a menu that only closes while focus is still inside is a trap.
+    const esc = (e: KeyboardEvent): void => {
+      if (e.key !== 'Escape') return;
+      e.stopPropagation();
+      close();
+      moreBtn.focus();
+    };
+    const close = (): void => {
+      document.removeEventListener('pointerdown', off, true);
+      document.removeEventListener('keydown', esc, true);
+      closeMenu = null;
+      clear(layer);
+    };
+    closeMenu = close;
+    document.addEventListener('keydown', esc, true);
     window.setTimeout(() => document.addEventListener('pointerdown', off, true), 0);
   }
 
