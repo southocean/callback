@@ -1167,3 +1167,35 @@ screenshot, not measured** — the call ended before I could read them. The swit
 also gates nothing, because an authored HTML page has no audio track to share;
 that is recorded in `state.ts` next to the flag rather than left for someone to
 find out by clicking it.
+
+## Round 9 — transient surfaces dismiss on action
+
+Three reports from Nam, one underlying rule: **activating a control closes the
+surface it lives on.** Ours left all of them up.
+
+`.gm-menu` rows (pin, and unpin, which is the same row in its other face). The
+row had no way to reach a close: `menu()` builds the list while `close()` lives
+in `attachMenu`. Threaded through as an `onPicked` callback rather than reached
+for through the DOM. Disabled rows deliberately dismiss nothing — a dead row
+should not answer the pointer at all, and closing on one would read as the menu
+accepting a choice it cannot act on.
+
+`hoverPop` — the count chip's popup and the raised-hands popup, four or five
+actions between them. Worse than the menu, because these are **hover**-driven:
+the only close path was `pointerleave`, so the popup sat under a cursor that had
+not moved, on top of the panel it had just opened. One handler on the container,
+because "activating a control closes the popup" belongs to the popup rather than
+to each button that happens to live in it. Focus is handed back to the chip when
+the hidden subtree held it, so a keyboard user does not get dropped to the body.
+
+Verified: pin and unpin both dismiss; Minimize (dead) does not; outside
+pointerdown and Escape still close. In both popups every action dismisses and
+still performs its job, and hover reopen is unaffected.
+
+Two probe lessons, both mine:
+- `document.body.click()` never closes these — the outside-click listener is on
+  `pointerdown` with capture. A synthetic `click` misses it entirely, so that
+  path has to be tested with a real `PointerEvent`.
+- The first hands-popup check asserted `hidden === true` after a click without
+  establishing it was `false` before, which proves nothing when the surface
+  starts hidden. Re-run with the before-state asserted.

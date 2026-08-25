@@ -647,6 +647,41 @@ export function renderCall(store: Store, quests: Quests, deps: CallDeps): HTMLEl
     // A short grace period, so crossing the gap between chip and popup does
     // not count as leaving.
     const close = (): void => { window.clearTimeout(shut); shut = window.setTimeout(() => { pop.hidden = true; }, 180); };
+    /**
+     * Activating anything inside dismisses it AT ONCE.
+     *
+     * Nam, on the count popup: "clicking View more about Nam opens up the right
+     * panel, which should also close that drop down on my avatar." Same
+     * complaint as the tile menu's pin row, and the same underlying shape: an
+     * action that changes what is on screen left its own transient surface up.
+     *
+     * Worse here than in the menu, because this popup is HOVER-driven -- its
+     * only close path is pointerleave, so the popup sat there under a cursor
+     * that had not moved, on top of the panel it had just opened.
+     *
+     * One handler on the container rather than a dismiss() threaded through
+     * every action: both popups built on this take four or five buttons each,
+     * and the rule "activating a control closes the popup" belongs to the popup
+     * rather than to each button that happens to live in it.
+     *
+     * No re-open race: `open` only fires on pointerenter and focusin, and
+     * neither happens while the pointer is already inside. Moving out and back
+     * in reopens it, which is correct for a hover surface.
+     */
+    const dismiss = (): void => {
+      window.clearTimeout(shut);
+      const hadFocus = pop.contains(document.activeElement);
+      pop.hidden = true;
+      // Hiding the element that holds focus would drop focus to the body and
+      // lose the keyboard user's place, so hand it back to the chip.
+      if (hadFocus) {
+        const back = [...host.querySelectorAll<HTMLElement>('button,[tabindex]')].find((el) => !pop.contains(el));
+        back?.focus();
+      }
+    };
+    pop.addEventListener('click', (e: MouseEvent) => {
+      if ((e.target as HTMLElement).closest('button')) dismiss();
+    });
     host.addEventListener('pointerenter', open);
     host.addEventListener('pointerleave', close);
     host.addEventListener('focusin', open);

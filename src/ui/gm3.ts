@@ -128,7 +128,7 @@ export interface MenuItem {
  * No shadow at all is the surprising one; on a white page the fill alone is
  * what separates it, and adding a shadow reads instantly as not-Meet.
  */
-export function menu(items: MenuItem[], width?: number): HTMLElement {
+export function menu(items: MenuItem[], width?: number, onPicked?: () => void): HTMLElement {
   const list = h('ul', { class: 'gm-menu', role: 'menu' });
   if (width) list.style.width = `${width}px`;
   for (const it of items) {
@@ -159,7 +159,28 @@ export function menu(items: MenuItem[], width?: number): HTMLElement {
     } else {
       ripple(row);
     }
-    const go = (): void => { if (it.disabled) return; if (it.onPick) it.onPick(); };
+    /**
+     * Activating a row dismisses the menu. Nam, on the pin row: "after clicking
+     * pin, the pinned state is registered, so this panel should be auto closed"
+     * -- and the same on unpin, which is the same row in its other face.
+     *
+     * It stayed open because `menu()` builds the list and `close()` lives in
+     * attachMenu, so the row had no way to reach it. Threaded through as a
+     * callback rather than reached for via the DOM.
+     *
+     * onPick runs first so the dispatch lands while the menu is still mounted;
+     * the surface is rebuilt from `build()` on every open anyway, so there is
+     * nothing to keep in sync across the close.
+     *
+     * Disabled rows return early and dismiss nothing, which is right: a dead row
+     * should not answer the pointer at all, and closing on one would read as the
+     * menu having accepted a choice it cannot act on.
+     */
+    const go = (): void => {
+      if (it.disabled) return;
+      if (it.onPick) it.onPick();
+      onPicked?.();
+    };
     row.addEventListener('click', go);
     row.addEventListener('keydown', (e) => {
       if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); go(); }
@@ -219,7 +240,7 @@ export function attachMenu(
   anchor.setAttribute('aria-haspopup', 'menu');
   anchor.addEventListener('click', () => {
     if (open) { close(); return; }
-    const wrap = h('div', { class: 'gm-pop' + (opts.cls ? ' ' + opts.cls : '') }, menu(build(), opts.width));
+    const wrap = h('div', { class: 'gm-pop' + (opts.cls ? ' ' + opts.cls : '') }, menu(build(), opts.width, () => close()));
     document.body.appendChild(wrap);
     const a = anchor.getBoundingClientRect();
     const w = wrap.getBoundingClientRect();
