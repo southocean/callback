@@ -612,3 +612,69 @@ gap with the side panel both open and closed.
 `#272727` pane it was the only thing the eye could find. Windows 11's own folder
 is a desaturated amber with a lighter front and a cool document behind it — now
 `#9c7530` / `#c2a05a` / `#c4cedb`, with the blue strip on the taskbar variant.
+
+---
+
+## Round 7 — the hover popups, and the top-right cluster
+
+### One shell, two popups
+
+Both hover panels are the same component in Google's hands:
+
+```
+surface  320 wide, radius 16, #282a2c
+header   56 tall, title at 16,16 in 500 16px #e3e3e3
+footer   a 256x40 action at x32, 500 14px #a8c7fa
+```
+
+**Raised hands** fills it with a 288×128 card on `#333537` r16 — a 40px
+"Lower all" right-aligned, then a 64-tall row (avatar 40 at x16, name 500 14px at
+x72, glyph 24 at x248). **People** fills it with a 288×56 `#a8c7fa` primary, a
+pair of 140×40 outlined buttons at an 8px gap, the joined count, and the footer.
+
+Same box, different filling — the third time that pattern has turned up, after
+the device settings rows and the Explorer/Chrome windows.
+
+### The row's glyph swaps, it does not gain a button
+
+On row hover `front_hand` becomes **`cancel`** in the same 24×24 slot. Measured.
+Nam described it as a Lower button appearing; functionally that is what it is,
+but the implementation is a swap, and building it as an extra control would have
+put two things in a slot that only ever holds one.
+
+### The top-right cluster
+
+Every element is identical: **36 tall, radius 48**, with **8px gaps**.
+
+```
+hand chip     1190,17  125x36  #80da88
+people count  1323,17   57x36  #282a2c
+Gemini pen    1388,17   36x36  #282a2c
+```
+
+Ours were 36 / 32 / 32 on a 4px gap, which is exactly the raggedness Nam saw. One
+rule now sets all three rather than each carrying its own height.
+
+### The People panel is for people
+
+The career timeline moved out to its own `about` panel, reached from the
+participant-count popup where the original offers "View everyone in this call".
+Ours offers **"View more about Nam"** — Nam: "This is the part we start to inject
+more about us into this CV."
+
+### Windows, round 3
+
+- **Wallpaper.** A radial glow is the abstract idea of Bloom, not a wallpaper.
+  Now layered bezier ribbons curling out of the lower left with a bright core and
+  a vignette — the shape of the shipped image, drawn rather than copied.
+- **Chrome's mark** lost the white disc that read as a yellow plate at taskbar
+  size. The real mark has no plate.
+- **Per-tab favicons.** Every tab wore the browser's own mark, which is the one
+  icon a tab never shows. Four marks for four pages.
+- **Caption glyphs** were text at three unrelated optical sizes. Now drawn on one
+  10px box with one stroke width, which is how Windows draws its own.
+- **Tab switching** was broken because the old builder replaced the page node on
+  every click while the strip kept stale closures. One page node, repainted.
+- **Files open tabs.** Each file names a tab; clicking focuses an open Chrome or
+  opens one. Single click, because on a drawn desktop the double-click
+  convention only costs people the discovery.

@@ -235,7 +235,7 @@ function contentFor(src: Source, onOpen: (id: string) => void, onClose: () => vo
     case 'jobad': return pageJobAd();
     case 'riichi': return pageRiichi();
     case 'files': return pageWindow(onOpen, onClose);
-    default: return pageDesktop(onOpen);
+    default: return pageDesktop();
   }
 }
 
@@ -368,35 +368,91 @@ const icExplorerTask = (): HTMLElement => svg('0 0 20 20', `
 
 /* Chrome's mark: the three arcs and the blue hub. Nam's note was that ours was
    not Chrome at all — it was a generic globe. */
+/* Chrome's mark. Nam: "the app icon for chrome has a weird yellow background —
+   get rid of it." That was the white disc under the arcs reading as a plate at
+   taskbar size; the real mark has no plate at all, so the disc is gone and the
+   arcs meet in the middle on their own. */
 const icChrome = (): HTMLElement => svg('0 0 20 20', `
-  <circle cx="10" cy="10" r="8.4" fill="#fff"/>
-  <path d="M10 1.6A8.4 8.4 0 0 1 17.4 6H10a4 4 0 0 0-3.46 6L2.9 5.7A8.4 8.4 0 0 1 10 1.6z" fill="#ea4335"/>
-  <path d="M2.9 5.7 6.54 12A4 4 0 0 0 10 14a4 4 0 0 0 .55-.04l-3.2 5.53A8.4 8.4 0 0 1 2.9 5.7z" fill="#34a853"/>
-  <path d="M17.4 6a8.4 8.4 0 0 1-10.05 12.49L10.55 13A4 4 0 0 0 13.46 12 4 4 0 0 0 10 6z" fill="#fbbc05"/>
-  <path d="M17.4 6H10a4 4 0 0 0-3.46 6l-.9-1.56A4 4 0 0 1 10 6h7.4z" fill="#4285f4" opacity="0"/>
-  <circle cx="10" cy="10" r="3.55" fill="#4285f4"/>
-  <circle cx="10" cy="10" r="3.05" fill="#fff" opacity="0"/>`);
+  <path d="M10 1.6a8.4 8.4 0 0 1 7.42 4.4H10a4 4 0 0 0-3.72 2.53L3.2 5.28A8.38 8.38 0 0 1 10 1.6z" fill="#ea4335"/>
+  <path d="M3.2 5.28l3.08 3.25A4 4 0 0 0 6 10a4 4 0 0 0 3.02 3.88l-2.1 4.6A8.4 8.4 0 0 1 3.2 5.28z" fill="#34a853"/>
+  <path d="M17.42 6A8.4 8.4 0 0 1 6.92 18.48l2.1-4.6A4 4 0 0 0 10 14a4 4 0 0 0 3.46-6z" fill="#fbbc05"/>
+  <circle cx="10" cy="10" r="3.5" fill="#4285f4"/>`);
 
-/* A Windows 11 "Bloom"-ish wallpaper: a dark ground with a soft radial swell. */
+/* Per-tab favicons. Nam: "The tab icons are all chrome icons, please change
+   that." They were — every tab reused the browser's own mark, which is the one
+   icon a tab never shows. These are marks for what each tab actually is. */
+const icFavCv = (): HTMLElement => svg('0 0 20 20', `
+  <rect x="3" y="2" width="14" height="16" rx="2" fill="#e8eaed"/>
+  <rect x="5.5" y="5" width="9" height="1.6" rx=".8" fill="#5f6368"/>
+  <rect x="5.5" y="8.2" width="9" height="1.6" rx=".8" fill="#9aa0a6"/>
+  <rect x="5.5" y="11.4" width="6" height="1.6" rx=".8" fill="#9aa0a6"/>`);
+const icFavGoogle = (): HTMLElement => svg('0 0 20 20', `
+  <path d="M10 8.2v3.4h4.8a4.2 4.2 0 0 1-1.8 2.7l2.9 2.2A8 8 0 0 0 18 10c0-.6-.06-1.2-.17-1.8z" fill="#4285f4"/>
+  <path d="M10 18a8 8 0 0 0 5.55-2.02l-2.9-2.2A5 5 0 0 1 5.3 11.6l-3 2.3A8 8 0 0 0 10 18z" fill="#34a853"/>
+  <path d="M5.3 11.6a4.8 4.8 0 0 1 0-3.06l-3-2.3a8 8 0 0 0 0 7.66z" fill="#fbbc05"/>
+  <path d="M10 5.2c1.3 0 2.5.45 3.43 1.34l2.57-2.57A8 8 0 0 0 2.3 6.24l3 2.3A4.8 4.8 0 0 1 10 5.2z" fill="#ea4335"/>`);
+const icFavWork = (): HTMLElement => svg('0 0 20 20', `
+  <rect x="2.5" y="5" width="15" height="11" rx="2" fill="#8ab4f8"/>
+  <path d="M7.5 5V3.8A1.3 1.3 0 0 1 8.8 2.5h2.4A1.3 1.3 0 0 1 12.5 3.8V5h-1.8V4.3h-1.4V5z" fill="#5f88c8"/>
+  <rect x="2.5" y="9.4" width="15" height="1.5" fill="#5f88c8" opacity=".5"/>`);
+const icFavMahjong = (): HTMLElement => svg('0 0 20 20', `
+  <rect x="4" y="2.5" width="12" height="15" rx="1.8" fill="#f5f5f5"/>
+  <rect x="5.4" y="4" width="9.2" height="12" rx="1.2" fill="#fff"/>
+  <path d="M10 5.6l2.6 4.4h-5.2z" fill="#1a8f4a"/>
+  <rect x="7.4" y="11" width="5.2" height="1.5" rx=".7" fill="#c5221f"/>
+  <rect x="7.4" y="13.2" width="5.2" height="1.5" rx=".7" fill="#c5221f"/>`);
+const FAVICONS: Record<string, () => HTMLElement> = {
+  cv: icFavCv, jobad: icFavGoogle, work: icFavWork, riichi: icFavMahjong,
+};
+
+/* The desktop background.
+ *
+ * Nam: "window background is totally wrong... Its now just a blueish screen with
+ * gradient from the center. I want a typical windows background."
+ *
+ * Fair — a radial glow is the abstract idea of Bloom, not a wallpaper. Windows
+ * ships a photographic swirl: deep blue-to-teal ribbons curling out of the lower
+ * left with a bright core and a dark vignette. This is that shape drawn with
+ * layered bezier ribbons rather than a copy of the photograph, which is not mine
+ * to ship and would not scale with the share frame.
+ */
 const wallpaper = (): HTMLElement => svg('0 0 1200 750', `
   <defs>
-    <radialGradient id="wg1" cx="52%" cy="46%" r="46%">
-      <stop offset="0%" stop-color="#2a5c9c"/>
-      <stop offset="45%" stop-color="#14315c"/>
-      <stop offset="100%" stop-color="#0a1526"/>
+    <linearGradient id="wgA" x1="0" y1="1" x2="1" y2="0">
+      <stop offset="0%" stop-color="#0b1020"/>
+      <stop offset="55%" stop-color="#102647"/>
+      <stop offset="100%" stop-color="#071022"/>
+    </linearGradient>
+    <linearGradient id="wgB" x1="0" y1="1" x2="1" y2="0">
+      <stop offset="0%" stop-color="#1b6fb5" stop-opacity=".95"/>
+      <stop offset="55%" stop-color="#2ea8c8" stop-opacity=".75"/>
+      <stop offset="100%" stop-color="#7fd8e8" stop-opacity=".18"/>
+    </linearGradient>
+    <linearGradient id="wgC" x1="0" y1="1" x2="1" y2="0">
+      <stop offset="0%" stop-color="#0e3f7d" stop-opacity=".9"/>
+      <stop offset="60%" stop-color="#3f86d6" stop-opacity=".55"/>
+      <stop offset="100%" stop-color="#bfe6f5" stop-opacity=".12"/>
+    </linearGradient>
+    <linearGradient id="wgD" x1="0" y1="1" x2="1" y2="0">
+      <stop offset="0%" stop-color="#5fc6e0" stop-opacity=".55"/>
+      <stop offset="100%" stop-color="#eaf9ff" stop-opacity=".05"/>
+    </linearGradient>
+    <radialGradient id="wgGlow" cx="34%" cy="72%" r="42%">
+      <stop offset="0%" stop-color="#9fe4f5" stop-opacity=".38"/>
+      <stop offset="100%" stop-color="#9fe4f5" stop-opacity="0"/>
     </radialGradient>
-    <radialGradient id="wg2" cx="50%" cy="44%" r="26%">
-      <stop offset="0%" stop-color="#7fb4ff" stop-opacity=".35"/>
-      <stop offset="100%" stop-color="#7fb4ff" stop-opacity="0"/>
-    </radialGradient>
-    <radialGradient id="wg3" cx="50%" cy="44%" r="17%">
-      <stop offset="0%" stop-color="#dbe9ff" stop-opacity=".30"/>
-      <stop offset="100%" stop-color="#dbe9ff" stop-opacity="0"/>
+    <radialGradient id="wgVig" cx="50%" cy="50%" r="72%">
+      <stop offset="60%" stop-color="#000" stop-opacity="0"/>
+      <stop offset="100%" stop-color="#000" stop-opacity=".55"/>
     </radialGradient>
   </defs>
-  <rect width="1200" height="750" fill="url(#wg1)"/>
-  <ellipse cx="624" cy="330" rx="330" ry="240" fill="url(#wg2)"/>
-  <ellipse cx="624" cy="330" rx="180" ry="128" fill="url(#wg3)"/>`, 'dk-wall-art');
+  <rect width="1200" height="750" fill="url(#wgA)"/>
+  <ellipse cx="410" cy="540" rx="430" ry="330" fill="url(#wgGlow)"/>
+  <path d="M-40 790 C 190 620 300 470 470 330 C 620 205 810 140 1120 90 C 880 210 700 300 580 430 C 440 580 330 700 250 800 Z" fill="url(#wgC)"/>
+  <path d="M-40 800 C 220 660 340 520 520 380 C 690 250 900 190 1240 150 C 960 280 780 370 650 500 C 520 630 420 730 350 810 Z" fill="url(#wgB)" opacity=".9"/>
+  <path d="M40 810 C 260 700 380 590 540 470 C 700 350 880 290 1160 250 C 930 360 790 440 680 550 C 570 660 490 750 440 820 Z" fill="url(#wgD)" opacity=".7"/>
+  <path d="M120 820 C 300 730 400 650 530 560 C 660 470 800 420 1000 390 C 840 470 740 530 650 610 C 560 690 500 760 470 830 Z" fill="#dff6ff" opacity=".10"/>
+  <rect width="1200" height="750" fill="url(#wgVig)"/>`, 'dk-wall-art');
 
 // ------------------------------------------------------------ the windows --
 
@@ -427,8 +483,18 @@ function win11(o: {
   onClose: () => void;
   onMinimise?: (() => void) | null;
 }): HTMLElement {
-  const cap = (cls: string, label: string, mark: string, fn: () => void): HTMLElement => {
-    const b = h('button', { class: 'wx-cap ' + cls, type: 'button', 'aria-label': label }, mark) as HTMLButtonElement;
+  /* Nam: "the minimize and maximize icons look way too small, especially the
+     maximize icon." They were text glyphs — an en dash and a white square —
+     whose optical sizes have nothing to do with each other or with the multiply
+     sign next to them. Drawn instead, all three on the same 10px box with the
+     same 1px stroke, which is how Windows draws its own. */
+  const capMark = (kind: 'min' | 'max' | 'close'): HTMLElement => svg('0 0 10 10',
+    kind === 'min' ? '<path d="M0 5h10" stroke="currentColor" stroke-width="1" fill="none"/>'
+    : kind === 'max' ? '<rect x=".5" y=".5" width="9" height="9" stroke="currentColor" stroke-width="1" fill="none"/>'
+    : '<path d="M0 0l10 10M10 0L0 10" stroke="currentColor" stroke-width="1" fill="none"/>', 'wx-cap-mark');
+
+  const cap = (cls: string, label: string, kind: 'min' | 'max' | 'close', fn: () => void): HTMLElement => {
+    const b = h('button', { class: 'wx-cap ' + cls, type: 'button', 'aria-label': label }, capMark(kind)) as HTMLButtonElement;
     b.addEventListener('click', (e) => { e.stopPropagation(); fn(); });
     return b;
   };
@@ -446,9 +512,9 @@ function win11(o: {
     h('span', { class: 'wx-bar-ico' }, o.icon()),
     h('span', { class: 'wx-title' }, o.title),
     h('div', { class: 'wx-btns' },
-      o.full && o.onMinimise ? cap('wx-min', 'Minimize', '–', o.onMinimise) : null,
-      o.full ? cap('wx-max', 'Maximize', '□', toggleMax) : null,
-      cap('wx-close', 'Close', '✕', o.onClose)));
+      o.full && o.onMinimise ? cap('wx-min', 'Minimize', 'min', o.onMinimise) : null,
+      o.full ? cap('wx-max', 'Maximize', 'max', toggleMax) : null,
+      cap('wx-close', 'Close', 'close', o.onClose)));
 
   // Dragging. Pointer events so it works with a mouse or a pen, capture so a
   // fast drag cannot outrun the handle, and disabled while maximised because a
@@ -497,10 +563,16 @@ function explorerBody(onOpen: (id: string) => void): { body: HTMLElement; status
     { name: 'This CV', kind: 'folder', n: 1 },
     { name: 'Off the clock', kind: 'folder', n: 7 },
   ];
+  /* Nam: "the files on the folder I cannot click to open them. Clicking on them
+     should open the tab we already have on the chrome browser, if the browser
+     was already open, or open up chrome and go to the correct tab otherwise."
+     So each file names a tab, and onOpen carries that id up to the desktop,
+     which focuses an open Chrome or opens one. Single click opens, because on a
+     drawn desktop the double-click convention only costs people the discovery.*/
   const FILES: Node[] = [
-    { name: 'NamNguyen_CV_2026.pdf', kind: 'pdf', open: () => onOpen('plain') },
-    { name: 'requirement-map.md', kind: 'md', open: () => onOpen('requirements') },
-    { name: 'measured-spec.md', kind: 'md', open: () => onOpen('spec') },
+    { name: 'NamNguyen_CV_2026.pdf', kind: 'pdf', open: () => onOpen('cv') },
+    { name: 'requirement-map.md', kind: 'md', open: () => onOpen('work') },
+    { name: 'measured-spec.md', kind: 'md', open: () => onOpen('riichi') },
   ];
 
   let selected: HTMLElement | null = null;
@@ -535,6 +607,7 @@ function explorerBody(onOpen: (id: string) => void): { body: HTMLElement; status
       selected?.classList.remove('is-sel');
       selected = r;
       r.classList.add('is-sel');
+      if (nd.open) { nd.open(); return; }
       if (already && !inTree) rename(r);
     });
     r.addEventListener('dblclick', () => nd.open?.());
@@ -574,30 +647,60 @@ function explorerBody(onOpen: (id: string) => void): { body: HTMLElement; status
   return { body, status };
 }
 
-/** The Chrome window the taskbar's Chrome icon opens — the four shareable tabs. */
-function chromeBody(): HTMLElement {
-  const tabs = TABS.map((t, i) => h('span', { class: 'cb-tab' + (i === 0 ? ' is-on' : '') },
-    h('span', { class: 'cb-tab-ico' }, icChrome()),
-    h('span', { class: 'cb-tab-t' }, t.title)));
-  let active = TABS[0];
-  const omni = h('div', { class: 'cb-omni' }, h('span', {}, (active?.host ?? '') + '/'));
-  const page = h('div', { class: 'cb-page' },
-    h('h2', {}, active?.title ?? ''),
-    h('p', {}, 'One of the four sources the picker offers. Sharing a Chrome tab shares this page, not this window.'));
-  tabs.forEach((el, i) => el.addEventListener('click', () => {
-    tabs.forEach((t) => t.classList.remove('is-on'));
-    el.classList.add('is-on');
-    active = TABS[i];
-    omni.textContent = (active?.host ?? '') + '/';
+/**
+ * The Chrome window the taskbar's Chrome icon opens — the four tabs the picker
+ * offers, from the same array, so they cannot disagree.
+ *
+ * Nam: "Chrome icon works, but cannot change tab at all." It could not: the old
+ * version replaced the page node on every click while the strip kept stale
+ * closures, so the click landed and nothing moved. This keeps one page node and
+ * repaints it, and returns a select() the file list can call — which is how
+ * double-clicking a file in Explorer ends up focusing the right tab.
+ */
+function chromeWindow(): { body: HTMLElement; select: (id: string) => void } {
+  const page = h('div', { class: 'cb-page' });
+  const omni = h('span', {}, '');
+  const tabs = new Map<string, HTMLElement>();
+
+  const paint = (src: Source): void => {
+    omni.textContent = (src.host ?? '') + '/';
+    tabs.forEach((el, id) => el.classList.toggle('is-on', id === src.id));
     clear(page);
-    page.append(h('h2', {}, active?.title ?? ''),
-      h('p', {}, 'One of the four sources the picker offers. Sharing a Chrome tab shares this page, not this window.'));
-  }));
-  return h('div', { class: 'wx-body cb' },
-    h('div', { class: 'cb-strip' }, ...tabs, h('span', { class: 'cb-new' }, '+')),
-    h('div', { class: 'cb-bar' }, h('span', { class: 'cb-nav' }, '←'), h('span', { class: 'cb-nav' }, '→'),
-      h('span', { class: 'cb-nav' }, '↻'), omni),
-    page);
+    page.append(
+      h('h2', {}, src.title),
+      h('p', {}, 'One of the four sources the picker offers. Sharing a Chrome tab shares this page, not this window.'),
+    );
+  };
+
+  const strip = h('div', { class: 'cb-strip' });
+  for (const t of TABS) {
+    const fav = FAVICONS[t.id] ?? icChrome;
+    const el = h('span', {
+      class: 'cb-tab', role: 'tab', tabindex: '0', title: t.title,
+    }, h('span', { class: 'cb-tab-ico' }, fav()), h('span', { class: 'cb-tab-t' }, t.title)) as HTMLElement;
+    el.addEventListener('click', () => paint(t));
+    el.addEventListener('keydown', (e) => { if ((e as KeyboardEvent).key === 'Enter') paint(t); });
+    tabs.set(t.id, el);
+    strip.appendChild(el);
+  }
+  strip.appendChild(h('span', { class: 'cb-new' }, '+'));
+
+  const first = TABS[0];
+  if (first) paint(first);
+
+  const body = h('div', { class: 'wx-body cb' },
+    strip,
+    h('div', { class: 'cb-bar' },
+      h('span', { class: 'cb-nav' }, '←'), h('span', { class: 'cb-nav' }, '→'),
+      h('span', { class: 'cb-nav' }, '↻'),
+      h('div', { class: 'cb-omni' }, omni)),
+    page) as HTMLElement;
+
+  const select = (id: string): void => {
+    const src = TABS.find((t) => t.id === id);
+    if (src) paint(src);
+  };
+  return { body, select };
 }
 
 /**
@@ -619,11 +722,13 @@ function pageWindow(onOpen: (id: string) => void, onClose: () => void): HTMLElem
  * a taskbar you can actually use, and windows that open, move, minimise and
  * close on it.
  */
-function pageDesktop(onOpen: (id: string) => void): HTMLElement {
+/* No onOpen: a file click now routes to the emulated Chrome rather than out to
+   the host page, which is what Nam asked for — the desktop is a closed machine. */
+function pageDesktop(): HTMLElement {
   const surface = h('div', { class: 'dk-surface' }) as HTMLElement;
   const taskItems = h('div', { class: 'dk-task-mid' }) as HTMLElement;
 
-  interface Live { el: HTMLElement; task: HTMLElement; min: boolean; }
+  interface Live { el: HTMLElement; task: HTMLElement; min: boolean; kind: 'explorer' | 'chrome'; select?: (id: string) => void; }
   const live: Live[] = [];
 
   /** The taskbar hover preview — Nam asked for "a small render of the explorer
@@ -651,19 +756,37 @@ function pageDesktop(onOpen: (id: string) => void): HTMLElement {
     task.addEventListener('click', hide);
   };
 
-  const openWindow = (kind: 'explorer' | 'chrome'): void => {
+  /** Focus the open Chrome if there is one, else open it, then select the tab. */
+  const gotoTab = (id: string): void => {
+    const existing = live.find((w) => w.kind === 'chrome');
+    if (existing) {
+      existing.min = false;
+      existing.el.classList.remove('is-min');
+      existing.task.classList.add('is-on');
+      surface.appendChild(existing.el);
+      existing.select?.(id);
+      return;
+    }
+    openWindow('chrome', id);
+  };
+
+  const openWindow = (kind: 'explorer' | 'chrome', tabId?: string): void => {
     const title = kind === 'explorer' ? 'Work' : 'Nam Nguyen — Senior SWE, Web Development';
     const ico = kind === 'explorer' ? icExplorerTask : icChrome;
     let bodyEl: HTMLElement;
     let statusEl: HTMLElement | null = null;
+    let select: ((id: string) => void) | undefined;
     if (kind === 'explorer') {
-      const made = explorerBody(onOpen);
+      // A file click inside Explorer goes to Chrome, not to the host page.
+      const made = explorerBody(gotoTab);
       bodyEl = made.body; statusEl = made.status;
     } else {
-      bodyEl = chromeBody();
+      const made = chromeWindow();
+      bodyEl = made.body; select = made.select;
+      if (tabId) made.select(tabId);
     }
     const task = h('span', { class: 'dk-task is-on', role: 'button', tabindex: '0', 'aria-label': title }, ico()) as HTMLElement;
-    const rec: Live = { el: null as unknown as HTMLElement, task, min: false };
+    const rec: Live = { el: null as unknown as HTMLElement, task, min: false, kind, select };
     const el = win11({
       title, icon: ico, body: bodyEl, status: statusEl, full: true,
       onClose: () => {

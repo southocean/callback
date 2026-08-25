@@ -22,7 +22,7 @@ import type { IconName } from './icons.js';
 import type { Store, Panel } from '../state.js';
 import { captionAt, clock } from '../state.js';
 import { profile, pitch, roles, transcript, referralBlurb, SITE } from '../data/cv.js';
-import { renderChat, renderPeople, renderPresent } from './panels.js';
+import { renderChat, renderPeople, renderPresent, renderAbout } from './panels.js';
 import { renderOffClock } from './offclock.js';
 import { renderEng } from './eng.js';
 import { Pipeline } from '../fx/pipeline.js';
@@ -39,6 +39,7 @@ const TITLES: Record<Exclude<Panel, 'none'>, string> = {
   offclock: 'Off the clock',
   tools: 'Meeting tools',
   host: 'Host controls',
+  about: 'More about Nam',
 };
 
 const CODE = 'nam-cv-2026';
@@ -275,6 +276,7 @@ export function renderCall(store: Store, quests: Quests, deps: CallDeps): HTMLEl
           handRaised: s.handRaised,
           onLower: () => { store.dispatch({ t: 'hand', on: false }); },
         }))
+      : s.panel === 'about' ? h('div', { class: 'side-body' }, renderAbout())
       : s.panel === 'present' ? h('div', { class: 'side-body' }, renderPresent(store))
       : s.panel === 'offclock' ? h('div', { class: 'side-body' }, renderOffClock())
       : s.panel === 'host' ? h('div', { class: 'side-body' }, hostControls(store))
@@ -473,6 +475,76 @@ export function renderCall(store: Store, quests: Quests, deps: CallDeps): HTMLEl
     String(roles.length + 2),
   );
 
+  /**
+   * The hover popups the top-right chips own.
+   *
+   * Both are the same shell, measured on the live product and clearly one
+   * component in Google's hands: a 320-wide surface at radius 16 on #282a2c,
+   * a 56-tall header whose title is 500 16px, and a 256x40 action in the
+   * footer. Raised hands fills it with a 288x128 card on #333537; People fills
+   * it with a 288x56 primary and a pair of 140x40 buttons. Same box, different
+   * filling — the same shape the device settings rows turned out to have.
+   *
+   * Open on hover, and stay open while the pointer is anywhere over the chip
+   * OR the popup. Without that second half the popup closes the instant you
+   * move toward it, which is the bug that makes hover menus feel broken.
+   */
+  function hoverPop(host: HTMLElement, build: () => HTMLElement): HTMLElement {
+    const pop = build();
+    pop.hidden = true;
+    host.appendChild(pop);
+    let shut = 0;
+    const open = (): void => { window.clearTimeout(shut); pop.hidden = false; };
+    // A short grace period, so crossing the gap between chip and popup does
+    // not count as leaving.
+    const close = (): void => { window.clearTimeout(shut); shut = window.setTimeout(() => { pop.hidden = true; }, 180); };
+    host.addEventListener('pointerenter', open);
+    host.addEventListener('pointerleave', close);
+    host.addEventListener('focusin', open);
+    host.addEventListener('focusout', close);
+    return pop;
+  }
+
+  const initials = profile.name.split(/\s+/).map((w) => w[0] ?? '').join('').slice(0, 2).toUpperCase();
+
+  const popShell = (title: string, body: HTMLElement[], footLabel: string, onFoot: () => void): HTMLElement => {
+    const foot = h('button', { class: 'pop-foot-btn', type: 'button' }, footLabel, sym('chevron_right', 18)) as HTMLButtonElement;
+    ripple(foot);
+    foot.addEventListener('click', onFoot);
+    return h('div', { class: 'pop', role: 'group', 'aria-label': title },
+      h('div', { class: 'pop-h' }, h('span', { class: 'pop-t' }, title)),
+      ...body,
+      h('div', { class: 'pop-foot' }, foot)) as HTMLElement;
+  };
+  /*
+   * The participant count, and the popup Meet hangs off it.
+   *
+   * Measured: a 288x56 "Add people" primary on #a8c7fa, a pair of 140x40
+   * outlined buttons at an 8px gap, the joined count, and a 256x40 footer action
+   * where the original reads "View everyone in this call".
+   *
+   * Ours reads "View more about Nam", and that is the point of the whole panel.
+   * Nam: "This is the part we start to inject more about us into this CV." The
+   * career timeline that used to squat in the People panel lives behind it.
+   */
+  const countWrap = h('div', { class: 'count-wrap' }, countChip) as HTMLElement;
+  const addPeople = h('button', { class: 'pop-primary', type: 'button' }, 'Add people') as HTMLButtonElement;
+  ripple(addPeople);
+  addPeople.addEventListener('click', () => store.dispatch({ t: 'readyCard', on: true }));
+  const allMuted = h('button', { type: 'button' }, 'All muted') as HTMLButtonElement;
+  const hostCtl = h('button', { type: 'button' }, 'Host controls') as HTMLButtonElement;
+  ripple(allMuted); ripple(hostCtl);
+  hostCtl.addEventListener('click', () => store.dispatch({ t: 'panel', panel: 'host' }));
+  allMuted.addEventListener('click', () => store.dispatch({ t: 'panel', panel: 'people' }));
+  hoverPop(countWrap, () => popShell('People', [
+    addPeople,
+    h('div', { class: 'pop-pair' }, allMuted, hostCtl),
+    h('div', { class: 'pop-joined' },
+      h('div', { class: 'pop-joined-n' }, '1 joined'),
+      h('div', { class: 'pop-joined-s' }, 'Just you'),
+      h('div', { class: 'pop-joined-av' }, h('span', { class: 'pop-av' }, initials))),
+  ], 'View more about Nam', () => store.dispatch({ t: 'panel', panel: 'about' })));
+
   const netChip = h('span', { class: 'count-chip', style: 'background:transparent;cursor:default' });
   const drawNet = (): void => {
     const c = sample(store.get().net as Profile, Math.floor(performance.now() / 1600));
@@ -526,9 +598,34 @@ export function renderCall(store: Store, quests: Quests, deps: CallDeps): HTMLEl
   },
     h('span', { class: 'hand-chip-disc', 'aria-hidden': 'true' }, sym('back_hand', 20)),
     h('span', {}, profile.name)) as HTMLButtonElement;
-  handChip.hidden = true;
   ripple(handChip);
-  tip(handChip, 'Raised hands');
+
+  /*
+   * Hovering the chip opens the Raised hands popup; "View all" opens the side
+   * panel — which is what clicking the chip does too, so the popup is a preview
+   * of the panel rather than a rival to it.
+   *
+   * The row's glyph swaps front_hand -> cancel on hover. Measured: it is a swap
+   * in the same 24x24 slot, not an extra control appearing beside it.
+   */
+  const handWrap = h('div', { class: 'hand-chip-wrap' }, handChip) as HTMLElement;
+  handWrap.hidden = true;
+  const lowerAllPop = h('button', { type: 'button', 'aria-label': 'Lower all hands' }, 'Lower all') as HTMLButtonElement;
+  ripple(lowerAllPop);
+  lowerAllPop.addEventListener('click', () => store.dispatch({ t: 'hand', on: false }));
+  const rowAct = h('button', { class: 'pop-act', type: 'button', 'aria-label': `Lower ${profile.name}'s hand` },
+    h('span', { class: 'is-hand' }, sym('back_hand', 24)),
+    h('span', { class: 'is-cancel' }, sym('close', 24))) as HTMLButtonElement;
+  rowAct.addEventListener('click', () => store.dispatch({ t: 'hand', on: false }));
+  tip(rowAct, 'Lower');
+  hoverPop(handWrap, () => popShell('Raised hands', [
+    h('div', { class: 'pop-card' },
+      h('div', { class: 'pop-lower-all' }, lowerAllPop),
+      h('div', { class: 'pop-row' },
+        h('span', { class: 'pop-av', 'aria-hidden': 'true' }, initials),
+        h('span', { class: 'pop-name' }, profile.name),
+        rowAct)),
+  ], 'View all (1)', () => store.dispatch({ t: 'panel', panel: 'people' })));
   const top = h(
     'header',
     { class: 'call-top' },
@@ -540,7 +637,7 @@ export function renderCall(store: Store, quests: Quests, deps: CallDeps): HTMLEl
       { class: 'icon-btn on-dark', type: 'button', 'aria-label': 'Meeting details', onclick: () => store.dispatch({ t: 'readyCard', on: true }) },
       sym('info', 20),
     ),
-    h('div', { class: 'call-top-right' }, presChip, handChip, netChip, countChip),
+    h('div', { class: 'call-top-right' }, presChip, handWrap, netChip, countWrap),
   );
 
   // ------------------------------------------------- "meeting's ready" card --
@@ -1129,7 +1226,7 @@ export function renderCall(store: Store, quests: Quests, deps: CallDeps): HTMLEl
     muteBadge.hidden = s.micOn;
     // The hand shows in two places at once, which is what the original does:
     // on your own tile, and in the top bar as a way into the list.
-    handChip.hidden = !s.handRaised;
+    handWrap.hidden = !s.handRaised;
     audioChev.classList.toggle('mic-live', s.micOn);
     ccBtn.classList.toggle('active', s.captionsOn);
     presentBtn.classList.toggle('active', s.panel === 'present');

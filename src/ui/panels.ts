@@ -90,7 +90,19 @@ export function peopleLists(o: { handRaised: boolean; onLower: () => void; name:
     section('Contributors', 1, row('Meeting host', micLabel)));
 }
 
-export function renderPeople(o?: { handRaised: boolean; onLower: () => void }): HTMLElement {
+/**
+ * The career timeline, which used to squat inside People.
+ *
+ * Nam: "in our version this People side panel also contain all this info
+ * 'Mahjong Logic Apr 2019 — present' and more stuff from my CV. Dont put it
+ * here. This is a panel for the people in the meeting."
+ *
+ * Correct, and the fix is better than a deletion: it gets its own panel, reached
+ * from the participant-count popup where Meet offers "View everyone in this
+ * call". Ours offers "View more about Nam" — which is the moment the clone stops
+ * being a clone and starts being the CV.
+ */
+export function renderAbout(): HTMLElement {
   const placed = layoutTimeline(
     roles.map((r) => ({ id: r.id, from: r.from, to: r.to })),
     NOW,
@@ -147,7 +159,6 @@ export function renderPeople(o?: { handRaised: boolean; onLower: () => void }): 
   return h(
     'div',
     {},
-    o ? peopleLists({ handRaised: o.handRaised, onLower: o.onLower, name: profile.name }) : null,
     h('p', { class: 'pnote' }, 'Every participant in this call is a chapter. They joined in this order.'),
     axis,
     note,
@@ -247,4 +258,13 @@ export function renderTranscript(): HTMLElement {
       ),
     ),
   );
+}
+
+
+/**
+ * The People panel proper — the participants and nothing else, which is all the
+ * original puts here.
+ */
+export function renderPeople(o: { handRaised: boolean; onLower: () => void }): HTMLElement {
+  return peopleLists({ handRaised: o.handRaised, onLower: o.onLower, name: profile.name });
 }

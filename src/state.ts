@@ -5,7 +5,10 @@
 // clone covers the whole journey rather than one screenshot of it (review V1).
 
 export type Screen = 'home' | 'calls' | 'lobby' | 'call' | 'ended';
-export type Panel = 'none' | 'chat' | 'people' | 'present' | 'offclock' | 'tools' | 'host';
+// 'about' is the CV material that used to squat inside the People panel.
+// Nam: "This is a panel for the people in the meeting." Right — so the career
+// timeline moved out to its own, reached from the participant-count popup.
+export type Panel = 'none' | 'chat' | 'people' | 'present' | 'offclock' | 'tools' | 'host' | 'about';
 export type EngTab = 'spec' | 'design' | 'tests' | 'a11y' | 'perf' | 'fx' | 'net' | 'reqs';
 export type FxPreset = 'off' | 'soften' | 'normalise' | 'edges' | 'kaleido';
 export type NetProfile = 'good' | 'shaky' | 'hotel' | 'collapse';
@@ -178,7 +181,7 @@ export interface Route {
   plain?: boolean;
 }
 
-const panels: Panel[] = ['chat', 'people', 'present', 'offclock', 'tools', 'host'];
+const panels: Panel[] = ['chat', 'people', 'present', 'offclock', 'tools', 'host', 'about'];
 const engTabs: EngTab[] = ['spec', 'design', 'tests', 'a11y', 'perf', 'fx', 'net', 'reqs'];
 
 export function parseRoute(hash: string): Route {
