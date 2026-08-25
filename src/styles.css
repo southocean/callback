@@ -3310,8 +3310,24 @@ body.has-panel .grid-wrap.is-solo { inset: 72px 375px 80px 16px; }
      - the rise is 9px every 66ms. 132 px/s, LINEAR, no easing, and x never
        changes once it has spawned.
      - the emoji is 53px and travels 508px, so ~3.8s end to end. */
+/* Born BELOW the clip line, not above it.
+
+   Nam: "The emojis are emitted below the cut line, they are just not visible
+   below that line." Corroborated by my own capture of the original, where an
+   emoji sat sliced in half exactly at the boundary -- something that can only
+   happen if it was already alive underneath and rising through.
+
+   -88 puts the whole 81px-tall reaction (53px emoji plus the trailing name
+   chip) clear of the line at birth, so it slides up into view rather than
+   appearing out of nothing. Round 17 had it at +55, which meant the clip could
+   never actually clip anything -- the boundary existed but nothing ever crossed
+   it.
+
+   This also reconciles the old baseline note that reactions 'start ~55px above
+   the tile's bottom': that was the first position they could be OBSERVED at,
+   not where they are created. Below the line there is nothing to see. */
 .reaction {
-  position: absolute; left: 0; bottom: 55px; z-index: 6;
+  position: absolute; left: 0; bottom: -88px; z-index: 6;
   transform: translateX(var(--rx, 0px));
   font-size: 44px; line-height: 53px; width: 53px; text-align: center;
   pointer-events: none;
@@ -4282,8 +4298,12 @@ body.has-panel .reaction, body.has-panel .reaction-who { left: 0; }
      gap    6              rise  140 px/s linear
      fade   starts at y 368 on a 900 viewport — just above the midpoint — and
             both are gone ~800ms later */
+/* bottom: -88px -- the reaction is BORN BELOW the clip line and rises into view.
+   The base rule further up says the same; both carry it so no future ordering
+   accident can quietly reinstate a positive spawn. See the superseded note near
+   .reaction-em for the two readings this replaces. */
 .reaction {
-  position: absolute; left: 0; bottom: 80px; z-index: 6;
+  position: absolute; left: 0; bottom: -88px; z-index: 6;
   display: flex; flex-direction: column; align-items: center; gap: 6px;
   width: 53px; pointer-events: none;
   animation: react-rise var(--dur, 3.65s) linear both;
@@ -4402,13 +4422,29 @@ body.tray-open .cc { bottom: calc(var(--botbar) + 52px + 12px); }
  * And the spawn height. The group is emoji + 6 + chip = 81 tall, and Meet starts
  * with the EMOJI's bottom flush on the tile's bottom edge (820) — which puts the
  * chip below the edge, rising into view. 900 - 81 - 766 = 53. At bottom: 80 the
- * emoji was starting 68px too high. */
+ * emoji was starting 68px too high.
+ *
+ * SUPERSEDED, and the `bottom: 53px` that came out of it is gone — the spawn now
+ * lives on the base .reaction rule as -88px. Two reasons to distrust the 53:
+ *
+ *   - it put the whole 81px group ABOVE the clip line, so nothing could ever
+ *     cross the boundary and the clip added in Round 17 could never clip
+ *     anything. Nam: "The emojis are emitted below the cut line, they are just
+ *     not visible below that line."
+ *   - my own capture of the original shows an emoji sliced almost in half AT the
+ *     boundary, with only its top few pixels showing. That is only possible if it
+ *     was already alive underneath and rising through.
+ *
+ * The derivation above was also taken in the non-presenting state, against a
+ * tile bottom of 820 in a 900 viewport, which is a different edge from the
+ * stage bottom the clip actually uses. Left in place rather than deleted,
+ * because a superseded measurement with its reasoning visible is more useful
+ * than a silent replacement. */
 .reaction-em {
   flex: 0 0 auto; width: 53px; height: 53px; min-width: 0; min-height: 0;
   overflow: hidden; display: grid; place-items: center;
   font-size: 40px; line-height: 1;
 }
-.reaction { bottom: 53px; }
 
 /* --- the badge label rides the spring, and that fixes the padding too ---- */
 /* Nam: the bounce applies to the yellow AND the text, and ours only sprang the

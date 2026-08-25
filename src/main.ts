@@ -8,6 +8,7 @@ import { spinner } from './ui/icons.js';
 import { prefersReducedMotion } from './a11y.js';
 import { Quests, konami } from './achievements.js';
 import { openDev } from './ui/devopen.js';
+import { loadReadyGate, readyCardOpens } from './prefs.js';
 
 const root = must('#app');
 const quests = new Quests();
@@ -18,6 +19,11 @@ const boot: State = {
   screen: route.screen,
   panel: route.panel,
   reducedMotion: prefersReducedMotion(),
+  // `initial` says true, because the reducer is pure and has no business reading
+  // storage. Whether the "meeting's ready" card actually opens is a decision
+  // about this visitor rather than about this state, so it is made here, once,
+  // at boot. See prefs.ts for the rule.
+  readyCard: readyCardOpens(loadReadyGate(), Date.now()),
   ...(route.engTab ? { engTab: route.engTab } : {}),
   ...(route.spotlight ? { spotlight: route.spotlight } : {}),
   ...(route.plain ? { plain: true } : {}),

@@ -1568,3 +1568,43 @@ Verified by dragging between all four corners and reading the placement each
 time: tl left/below flush at 0, tr right/below, bl left/above, br right/above —
 `br` reproducing the original's measured pair of zeroes — and the menu's box
 entirely inside the viewport in every one.
+
+## Round 19 — reactions are born below the line
+
+Nam: "we are now emitting them all above the cut line, but thats not the case in
+the original meet. The emojis are emitted below the cut line, they are just not
+visible below that line."
+
+Right — and I had the evidence for this last round and let it pass. My own capture
+of the original shows an emoji sliced almost in half **at** the boundary with only
+its top few pixels showing, which is only possible if it was already alive
+underneath and rising through. I wrote that observation down, added the clip, and
+still left the spawn above the line. So the boundary existed and nothing ever
+crossed it.
+
+Spawn is now `-88px`, clearing the whole 81px group (53px emoji plus trailing
+chip). The 88 is **added** to the travel rather than taken out of it, so the top of
+the arc is unchanged. The fade keyframe sits at 85% of the animation, so the longer
+travel moves the fade's absolute position down by `0.15 × 88 = 13px` — worth
+stating, because the fade was measured at a screen *position* rather than a
+fraction of the life.
+
+### Three `bottom` declarations, and only the last one counts
+
+Getting the value to apply took three passes through the cascade. `.reaction`
+carries a `bottom` in three places, each from a different round of QA: the base
+rule, the "Reactions rewrite" block, and a later correction. **The last one wins**,
+so editing the base rule did nothing; removing that one just handed the win to the
+middle one. Both live declarations now say `-88px`, so no future ordering accident
+can quietly reinstate a positive spawn.
+
+The superseded derivation is left in place with its workings rather than deleted:
+"Meet starts with the EMOJI's bottom flush on the tile's bottom edge (820) …
+900 − 81 − 766 = 53". That put the entire group above the line, and it was taken in
+the **non-presenting** state against a tile bottom of 820 in a 900 viewport — a
+different edge from the stage bottom the clip actually uses. A superseded
+measurement with its reasoning visible is more useful than a silent replacement.
+
+Verified by driving the animation frame by frame: born fully below the line with
+7px clear, first sliver visible at 76ms (2% of life), fully above the line by
+680ms (15%), arc ending where it did before.

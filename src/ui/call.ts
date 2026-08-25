@@ -1300,6 +1300,17 @@ export function renderCall(store: Store, quests: Quests, deps: CallDeps): HTMLEl
     // lands at 78% of the life if the travel is Meet's own ~510px. Tying it to
     // a 696px tile pushed the fade up to y 224, far too high and far too late.
     const tileH = 510;
+    /**
+     * The pre-roll below the clip line, matching the CSS `bottom: -88px`.
+     *
+     * Added to the travel rather than replacing part of it, so the TOP of the
+     * arc is where it always was. The fade keyframe sits at 85% of the
+     * animation, so lengthening the travel by 88 moves the fade's absolute
+     * position down by only 0.15 * 88 = 13px -- worth stating, because the fade
+     * was measured at a screen position rather than a fraction of the life, and
+     * 13px is the cost of the emoji now being born out of sight.
+     */
+    const BELOW = 88;
     const rx = BAND_X + Math.round(Math.random() * BAND_W);
     const el = h(
       'div',
@@ -1308,13 +1319,13 @@ export function renderCall(store: Store, quests: Quests, deps: CallDeps): HTMLEl
       h('span', { class: 'reaction-who' }, 'You'),
     );
     el.style.setProperty('--rx', `${rx}px`);
-    el.style.setProperty('--rise', `${Math.round(tileH)}px`);
-    el.style.setProperty('--dur', `${(tileH / RISE).toFixed(2)}s`);
+    el.style.setProperty('--rise', `${Math.round(tileH + BELOW)}px`);
+    el.style.setProperty('--dur', `${((tileH + BELOW) / RISE).toFixed(2)}s`);
     // A different phase per reaction so a burst does not pulse in lockstep.
     el.style.setProperty('--phase', `-${(reactSeq % 6) * 130}ms`);
     reactSeq += 1;
     reactClip.appendChild(el);
-    window.setTimeout(() => el.remove(), (tileH / RISE) * 1000 + 200);
+    window.setTimeout(() => el.remove(), ((tileH + BELOW) / RISE) * 1000 + 200);
   }
 
   /**
