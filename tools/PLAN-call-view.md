@@ -1267,3 +1267,30 @@ transitions left in place.
 The wider lesson replaces the one I wrote last round: a live entry in
 `getAnimations()` does **not** imply a broken transition. Check whether the
 document timeline is running at all first.
+
+## Round 11 — the composer has to be outside the scrollport
+
+Nam: "the send message in the chat panel has solid background so you dont see the
+text as you scroll past it. in our version we do."
+
+Ours had the composer `position: sticky` inside `.side-body` — the element that
+scrolls. A sticky footer still lives in the scrolling box, so messages travelled
+through that container's 24px side and bottom padding and showed up around and
+below the field. No background on the composer could ever cover it, because the
+gap was outside the composer's own box. Reaching for a bigger background would
+have been treating the symptom.
+
+The original does it structurally, and the earlier panel measurement already
+proved it without my noticing: the scroller is `358 x 869 @ 2185,129`, ending at
+998, while the panel runs to 1079. That 81px is a strip the list cannot reach.
+
+So `.side-body` stops scrolling for this panel, `.msg-list` becomes the scroller,
+and the composer is its sibling rather than its child. `:has(.msg-wrap)` rather
+than a new class, because `drawPanel` builds `.side-body` generically for all
+seven panels and chat is the only one that needs to own its vertical layout. The
+8px scrollbar gutter follows the scrollport to its new owner.
+
+Verified: `.side-body` no longer scrolls, the list does, gutter 8, strip 80
+against the measured 81, composer flush to the panel's bottom edge at full width,
+and the list's box ends exactly where the composer begins — so nothing can show
+through rather than merely being painted over.
