@@ -4726,11 +4726,6 @@ body.set-open .cc { bottom: calc(var(--botbar) + 52px + 12px); }
 .dk-task.is-on::after {
   content: ''; position: absolute; bottom: 2px; left: 50%; transform: translateX(-50%); height: 3px; border-radius: 2px;
 }
-.dk-tray { margin-left: auto; display: flex; align-items: center; gap: 18px; font-size: 11.5px; color: #e6e6e6; }
-.dk-weather { opacity: .9; }
-.dk-clock { display: flex; flex-direction: column; align-items: flex-end; line-height: 1.35; }
-.dk-clock b { font-weight: 400; }
-.dk-clock i { font-style: normal; opacity: .85; }
 
 /* --- the hover preview --------------------------------------------------- */
 /* A real miniature: the window itself, cloned and scaled, rather than a drawing
@@ -4781,6 +4776,228 @@ body.set-open .cc { bottom: calc(var(--botbar) + 52px + 12px); }
 .dk-start-av {
   width: 28px; height: 28px; border-radius: 50%; background-color: #4cc2ff;
   color: #06283d; display: grid; place-items: center; font-size: 11px; font-weight: 600;
+}
+
+
+/* ================= THE TRAY, AND WHAT IS BEHIND IT ======================= */
+/* The audit's flattest finding: the system tray held two <span>s of text and
+ * nothing else — 0 icons, 0 buttons — while being the second thing the eye lands
+ * on in a Windows screenshot. Win11 puts the wifi/volume/battery cluster and the
+ * clock there, and both are buttons that open a flyout.
+ *
+ * So the cluster gets its three glyphs and opens quick settings, and the clock
+ * opens a calendar. Both flyouts sit above the taskbar on the right, which is
+ * where the OS puts them, and both are dismissed by an outside press or Escape —
+ * the same contract as the Start menu, because two dismissal models on one
+ * surface is how you get a stuck popup.
+ */
+.dk-tray {
+  margin-left: auto; display: flex; align-items: center; gap: 6px;
+  font-size: 11.5px; color: #e6e6e6;
+}
+/* The weather keeps its old breathing room; the two buttons carry their own
+   padding, so the 18px gap the tray used to need would now double up. */
+.dk-weather { opacity: .9; margin-right: 8px; }
+
+.dk-tray-btn {
+  display: flex; align-items: center; gap: 8px;
+  height: 36px; padding: 0 8px; border-radius: 5px;
+  background: none; border: 0; color: inherit; font: inherit; cursor: pointer;
+}
+.dk-tray-btn:hover { background-color: rgba(255, 255, 255, .09); }
+.dk-tray-btn:focus-visible { outline: 2px solid #4cc2ff; outline-offset: -2px; }
+.dk-tray-ico { width: 16px; height: 16px; display: block; }
+.dk-tray-ico svg { width: 100%; height: 100%; display: block; }
+/* The clock is a button now, so it has to re-declare the column layout the
+   <span> version got from .dk-clock — and .dk-tray-btn's row flex would win
+   otherwise, since both classes sit on the same element. */
+.dk-clock { flex-direction: column; align-items: flex-end; gap: 0; line-height: 1.35; padding: 0 10px; }
+.dk-clock b { font-weight: 400; }
+.dk-clock i { font-style: normal; opacity: .85; }
+
+/* --- the flyout shell ---------------------------------------------------- */
+/* One shell for both, because in the OS they are the same material: an acrylic
+   card the width of a phone, bottom right, above the bar. */
+.dk-flyout {
+  /* 8px above the bar, not 56: the flyout lives in .dk-surface, which STOPS at the
+     taskbar rather than running under it, so the bar height must not be paid
+     twice. Measured at 56 the card floated with a hand-width of wallpaper under
+     it and read as unattached to the thing that opened it. */
+  position: absolute; right: 12px; bottom: 8px; z-index: 45;
+  width: 320px; padding: 16px; border-radius: 8px;
+  background-color: rgba(43, 43, 43, .97);
+  backdrop-filter: blur(28px) saturate(140%);
+  -webkit-backdrop-filter: blur(28px) saturate(140%);
+  border: 1px solid #3a3a3a; box-shadow: 0 16px 48px rgba(0, 0, 0, .6);
+  color: #fff; font: 400 13px/1.4 "Segoe UI", var(--font), sans-serif;
+  animation: dk-fly-in .13s cubic-bezier(0, 0, 0.2, 1) both;
+}
+/* It takes focus on open so its name is announced; a ring on a 320px card is
+   just a blue box round the whole popup. */
+.dk-flyout:focus, .dk-flyout:focus-visible { outline: none; }
+/* Rises from the bar it belongs to, which is the cue that says where it came
+   from. Same short duration as the windows. */
+@keyframes dk-fly-in {
+  from { opacity: 0; transform: translateY(10px) scale(.99); }
+  to   { opacity: 1; transform: none; }
+}
+
+/* --- quick settings ------------------------------------------------------ */
+/* The toggles are real: they move, they remember, and they announce. What they
+   do NOT do is claim to have changed the machine — there is no wifi to turn off
+   from inside a screen share, and a switch that pretended otherwise would be the
+   one dishonest thing in the mock. */
+.dk-qs-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.dk-qs-tile {
+  display: flex; flex-direction: column; align-items: flex-start; gap: 10px;
+  padding: 12px; border-radius: 6px; min-height: 74px;
+  background-color: rgba(255, 255, 255, .05); border: 0;
+  color: #fff; font: inherit; text-align: left; cursor: pointer;
+  transition: background-color .1s linear, color .1s linear;
+}
+.dk-qs-tile:hover { background-color: rgba(255, 255, 255, .1); }
+.dk-qs-tile:focus-visible { outline: 2px solid #4cc2ff; outline-offset: -2px; }
+/* On is the accent, not a checkmark. Win11 fills the whole tile, and that reads
+   at a glance in a way a small tick never does. */
+.dk-qs-tile.is-on { background-color: #4cc2ff; color: #06283d; }
+.dk-qs-tile.is-on:hover { background-color: #62cbff; }
+.dk-qs-ico { width: 16px; height: 16px; display: block; flex: 0 0 auto; }
+.dk-qs-ico svg { width: 100%; height: 100%; display: block; }
+
+.dk-qs-row { display: flex; align-items: center; gap: 12px; margin-top: 14px; }
+.dk-qs-slider {
+  flex: 1 1 auto; min-width: 0; height: 4px; margin: 0;
+  -webkit-appearance: none; appearance: none;
+  background-color: rgba(255, 255, 255, .22); border-radius: 2px; cursor: pointer;
+}
+.dk-qs-slider::-webkit-slider-thumb {
+  -webkit-appearance: none; appearance: none;
+  width: 14px; height: 14px; border-radius: 50%;
+  background-color: #fff; border: 4px solid #4cc2ff; box-sizing: border-box;
+}
+.dk-qs-slider::-moz-range-thumb {
+  width: 14px; height: 14px; border-radius: 50%;
+  background-color: #fff; border: 4px solid #4cc2ff; box-sizing: border-box;
+}
+.dk-qs-slider:focus-visible { outline: 2px solid #4cc2ff; outline-offset: 4px; }
+.dk-qs-foot {
+  margin-top: 14px; padding-top: 12px; border-top: 1px solid #3a3a3a;
+  font-size: 12px; color: #c5c5c5;
+}
+
+/* --- the calendar -------------------------------------------------------- */
+/* Matched against Nam's screenshot of the real flyout. The three day states there
+   are a filled circle (today), a grey tint (hover) and a thin ring (selected) —
+   all three CIRCLES, which is the detail the first version got wrong.
+ *
+ * The disc is a child element with its own square box rather than the grid cell
+ * itself, because the cell is 39px wide and 36 tall: border-radius:50% on that
+ * gives an ellipse, which is exactly what Nam caught. Sizing the disc instead
+ * means the circle stays a circle whatever width the flyout ends up. */
+.dk-cal-top { font-size: 13.5px; font-weight: 600; padding-bottom: 12px; }
+.dk-cal-bar {
+  display: flex; align-items: center; gap: 8px;
+  padding-top: 12px; border-top: 1px solid #3a3a3a;
+}
+.dk-cal-h { flex: 1 1 auto; min-width: 0; font-size: 13.5px; font-weight: 600; color: #fff; }
+.dk-cal-navs { display: flex; gap: 2px; flex: 0 0 auto; }
+.dk-cal-nav {
+  width: 28px; height: 24px; border-radius: 4px; padding: 0;
+  display: grid; place-items: center; font-size: 12px;
+  background: none; border: 0; color: #c5c5c5; cursor: pointer;
+}
+.dk-cal-nav:hover { background-color: rgba(255, 255, 255, .08); color: #fff; }
+.dk-cal-nav:focus-visible { outline: 2px solid #4cc2ff; outline-offset: -2px; }
+
+.dk-cal-grid {
+  display: grid; grid-template-columns: repeat(7, 1fr);
+  margin-top: 8px; font-variant-numeric: tabular-nums;
+}
+/* The rows exist for role="row" and nothing else. display:contents hands their
+   children straight to the seven-column grid, so the semantics are valid without
+   a second layout box in the way. */
+.dk-cal-row { display: contents; }
+.dk-cal-wd {
+  height: 30px; display: grid; place-items: center;
+  font-size: 12px; font-weight: 600; color: #e6e6e6;
+}
+.dk-cal-day {
+  height: 36px; display: grid; place-items: center; padding: 0;
+  background: none; border: 0; color: #fff; font: inherit; cursor: pointer;
+}
+.dk-cal-day:focus-visible { outline: 2px solid #4cc2ff; outline-offset: -4px; border-radius: 6px; }
+/* Square, so 50% is a circle. 30px matches the disc in the screenshot against a
+   36px row. */
+.dk-cal-disc {
+  width: 30px; height: 30px; border-radius: 50%;
+  display: grid; place-items: center; font-size: 13px;
+  box-sizing: border-box; border: 1px solid transparent;
+}
+/* Neighbouring months are shown, not blanked — it is why the real grid never
+   changes height between a 28-day month and a 31-day one starting on a Sunday. */
+.dk-cal-day.is-out { color: #7a7a7a; }
+.dk-cal-day:hover .dk-cal-disc { background-color: rgba(255, 255, 255, .1); }
+/* Selected: a ring, and it survives hover because in the real one it does. */
+.dk-cal-day.is-sel .dk-cal-disc { border-color: #4cc2ff; }
+/* Today: filled. Listed last so it wins when today is also the selected day. */
+.dk-cal-day.is-today .dk-cal-disc { background-color: #4cc2ff; color: #06283d; font-weight: 600; border-color: #4cc2ff; }
+.dk-cal-day.is-today:hover .dk-cal-disc { background-color: #62cbff; }
+
+/* --- Start: the search field and the power button ------------------------ */
+.dk-start-search {
+  display: flex; align-items: center; gap: 8px; margin-bottom: 16px;
+  height: 34px; padding: 0 12px; border-radius: 17px;
+  background-color: rgba(255, 255, 255, .06);
+  border: 1px solid rgba(255, 255, 255, .1);
+  color: #9a9a9a;
+}
+.dk-start-search:focus-within { border-color: #4cc2ff; background-color: rgba(255, 255, 255, .09); }
+.dk-start-search svg { width: 15px; height: 15px; display: block; flex: 0 0 auto; }
+.dk-start-q {
+  flex: 1 1 auto; min-width: 0; background: none; border: 0; padding: 0;
+  color: #fff; font: inherit;
+}
+/* The ring belongs on the pill, which is the thing that looks like the field —
+   the same mistake the omnibox had, fixed the same way. */
+.dk-start-q:focus-visible { outline: none; }
+.dk-start-q::placeholder { color: #8f8f8f; }
+
+/* The [hidden] trap for the fifth time: the filter hides tiles with .hidden, and
+   .dk-start-app sets display:flex, which beats the UA rule. Say it here too. */
+.dk-start-app[hidden] { display: none !important; }
+.dk-start-none { padding: 22px 0; text-align: center; font-size: 12.5px; color: #9a9a9a; }
+.dk-start-none[hidden] { display: none !important; }
+
+.dk-start-who { flex: 1 1 auto; min-width: 0; }
+.dk-pwr-wrap { position: relative; display: block; }
+.dk-start-pwr {
+  width: 32px; height: 32px; border-radius: 5px; padding: 6px; box-sizing: border-box;
+  display: grid; place-items: center;
+  background: none; border: 0; color: #fff; cursor: pointer;
+}
+.dk-start-pwr svg { width: 100%; height: 100%; display: block; }
+.dk-start-pwr:hover { background-color: rgba(255, 255, 255, .09); }
+.dk-start-pwr:focus-visible { outline: 2px solid #4cc2ff; outline-offset: -2px; }
+
+/* Opens upward: it sits in the footer of a menu that is already at the bottom of
+   the screen, so downward has nowhere to go. */
+.dk-pwr-menu {
+  position: absolute; right: 0; bottom: 38px; z-index: 2;
+  min-width: 150px; padding: 5px; border-radius: 8px;
+  background-color: rgba(43, 43, 43, .98); backdrop-filter: blur(28px);
+  border: 1px solid #3a3a3a; box-shadow: 0 12px 32px rgba(0, 0, 0, .55);
+  display: flex; flex-direction: column;
+}
+.dk-pwr-menu[hidden] { display: none !important; }
+.dk-pwr-item {
+  padding: 9px 12px; border-radius: 5px; text-align: left;
+  background: none; border: 0; color: #fff; font: inherit; cursor: pointer;
+}
+.dk-pwr-item:hover { background-color: rgba(255, 255, 255, .08); }
+.dk-pwr-item:focus-visible { outline: 2px solid #4cc2ff; outline-offset: -2px; }
+
+@media (prefers-reduced-motion: reduce) {
+  .dk-flyout { animation: none; }
 }
 
 /* ================= PRESENTING: THE SELF TILE STEPS ASIDE ================== */

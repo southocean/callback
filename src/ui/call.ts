@@ -1065,7 +1065,11 @@ export function renderCall(store: Store, quests: Quests, deps: CallDeps): HTMLEl
     h(
       'button',
       { class: 'icon-btn on-dark', type: 'button', 'aria-label': 'Meeting details', onclick: () => store.dispatch({ t: 'readyCard', on: true }) },
-      sym('info', 20),
+      // 17px, which is what Meet's own info glyph measured inside this 29x29
+      // button. Ours was 20, and at that size a 29px circle leaves 4.5px of ring
+      // where the original leaves 6 -- centred correctly since the UA padding fix,
+      // but still visibly tighter than the thing it copies.
+      sym('info', 17),
     ),
     h('div', { class: 'call-top-right' }, presChip, handWrap, netChip, countWrap),
   );

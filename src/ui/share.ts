@@ -334,7 +334,9 @@ function contentFor(src: Source, onOpen: (id: string) => void, onClose: () => vo
     case 'jobad': return pageJobAd();
     case 'riichi': return pageRiichi();
     case 'files': return pageWindow(onOpen, onClose);
-    default: return pageDesktop();
+    // onClose is "the share ends" — Window mode already uses it for the single
+    // window's close button. Start > Shut down means the same thing here.
+    default: return pageDesktop(onClose);
   }
 }
 
@@ -570,6 +572,42 @@ const icExplorerTask = (): HTMLElement => svg('0 0 20 20', `
    get rid of it." That was the white disc under the arcs reading as a plate at
    taskbar size; the real mark has no plate at all, so the disc is gone and the
    arcs meet in the middle on their own. */
+/* The system tray's three glyphs. The audit found the tray holding text and
+   nothing else — 0 icons, 0 buttons — which made it the emptiest-looking part of
+   the whole bar. Drawn on one 16px box so they sit as a set. */
+const icWifi = (): HTMLElement => svg('0 0 16 16', `
+  <path d="M8 12.6a1.15 1.15 0 1 0 0-2.3 1.15 1.15 0 0 0 0 2.3z" fill="currentColor"/>
+  <path d="M4.9 9.4a4.4 4.4 0 0 1 6.2 0l-1.1 1.1a2.85 2.85 0 0 0-4 0z" fill="currentColor" opacity=".95"/>
+  <path d="M2.6 7.1a7.65 7.65 0 0 1 10.8 0l-1.1 1.1a6.1 6.1 0 0 0-8.6 0z" fill="currentColor" opacity=".8"/>`);
+
+const icVol = (): HTMLElement => svg('0 0 16 16', `
+  <path d="M3 6.2h2.1L8 3.5v9L5.1 9.8H3z" fill="currentColor"/>
+  <path d="M10 6.1a2.7 2.7 0 0 1 0 3.8" stroke="currentColor" stroke-width="1.2" fill="none" stroke-linecap="round"/>
+  <path d="M11.7 4.4a5.1 5.1 0 0 1 0 7.2" stroke="currentColor" stroke-width="1.2" fill="none" stroke-linecap="round" opacity=".75"/>`);
+
+const icBattery = (): HTMLElement => svg('0 0 16 16', `
+  <rect x="1.2" y="5" width="11.4" height="6" rx="1.4" stroke="currentColor" stroke-width="1.1" fill="none" opacity=".85"/>
+  <rect x="2.6" y="6.4" width="7.2" height="3.2" rx=".6" fill="currentColor"/>
+  <path d="M14 7.1v1.8a1.1 1.1 0 0 0 0-1.8z" fill="currentColor" opacity=".85"/>`);
+
+const icBt = (): HTMLElement => svg('0 0 16 16', `
+  <path d="M6 4.2 11 11.4 8 13.6V2.4l3 2.2L6 11.8" stroke="currentColor" stroke-width="1.25" fill="none" stroke-linejoin="round"/>`);
+
+const icMoon = (): HTMLElement => svg('0 0 16 16', `
+  <path d="M9.4 2.4a5.6 5.6 0 1 0 4.2 8.9A6.1 6.1 0 0 1 9.4 2.4z" fill="currentColor"/>`);
+
+const icLeaf = (): HTMLElement => svg('0 0 16 16', `
+  <path d="M12.8 3.2c.7 5.4-2 8.4-6.4 8.4-1 0-1.9-.2-2.6-.6 1.5-4.9 4.6-7.3 9-7.8z" fill="currentColor"/>
+  <path d="M3 13.2c1.3-2.6 3.4-4.6 6.2-5.9" stroke="currentColor" stroke-width="1.1" fill="none" stroke-linecap="round" opacity=".6"/>`);
+
+const icPower = (): HTMLElement => svg('0 0 20 20', `
+  <path d="M10 3.2v5.4" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" fill="none"/>
+  <path d="M6.1 5.4a5.2 5.2 0 1 0 7.8 0" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" fill="none"/>`);
+
+const icSearch = (): HTMLElement => svg('0 0 20 20', `
+  <circle cx="8.6" cy="8.6" r="4.9" stroke="currentColor" stroke-width="1.6" fill="none"/>
+  <path d="M12.4 12.4 16.6 16.6" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" fill="none"/>`);
+
 const icChrome = (): HTMLElement => svg('0 0 20 20', `
   <path d="M10 1.6a8.4 8.4 0 0 1 7.42 4.4H10a4 4 0 0 0-3.72 2.53L3.2 5.28A8.38 8.38 0 0 1 10 1.6z" fill="#ea4335"/>
   <path d="M3.2 5.28l3.08 3.25A4 4 0 0 0 6 10a4 4 0 0 0 3.02 3.88l-2.1 4.6A8.4 8.4 0 0 1 3.2 5.28z" fill="#34a853"/>
@@ -1554,7 +1592,7 @@ function playerWindow(id: string): { body: HTMLElement; select: (id: string) => 
  */
 type AppKind = 'explorer' | 'chrome' | 'player';
 
-function pageDesktop(): HTMLElement {
+function pageDesktop(onQuit: () => void): HTMLElement {
   const surface = h('div', { class: 'dk-surface' }) as HTMLElement;
 
   /**
@@ -1811,19 +1849,90 @@ function pageDesktop(): HTMLElement {
   // Start, and a small menu so the button is not a lie.
   const start = h('button', { class: 'dk-task dk-start', type: 'button', 'aria-label': 'Start' }, icStart()) as HTMLButtonElement;
   let menu: HTMLElement | null = null;
+  /* The power menu is a popup inside a popup, so the desktop has to know about it:
+     QA found it staying open when the press landed elsewhere in Start, and Escape
+     closing the whole Start menu out from under it. Both need the inner one to go
+     first. */
+  let pwr: { menu: HTMLElement; btn: HTMLElement } | null = null;
+  const shutPwr = (): void => {
+    if (!pwr) return;
+    pwr.menu.hidden = true;
+    pwr.btn.setAttribute('aria-expanded', 'false');
+    pwr = null;
+  };
   start.addEventListener('click', () => {
-    if (menu) { menu.remove(); menu = null; return; }
-    menu = h('div', { class: 'dk-start-menu' },
+    if (menu) { shutPwr(); menu.remove(); menu = null; return; }
+    /*
+     * Two things Windows puts in Start that we had left out: the search field it
+     * opens with, and the power button in the corner.
+     *
+     * The search field actually filters — a search box that ignores what you type
+     * is worse than no search box, because it advertises a behaviour and then
+     * refuses it. With four apps the filtering is barely useful, which is fine:
+     * the point is that the control is real.
+     *
+     * The power button is the one place a mock has to stop. It offers Sleep and
+     * Shut down, and picking either ends the screen share, because that is the
+     * closest honest translation of "this machine goes away" inside a call.
+     */
+    const grid = h('div', { class: 'dk-start-grid' }) as HTMLElement;
+    // Same reasoning as the pin: Start is a list of things you can launch, and a
+    // media player with no file to open is not one of them.
+    const launchable = APPS.filter((a) => a.pinned);
+    const tiles = launchable.map((a) => h('button', {
+      class: 'dk-start-app', type: 'button',
+      onclick: () => { openWindow(a.kind); menu?.remove(); menu = null; },
+    }, h('span', {}, a.ico()), h('span', {}, a.label)) as HTMLElement);
+    grid.append(...tiles);
+
+    const empty = h('div', { class: 'dk-start-none' }, 'No results') as HTMLElement;
+    empty.hidden = true;
+
+    const field = h('input', {
+      class: 'dk-start-q', type: 'text', placeholder: 'Search apps',
+      'aria-label': 'Search apps', autocomplete: 'off',
+    }) as HTMLInputElement;
+    field.addEventListener('input', () => {
+      const q = field.value.trim().toLowerCase();
+      let hits = 0;
+      tiles.forEach((t, i) => {
+        const on = !q || launchable[i]!.label.toLowerCase().includes(q);
+        t.hidden = !on;
+        if (on) hits += 1;
+      });
+      empty.hidden = hits > 0;
+    });
+
+    const power = h('button', {
+      class: 'dk-start-pwr', type: 'button', 'aria-label': 'Power', 'aria-expanded': 'false',
+    }, icPower()) as HTMLButtonElement;
+    const pwrMenu = h('div', { class: 'dk-pwr-menu', role: 'menu', 'aria-label': 'Power' },
+      ...['Sleep', 'Shut down'].map((label) => h('button', {
+        class: 'dk-pwr-item', type: 'button', role: 'menuitem',
+        onclick: () => { say(label); onQuit(); },
+      }, label))) as HTMLElement;
+    pwrMenu.hidden = true;
+    power.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const open = pwrMenu.hidden;
+      if (!open) { shutPwr(); return; }
+      pwrMenu.hidden = false;
+      power.setAttribute('aria-expanded', 'true');
+      pwr = { menu: pwrMenu, btn: power };
+      (pwrMenu.firstElementChild as HTMLElement | null)?.focus();
+    });
+
+    menu = h('div', { class: 'dk-start-menu', role: 'dialog', 'aria-label': 'Start' },
+      h('div', { class: 'dk-start-search' }, icSearch(), field),
       h('div', { class: 'dk-start-h' }, 'Pinned'),
-      h('div', { class: 'dk-start-grid' },
-        // Same reasoning as the pin: Start is a list of things you can launch, and
-        // a media player with no file to open is not one of them.
-        ...APPS.filter((a) => a.pinned).map((a) => h('button', {
-          class: 'dk-start-app', type: 'button',
-          onclick: () => { openWindow(a.kind); menu?.remove(); menu = null; },
-        }, h('span', {}, a.ico()), h('span', {}, a.label)))),
-      h('div', { class: 'dk-start-foot' }, h('span', { class: 'dk-start-av' }, 'NN'), profile.name)) as HTMLElement;
+      grid,
+      empty,
+      h('div', { class: 'dk-start-foot' },
+        h('span', { class: 'dk-start-av' }, 'NN'),
+        h('span', { class: 'dk-start-who' }, profile.name),
+        h('span', { class: 'dk-pwr-wrap' }, power, pwrMenu))) as HTMLElement;
     surface.appendChild(menu);
+    field.focus();
   });
 
   /**
@@ -1854,10 +1963,255 @@ function pageDesktop(): HTMLElement {
     return b;
   };
 
-  const clock = new Date();
+  /**
+   * The system tray: two buttons, two flyouts.
+   *
+   * The audit found it holding text and nothing else — zero icons, zero buttons,
+   * the emptiest region on the bar. Windows puts a quick-settings flyout behind
+   * the wifi/volume/battery cluster and a calendar behind the clock, and both are
+   * signature surfaces, so both are here.
+   *
+   * Everything in them is honest about being a mock: the toggles move and are
+   * remembered for the session, and nothing claims to have changed a real device.
+   * A brightness slider that dimmed the screen would be a lie about what this is.
+   */
+  let flyout: HTMLElement | null = null;
+  const shutFlyout = (): void => { flyout?.remove(); flyout = null; trayQs.setAttribute('aria-expanded', 'false'); trayClock.setAttribute('aria-expanded', 'false'); };
+
+  const openFlyout = (owner: HTMLElement, build: () => HTMLElement): void => {
+    const wasMine = owner.getAttribute('aria-expanded') === 'true';
+    shutFlyout();
+    if (wasMine) return;                 // second click closes, like the menus
+    flyout = build();
+    owner.setAttribute('aria-expanded', 'true');
+    surface.appendChild(flyout);
+    /* Focus the labelled shell, not the first control. Landing on "Previous
+       month" announces a chevron instead of a calendar, and Tab then starts
+       halfway through the flyout — the same reasoning as the window shells. */
+    flyout.setAttribute('tabindex', '-1');
+    flyout.focus();
+  };
+
+  const qsToggle = (label: string, ico: () => HTMLElement, on: boolean): HTMLElement => {
+    const b = h('button', {
+      class: 'dk-qs-tile' + (on ? ' is-on' : ''), type: 'button',
+      'aria-pressed': String(on),
+    }, h('span', { class: 'dk-qs-ico' }, ico()), h('span', {}, label)) as HTMLButtonElement;
+    b.addEventListener('click', () => {
+      const now = b.getAttribute('aria-pressed') !== 'true';
+      b.setAttribute('aria-pressed', String(now));
+      b.classList.toggle('is-on', now);
+      say(label + (now ? ' on' : ' off'));
+    });
+    return b;
+  };
+
+  const buildQuickSettings = (): HTMLElement => h('div', {
+    class: 'dk-flyout dk-qs', role: 'dialog', 'aria-label': 'Quick settings',
+  },
+    h('div', { class: 'dk-qs-grid' },
+      qsToggle('Wi-Fi', icWifi, true),
+      qsToggle('Bluetooth', icBt, false),
+      qsToggle('Battery saver', icLeaf, false),
+      qsToggle('Night light', icMoon, false)),
+    h('div', { class: 'dk-qs-row' },
+      h('span', { class: 'dk-qs-ico' }, icVol()),
+      h('input', { class: 'dk-qs-slider', type: 'range', min: '0', max: '100', value: '64', 'aria-label': 'Volume' })),
+    h('div', { class: 'dk-qs-foot' }, '11°C  ·  Klart  ·  Uppsala')) as HTMLElement;
+
+  /**
+   * The calendar, rebuilt from Nam's screenshot of the real one.
+   *
+   * The first version got the month arithmetic right and the rest wrong. What the
+   * real flyout actually does, and now this does too:
+   *
+   *   · today is a FILLED CIRCLE. Ours was an oval, because a 30px-tall cell in a
+   *     320px-wide seven-column grid is 39px wide, and border-radius:50% on a
+   *     non-square box gives you an ellipse. Fixed by sizing the disc, not the cell.
+   *   · hovering a day tints it. I had removed that as a false affordance —
+   *     wrongly: Windows highlights because clicking a day SELECTS it, so the
+   *     honest fix was to make selection real, not to drop the hover.
+   *   · the selected day is a thin blue RING, distinct from today's fill, so both
+   *     can show at once.
+   *   · weekday heads are two letters (Mo Tu We…), not one — with one letter,
+   *     Tuesday and Thursday are both "T" and Saturday and Sunday are both "S".
+   *   · the grid runs six full weeks and shows the neighbouring months' days
+   *     dimmed, which is why the real one never changes height between months.
+   *   · the month pages, via the two chevrons on the month row.
+   *
+   * Six weeks always, so the flyout does not resize when you page through it.
+   */
+  const CAL_WD = ['Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa', 'Su'];
+  const sameDay = (a: Date, b: Date): boolean =>
+    a.getFullYear() === b.getFullYear() && a.getMonth() === b.getMonth() && a.getDate() === b.getDate();
+
+  const buildCalendar = (): HTMLElement => {
+    const today = new Date(stamp);
+    let shown = new Date(today.getFullYear(), today.getMonth(), 1);
+    let picked: Date | null = null;
+
+    const head = h('div', { class: 'dk-cal-h' }) as HTMLElement;
+    /**
+     * role="grid", with one tab stop and arrow keys inside it.
+     *
+     * The first pass made all 42 days buttons, which is right for the pointer and
+     * wrong for everything else: it put 42 tab stops in a popup, so a keyboard
+     * user reaching the taskbar behind it had to press Tab forty-two times. A date
+     * grid is the textbook roving-tabindex case — one cell is reachable, arrows
+     * move between cells, and the rest are tabindex="-1".
+     *
+     * The rows are real elements with display:contents, because role="gridcell"
+     * needs a role="row" parent to be valid, and contents keeps them out of the
+     * seven-column layout while leaving the semantics intact.
+     *
+     * Keys follow the date-picker convention rather than inventing any:
+     *   arrows  one day / one week      Home / End  start / end of that week
+     *   PgUp / PgDn  previous / next month         Enter, Space  select
+     */
+    const grid = h('div', { class: 'dk-cal-grid', role: 'grid' }) as HTMLElement;
+    // Which day owns the tab stop. Starts on today, follows the arrows after that,
+    // and is re-resolved to the nearest sane cell whenever the month changes.
+    let cursor = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+
+    const cellFor = (d: Date): HTMLElement | null =>
+      grid.querySelector(`[data-day="${d.getFullYear()}-${d.getMonth()}-${d.getDate()}"]`);
+
+    const moveTo = (next: Date, focusIt: boolean): void => {
+      cursor = next;
+      // Stepping off the edge of the shown month pages to the one the cursor is
+      // now in, which is the only behaviour that keeps the cursor visible.
+      if (next.getMonth() !== shown.getMonth() || next.getFullYear() !== shown.getFullYear()) {
+        shown = new Date(next.getFullYear(), next.getMonth(), 1);
+        draw();
+        say(shown.toLocaleDateString('en-GB', { month: 'long', year: 'numeric' }));
+      } else {
+        roving();
+      }
+      if (focusIt) cellFor(cursor)?.focus();
+    };
+
+    const roving = (): void => {
+      for (const el of grid.querySelectorAll('.dk-cal-day')) el.setAttribute('tabindex', '-1');
+      // If the cursor is not on screen — you paged with the chevrons — the tab stop
+      // lands on the 1st of the shown month so there is always exactly one.
+      const own = cellFor(cursor) ?? cellFor(new Date(shown.getFullYear(), shown.getMonth(), 1));
+      own?.setAttribute('tabindex', '0');
+    };
+
+    const pick = (day: Date, outside: boolean): void => {
+      picked = day;
+      cursor = day;
+      // Clicking into a neighbouring month pages there, which is what the real
+      // one does — otherwise the day you just picked scrolls out of sight.
+      if (outside) shown = new Date(day.getFullYear(), day.getMonth(), 1);
+      draw();
+      cellFor(day)?.focus();
+      say(day.toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' }));
+    };
+
+    const draw = (): void => {
+      const monthName = shown.toLocaleDateString('en-GB', { month: 'long', year: 'numeric' });
+      head.textContent = monthName;
+      grid.setAttribute('aria-label', monthName);
+      grid.textContent = '';
+      grid.appendChild(h('div', { class: 'dk-cal-row', role: 'row' },
+        ...CAL_WD.map((d) => h('span', { class: 'dk-cal-wd', role: 'columnheader' }, d))) as Node);
+
+      // Back up to the Monday on or before the 1st, then run 42 days straight.
+      const first = new Date(shown.getFullYear(), shown.getMonth(), 1);
+      const start = new Date(first);
+      start.setDate(1 - ((first.getDay() + 6) % 7));
+
+      for (let w = 0; w < 6; w += 1) {
+        const row = h('div', { class: 'dk-cal-row', role: 'row' }) as HTMLElement;
+        for (let i = 0; i < 7; i += 1) {
+          const day = new Date(start.getFullYear(), start.getMonth(), start.getDate() + w * 7 + i);
+          const outside = day.getMonth() !== shown.getMonth();
+          const isToday = sameDay(day, today);
+          const isPicked = picked !== null && sameDay(day, picked);
+          const cell = h('button', {
+            class: 'dk-cal-day'
+              + (outside ? ' is-out' : '')
+              + (isToday ? ' is-today' : '')
+              + (isPicked ? ' is-sel' : ''),
+            type: 'button', role: 'gridcell', tabindex: '-1',
+            'data-day': `${day.getFullYear()}-${day.getMonth()}-${day.getDate()}`,
+            'aria-label': day.toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' }),
+            'aria-selected': String(isPicked),
+            ...(isToday ? { 'aria-current': 'date' } : {}),
+          }, h('span', { class: 'dk-cal-disc' }, String(day.getDate()))) as HTMLElement;
+          cell.addEventListener('click', () => pick(day, outside));
+          row.appendChild(cell);
+        }
+        grid.appendChild(row);
+      }
+      roving();
+    };
+
+    const shift = (d: Date, days: number, months: number): Date =>
+      new Date(d.getFullYear(), d.getMonth() + months, d.getDate() + days);
+
+    grid.addEventListener('keydown', (e) => {
+      const ev = e as KeyboardEvent;
+      const k = ev.key;
+      let next: Date | null = null;
+      if (k === 'ArrowLeft') next = shift(cursor, -1, 0);
+      else if (k === 'ArrowRight') next = shift(cursor, 1, 0);
+      else if (k === 'ArrowUp') next = shift(cursor, -7, 0);
+      else if (k === 'ArrowDown') next = shift(cursor, 7, 0);
+      else if (k === 'PageUp') next = shift(cursor, 0, -1);
+      else if (k === 'PageDown') next = shift(cursor, 0, 1);
+      else if (k === 'Home') next = shift(cursor, -((cursor.getDay() + 6) % 7), 0);
+      else if (k === 'End') next = shift(cursor, 6 - ((cursor.getDay() + 6) % 7), 0);
+      if (!next) return;
+      ev.preventDefault();
+      // Not stopPropagation: Escape still has to reach the desktop's dismisser,
+      // and nothing above this cares about arrows.
+      moveTo(next, true);
+    });
+
+    const step = (delta: number, label: string): HTMLElement => {
+      const b = h('button', { class: 'dk-cal-nav', type: 'button', 'aria-label': label },
+        h('span', { 'aria-hidden': 'true' }, delta < 0 ? '\u25B4' : '\u25BE')) as HTMLElement;
+      b.addEventListener('click', () => {
+        shown = new Date(shown.getFullYear(), shown.getMonth() + delta, 1);
+        draw();
+        say(shown.toLocaleDateString('en-GB', { month: 'long', year: 'numeric' }));
+      });
+      return b;
+    };
+
+    draw();
+    return h('div', { class: 'dk-flyout dk-cal', role: 'dialog', 'aria-label': 'Calendar' },
+      h('div', { class: 'dk-cal-top' },
+        today.toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long' })),
+      h('div', { class: 'dk-cal-bar' }, head,
+        h('span', { class: 'dk-cal-navs' }, step(-1, 'Previous month'), step(1, 'Next month'))),
+      grid) as HTMLElement;
+  };
+
+  const stamp = Date.now();
+  const clock = new Date(stamp);
   const hh = String(clock.getHours()).padStart(2, '0');
   const mm = String(clock.getMinutes()).padStart(2, '0');
   const dd = `${String(clock.getDate()).padStart(2, '0')}/${String(clock.getMonth() + 1).padStart(2, '0')}/${clock.getFullYear()}`;
+
+  const trayQs = h('button', {
+    class: 'dk-tray-btn', type: 'button', 'aria-label': 'Quick settings', 'aria-expanded': 'false',
+  }, h('span', { class: 'dk-tray-ico' }, icWifi()),
+     h('span', { class: 'dk-tray-ico' }, icVol()),
+     h('span', { class: 'dk-tray-ico' }, icBattery())) as HTMLButtonElement;
+  trayQs.addEventListener('click', () => openFlyout(trayQs, buildQuickSettings));
+
+  const trayClock = h('button', {
+    class: 'dk-tray-btn dk-clock', type: 'button',
+    'aria-label': 'Date and time', 'aria-expanded': 'false',
+  }, h('b', {}, hh + ':' + mm), h('i', {}, dd)) as HTMLButtonElement;
+  trayClock.addEventListener('click', () => openFlyout(trayClock, buildCalendar));
+
+  const tray = h('div', { class: 'dk-tray' },
+    h('span', { class: 'dk-weather' }, '11°C  Klart'),
+    trayQs, trayClock) as HTMLElement;
 
   const page = h('div', { class: 'pg pg-desk' },
     wallpaper(),
@@ -1869,12 +2223,26 @@ function pageDesktop(): HTMLElement {
         // Every app gets a button; paint() hides the unpinned ones until they run,
         // which keeps their position on the bar stable across open and close.
         ...APPS.map(taskBtn)),
-      h('div', { class: 'dk-tray' },
-        h('span', { class: 'dk-weather' }, '11°C  Klart'),
-        h('span', { class: 'dk-clock' }, h('b', {}, hh + ':' + mm), h('i', {}, dd)))));
+      tray));
 
   page.addEventListener('pointerdown', (e) => {
-    if (menu && !(e.target as HTMLElement).closest('.dk-start-menu, .dk-start')) { menu.remove(); menu = null; }
+    const t = e.target as HTMLElement;
+    // Innermost first: a press inside Start that misses the power button closes
+    // the power menu and nothing else.
+    if (pwr && !t.closest('.dk-pwr-wrap')) shutPwr();
+    if (menu && !t.closest('.dk-start-menu, .dk-start')) { shutPwr(); menu.remove(); menu = null; }
+    if (flyout && !t.closest('.dk-flyout, .dk-tray-btn')) shutFlyout();
+  });
+
+  /* Escape unwinds one layer at a time — power menu, then Start, then a tray
+     flyout — because collapsing all three on one keypress loses the user's place
+     and is not what any of the three looks like it will do. */
+  page.addEventListener('keydown', (e) => {
+    const ev = e as KeyboardEvent;
+    if (ev.key !== 'Escape') return;
+    if (pwr) { ev.stopPropagation(); const b = pwr.btn; shutPwr(); b.focus(); return; }
+    if (menu) { ev.stopPropagation(); menu.remove(); menu = null; start.focus(); return; }
+    if (flyout) { ev.stopPropagation(); shutFlyout(); }
   });
 
   openWindow('explorer');
