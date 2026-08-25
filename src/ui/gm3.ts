@@ -215,10 +215,14 @@ export interface MenuOpts {
 export function attachMenu(
   anchor: HTMLElement,
   build: () => MenuItem[],
-  opts: MenuOpts = {},
+  /**
+   * A function here is resolved on every open, for anchors whose best placement
+   * changes with the state around them -- the tile menu has to flip corner by
+   * corner once the tile can be dragged. Reading align/side once at attach time
+   * froze whichever placement happened to be right when the call was rendered.
+   */
+  opts: MenuOpts | (() => MenuOpts) = {},
 ): void {
-  const align = opts.align ?? 'left';
-  const side = opts.side ?? 'below';
   let open: HTMLElement | null = null;
 
   const close = (): void => {
@@ -240,7 +244,10 @@ export function attachMenu(
   anchor.setAttribute('aria-haspopup', 'menu');
   anchor.addEventListener('click', () => {
     if (open) { close(); return; }
-    const wrap = h('div', { class: 'gm-pop' + (opts.cls ? ' ' + opts.cls : '') }, menu(build(), opts.width, () => close()));
+    const o = typeof opts === 'function' ? opts() : opts;
+    const align = o.align ?? 'left';
+    const side = o.side ?? 'below';
+    const wrap = h('div', { class: 'gm-pop' + (o.cls ? ' ' + o.cls : '') }, menu(build(), o.width, () => close()));
     document.body.appendChild(wrap);
     const a = anchor.getBoundingClientRect();
     const w = wrap.getBoundingClientRect();
@@ -250,9 +257,9 @@ export function attachMenu(
     // the button's top and its right edge 3px outside the button's, so it covers
     // the control rather than hanging off it.
     const top = side === 'below' ? a.bottom : side === 'above' ? a.top - w.height : a.top;
-    wrap.style.top = `${Math.round(top + (opts.dy ?? 0))}px`;
+    wrap.style.top = `${Math.round(top + (o.dy ?? 0))}px`;
     const left = align === 'left' ? a.left : a.right - w.width;
-    wrap.style.left = `${Math.round(left + (opts.dx ?? 0))}px`;
+    wrap.style.left = `${Math.round(left + (o.dx ?? 0))}px`;
     open = wrap;
     anchor.setAttribute('aria-expanded', 'true');
   });

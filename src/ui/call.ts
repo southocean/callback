@@ -410,7 +410,38 @@ export function renderCall(store: Store, quests: Quests, deps: CallDeps): HTMLEl
         onPick: () => { store.dispatch({ t: 'pin', on: !store.get().pinned }); },
       },
       { icon: 'aspect_ratio', label: 'Show my full video to others', disabled: true },
-    ], { align: 'left', side: 'below', width: 247, cls: 'gm-dark' });
+    /**
+     * Placement flips per corner, so the menu never runs off screen.
+     *
+     * Nam: "our dropdown option is overflowing here into the corner of the
+     * screen... they relocate the dropdown to the empty space such that its not
+     * running off screen. So on bottom right, the dropdown expands to the top
+     * left, aligning to the right of the more_vert button."
+     *
+     * MEASURED on that exact corner: menu 247x160 @ 2228,817 against a more_vert
+     * at 2435,977. The menu's right edge is flush with the button's right edge
+     * (delta 0) and its bottom edge sits exactly on the button's top edge (delta
+     * 0). So `align: right` + `side: above`, both flush, no nudge.
+     *
+     * The other three follow by symmetry, which is what Nam's four screenshots
+     * show: the menu always opens into the screen rather than out of it.
+     *
+     *   tl -> below / left      tr -> below / right
+     *   bl -> above / left      br -> above / right
+     *
+     * Only the free-floating small tile needs it. The full-stage and pinned
+     * tiles centre their pill in a large box, where below/left already fits.
+     */
+    ], () => {
+      const small = sharing !== null && !store.get().pinned;
+      if (!small) return { align: 'left', side: 'below', width: 247, cls: 'gm-dark' };
+      return {
+        align: corner === 'tl' || corner === 'bl' ? 'left' : 'right',
+        side: corner === 'tl' || corner === 'tr' ? 'below' : 'above',
+        width: 247,
+        cls: 'gm-dark',
+      };
+    });
     // 247, MEASURED off the live menu (247 x 160 = three 48px rows plus the
     // 8px top and bottom padding). Round 4's 232 came off a screenshot.
     /**

@@ -1534,3 +1534,37 @@ Fourth time the frozen timeline produced a false reading: the first pass showed
 the clip and stage disagreeing with the tray closed, purely because the stage
 transitions its insets and was mid-flight. `document.getAnimations().forEach(a =>
 a.finish())` before every geometry read should now be reflexive in this pane.
+
+## Round 18 — the tile menu flips per corner
+
+Nam: "our dropdown option is overflowing here into the corner of the screen…
+they relocate the dropdown to the empty space such that its not running off
+screen. So on bottom right, the dropdown expands to the top left, aligning to the
+right of the more_vert button."
+
+MEASURED on that corner: menu `247 x 160 @ 2228,817` against a more_vert at
+`2435,977`. The menu's right edge is flush with the button's right edge (delta
+**0**) and its bottom edge sits exactly on the button's top edge (delta **0**).
+So `align: right` + `side: above`, both flush, no nudge. The other three follow by
+symmetry, which is what the four screenshots show:
+
+```
+tl -> below / left      tr -> below / right
+bl -> above / left      br -> above / right
+```
+
+`attachMenu` could not express this. It read `align` and `side` **once at attach
+time**, so whichever placement was right when the call first rendered was frozen
+in for the session — harmless before the tile could move, useless now it can be
+dragged between corners. It now takes a function for its options and resolves
+them on every open, which also makes the option set consistent: `cls`, `width`,
+`dx` and `dy` were already read at open time; `align` and `side` were the odd ones
+out.
+
+Only the free-floating small tile needs the flip. The full-stage and pinned tiles
+centre their pill in a large box where below/left already fits.
+
+Verified by dragging between all four corners and reading the placement each
+time: tl left/below flush at 0, tr right/below, bl left/above, br right/above —
+`br` reproducing the original's measured pair of zeroes — and the menu's box
+entirely inside the viewport in every one.
