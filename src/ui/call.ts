@@ -193,9 +193,12 @@ export function renderCall(store: Store, quests: Quests, deps: CallDeps): HTMLEl
       micMeter(),
     );
     // The three controls Meet floats over its own tile, at 656 / 700 / 744.
-    const fx = (icon: IconName, label: string, cls: string): HTMLElement => {
-      const b = h('button', { class: 'solo-ctl ' + cls, type: 'button', 'aria-label': label }, sym(icon, 20)) as HTMLButtonElement;
-      ripple(b);
+    const fx = (icon: IconName, label: string, cls: string, off = false): HTMLElement => {
+      const b = h('button', {
+        class: 'solo-ctl ' + cls, type: 'button', 'aria-label': label,
+        ...(off ? { 'aria-disabled': 'true' } : {}),
+      }, sym(icon, 20)) as HTMLButtonElement;
+      if (!off) ripple(b);
       tipAll(b);
       return b;
     };
@@ -205,10 +208,22 @@ export function renderCall(store: Store, quests: Quests, deps: CallDeps): HTMLEl
       { icon: 'close_fullscreen', label: 'Minimize' },
       { icon: 'keep', label: 'Pin to the screen' },
       { icon: 'aspect_ratio', label: 'Show my full video to everyone' },
-    ], { align: 'right', side: 'above', width: 247, cls: 'gm-dark' });
+      // Measured: the original drops this DOWNWARD from the control. Ours was
+      // 'above'. And note the dark surface only started working once the
+      // .gm-dark selector was fixed in styles.css — cls lands on the wrapper,
+      // and the rule that painted the background wanted it on the menu itself.
+    ], { align: 'right', side: 'below', width: 247, cls: 'gm-dark' });
+    // Measured left to right: effects 44x44 r22, a remove-tile control 44x44
+    // r100 that is DISABLED and carries Meet's own explanation, then more_vert
+    // 40x40 r20. Ours had Reframe in the middle, which the original does not
+    // put here.
+    //
+    // Two glyph substitutions, because the 7 kB subset does not carry Meet's:
+    // blur_on for visual_effects — already what the lobby uses for this exact
+    // control — and close_fullscreen for the remove-tile mark.
     t.append(h('div', { class: 'solo-ctls' },
-      fx('frame_person', 'Reframe', ''),
       fx('blur_on', 'Backgrounds and effects', ''),
+      fx('close_fullscreen', "Can't remove your tile in this layout", '', true),
       more));
     return t;
   };
@@ -259,15 +274,37 @@ export function renderCall(store: Store, quests: Quests, deps: CallDeps): HTMLEl
 
   const panelHost = h('div', { style: 'display:contents' });
 
+  /**
+   * The panel that is currently mounted, and which kind it is showing.
+   *
+   * THE BUG THIS FIXES. drawPanel() ran on every store change — the subscriber
+   * is `sync(); drawPanel()` — and it opened with clear(panelHost) and rebuilt
+   * the <aside> from scratch. A brand new element means `animation: side-in`
+   * runs again, so toggling the mic slid the panel in from the right. Nam:
+   * "triggered every time I interact with anything on screen".
+   *
+   * Measured on the live product: switching content with the panel open leaves
+   * the aside's x at 2184, its transform at none, and getAnimations() filtered
+   * to that element returns ZERO. Meet does not animate a content change at all.
+   *
+   * So the element has to survive. Closed -> open is the only transition that
+   * mounts a new aside, and therefore the only one that animates. Everything
+   * else swaps the heading and the body in place.
+   */
+  let mounted: { el: HTMLElement; head: HTMLElement; kind: Panel } | null = null;
+
   const drawPanel = (): void => {
     const s = store.get();
     releaseTrap?.();
     releaseTrap = null;
-    clear(panelHost);
     // Meet shrinks the tile when a panel opens rather than overlaying it:
     // 16 + 1032 + 17 + 358 + 17 = 1440. The class is what lets the CSS do that.
     document.body.classList.toggle('has-panel', s.panel !== 'none');
-    if (s.panel === 'none') return;
+    if (s.panel === 'none') {
+      mounted?.el.remove();
+      mounted = null;
+      return;
+    }
 
     const title = TITLES[s.panel];
     const body =
@@ -308,7 +345,22 @@ export function renderCall(store: Store, quests: Quests, deps: CallDeps): HTMLEl
       body,
     );
 
+    // Already open? Keep the element and swap its contents, so nothing animates.
+    if (mounted) {
+      mounted.kind = s.panel;
+      mounted.el.className = `side ${s.panel === 'tools' ? 'wide' : ''}`;
+      mounted.el.setAttribute('aria-label', title);
+      const h2 = mounted.head.querySelector('h2');
+      if (h2) h2.textContent = title;
+      const oldBody = mounted.el.lastElementChild;
+      if (oldBody && oldBody !== mounted.head) oldBody.replaceWith(body);
+      else mounted.el.appendChild(body);
+      quests.unlock(s.panel);
+      return;
+    }
+
     panelHost.appendChild(panel);
+    mounted = { el: panel, head: panel.firstElementChild as HTMLElement, kind: s.panel };
     if (window.matchMedia('(max-width:960px)').matches) {
       releaseTrap = trapFocus(panel, () => store.dispatch({ t: 'panel', panel: s.panel }));
     }

@@ -726,3 +726,130 @@ and `mask` keyframes flip `overflow` at the halfway mark so one rotating half-di
 can describe a full circle. Ours uses `stroke-dasharray` on an SVG instead: same
 read, one animated property, and it cannot drift from the countdown because both
 run off the same duration.
+
+---
+
+# Round 4: the right panel, and the tile's own controls
+
+Analysis on a live call (bmf-stjd-suh) at 2560x1215. Every item below is either
+measured there or explicitly marked otherwise.
+
+## 1. The panel corners — a mis-attribution, twice
+
+Measured: the rounded surface is the outer `<aside>` — **360x1063, radius 20px,
+`#202124`**, `overflow: hidden`. Inside it sits a **358x1061 `#1e1f20`** box at
+radius 0.
+
+Our `.side` currently says `border-radius: 0` and `background-color: #1e1f20`,
+with a comment citing "358x746, #1e1f20, radius 0". Both values came from
+measuring the INNER box and attributing them to the panel. I made the same
+mistake with the colour in an earlier round, so this is the second time the inner
+container has been mistaken for the surface.
+
+Fix: radius **20**. Keep `#1e1f20` as the fill, since the inner box covers all
+but a 1px rim, and add that rim as a 1px `#202124` ring rather than nesting a
+second element for one pixel.
+
+## 2. The animation re-runs on everything
+
+Cause found, and it is not the animation. `store.subscribe(() => { sync();
+drawPanel(); })` fires on EVERY state change, and `drawPanel()` opens with
+`clear(panelHost)` and rebuilds the `<aside>` from scratch. A new element means
+`animation: side-in` runs again. Toggling the mic rebuilds the panel.
+
+Measured on the live product, switching content with the panel open: the aside's
+x stays 2184, `transform` stays `none`, and `document.getAnimations()` filtered
+to that element returns **zero**. Meet does not animate a content change at all.
+
+Fix: keep a reference to the mounted aside and the panel kind it is showing.
+
+- closed -> open: build and append. Animation runs. This is the only case that animates.
+- open -> different panel: swap the heading text and the body. Element stays, so
+  nothing animates.
+- open -> same panel, unrelated state change: swap the body only. No animation.
+- open -> closed: remove.
+
+Toggle-to-close already works — the reducer returns `'none'` when the dispatched
+panel equals the current one, so a second press on the trigger closes it. Verified
+on the live product too: one press on the lit chat button closed the panel and the
+tile re-expanded. Nothing to change; QA it rather than touch it.
+
+## 3. The tile menu renders light — a selector that cannot match
+
+`attachMenu` puts `opts.cls` on the WRAPPER (`.gm-pop`), but the surface rule is
+`.gm-menu.gm-dark`, which needs both classes on one element. `.gm-menu` is the
+wrapper's child, so that rule never matches.
+
+The other five dark rules are descendant selectors (`.gm-dark .gm-label` and so
+on) and DO match. So the menu got dark-mode text on a light surface, which is
+exactly the "light mode, unreadable" Nam reported. Five of six rules applied; the
+one that sets the background did not.
+
+Fix: `.gm-menu.gm-dark` -> `.gm-dark .gm-menu`, matching the other five.
+
+## 4. The menu opens the wrong way
+
+Ours passes `side: 'above'`. Nam's screenshot of the original shows it dropping
+DOWNWARD from the control. Change to `'below'`.
+
+## 5. The pill is solid and has no hover response
+
+Measured: pill **128x44, `#202124`, radius 44**, and `transition: opacity 0.1s
+linear`. With the cursor on the pill it reads **opacity 0.9**. With the tile not
+hovered it is 0. Our width already matches (44 + 44 + 40 = 128) and so does the
+fill and radius; what is missing is that it never drops below 1 and never
+responds to hover.
+
+- `opacity: 0` at rest, `transition: opacity .1s linear` — measured
+- tile hovered: **0.72** — NOT MEASURED. The base visible opacity was never
+  captured: the synthetic hover in a batched action does not persist, so the pill
+  had already faded whenever the probe ran. 0.72 is chosen to leave the hover
+  headroom Nam describes. Flag it in the source as chosen, not read.
+- pill hovered: **0.9** — measured
+
+## 6. The glyphs are the wrong set
+
+Measured, left to right: `visual_effects` (44x44, r22, "Backgrounds and
+effects"), a remove-tile control (44x44, r100, DISABLED — ink
+`rgba(232,234,237,.38)`, tooltip "Can't remove your tile in this layout"), and
+`more_vert` (40x40, r20).
+
+Ours has Reframe, effects, more. So the middle control is wrong.
+
+Substitutions, because the 7 kB subset lacks Meet's glyphs: `blur_on` for
+effects — already what the lobby uses for the same control — and
+`close_fullscreen` for remove-tile. Both flagged in source.
+
+Keep it disabled with Meet's own tooltip. A control that cannot work should look
+like it cannot work.
+
+## Not attempted this round, and why
+
+The pin work — pin glyph at the tile's bottom left, the taller frame when
+presenting while pinned, and the pin marker in the People row — is from Nam's
+screenshots only.
+
+The live measurement stalled, and the reason is worth recording so the next
+attempt does not repeat it. The menu itself is CLICK-opened, not hover-opened —
+that part is straightforward. The problem is the pill it lives in: the pill only
+exists while the tile is hovered, so reaching the `more_vert` button needs a
+hover that persists until the click lands. A synthetic hover in a batched action
+does not survive that long, so the pill had faded before the click arrived and
+Pin was never reached.
+
+Next time: drive hover and click as separate calls so the pointer genuinely
+rests on the tile between them, or dispatch a real pointer sequence that holds
+position. Building the pin work from screenshots alone would mean shipping a
+feature without a single measured number, which is the thing this project
+refuses to do.
+
+## QA
+
+1. Panel radius reads 20 and the rim is present.
+2. Toggle the mic with a panel open: no animation, no rebuild.
+3. Switch chat -> people: heading and body change, element identity does not.
+4. Closed -> open: animation runs exactly once.
+5. Second press on the trigger closes it.
+6. Tile menu: dark surface, opens downward.
+7. Pill: invisible at rest, partly transparent on tile hover, less so on pill hover.
+8. `npm run verify` green.

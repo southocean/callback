@@ -3232,7 +3232,7 @@ body.has-panel .grid-wrap.is-solo { inset: 72px 375px 80px 16px; }
 
 /* --- the dark menu surface --------------------------------------------- */
 /* Same component as the pre-join's, on the dark side of the palette. */
-.gm-menu.gm-dark { background-color: #282a2c; }
+.gm-dark .gm-menu { background-color: #282a2c; }
 .gm-dark .gm-label { color: #e3e3e3; }
 .gm-dark .gm-sub { color: #9aa0a6; }
 .gm-dark .gm-item { --sl: #e3e3e3; }
@@ -5379,3 +5379,48 @@ body.presenting .shot { min-width: 0; }
   .side { animation: none; transition: none; }
   .end-ring .end-arc { animation: none; }
 }
+
+/* ============== ROUND 4: THE PANEL, AND THE TILE'S CONTROLS ============== */
+/* Measured on a live call at 2560x1215. See tools/PLAN-call-view.md, Round 4. */
+
+/* --- the panel's corners, and a mis-attribution corrected --------------- */
+/* The rounded surface is the OUTER <aside>: 360x1063, radius 20, #202124, with
+   overflow:hidden. Inside it sits a 358x1061 #1e1f20 box at radius 0.
+ *
+ * We had radius 0 and #1e1f20 on .side, with a comment citing "358x746,
+ * #1e1f20, radius 0" — both read off the INNER box and attributed to the panel.
+ * That is the second time the inner container has been mistaken for the surface
+ * here; the colour went the same way in an earlier round. Worth a standing
+ * note: when a panel measures radius 0, check whether you are holding the
+ * surface or its lining.
+ *
+ * The inner box covers all but a 1px rim, so the fill stays #1e1f20 and the rim
+ * is a ring rather than a second nested element for one pixel. */
+.side {
+  border-radius: 20px;
+  box-shadow: 0 0 0 1px #202124;
+}
+
+/* --- the tile's control pill ------------------------------------------- */
+/* Measured: 128x44, #202124, radius 44, transition: opacity 0.1s linear. Our
+   width already agreed (44 + 44 + 40 = 128) and so did fill and radius. What
+   was missing is that it never dropped below full opacity and never answered a
+   hover — Nam's words: "a solid color right off the bat, and zero hovering
+   effect".
+ *
+ * 0.9 with the cursor ON the pill is measured. The tile-hovered-but-not-pill
+ * value is NOT: the pill only exists while the tile is hovered, and a synthetic
+ * hover does not persist long enough for a probe to read it. 0.72 is CHOSEN to
+ * leave the headroom Nam describes, and is the one number here that is not off
+ * the product. */
+.solo-ctls { transition: opacity .1s linear; }
+.solo:hover .solo-ctls, .solo:focus-within .solo-ctls { opacity: .72; }
+.solo-ctls:hover, .solo-ctls:focus-within { opacity: .9; }
+
+/* The middle control is disabled, and looks it. Meet's own tooltip explains why,
+   and a control that cannot act should not look like it can. */
+.solo-ctl[aria-disabled="true"] {
+  color: rgba(232, 234, 237, .38); cursor: default;
+}
+.solo-ctl[aria-disabled="true"]::before,
+.solo-ctl[aria-disabled="true"]::after { display: none; }
