@@ -181,7 +181,18 @@ button { font: inherit; }
 .m-new:active { border-radius: 10px; }
 
 /* 40x40, radius 20 (not 50%), and Meet morphs it toward a squircle on press. */
+/* padding: 0 is load-bearing. Nam: "the hover is off on this info icon" — and it
+   was, by 2px. No stylesheet rule set any padding here; the culprit was the UA
+   default for <button>, 1px 6px, which this reset never mentioned. At 40x40 that
+   is invisible: the content box is still 28 wide, the glyph fits, and symmetric
+   padding centres the same either way. But .call-top sizes this button to 29x29
+   to match Meet, which leaves a 17px content box for a 20px glyph — so the glyph
+   OVERFLOWED, grid placed it from the start edge instead of the centre, and it
+   settled 1.5px right of the circle it was supposed to sit in. The hover ring is
+   drawn on the button, so the ring looked wrong when it was the glyph that moved.
+   A reset that does not mention padding is not a reset. */
 .icon-btn {
+  padding: 0;
   width: 40px; height: 40px; border-radius: 20px; border: 0; background: transparent;
   color: var(--sec); display: grid; place-items: center; cursor: pointer; flex: 0 0 auto;
   transition: border-radius var(--t-shape) var(--ease-spring), background-color var(--t-fade) var(--ease-std);
@@ -6304,3 +6315,24 @@ body.tray-open.cc-on .react-clip { bottom: calc(var(--botbar) + 268px); }
   .wx { transition: none; }
   .wx.is-min { display: none; }
 }
+
+/* ================= MOCK OS KEYBOARD AFFORDANCES ========================== */
+/* A keyboard mode you cannot see is a trap: the arrow keys quietly start meaning
+   something else. Alt+Space move and resize both draw a dashed accent outline so
+   the window says which mode it is in, and the live region says it out loud. */
+.wx.is-kbd-move, .wx.is-kbd-size { outline: 2px dashed #4cc2ff; outline-offset: 2px; }
+.wx.is-kbd-size { outline-style: dotted; }
+
+/* Chrome tabs were focusable with no ring at all — the audit found rules for the
+   caption buttons, Explorer rows and taskbar, and nothing for these. */
+.cb-tab:focus-visible { outline: 2px solid #8ab4f8; outline-offset: -2px; }
+.cb-x:focus-visible, .cb-new:focus-visible, .cb-nav:focus-visible { outline: 2px solid #8ab4f8; outline-offset: -2px; }
+.wx-cmd-btn:focus-visible, .wx-cmd-ico:focus-visible, .wx-crumb-up:focus-visible { outline: 2px solid #4cc2ff; outline-offset: -2px; }
+.mp-btn:focus-visible, .mp-seek:focus-visible, .mp-vol:focus-visible { outline: 2px solid #4cc2ff; outline-offset: 2px; }
+
+/* The command bar and breadcrumb became real buttons, so they need the button
+   reset the spans never did. */
+.wx-cmd-btn, .wx-cmd-ico, .wx-crumb-up { border: 0; background: none; font: inherit; color: inherit; cursor: pointer; }
+.wx-crumb-up { padding: 0; }
+
+@media (prefers-reduced-motion: reduce) { .wx.is-kbd-move, .wx.is-kbd-size { outline-style: solid; } }

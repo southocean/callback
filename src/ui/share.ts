@@ -670,6 +670,8 @@ const wallpaper = (): HTMLElement => svg('0 0 1200 750', `
  */
 function win11(o: {
   title: string;
+  /** Speak to the desktop's live region — see pageDesktop. */
+  say?: (msg: string) => void;
   icon: () => HTMLElement;
   body: HTMLElement;
   status?: HTMLElement | null;
@@ -803,8 +805,75 @@ function win11(o: {
    * screen reader reads the window's name on arrival, and Tab then walks the
    * contents in order instead of starting halfway down them.
    */
+  /**
+   * Alt+Space, then arrows: move the window. Alt+Space twice: resize it.
+   *
+   * This is the audit's worst finding by count. Measured 0 of 16 resize handles
+   * and 0 of 2 title bars reachable by keyboard — so moving or resizing a window
+   * was impossible without a pointer. Eighteen controls that simply did not exist
+   * for anyone using a keyboard.
+   *
+   * Windows solves it with Alt+Space opening the system menu, then Move or Size,
+   * then arrows. This is that gesture with the menu skipped: the first Alt+Space
+   * enters move, a second switches to resize, Escape or Enter commits. Arrows
+   * step 16px, Shift+arrows 1px for the same reason design tools do it — coarse
+   * for getting there, fine for landing.
+   *
+   * The mode is announced, because a keyboard mode you cannot see is a trap: the
+   * arrows suddenly mean something different and nothing said so.
+   */
+  let kbd: 'move' | 'size' | null = null;
+  const STEP = 16;
+
+  const announce = (msg: string): void => { o.say?.(msg); };
+
+  const setMode = (m: 'move' | 'size' | null): void => {
+    kbd = m;
+    el.classList.toggle('is-kbd-move', m === 'move');
+    el.classList.toggle('is-kbd-size', m === 'size');
+    if (m === 'move') announce(o.title + ': move mode. Arrow keys move the window, Escape to finish.');
+    else if (m === 'size') announce(o.title + ': resize mode. Arrow keys resize the window, Escape to finish.');
+    else announce(o.title + ': done.');
+  };
+
   el.addEventListener('keydown', (e) => {
-    if ((e as KeyboardEvent).key !== 'Escape') return;
+    const ev = e as KeyboardEvent;
+
+    if (ev.altKey && ev.key === ' ') {
+      ev.preventDefault();
+      if (maxed) return;            // nothing to move or resize
+      setMode(kbd === 'move' ? 'size' : kbd === 'size' ? null : 'move');
+      return;
+    }
+
+    if (kbd) {
+      if (ev.key === 'Escape' || ev.key === 'Enter') { ev.preventDefault(); ev.stopPropagation(); setMode(null); return; }
+      const d = ev.key === 'ArrowLeft' ? [-1, 0] : ev.key === 'ArrowRight' ? [1, 0]
+        : ev.key === 'ArrowUp' ? [0, -1] : ev.key === 'ArrowDown' ? [0, 1] : null;
+      if (!d) return;
+      ev.preventDefault();
+      ev.stopPropagation();
+      const step = ev.shiftKey ? 1 : STEP;
+      const host = el.parentElement?.getBoundingClientRect();
+      const r = el.getBoundingClientRect();
+      if (!host) return;
+      if (kbd === 'move') {
+        const x = Math.max(0, Math.min((r.left - host.left) + d[0]! * step, host.width - r.width));
+        const y = Math.max(0, Math.min((r.top - host.top) + d[1]! * step, host.height - r.height));
+        el.style.left = `${Math.round(x)}px`;
+        el.style.top = `${Math.round(y)}px`;
+      } else {
+        // Resize from the bottom-right, which is the corner the pointer grip uses,
+        // so the two gestures agree about what "bigger" means.
+        const w = Math.max(320, Math.min(r.width + d[0]! * step, host.width - (r.left - host.left)));
+        const hgt = Math.max(200, Math.min(r.height + d[1]! * step, host.height - (r.top - host.top)));
+        el.style.width = `${Math.round(w)}px`;
+        el.style.height = `${Math.round(hgt)}px`;
+      }
+      return;
+    }
+
+    if (ev.key !== 'Escape') return;
     e.stopPropagation();
     o.onClose();
   });
@@ -940,9 +1009,15 @@ function explorerBody(onOpen: (id: string) => void): { body: HTMLElement; status
   const glyph = (k: Entry['kind']): HTMLElement =>
     k === 'folder' ? icFolder() : k === 'pdf' ? icPdf() : k === 'video' ? icVideo() : icHtml();
 
-  const list = h('div', { class: 'wx-list', role: 'list' }) as HTMLElement;
+  /*
+   * listbox, not list. The audit found role="list" with role="listitem" children
+   * and zero aria-selected anywhere, while selection was real and styled with
+   * .is-sel — so a screen reader user could hear the file names but never which
+   * one was picked. A list cannot express selection; a listbox can.
+   */
+  const list = h('div', { class: 'wx-list', role: 'listbox', 'aria-label': 'Files' }) as HTMLElement;
   const crumb = h('div', { class: 'wx-crumb' }) as HTMLElement;
-  const treeWrap = h('div', { class: 'wx-tree', role: 'list' }) as HTMLElement;
+  const treeWrap = h('div', { class: 'wx-tree', role: 'listbox', 'aria-label': 'Folders' }) as HTMLElement;
   const status = h('div', { class: 'wx-status' }) as HTMLElement;
 
   /**
@@ -964,7 +1039,7 @@ function explorerBody(onOpen: (id: string) => void): { body: HTMLElement; status
    * row factories each keeping their own idea of what was selected.
    */
   const rowFor = (e: Entry, inTree: boolean): HTMLElement => {
-    const r = h('div', { class: 'wx-row', tabindex: '0', role: 'listitem' },
+    const r = h('div', { class: 'wx-row', tabindex: '0', role: 'option', 'aria-selected': 'false' },
       h('span', { class: 'wx-ico' }, glyph(e.kind)),
       h('span', { class: 'wx-name' }, e.name),
       e.kind === 'folder' ? h('span', { class: 'wx-count' }, String((FOLDERS[e.to ?? ''] ?? []).length)) : null) as HTMLElement;
@@ -998,8 +1073,12 @@ function explorerBody(onOpen: (id: string) => void): { body: HTMLElement; status
   function select(r: HTMLElement): void {
     if (selected === r) return;
     selected?.classList.remove('is-sel');
+    selected?.setAttribute('aria-selected', 'false');
     selected = r;
     r.classList.add('is-sel');
+    // The class was the only record of selection; now the attribute is too, so
+    // what a screen reader hears matches what the highlight shows.
+    r.setAttribute('aria-selected', 'true');
   }
 
   /** Rename in place. Explorer selects the stem and leaves the extension alone. */
@@ -1047,7 +1126,11 @@ function explorerBody(onOpen: (id: string) => void): { body: HTMLElement; status
     // and Explorer has no Back button in this layout.
     clear(crumb);
     const seg = (label: string, to?: string): HTMLElement => {
-      const el = h('span', to ? { class: 'wx-crumb-up', role: 'button', tabindex: '0' } : {}, label) as HTMLElement;
+      // A navigable segment is a button; the current folder is plain text, because
+      // "go to where you already are" is not an action.
+      const el = (to
+        ? h('button', { class: 'wx-crumb-up', type: 'button' }, label)
+        : h('span', { 'aria-current': 'true' }, label)) as HTMLElement;
       if (to) {
         el.addEventListener('click', () => go(to));
         el.addEventListener('keydown', (ev) => { if ((ev as KeyboardEvent).key === 'Enter') go(to); });
@@ -1083,14 +1166,27 @@ function explorerBody(onOpen: (id: string) => void): { body: HTMLElement; status
     treeWrap.appendChild(r);
   }
 
-  const cmdBtn = (label: string): HTMLElement => h('span', { class: 'wx-cmd-btn' }, label);
-  const cmdIco = (mark: string): HTMLElement => h('span', { class: 'wx-cmd-ico' }, mark);
+  /*
+   * Buttons, not spans. The audit measured 0 of 7 command-bar controls and 0 of 6
+   * breadcrumb segments reachable by keyboard, because every one of them was a
+   * <span>. They are inert either way — there is no clipboard behind the copy
+   * icon — but inert and unreachable are different failures, and a control that
+   * cannot be focused cannot even be discovered.
+   *
+   * Each gets a real accessible name too. "✂" reads as nothing useful; "Cut"
+   * reads as Cut.
+   */
+  const cmdBtn = (label: string): HTMLElement =>
+    h('button', { class: 'wx-cmd-btn', type: 'button' }, label);
+  const cmdIco = (mark: string, label: string): HTMLElement =>
+    h('button', { class: 'wx-cmd-ico', type: 'button', 'aria-label': label },
+      h('span', { 'aria-hidden': 'true' }, mark));
 
   const body = h('div', { class: 'wx-body' },
     h('div', { class: 'wx-cmd' },
       cmdBtn('+ New'),
       h('span', { class: 'wx-cmd-sep' }),
-      cmdIco('✂'), cmdIco('⧉'), cmdIco('\u{1F4CB}'), cmdIco('↻'),
+      cmdIco('✂', 'Cut'), cmdIco('⧉', 'Copy'), cmdIco('\u{1F4CB}', 'Paste'), cmdIco('↻', 'Rename'),
       h('span', { class: 'wx-cmd-sep' }),
       cmdBtn('Sort'), cmdBtn('View')),
     crumb,
@@ -1134,7 +1230,13 @@ function chromeWindow(o: { onEmpty: () => void }): { body: HTMLElement; select: 
    *     four sources the picker offers" is a dead end dressed as content.
    */
   const page = h('div', { class: 'cb-page' }) as HTMLElement;
-  const strip = h('div', { class: 'cb-strip' }) as HTMLElement;
+  /*
+   * role="tablist" to match the role="tab" children. The audit found the tabs
+   * declaring tab with no tablist parent, which is worse than declaring nothing:
+   * AT expects the pair, and an orphaned tab role reports a widget that is not
+   * there.
+   */
+  const strip = h('div', { class: 'cb-strip', role: 'tablist', 'aria-label': 'Tabs' }) as HTMLElement;
 
   /**
    * History belongs to the TAB, not the window.
@@ -1187,7 +1289,11 @@ function chromeWindow(o: { onEmpty: () => void }): { body: HTMLElement; select: 
     if (!replaying && visits[at] !== id) { visits.splice(at + 1); visits.push(id); at = visits.length - 1; }
     // ext: ids carry the whole address; the registry ones only have a host.
     setOmni(id.startsWith('ext:') ? id.slice(4) : doc ? doc.host + '/' : 'chrome://new-tab-page');
-    for (const t of open) t.el.classList.toggle('is-on', t.id === id);
+    for (const t of open) {
+      const on = t.id === id;
+      t.el.classList.toggle('is-on', on);
+      t.el.setAttribute('aria-selected', String(on));
+    }
     clear(page);
     if (doc) page.appendChild(doc.page());
     else page.appendChild(h('div', { class: 'pg cb-newtab' }, h('h1', { class: 'pg-h' }, 'New tab')));
@@ -1216,7 +1322,8 @@ function chromeWindow(o: { onEmpty: () => void }): { body: HTMLElement; select: 
     const shut = h('button', { class: 'cb-x', type: 'button', 'aria-label': 'Close tab' }, '×') as HTMLButtonElement;
     shut.addEventListener('click', (e) => { e.stopPropagation(); closeTab(id); });
     const el = h('span', {
-      class: 'cb-tab', role: 'tab', tabindex: '0', title: doc ? doc.title : 'New tab',
+      class: 'cb-tab', role: 'tab', tabindex: '0', 'aria-selected': 'false',
+      title: doc ? doc.title : 'New tab',
     }, h('span', { class: 'cb-tab-ico' }, fav()),
        h('span', { class: 'cb-tab-t' }, doc ? doc.title : 'New tab'),
        shut) as HTMLElement;
@@ -1450,6 +1557,25 @@ type AppKind = 'explorer' | 'chrome' | 'player';
 function pageDesktop(): HTMLElement {
   const surface = h('div', { class: 'dk-surface' }) as HTMLElement;
 
+  /**
+   * One polite live region for the whole desktop.
+   *
+   * The audit found zero live regions anywhere in the mock OS: opening, closing,
+   * minimising, focusing a window and changing folder were all completely silent.
+   * A sighted user sees a window appear; a screen reader user got nothing at all.
+   *
+   * Polite rather than assertive, because none of this is urgent enough to cut
+   * across what someone is already reading. Cleared after each message so an
+   * identical event twice in a row is still announced the second time.
+   */
+  const live_region = h('div', { class: 'sr', role: 'status', 'aria-live': 'polite' }) as HTMLElement;
+  let sayTimer = 0;
+  const say = (msg: string): void => {
+    window.clearTimeout(sayTimer);
+    live_region.textContent = '';
+    sayTimer = window.setTimeout(() => { live_region.textContent = msg; }, 40);
+  };
+
   interface Live {
     el: HTMLElement;
     kind: AppKind;
@@ -1517,6 +1643,10 @@ function pageDesktop(): HTMLElement {
       b.classList.toggle('is-on', isActive);
       b.classList.toggle('is-multi', mine.length > 1);
       b.setAttribute('aria-label', mine.length > 1 ? `${app.label} — ${mine.length} windows` : app.label);
+      // "Running" and "active" were visual only — an underline and a tint. Now
+      // they are states AT can read: pressed for running, current for active.
+      b.setAttribute('aria-pressed', String(mine.length > 0));
+      b.setAttribute('aria-current', isActive ? 'true' : 'false');
     }
   };
 
@@ -1529,6 +1659,7 @@ function pageDesktop(): HTMLElement {
   };
 
   const minimise = (w: Live): void => {
+    say(w.title + ': minimised.');
     w.min = true;
     w.el.classList.add('is-min');
     if (focused === w) {
@@ -1549,6 +1680,7 @@ function pageDesktop(): HTMLElement {
   const OUT_MS = 140;
 
   const closeWin = (w: Live): void => {
+    say(w.title + ': closed.');
     // Let the exit animation play, then drop the node. The record leaves the
     // list immediately so the taskbar updates on the click rather than 140ms
     // after it.
@@ -1657,7 +1789,7 @@ function pageDesktop(): HTMLElement {
     rec.title = title;
 
     const el = win11({
-      title, icon: app.ico, body: bodyEl, status: statusEl, full: true,
+      title, icon: app.ico, body: bodyEl, status: statusEl, full: true, say,
       onClose: () => closeWin(rec),
       onMinimise: () => minimise(rec),
     });
@@ -1729,8 +1861,9 @@ function pageDesktop(): HTMLElement {
 
   const page = h('div', { class: 'pg pg-desk' },
     wallpaper(),
+    live_region,
     surface,
-    h('div', { class: 'dk-taskbar' },
+    h('div', { class: 'dk-taskbar', role: 'toolbar', 'aria-label': 'Taskbar' },
       h('div', { class: 'dk-task-wrap' },
         start,
         // Every app gets a button; paint() hides the unpinned ones until they run,
