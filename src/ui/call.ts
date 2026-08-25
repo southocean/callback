@@ -1102,6 +1102,24 @@ export function renderCall(store: Store, quests: Quests, deps: CallDeps): HTMLEl
   const layer = h('div', {});
 
   /**
+   * Reactions get their own clipped layer.
+   *
+   * Nam: "there is a cut off below which you dont see any emojis. We dont have
+   * this." MEASURED by firing a burst on the live product and reading the
+   * screenshot -- reactions are not in the DOM, so a screenshot is the only
+   * instrument available. An emoji sat sliced in half at y 662 of a 745-tall
+   * shot, about 1080 CSS, which is exactly where the shared surface's bottom
+   * edge lands. So the clip is the STAGE's bottom, not the viewport's.
+   *
+   * It cannot live on `layer`, which also carries menus and toasts and would
+   * clip those. It cannot live inside .grid-wrap either: the band is anchored to
+   * the CALL area's left edge at x 73, not the stage's, so nesting it in the
+   * stage would shift every reaction by the stage's own left inset. Hence a
+   * full-width layer clipped along the bottom only.
+   */
+  const reactClip = h('div', { class: 'react-clip', 'aria-hidden': 'true' });
+
+  /**
    * Meet's mic bubble, and the behaviour is the interesting half.
    *
    * Turning the mic on with no device raises a card, and clicking that card's X
@@ -1264,7 +1282,7 @@ export function renderCall(store: Store, quests: Quests, deps: CallDeps): HTMLEl
     // A different phase per reaction so a burst does not pulse in lockstep.
     el.style.setProperty('--phase', `-${(reactSeq % 6) * 130}ms`);
     reactSeq += 1;
-    layer.appendChild(el);
+    reactClip.appendChild(el);
     window.setTimeout(() => el.remove(), (tileH / RISE) * 1000 + 200);
   }
 
@@ -1707,6 +1725,7 @@ export function renderCall(store: Store, quests: Quests, deps: CallDeps): HTMLEl
     shareHost,
     bar,
     readyHost,
+    reactClip,
     layer,
   );
 

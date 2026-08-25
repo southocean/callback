@@ -5991,3 +5991,25 @@ body.presenting:not(.is-pinned) .solo.is-snapping {
 @media (prefers-reduced-motion: reduce) {
   body.presenting:not(.is-pinned) .solo.is-snapping { transition: none; }
 }
+
+/* --- reactions are clipped at the stage's bottom ------------------------- */
+/* Nam: "there is a cut off below which you dont see any emojis. We dont have
+   this." MEASURED by firing a burst on the live product and reading the
+   screenshot, because reactions are not in the DOM at all -- an emoji sat
+   sliced in half at y 662 of a 745-tall shot, about 1080 CSS, which is where
+   the shared surface's bottom edge also lands.
+
+   So the boundary is the stage's bottom, and it moves with the same tray and
+   caption reservations the stage uses -- the burst above was fired with the
+   tray open, and 1215 - (80 + 52) = 1083 against a measured ~1080.
+
+   Full width rather than nested in .grid-wrap: the band is anchored to the call
+   area's left edge at x 73, not the stage's, so nesting would shift every
+   reaction by the stage's left inset. Clipped along the bottom only. */
+.react-clip {
+  position: absolute; left: 0; right: 0; top: 0; bottom: var(--botbar);
+  overflow: hidden; pointer-events: none; z-index: 8;
+}
+body.tray-open .react-clip { bottom: calc(var(--botbar) + 52px); }
+body.cc-on .react-clip { bottom: calc(var(--botbar) + 216px); }
+body.tray-open.cc-on .react-clip { bottom: calc(var(--botbar) + 268px); }

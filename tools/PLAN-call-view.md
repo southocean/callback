@@ -1495,3 +1495,42 @@ were invalid before they were right: one dispatched pointerdown on the tile so
 `e.target` was never the button the guard checks, and one snapshotted the tile
 mid-frozen-transition so a completing snap read as a drag. Settle animations
 first, and dispatch on the element a user would actually hit.
+
+## Round 17 — reactions are clipped at the stage's bottom
+
+Nam: "there is a cut off below which you dont see any emojis. We dont have this."
+
+MEASURED by firing a burst on the live product and reading the screenshot, since
+reactions are not in the DOM at all — no added nodes, no canvas, no shadow roots
+— so a screenshot is the only instrument. An emoji sat sliced in half at **y 662
+of a 745-tall shot, about 1080 CSS**, which is exactly where the shared surface's
+bottom edge lands. The boundary is the stage's bottom, not the viewport's.
+
+Ours had no clip. Reactions were appended to `layer`, an unstyled div directly
+inside `.call`, so `bottom: 55px` measured up from the **viewport** and the emojis
+carried on below the shared surface into the dark band under it — exactly what
+Nam's second screenshot shows.
+
+Two constraints decided where the clip could live:
+
+- not on `layer`, which also carries menus and toasts and would clip those;
+- not inside `.grid-wrap` either, because the band is anchored to the call area's
+  left edge at x 73 rather than the stage's, so nesting it there would shift every
+  reaction sideways by the stage's left inset.
+
+So: a full-width layer, clipped along the bottom only, tracking the same tray and
+caption reservations the stage uses. The measurement supports that — the burst was
+fired with the tray open, and `1215 − (80 + 52) = 1083` against a measured ~1080.
+
+Moving reactions into it also corrects their anchor as a side effect: they now
+spawn 55px above the **stage's** bottom rather than the viewport's, which is what
+the baseline recorded in the first place.
+
+Verified with animations settled across every reservation combination — plain 640,
+tray open 588, captions on 424, tray plus captions 372 — the clip's bottom edge
+equals the stage's bottom in all four.
+
+Fourth time the frozen timeline produced a false reading: the first pass showed
+the clip and stage disagreeing with the tray closed, purely because the stage
+transitions its insets and was mid-flight. `document.getAnimations().forEach(a =>
+a.finish())` before every geometry read should now be reflexive in this pane.
