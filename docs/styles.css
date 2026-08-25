@@ -6137,3 +6137,117 @@ body.tray-open.cc-on .react-clip { bottom: calc(var(--botbar) + 268px); }
    resize a window by grabbing its close button. The rest of the top edge still
    resizes. */
 .wx-btns { position: relative; z-index: 7; }
+
+/* ====== ROUND 24: THE MOCKED OS, PROPERLY ================================ */
+
+/* --- 1. three taskbar states, not two ------------------------------------ */
+/* Nam: "when something is on but not active, it has a tiny gray bar underneath,
+   but when the window is active it has a blue line and a selected background
+   state. all very subtle."
+   So: idle (nothing), running (short grey bar), active (long blue bar plus a
+   selected background). A minimised window still counts as running, which is the
+   distinction the old single is-on class could not express. */
+.dk-task.is-on::after,
+.dk-task.is-running::after {
+  content: ''; position: absolute; bottom: 2px; left: 50%;
+  transform: translateX(-50%); height: 3px; border-radius: 2px;
+  transition: width .12s linear, background-color .12s linear;
+}
+.dk-task.is-running::after { width: 6px; background-color: #9a9a9a; }
+.dk-task.is-on::after { width: 16px; background-color: #4cc2ff; }
+.dk-task.is-on { background-color: rgba(255, 255, 255, .12); }
+.dk-task.is-on:hover { background-color: rgba(255, 255, 255, .17); }
+/* A grouped button gets a hairline second edge, so "several windows" reads
+   before you hover it. */
+.dk-task.is-multi { box-shadow: 2px 0 0 -1px rgba(255, 255, 255, .28) inset; }
+
+/* --- 2. the hover list groups every window of one app -------------------- */
+.dk-peek {
+  position: absolute; bottom: 6px; transform: translateX(-50%); z-index: 60;
+  display: flex; gap: 8px; padding: 8px;
+  background-color: rgba(43, 43, 43, .92); backdrop-filter: blur(12px);
+  border: 1px solid #3a3a3a; border-radius: 8px;
+  box-shadow: 0 12px 32px rgba(0, 0, 0, .5);
+}
+.dk-peek-card {
+  width: 168px; cursor: pointer; border-radius: 6px; padding: 4px;
+}
+.dk-peek-card:hover { background-color: rgba(255, 255, 255, .1); }
+.dk-peek-card:focus-visible { outline: 2px solid #4cc2ff; outline-offset: -2px; }
+
+/* --- 3. chrome's nav buttons and a working address bar ------------------- */
+.cb-nav {
+  width: 28px; height: 28px; flex: 0 0 auto; padding: 0; border: 0;
+  border-radius: 50%; background: transparent; color: #c9ccd0; cursor: pointer;
+  display: grid; place-items: center;
+}
+.cb-nav:hover { background-color: rgba(255, 255, 255, .1); color: #fff; }
+.cb-nav-g { width: 16px; height: 16px; display: block; }
+.cb-omni-in {
+  width: 100%; height: 26px; border: 0; border-radius: 13px;
+  background: transparent; color: #e8eaed; padding: 0 4px;
+  font: 400 11.5px/1 var(--font);
+}
+.cb-omni-in:focus-visible { outline: 1px solid #8ab4f8; }
+
+/* --- 4. in the browser, text behaves like text -------------------------- */
+/* Nam: "When in chrome, I want it to feel like a browser again, meaning you can
+   select text and all that." The share surface is user-select: none because a
+   real screen share is a video stream -- but inside the emulated browser the
+   fiction is a browser, and browsers select text. */
+.shot .cb-page, .shot .cb-page * { user-select: text; -webkit-user-select: text; }
+.shot .cb-omni-in { user-select: text; -webkit-user-select: text; }
+
+/* an external site, framed, and the honest failure when it refuses */
+.cb-ext { position: relative; height: 100%; min-height: 220px; background-color: #fff; }
+.cb-frame { width: 100%; height: 100%; border: 0; display: block; }
+.cb-blocked { background-color: #fff; }
+
+/* --- 8. the media player ------------------------------------------------- */
+.mp { background-color: #101014; }
+.mp-stage { flex: 1 1 auto; min-height: 0; display: grid; place-items: center; background-color: #000; }
+.mp-video { max-width: 100%; max-height: 100%; display: block; }
+.mp-bar {
+  flex: 0 0 auto; display: flex; align-items: center; gap: 10px;
+  padding: 8px 12px; background-color: #1b1b1f; color: #e8eaed;
+}
+.mp-btn {
+  width: 30px; height: 30px; flex: 0 0 auto; padding: 0; border: 0;
+  border-radius: 50%; background: transparent; color: #e8eaed; cursor: pointer;
+  display: grid; place-items: center;
+}
+.mp-btn:hover { background-color: rgba(255, 255, 255, .12); }
+.mp-g { width: 18px; height: 18px; display: block; }
+.mp-seek { flex: 1 1 auto; min-width: 0; accent-color: #4cc2ff; }
+.mp-vol { width: 76px; flex: 0 0 auto; accent-color: #4cc2ff; }
+.mp-time { flex: 0 0 auto; font: 400 11.5px/1 var(--font); color: #b9bcc0; font-variant-numeric: tabular-nums; }
+.mp-cap { flex: 0 0 auto; padding: 8px 12px 10px; font: 400 12px/17px var(--font); color: #9aa0a6; background-color: #1b1b1f; }
+
+/* --- 12. the side-projects page ----------------------------------------- */
+.pg-link {
+  border: 0; background: none; padding: 0; cursor: pointer; text-align: left;
+  font: 500 13px/18px var(--font); color: #0b57d0; text-decoration: underline;
+}
+.pg-link:hover { color: #062e6f; }
+.pg-url { color: #80868b; font-size: 11px; }
+
+/* --- 10. the build document --------------------------------------------- */
+.bd { max-width: 62ch; }
+.bd-lead { font: 400 16px/1.55 var(--font); color: #2b2f36; margin: 0 0 22px; }
+.bd h2 { font: 400 20px/1.3 var(--font-title); margin: 26px 0 8px; color: #1f2328; }
+.bd p { margin: 0 0 10px; }
+.bd-note { color: #5f6368; font-size: 12.5px; }
+.bd-cards { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin: 10px 0 0; }
+.bd-card { background-color: #f1f3f4; border-radius: 8px; padding: 12px; }
+.bd-card b { display: block; margin-bottom: 4px; font: 500 13px/18px var(--font); }
+.bd-card span { color: #5f6368; font-size: 12.5px; }
+.bd-phases { margin: 10px 0 0; padding-left: 20px; display: grid; gap: 10px; }
+.bd-phases b { display: block; font: 500 13.5px/19px var(--font); }
+.bd-phases span { color: #40454c; font-size: 13px; }
+.bd-rows { display: grid; grid-template-columns: auto 1fr; gap: 6px 16px; margin: 10px 0 0; }
+.bd-rows dt { font: 500 13px/19px var(--font); color: #1f2328; }
+.bd-rows dd { margin: 0; color: #40454c; font-size: 13px; }
+.bd-stack { margin: 10px 0 0; padding-left: 20px; display: grid; gap: 5px; }
+.bd-stack b { font: 500 13px/19px var(--font); }
+.bd-stack span { color: #5f6368; font-size: 12.5px; }
+@media (max-width: 620px) { .bd-cards, .bd-rows { grid-template-columns: 1fr; } }

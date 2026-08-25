@@ -49,6 +49,14 @@ export interface State {
   /** Injects a deliberate fault so the test suite can be seen failing. */
   chaos: boolean;
   reducedMotion: boolean;
+  /**
+   * The standalone "How this was built" document.
+   *
+   * Its own flag rather than another engTab, because the home screen has no
+   * panel: `engTab` sets panel: 'tools' and leaves `screen` alone, so from home
+   * the button changed state and painted nothing at all.
+   */
+  built: boolean;
   plain: boolean;
 }
 
@@ -71,6 +79,7 @@ export type Action =
   | { t: 'net'; profile: NetProfile }
   | { t: 'chaos'; on: boolean }
   | { t: 'reducedMotion'; on: boolean }
+  | { t: 'built'; on: boolean }
   | { t: 'plain'; on: boolean };
 
 export const initial: State = {
@@ -93,6 +102,7 @@ export const initial: State = {
   net: 'good',
   chaos: false,
   reducedMotion: false,
+  built: false,
   plain: false,
 };
 
@@ -162,6 +172,9 @@ export function reduce(s: State, a: Action): State {
     case 'chaos':
       return { ...s, chaos: a.on };
 
+    case 'built':
+      return { ...s, built: a.on };
+
     case 'reducedMotion':
       // Reduced motion is not a suggestion. It kills the effects outright.
       return { ...s, reducedMotion: a.on, fx: a.on ? 'off' : s.fx };
@@ -215,6 +228,7 @@ export interface Route {
   engTab?: EngTab;
   spotlight?: string | null;
   plain?: boolean;
+  built?: boolean;
 }
 
 const panels: Panel[] = ['chat', 'people', 'present', 'offclock', 'tools', 'host', 'about'];
@@ -225,6 +239,7 @@ export function parseRoute(hash: string): Route {
   const [head = '', tail = ''] = raw.split('/');
 
   if (head === 'plain') return { screen: 'call', panel: 'none', plain: true };
+  if (head === 'built') return { screen: 'home', panel: 'none', built: true };
   if (head === 'ended') return { screen: 'ended', panel: 'none' };
   if (head === 'calls') return { screen: 'calls', panel: 'none' };
   if (head === 'lobby') return { screen: 'lobby', panel: 'none' };
@@ -246,6 +261,7 @@ export function parseRoute(hash: string): Route {
 }
 
 export function routeToHash(s: State): string {
+  if (s.built) return '#built';
   if (s.plain) return '#plain';
   if (s.screen === 'home') return '#home';
   if (s.screen === 'calls') return '#calls';

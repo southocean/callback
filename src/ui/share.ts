@@ -29,6 +29,7 @@ import { ripple } from './gm3.js';
 import { trapFocus } from '../a11y.js';
 import { profile, pitch, roles, caseStudies, requirementMap, offstage, skills } from '../data/cv.js';
 import { eggs } from '../data/eggs.js';
+import { buildDoc } from './built.js';
 
 export type ShareKind = 'tab' | 'window' | 'screen';
 
@@ -70,12 +71,61 @@ const DOCS: Record<string, Doc> = {
   tools: { title: 'Internal tooling — a bot controller', host: 'southocean.github.io', page: () => pageTools() },
   hobby: { title: 'Off the clock', host: 'southocean.github.io', page: () => pageHobby() },
 };
+DOCS['built'] = { title: 'How this was built', host: 'southocean.github.io', page: () => buildDoc() };
+DOCS['side'] = { title: 'Side projects and dev tools', host: 'southocean.github.io', page: () => pageSide() };
 for (const e of eggs) {
   DOCS['vid:' + e.id] = {
     title: e.title,
     host: 'southocean.github.io',
     page: () => pageVideo(e.id),
   };
+}
+
+/**
+ * Resolve a tab id, including `ext:<url>` for the real sites in the Portfolio
+ * folder. Nam asked to "actually input an url to the address bar and go to the
+ * url as an iframe", and the same mechanism serves both: the omnibox and a file
+ * that points outward end up in the same code path.
+ */
+function docFor(id: string): Doc | undefined {
+  if (id.startsWith('ext:')) {
+    const url = id.slice(4);
+    let host = url;
+    try { host = new URL(url).host; } catch { /* leave the raw string */ }
+    return { title: host, host, page: () => pageExternal(url) };
+  }
+  return DOCS[id];
+}
+
+/**
+ * A real site, framed.
+ *
+ * Most sites refuse to be framed -- X-Frame-Options or a frame-ancestors CSP --
+ * and there is no way to detect that from the outside, because the load event
+ * does not fire and no error is exposed. So this races a timer: if nothing has
+ * painted after 3.5s the frame is replaced by a panel that says so and shows the
+ * address. That is the truthful outcome rather than an empty white rectangle.
+ */
+function pageExternal(url: string): HTMLElement {
+  const frame = h('iframe', {
+    class: 'cb-frame', src: url, title: url,
+    loading: 'lazy', referrerpolicy: 'no-referrer',
+  }) as HTMLIFrameElement;
+  const wrap = h('div', { class: 'cb-ext' }, frame) as HTMLElement;
+  let painted = false;
+  frame.addEventListener('load', () => { painted = true; wrap.classList.add('is-live'); });
+  window.setTimeout(() => {
+    if (painted) return;
+    frame.remove();
+    wrap.appendChild(h('div', { class: 'pg cb-blocked' },
+      h('h1', { class: 'pg-h' }, 'This site will not load in a frame'),
+      h('p', { class: 'pg-sub' }, url),
+      h('p', {}, 'Most sites send X-Frame-Options or a frame-ancestors policy that forbids embedding, and a ' +
+        'page cannot detect that from the outside -- no error is exposed. So this is a timeout, honestly ' +
+        'labelled, rather than a blank rectangle.'),
+      h('p', { class: 'pg-note' }, 'Open it in a real tab to see it.')));
+  }, 3500);
+  return wrap;
 }
 
 const WINDOWS: Source[] = [
@@ -325,6 +375,39 @@ function pageVideo(id: string): HTMLElement {
     h('p', { class: 'pg-note' }, egg.blurb));
 }
 
+/**
+ * Side projects and dev tools. Nam: "some dev tools we've built such as
+ * https://game.mstardev.com/bot.html. Then we can add another file my games,
+ * which list some prominent entries in my itch.io."
+ *
+ * The games are linked as a profile rather than named individually, because the
+ * titles are not in this repo's data and naming them from memory would be the
+ * one invented thing on an otherwise sourced page.
+ */
+function pageSide(): HTMLElement {
+  const link = (label: string, url: string, note: string): HTMLElement => {
+    const b = h('button', { class: 'pg-link', type: 'button' }, label) as HTMLButtonElement;
+    b.dataset.ext = url;
+    return h('div', { class: 'pg-role' }, b, h('span', {}, note), h('span', { class: 'pg-url' }, url));
+  };
+  return h('div', { class: 'pg' },
+    h('h1', { class: 'pg-h' }, 'Side projects and dev tools'),
+    h('p', { class: 'pg-sub' }, 'The things that are not the CV'),
+    h('p', { class: 'pg-lead' },
+      'Tooling built to make the day job possible, and a back catalogue of small games. Both are real and ' +
+      'both open in this browser.'),
+    h('div', { class: 'pg-roles' },
+      link('Bot controller', 'https://game.mstardev.com/bot.html',
+        'Drives bots onto live game tables so a real-time client can be tested without four colleagues. The ' +
+        'Test automation line on the CV is this.'),
+      link('Riichi Mahjong client', 'https://game.mstardev.com/',
+        'The production client itself, seven years and two platform generations of it.'),
+      link('itch.io — southocean', 'https://southocean.itch.io',
+        'Small games, most of them old. Listed as a profile rather than a highlight reel: they are not the ' +
+        'strongest thing here and pretending otherwise would be the wrong trade.')),
+    h('p', { class: 'pg-note' }, 'Clicking a title opens it in a tab. Some sites refuse to be framed, and this browser says so when they do.'));
+}
+
 // --------------------------------------------------------------- the pages --
 // All of this is real content from src/data/cv.ts. Nothing here is invented for
 // the sake of filling a mockup — if it says he did something, the CV says so too.
@@ -404,10 +487,17 @@ function pageRiichi(): HTMLElement {
  * Hand-authored SVG. Windows 11's own icon files are not mine to ship, and a
  * vector scales with the share frame where a screenshot would not.
  */
-const svg = (vb: string, body: string, cls = ''): HTMLElement => {
+const svg = (vb: string, body: string, cls = '', fit = ''): HTMLElement => {
   const el = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
   el.setAttribute('viewBox', vb);
   el.setAttribute('aria-hidden', 'true');
+  /* The wallpaper has to COVER, not fit. Nam: "the window screen is not fully
+     extending to the full screensharing view, but get weirdly cut off around the
+     16:9 ratio". An SVG defaults to preserveAspectRatio="xMidYMid meet", which
+     letterboxes -- so a 1200x750 wallpaper in a wider share left dark bands down
+     both sides while the taskbar and the windows correctly filled the width.
+     "slice" is the SVG spelling of object-fit: cover. */
+  if (fit) el.setAttribute('preserveAspectRatio', fit);
   if (cls) el.setAttribute('class', cls);
   el.innerHTML = body;
   return el as unknown as HTMLElement;
@@ -543,7 +633,7 @@ const wallpaper = (): HTMLElement => svg('0 0 1200 750', `
   <path d="M-40 800 C 220 660 340 520 520 380 C 690 250 900 190 1240 150 C 960 280 780 370 650 500 C 520 630 420 730 350 810 Z" fill="url(#wgB)" opacity=".9"/>
   <path d="M40 810 C 260 700 380 590 540 470 C 700 350 880 290 1160 250 C 930 360 790 440 680 550 C 570 660 490 750 440 820 Z" fill="url(#wgD)" opacity=".7"/>
   <path d="M120 820 C 300 730 400 650 530 560 C 660 470 800 420 1000 390 C 840 470 740 530 650 610 C 560 690 500 760 470 830 Z" fill="#dff6ff" opacity=".10"/>
-  <rect width="1200" height="750" fill="url(#wgVig)"/>`, 'dk-wall-art');
+  <rect width="1200" height="750" fill="url(#wgVig)"/>`, 'dk-wall-art', 'xMidYMid slice');
 
 // ------------------------------------------------------------ the windows --
 
@@ -768,8 +858,9 @@ function explorerBody(onOpen: (id: string) => void): { body: HTMLElement; status
   const CV: Entry = { name: 'NamNguyen_CV_2026.pdf', kind: 'pdf', tab: 'cv' };
   const POSTING: Entry = { name: 'google-careers-posting.html', kind: 'html', tab: 'jobad' };
   const BUILT: Entry = { name: 'four-things-i-built.html', kind: 'html', tab: 'work' };
-  const CLIENT: Entry = { name: 'riichi-mahjong-client.html', kind: 'html', tab: 'riichi' };
-  const TOOLING: Entry = { name: 'internal-tooling.html', kind: 'html', tab: 'tools' };
+  const HOWBUILT: Entry = { name: 'how-this-is-built.html', kind: 'html', tab: 'built' };
+  const SIDE: Entry = { name: 'side-projects.html', kind: 'html', tab: 'side' };
+  const MAHJONG: Entry = { name: 'mahjong-client.html', kind: 'html', tab: 'ext:https://game.mstardev.com/' };
   const OFFCLOCK: Entry = { name: 'off-the-clock.html', kind: 'html', tab: 'hobby' };
   /* The six easter-egg clips, from src/data/eggs.ts — the real files in
      docs/media, named exactly as they are on disk. */
@@ -780,21 +871,21 @@ function explorerBody(onOpen: (id: string) => void): { body: HTMLElement; status
   /* "Off the clock" is "Hobby" now, per Nam. Its one shortcut is the mahjong
      client, which is the honest link rather than a filler: the hobby is what
      became the product. */
+  /* Tools is gone -- Nam: "probably can remove, not very relevant" -- and
+     Real-time client is Portfolio, which is what it actually held. */
   const FOLDERS: Record<string, Entry[]> = {
     Work: [
-      { name: 'Real-time client', kind: 'folder', to: 'Real-time client' },
-      { name: 'Tools', kind: 'folder', to: 'Tools' },
+      { name: 'Portfolio', kind: 'folder', to: 'Portfolio' },
       { name: 'This CV', kind: 'folder', to: 'This CV' },
       { name: 'Hobby', kind: 'folder', to: 'Hobby' },
       CV,
     ],
-    'Real-time client': [CLIENT, BUILT],
-    Tools: [TOOLING, BUILT],
-    'This CV': [CV, POSTING],
+    Portfolio: [MAHJONG, BUILT, SIDE],
+    'This CV': [CV, POSTING, HOWBUILT],
     Hobby: [OFFCLOCK, ...CLIPS],
   };
 
-  const TREE = ['Real-time client', 'Tools', 'This CV', 'Hobby'];
+  const TREE = ['Portfolio', 'This CV', 'Hobby'];
 
   let selected: HTMLElement | null = null;
 
@@ -806,33 +897,103 @@ function explorerBody(onOpen: (id: string) => void): { body: HTMLElement; status
   const treeWrap = h('div', { class: 'wx-tree', role: 'list' }) as HTMLElement;
   const status = h('div', { class: 'wx-status' }) as HTMLElement;
 
-  const rowFor = (e: Entry): HTMLElement => {
+  /**
+   * Explorer's real interaction, which is not what we had.
+   *
+   * Nam: "clicking on the folder now opens it right away - wrong interaction.
+   * Mirror the same interaction on windows. Click is select, click again will
+   * change name, then double click opens, consistent between files and folders."
+   *
+   * So: first click selects, a second click on an already-selected row starts a
+   * rename, and a double click opens. A double click necessarily fires two
+   * clicks first, so the rename has to be deferred and cancelled when the second
+   * click arrives -- otherwise every open would flash an edit field on the way
+   * through. 260ms is inside the platform double-click threshold.
+   *
+   * Selection is tracked in ONE variable across the tree and the list together.
+   * Nam: "the folders on the left dont release their highlight it seems, so if I
+   * click all of them then they all have a highlight" -- that was two separate
+   * row factories each keeping their own idea of what was selected.
+   */
+  const rowFor = (e: Entry, inTree: boolean): HTMLElement => {
     const r = h('div', { class: 'wx-row', tabindex: '0', role: 'listitem' },
       h('span', { class: 'wx-ico' }, glyph(e.kind)),
       h('span', { class: 'wx-name' }, e.name),
       e.kind === 'folder' ? h('span', { class: 'wx-count' }, String((FOLDERS[e.to ?? ''] ?? []).length)) : null) as HTMLElement;
+
     const act = (): void => {
       if (e.to) { go(e.to); return; }
       if (e.tab) onOpen(e.tab);
     };
+
+    let pending = 0;
     r.addEventListener('click', () => {
-      selected?.classList.remove('is-sel');
-      selected = r;
-      r.classList.add('is-sel');
-      // Single click opens. On a drawn desktop the double-click convention only
-      // costs people the discovery.
-      act();
+      const wasSelected = selected === r;
+      select(r);
+      // The tree is a navigation pane: Windows does not rename from it, and a
+      // single click there moves you. Renaming stays a list gesture.
+      if (inTree) { act(); return; }
+      if (!wasSelected) return;
+      window.clearTimeout(pending);
+      pending = window.setTimeout(() => rename(r, e), 260);
     });
-    r.addEventListener('keydown', (ev) => { if ((ev as KeyboardEvent).key === 'Enter') act(); });
+    r.addEventListener('dblclick', () => { window.clearTimeout(pending); act(); });
+    r.addEventListener('keydown', (ev) => {
+      const k = (ev as KeyboardEvent).key;
+      if (k === 'Enter') act();
+      if (k === 'F2') { ev.preventDefault(); rename(r, e); }
+    });
     return r;
   };
 
+  /** One selection across both panes, so highlights cannot accumulate. */
+  function select(r: HTMLElement): void {
+    if (selected === r) return;
+    selected?.classList.remove('is-sel');
+    selected = r;
+    r.classList.add('is-sel');
+  }
+
+  /** Rename in place. Explorer selects the stem and leaves the extension alone. */
+  function rename(r: HTMLElement, e: Entry): void {
+    const label = r.querySelector<HTMLElement>('.wx-name');
+    if (!label || r.querySelector('input')) return;
+    const was = label.textContent ?? '';
+    const input = h('input', { class: 'wx-rename', type: 'text', value: was }) as HTMLInputElement;
+    label.replaceWith(input);
+    input.focus();
+    const dot = was.lastIndexOf('.');
+    input.setSelectionRange(0, dot > 0 && e.kind !== 'folder' ? dot : was.length);
+    /**
+     * Guarded, because blur fires AFTER Enter or Escape has already swapped the
+     * input out -- and replaceWith on a detached node throws NotFoundError. The
+     * console caught it during QA:
+     *   "Failed to execute 'replaceWith'... The node to be removed is no longer
+     *    a child of this node. Perhaps it was moved in a 'blur' event handler?"
+     */
+    let done = false;
+    const finish = (commit: boolean): void => {
+      if (done) return;
+      done = true;
+      const next = commit && input.value.trim() ? input.value.trim() : was;
+      input.replaceWith(h('span', { class: 'wx-name' }, next));
+    };
+    input.addEventListener('keydown', (ev) => {
+      if (ev.key === 'Enter') { ev.preventDefault(); finish(true); }
+      if (ev.key === 'Escape') { ev.preventDefault(); finish(false); }
+    });
+    input.addEventListener('blur', () => finish(true));
+  }
+
   function go(folder: string): void {
+    // The old selection lived in the list that is about to be replaced, so it
+    // has to be released here or its highlight outlives its row.
+    selected?.classList.remove('is-sel');
     selected = null;
     const items = FOLDERS[folder] ?? [];
 
     clear(list);
-    for (const e of items) list.appendChild(rowFor(e));
+    for (const e of items) list.appendChild(rowFor(e, false));
 
     // The breadcrumb navigates. Without it there is no way back out of a folder,
     // and Explorer has no Back button in this layout.
@@ -869,7 +1030,7 @@ function explorerBody(onOpen: (id: string) => void): { body: HTMLElement; status
   }
 
   for (const name of TREE) {
-    const r = rowFor({ name, kind: 'folder', to: name });
+    const r = rowFor({ name, kind: 'folder', to: name }, true);
     r.dataset.folder = name;
     treeWrap.appendChild(r);
   }
@@ -906,7 +1067,7 @@ function explorerBody(onOpen: (id: string) => void): { body: HTMLElement; status
  * repaints it, and returns a select() the file list can call — which is how
  * double-clicking a file in Explorer ends up focusing the right tab.
  */
-function chromeWindow(o: { onEmpty: () => void }): { body: HTMLElement; select: (id: string) => void } {
+function chromeWindow(o: { onEmpty: () => void }): { body: HTMLElement; select: (id: string) => void; setOmni: (t: string) => void } {
   /**
    * Tabs you can open and close, not a fixed strip.
    *
@@ -925,7 +1086,6 @@ function chromeWindow(o: { onEmpty: () => void }): { body: HTMLElement; select: 
    *     four sources the picker offers" is a dead end dressed as content.
    */
   const page = h('div', { class: 'cb-page' }) as HTMLElement;
-  const omni = h('span', {}, '');
   const strip = h('div', { class: 'cb-strip' }) as HTMLElement;
 
   interface Tab { id: string; el: HTMLElement }
@@ -933,13 +1093,19 @@ function chromeWindow(o: { onEmpty: () => void }): { body: HTMLElement; select: 
   let active = '';
 
   const paint = (id: string): void => {
-    const doc = DOCS[id];
+    const doc = docFor(id);
     active = id;
-    omni.textContent = doc ? doc.host + '/' : 'chrome://new-tab-page';
+    // ext: ids carry the whole address; the registry ones only have a host.
+    setOmni(id.startsWith('ext:') ? id.slice(4) : doc ? doc.host + '/' : 'chrome://new-tab-page');
     for (const t of open) t.el.classList.toggle('is-on', t.id === id);
     clear(page);
     if (doc) page.appendChild(doc.page());
     else page.appendChild(h('div', { class: 'pg cb-newtab' }, h('h1', { class: 'pg-h' }, 'New tab')));
+    // A page may carry outward links (see pageSide). They open in this browser
+    // rather than the host one, which is the whole point of the emulation.
+    for (const b of page.querySelectorAll<HTMLElement>('[data-ext]')) {
+      b.addEventListener('click', () => { const u = b.dataset.ext; if (u) goTo('ext:' + u, true); });
+    }
   };
 
   const closeTab = (id: string): void => {
@@ -955,7 +1121,7 @@ function chromeWindow(o: { onEmpty: () => void }): { body: HTMLElement; select: 
   const addTab = (id: string, focus: boolean): void => {
     const found = open.find((t) => t.id === id);
     if (found) { if (focus) paint(id); return; }
-    const doc = DOCS[id];
+    const doc = docFor(id);
     const fav = FAVICONS[id] ?? icChrome;
     const shut = h('button', { class: 'cb-x', type: 'button', 'aria-label': 'Close tab' }, '×') as HTMLButtonElement;
     shut.addEventListener('click', (e) => { e.stopPropagation(); closeTab(id); });
@@ -977,19 +1143,66 @@ function chromeWindow(o: { onEmpty: () => void }): { body: HTMLElement; select: 
   plus.addEventListener('click', () => { blanks += 1; addTab('blank:' + blanks, true); });
   strip.appendChild(plus);
 
-  // The four the picker says are already open.
-  for (const t of TABS) addTab(t.id, false);
-  if (TABS[0]) paint(TABS[0].id);
+  /**
+   * Real nav glyphs and a working address bar.
+   *
+   * Nam: "the chrome implementation use wrong icons for backward, forward and
+   * refresh... I also want to actually input an url to the address bar and go to
+   * the url as an iframe." The arrows were the text characters
+   * (left arrow, right arrow, clockwise-open-circle), whose weights and optical
+   * sizes have nothing to do with each other. Drawn on one 24px box instead.
+   */
+  const navBtn = (label: string, body: string, fn: () => void): HTMLElement => {
+    const b = h('button', { class: 'cb-nav', type: 'button', 'aria-label': label },
+      svg('0 0 24 24', body, 'cb-nav-g')) as HTMLButtonElement;
+    b.addEventListener('click', fn);
+    return b;
+  };
+
+  /* A visited list per window, so back and forward are real rather than decorative. */
+  const trail: string[] = [];
+  let at = -1;
+  const goTo = (id: string, push: boolean): void => {
+    if (push) { trail.splice(at + 1); trail.push(id); at = trail.length - 1; }
+    addTab(id, true);
+  };
+
+  const field = h('input', {
+    class: 'cb-omni-in', type: 'text', 'aria-label': 'Address and search bar',
+    spellcheck: 'false', autocomplete: 'off',
+  }) as HTMLInputElement;
+  const setOmni = (text: string): void => { field.value = text; };
+  field.addEventListener('keydown', (e) => {
+    if (e.key !== 'Enter') return;
+    const raw = field.value.trim();
+    if (!raw) return;
+    const url = /^https?:\/\//i.test(raw) ? raw : 'https://' + raw;
+    goTo('ext:' + url, true);
+  });
+  field.addEventListener('focus', () => field.select());
 
   const body = h('div', { class: 'wx-body cb' },
     strip,
     h('div', { class: 'cb-bar' },
-      h('span', { class: 'cb-nav' }, '←'), h('span', { class: 'cb-nav' }, '→'),
-      h('span', { class: 'cb-nav' }, '↻'),
-      h('div', { class: 'cb-omni' }, omni)),
+      navBtn('Back', '<path d="M20 11H7.8l5.6-5.6-1.4-1.4L4 12l8 8 1.4-1.4L7.8 13H20z" fill="currentColor"/>',
+        () => { if (at > 0) { at -= 1; addTab(trail[at]!, true); } }),
+      navBtn('Forward', '<path d="M4 11h12.2l-5.6-5.6L12 4l8 8-8 8-1.4-1.4 5.6-5.6H4z" fill="currentColor"/>',
+        () => { if (at >= 0 && at < trail.length - 1) { at += 1; addTab(trail[at]!, true); } }),
+      navBtn('Reload', '<path d="M17.65 6.35A8 8 0 1 0 19.73 14h-2.08A6 6 0 1 1 12 6c1.66 0 3.14.69 4.22 1.78L13 11h7V4z" fill="currentColor"/>',
+        () => { const cur = trail[at]; if (cur) addTab(cur, true); }),
+      h('div', { class: 'cb-omni' }, field)),
     page) as HTMLElement;
 
-  return { body, select: (id: string) => addTab(id, true) };
+  /**
+   * Seeded LAST, deliberately. paint() reaches for goTo and setOmni, which are
+   * `const` declarations further down -- calling it during construction threw a
+   * TDZ ReferenceError before the window ever appeared. TypeScript does not
+   * catch that; the ordering is the fix.
+   */
+  for (const t of TABS) addTab(t.id, false);
+  if (TABS[0]) { trail.push(TABS[0].id); at = 0; paint(TABS[0].id); }
+
+  return { body, select: (id: string) => goTo(id, true), setOmni };
 }
 
 /**
@@ -1013,124 +1226,310 @@ function pageWindow(onOpen: (id: string) => void, onClose: () => void): HTMLElem
  */
 /* No onOpen: a file click now routes to the emulated Chrome rather than out to
    the host page, which is what Nam asked for — the desktop is a closed machine. */
+/**
+ * A media player, because a clip is not a web page.
+ *
+ * Nam: "the videos should be open on a media player of some sort, not on chrome.
+ * Add that emulation too. Make sure to contain all the basic controller."
+ *
+ * Custom controls rather than the browser's own, so the window reads as an app
+ * instead of an embedded video: play/pause, a seek bar that scrubs, elapsed and
+ * total time, mute and volume.
+ */
+function playerWindow(id: string): { body: HTMLElement; select: (id: string) => void; title: () => string } {
+  let egg = eggs.find((e) => e.id === id) ?? eggs[0]!;
+
+  const video = h('video', {
+    class: 'mp-video', src: egg.clip, poster: egg.poster,
+    playsinline: 'true', preload: 'metadata',
+  }) as HTMLVideoElement;
+
+  const playMark = svg('0 0 24 24', '<path d="M8 5v14l11-7z" fill="currentColor"/>', 'mp-g');
+  const pauseMark = svg('0 0 24 24', '<path d="M6 5h4v14H6zm8 0h4v14h-4z" fill="currentColor"/>', 'mp-g');
+  const playBtn = h('button', { class: 'mp-btn mp-play', type: 'button', 'aria-label': 'Play' }, playMark) as HTMLButtonElement;
+
+  const seek = h('input', { class: 'mp-seek', type: 'range', min: '0', max: '1000', value: '0', 'aria-label': 'Seek' }) as HTMLInputElement;
+  const time = h('span', { class: 'mp-time' }, '0:00 / 0:00') as HTMLElement;
+
+  const muteOn = svg('0 0 24 24', '<path d="M4 9h3l4-4v14l-4-4H4zm11.5 3a4 4 0 0 0-2-3.46v6.92A4 4 0 0 0 15.5 12z" fill="currentColor"/>', 'mp-g');
+  const muteOff = svg('0 0 24 24', '<path d="M4 9h3l4-4v14l-4-4H4zm12.7 6.3-1.4-1.4 1.6-1.6-1.6-1.6 1.4-1.4 1.6 1.6 1.6-1.6 1.4 1.4-1.6 1.6 1.6 1.6-1.4 1.4-1.6-1.6z" fill="currentColor"/>', 'mp-g');
+  const muteBtn = h('button', { class: 'mp-btn', type: 'button', 'aria-label': 'Mute' }, muteOn) as HTMLButtonElement;
+
+  const vol = h('input', { class: 'mp-vol', type: 'range', min: '0', max: '100', value: '100', 'aria-label': 'Volume' }) as HTMLInputElement;
+
+  const clock = (n: number): string => {
+    if (!Number.isFinite(n)) return '0:00';
+    const m = Math.floor(n / 60);
+    return m + ':' + String(Math.floor(n % 60)).padStart(2, '0');
+  };
+  const syncTime = (): void => {
+    const d = video.duration;
+    time.textContent = clock(video.currentTime) + ' / ' + clock(d);
+    if (Number.isFinite(d) && d > 0 && !scrubbing) seek.value = String(Math.round((video.currentTime / d) * 1000));
+  };
+  const syncPlay = (): void => {
+    clear(playBtn);
+    playBtn.appendChild(video.paused ? playMark : pauseMark);
+    playBtn.setAttribute('aria-label', video.paused ? 'Play' : 'Pause');
+  };
+
+  let scrubbing = false;
+  playBtn.addEventListener('click', () => { if (video.paused) void video.play().catch(() => {}); else video.pause(); });
+  video.addEventListener('play', syncPlay);
+  video.addEventListener('pause', syncPlay);
+  video.addEventListener('timeupdate', syncTime);
+  video.addEventListener('loadedmetadata', syncTime);
+  video.addEventListener('ended', syncPlay);
+  seek.addEventListener('pointerdown', () => { scrubbing = true; });
+  seek.addEventListener('pointerup', () => { scrubbing = false; });
+  seek.addEventListener('input', () => {
+    const d = video.duration;
+    if (Number.isFinite(d) && d > 0) video.currentTime = (Number(seek.value) / 1000) * d;
+  });
+  muteBtn.addEventListener('click', () => {
+    video.muted = !video.muted;
+    clear(muteBtn);
+    muteBtn.appendChild(video.muted ? muteOff : muteOn);
+    muteBtn.setAttribute('aria-label', video.muted ? 'Unmute' : 'Mute');
+  });
+  vol.addEventListener('input', () => { video.volume = Number(vol.value) / 100; if (video.muted && Number(vol.value) > 0) muteBtn.click(); });
+
+  const caption = h('div', { class: 'mp-cap' }, egg.blurb) as HTMLElement;
+
+  const body = h('div', { class: 'wx-body mp' },
+    h('div', { class: 'mp-stage' }, video),
+    h('div', { class: 'mp-bar' },
+      playBtn, seek, time, muteBtn, vol),
+    caption) as HTMLElement;
+
+  syncPlay();
+
+  return {
+    body,
+    select: (next: string) => {
+      const found = eggs.find((e) => e.id === next.replace(/^vid:/, ''));
+      if (!found) return;
+      egg = found;
+      video.src = egg.clip;
+      video.poster = egg.poster;
+      caption.textContent = egg.blurb;
+      void video.play().catch(() => {});
+    },
+    title: () => egg.title,
+  };
+}
+
+/**
+ * The Screen source: a desktop with a taskbar that manages focus properly.
+ *
+ * Three of Nam's reports were all the same underlying gap -- there was no single
+ * owner of "which window is active":
+ *
+ *   1. running-but-inactive and active looked identical;
+ *   2. every window added its own taskbar icon, so two Chromes meant two icons
+ *      instead of one grouped button;
+ *   7. "both apps are active at the same time => wrong... it feels that the
+ *      mocked OS is not managing the selected apps very well, leading to race
+ *      condition of which app is active" -- exactly right. Opening from Explorer
+ *      left `is-on` set on the Explorer item AND the new Chrome item, and the
+ *      taskbar click handler toggled minimise blindly, so the first click after
+ *      that only cleared a highlight.
+ *
+ * So: one `focused` reference, one `paint()` that derives every taskbar state
+ * from it, and one button per app rather than per window.
+ */
+type AppKind = 'explorer' | 'chrome' | 'player';
+
 function pageDesktop(): HTMLElement {
   const surface = h('div', { class: 'dk-surface' }) as HTMLElement;
-  const taskItems = h('div', { class: 'dk-task-mid' }) as HTMLElement;
 
-  interface Live { el: HTMLElement; task: HTMLElement; min: boolean; kind: 'explorer' | 'chrome'; select?: (id: string) => void; }
+  interface Live {
+    el: HTMLElement;
+    kind: AppKind;
+    min: boolean;
+    title: string;
+    select?: (id: string) => void;
+    setTitle?: (t: string) => void;
+  }
   const live: Live[] = [];
+  let focused: Live | null = null;
 
-  /**
-   * Bring-to-front by z-index, NOT by moving the node.
-   *
-   * This was `surface.appendChild(el)` on pointerdown, in the capture phase --
-   * so every press inside a window re-inserted that window into the DOM. Moving
-   * a node mid-gesture destroys the pointerdown's target, so the browser
-   * retargets the following mousedown to .dk-surface, mousedown and mouseup no
-   * longer share a target, and NO CLICK EVENT IS DISPATCHED AT ALL.
-   *
-   * That is Nam's "I cannot click any of these minimize maximize and close
-   * button". It was not the caption buttons: it killed every click inside every
-   * window on the desktop -- caption buttons, tree rows, files, tabs, all of it.
-   * The event log is unambiguous:
-   *
-   *   pointerdown target=<the button's svg>
-   *   mousedown   target=dk-surface        <- retargeted by the DOM move
-   *   pointerup   target=<the button's svg>
-   *   mouseup     target=<the button's svg>
-   *   (no click)
-   *
-   * Raising z-index changes stacking without touching the tree, so the gesture
-   * survives intact.
-   */
   let topZ = 10;
+  /* z-index, never appendChild: moving a node mid-gesture retargets the
+     following mousedown and the click is never dispatched. */
   const raise = (el: HTMLElement): void => { el.style.zIndex = String(++topZ); };
 
-  /** The taskbar hover preview — Nam asked for "a small render of the explorer
-   *  folder", and the honest way to get one is to render the window small
-   *  rather than draw a picture of it. A deep clone scaled down is the real
-   *  layout at 1:5, so it cannot drift from the window it previews. */
-  const preview = (task: HTMLElement, w: Live, title: string): void => {
+  const APPS: { kind: AppKind; label: string; ico: () => HTMLElement }[] = [
+    { kind: 'explorer', label: 'File Explorer', ico: icExplorerTask },
+    { kind: 'chrome', label: 'Google Chrome', ico: icChrome },
+    { kind: 'player', label: 'Media Player', ico: icVideo },
+  ];
+  const buttons = new Map<AppKind, HTMLElement>();
+
+  /**
+   * Every taskbar state, derived from `focused` in one pass.
+   *
+   * Nam: "when something is on but not active, it has a tiny gray bar
+   * underneath, but when the window is active it has a blue line and a selected
+   * background state. all very subtle." So three states, not two: idle, running,
+   * active -- and a minimised window still counts as running.
+   */
+  const paint = (): void => {
+    for (const app of APPS) {
+      const b = buttons.get(app.kind);
+      if (!b) continue;
+      const mine = live.filter((w) => w.kind === app.kind);
+      const isActive = !!focused && !focused.min && focused.kind === app.kind;
+      b.classList.toggle('is-running', mine.length > 0);
+      b.classList.toggle('is-on', isActive);
+      b.classList.toggle('is-multi', mine.length > 1);
+      b.setAttribute('aria-label', mine.length > 1 ? `${app.label} — ${mine.length} windows` : app.label);
+    }
+  };
+
+  const focus = (w: Live): void => {
+    w.min = false;
+    w.el.classList.remove('is-min');
+    focused = w;
+    raise(w.el);
+    paint();
+  };
+
+  const minimise = (w: Live): void => {
+    w.min = true;
+    w.el.classList.add('is-min');
+    if (focused === w) {
+      // Hand focus to the topmost window still on screen, so the taskbar never
+      // shows an active app that is not visible.
+      const rest = live.filter((x) => x !== w && !x.min);
+      focused = rest.length ? rest[rest.length - 1]! : null;
+    }
+    paint();
+  };
+
+  const closeWin = (w: Live): void => {
+    w.el.remove();
+    const i = live.indexOf(w);
+    if (i >= 0) live.splice(i, 1);
+    if (focused === w) {
+      const rest = live.filter((x) => !x.min);
+      focused = rest.length ? rest[rest.length - 1]! : null;
+    }
+    paint();
+  };
+
+  /**
+   * The hover list, grouped. Nam: "hovering opens up list of windows there so
+   * you can click. You alreayd have this but not grouping all instances of the
+   * same program on the same icon."
+   *
+   * A deep clone scaled down is the real layout rather than a drawing of it, so
+   * the preview cannot drift from the window it previews.
+   */
+  const peek = (btn: HTMLElement, kind: AppKind): void => {
     let pop: HTMLElement | null = null;
+    const hide = (): void => { pop?.remove(); pop = null; };
     const show = (): void => {
-      if (pop) return;
-      const mini = w.el.cloneNode(true) as HTMLElement;
-      mini.classList.remove('is-drag');
-      mini.style.left = '0'; mini.style.top = '0';
-      pop = h('div', { class: 'dk-peek' },
-        h('div', { class: 'dk-peek-t' }, h('span', { class: 'dk-peek-ico' }, icExplorerTask()), title),
-        h('div', { class: 'dk-peek-shot' }, h('div', { class: 'dk-peek-scale' }, mini))) as HTMLElement;
-      const r = task.getBoundingClientRect();
+      hide();
+      const mine = live.filter((w) => w.kind === kind);
+      if (!mine.length) return;
+      const app = APPS.find((a) => a.kind === kind)!;
+      pop = h('div', { class: 'dk-peek' }) as HTMLElement;
+      for (const w of mine) {
+        const mini = w.el.cloneNode(true) as HTMLElement;
+        mini.classList.remove('is-drag', 'is-min');
+        mini.style.left = '0';
+        mini.style.top = '0';
+        mini.style.zIndex = '0';
+        const card = h('div', { class: 'dk-peek-card', role: 'button', tabindex: '0' },
+          h('div', { class: 'dk-peek-t' }, h('span', { class: 'dk-peek-ico' }, app.ico()), w.title),
+          h('div', { class: 'dk-peek-shot' }, h('div', { class: 'dk-peek-scale' }, mini))) as HTMLElement;
+        card.addEventListener('click', () => { hide(); focus(w); });
+        pop.appendChild(card);
+      }
+      const r = btn.getBoundingClientRect();
       const host = surface.getBoundingClientRect();
       pop.style.left = `${Math.round(r.left - host.left + r.width / 2)}px`;
+      pop.addEventListener('pointerleave', hide);
       surface.appendChild(pop);
     };
-    const hide = (): void => { pop?.remove(); pop = null; };
-    task.addEventListener('pointerenter', show);
-    task.addEventListener('pointerleave', hide);
-    task.addEventListener('click', hide);
+    btn.addEventListener('pointerenter', show);
+    btn.addEventListener('pointerleave', (e) => {
+      // Leaving downward means the pointer is heading into the list.
+      const to = (e as PointerEvent).relatedTarget as Node | null;
+      if (pop && to && pop.contains(to)) return;
+      window.setTimeout(() => { if (!pop?.matches(':hover')) hide(); }, 120);
+    });
+    btn.addEventListener('click', hide);
   };
 
-  /** Focus the open Chrome if there is one, else open it, then select the tab. */
-  const gotoTab = (id: string): void => {
-    const existing = live.find((w) => w.kind === 'chrome');
+  /** Focus an existing window of a kind, or open one, then hand it the id. */
+  const route = (kind: AppKind, id: string): void => {
+    const existing = live.find((w) => w.kind === kind);
     if (existing) {
-      existing.min = false;
-      existing.el.classList.remove('is-min');
-      existing.task.classList.add('is-on');
-      raise(existing.el);
+      focus(existing);
       existing.select?.(id);
+      if (kind === 'player') existing.setTitle?.(existing.title);
       return;
     }
-    openWindow('chrome', id);
+    openWindow(kind, id);
   };
 
-  const openWindow = (kind: 'explorer' | 'chrome', tabId?: string): void => {
-    const title = kind === 'explorer' ? 'Work' : 'Nam Nguyen — Senior SWE, Web Development';
-    const ico = kind === 'explorer' ? icExplorerTask : icChrome;
+  /* Explorer routes clips to the player and everything else to Chrome. */
+  const openFile = (id: string): void => {
+    if (id.startsWith('vid:')) { route('player', id); return; }
+    route('chrome', id);
+  };
+
+  function openWindow(kind: AppKind, tabId?: string): void {
+    const app = APPS.find((a) => a.kind === kind)!;
     let bodyEl: HTMLElement;
     let statusEl: HTMLElement | null = null;
     let select: ((id: string) => void) | undefined;
+    let title = kind === 'explorer' ? 'Work' : app.label;
+
+    const rec: Live = { el: null as unknown as HTMLElement, kind, min: false, title, select };
+
     if (kind === 'explorer') {
-      // A file click inside Explorer goes to Chrome, not to the host page.
-      const made = explorerBody(gotoTab);
-      bodyEl = made.body; statusEl = made.status;
-    } else {
-      // Closing the last tab closes the window, exactly as Chrome does.
-      const made = chromeWindow({ onEmpty: () => { rec.el?.remove(); task.remove(); const j = live.indexOf(rec); if (j >= 0) live.splice(j, 1); } });
-      bodyEl = made.body; select = made.select;
+      const made = explorerBody(openFile);
+      bodyEl = made.body;
+      statusEl = made.status;
+    } else if (kind === 'chrome') {
+      const made = chromeWindow({ onEmpty: () => closeWin(rec) });
+      bodyEl = made.body;
+      select = made.select;
+      title = 'Nam Nguyen — Senior SWE, Web Development';
       if (tabId) made.select(tabId);
+    } else {
+      const made = playerWindow((tabId ?? '').replace(/^vid:/, ''));
+      bodyEl = made.body;
+      select = made.select;
+      title = made.title();
+      rec.setTitle = () => { rec.title = made.title(); };
     }
-    const task = h('span', { class: 'dk-task is-on', role: 'button', tabindex: '0', 'aria-label': title }, ico()) as HTMLElement;
-    const rec: Live = { el: null as unknown as HTMLElement, task, min: false, kind, select };
+
+    rec.select = select;
+    rec.title = title;
+
     const el = win11({
-      title, icon: ico, body: bodyEl, status: statusEl, full: true,
-      onClose: () => {
-        el.remove(); task.remove();
-        const i = live.indexOf(rec); if (i >= 0) live.splice(i, 1);
-      },
-      onMinimise: () => { rec.min = true; el.classList.add('is-min'); task.classList.remove('is-on'); },
+      title, icon: app.ico, body: bodyEl, status: statusEl, full: true,
+      onClose: () => closeWin(rec),
+      onMinimise: () => minimise(rec),
     });
     rec.el = el;
+
     // Cascade, so a second window does not land exactly on the first.
     const n = live.length;
     el.style.left = `${60 + n * 28}px`;
     el.style.top = `${40 + n * 26}px`;
-    task.addEventListener('click', () => {
-      if (rec.min) { rec.min = false; el.classList.remove('is-min'); task.classList.add('is-on'); }
-      else { rec.min = true; el.classList.add('is-min'); task.classList.remove('is-on'); }
-      raise(el);
-    });
-    el.addEventListener('pointerdown', () => raise(el), true);
-    live.push(rec);
-    taskItems.appendChild(task);
-    surface.appendChild(el);
-    raise(el);
-    preview(task, rec, title);
-  };
+    el.addEventListener('pointerdown', () => focus(rec), true);
 
-  // Start, and a small menu so the button is not a lie. Nam: "cannot press
-  // window button" — it can now, and it opens something.
+    live.push(rec);
+    surface.appendChild(el);
+    focus(rec);
+  }
+
+  // Start, and a small menu so the button is not a lie.
   const start = h('button', { class: 'dk-task dk-start', type: 'button', 'aria-label': 'Start' }, icStart()) as HTMLButtonElement;
   let menu: HTMLElement | null = null;
   start.addEventListener('click', () => {
@@ -1138,17 +1537,36 @@ function pageDesktop(): HTMLElement {
     menu = h('div', { class: 'dk-start-menu' },
       h('div', { class: 'dk-start-h' }, 'Pinned'),
       h('div', { class: 'dk-start-grid' },
-        h('button', { class: 'dk-start-app', type: 'button', onclick: () => { openWindow('explorer'); menu?.remove(); menu = null; } },
-          h('span', {}, icExplorerTask()), h('span', {}, 'File Explorer')),
-        h('button', { class: 'dk-start-app', type: 'button', onclick: () => { openWindow('chrome'); menu?.remove(); menu = null; } },
-          h('span', {}, icChrome()), h('span', {}, 'Google Chrome'))),
+        ...APPS.map((a) => h('button', {
+          class: 'dk-start-app', type: 'button',
+          onclick: () => { openWindow(a.kind, a.kind === 'player' ? 'vid:' + eggs[0]!.id : undefined); menu?.remove(); menu = null; },
+        }, h('span', {}, a.ico()), h('span', {}, a.label)))),
       h('div', { class: 'dk-start-foot' }, h('span', { class: 'dk-start-av' }, 'NN'), profile.name)) as HTMLElement;
     surface.appendChild(menu);
   });
 
-  const pin = (label: string, ico: () => HTMLElement, kind: 'explorer' | 'chrome'): HTMLElement => {
-    const b = h('button', { class: 'dk-task dk-pin', type: 'button', 'aria-label': label }, ico()) as HTMLButtonElement;
-    b.addEventListener('click', () => openWindow(kind));
+  /**
+   * One button per app. Click behaviour follows Windows:
+   *   nothing running  -> launch
+   *   one window       -> focused? minimise : focus
+   *   several          -> show the list and let the pointer choose
+   */
+  const taskBtn = (app: { kind: AppKind; label: string; ico: () => HTMLElement }): HTMLElement => {
+    const b = h('button', { class: 'dk-task dk-pin', type: 'button', 'aria-label': app.label }, app.ico()) as HTMLButtonElement;
+    b.addEventListener('click', () => {
+      const mine = live.filter((w) => w.kind === app.kind);
+      if (!mine.length) {
+        openWindow(app.kind, app.kind === 'player' ? 'vid:' + eggs[0]!.id : undefined);
+        return;
+      }
+      if (mine.length > 1) return;   // the peek list is the picker
+      const w = mine[0]!;
+      if (w.min) { focus(w); return; }
+      if (focused === w) { minimise(w); return; }
+      focus(w);
+    });
+    buttons.set(app.kind, b);
+    peek(b, app.kind);
     return b;
   };
 
@@ -1160,14 +1578,10 @@ function pageDesktop(): HTMLElement {
   const page = h('div', { class: 'pg pg-desk' },
     wallpaper(),
     surface,
-    // No search icon — Nam asked for it gone, and a search box that cannot
-    // search was the least defensible thing on the bar.
     h('div', { class: 'dk-taskbar' },
       h('div', { class: 'dk-task-wrap' },
         start,
-        pin('File Explorer', icExplorerTask, 'explorer'),
-        pin('Google Chrome', icChrome, 'chrome'),
-        taskItems),
+        ...APPS.map(taskBtn)),
       h('div', { class: 'dk-tray' },
         h('span', { class: 'dk-weather' }, '11°C  Klart'),
         h('span', { class: 'dk-clock' }, h('b', {}, hh + ':' + mm), h('i', {}, dd)))));
@@ -1177,5 +1591,6 @@ function pageDesktop(): HTMLElement {
   });
 
   openWindow('explorer');
+  paint();
   return page;
 }

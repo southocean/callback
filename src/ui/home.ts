@@ -664,7 +664,9 @@ export function renderHome(store: Store, reducedMotion = false, body?: HTMLEleme
         {
           class: 'm-btn m-text',
           type: 'button',
-          onclick: () => store.dispatch({ t: 'engTab', tab: 'spec' }),
+          // Was engTab, which sets panel: 'tools' and never touches `screen` --
+          // so from the home screen this button changed state and painted nothing.
+          onclick: () => store.dispatch({ t: 'built', on: true }),
         },
         'How this was built',
       ),

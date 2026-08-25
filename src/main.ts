@@ -27,6 +27,7 @@ const boot: State = {
   ...(route.engTab ? { engTab: route.engTab } : {}),
   ...(route.spotlight ? { spotlight: route.spotlight } : {}),
   ...(route.plain ? { plain: true } : {}),
+  ...(route.built ? { built: true } : {}),
 };
 
 const store = new Store(boot);
@@ -108,7 +109,7 @@ const EMBEDDED = ((): boolean => { try { return window.self !== window.top; } ca
 
 function render(): void {
   const s = store.get();
-  let key = s.plain ? 'plain' : s.screen;
+  let key = s.built ? 'built' : s.plain ? 'plain' : s.screen;
   if (EMBEDDED && (key === 'call' || key === 'lobby' || key === 'calls')) key = 'plain';
 
   // The call view owns the GL context, the caption timer and the panel state, so
@@ -161,6 +162,12 @@ function render(): void {
       onLeave: () => { history.pushState(null, '', '#home'); store.dispatch({ t: 'screen', screen: 'home' }); },
       onGo: (id) => { history.pushState(null, '', '#egg/' + id); render(); },
     })));
+    return;
+  }
+
+  if (key === 'built') {
+    mount(key, () => import('./ui/built.js')
+      .then((m) => m.renderBuilt(() => store.dispatch({ t: 'built', on: false }), EMBEDDED)));
     return;
   }
 
