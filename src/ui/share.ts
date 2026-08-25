@@ -868,21 +868,60 @@ function win11(o: {
     maxBtn?.setAttribute('aria-expanded', 'false');
   };
 
-  const openSnap = (): void => {
+  /**
+   * @param kbd  true when a key opened it, which is when focus should move in.
+   *
+   * QA caught the first version putting EIGHT extra stops into the window's tab
+   * order: the flyout opened on focus, and because it is appended to the window
+   * it landed after the file list — so tabbing off Maximise eventually walked
+   * into eight zone buttons sitting a long way from the control that summoned
+   * them, with the flyout left hanging open behind you.
+   *
+   * It is a menu button, so it behaves like one. Hover still opens it for the
+   * pointer; the keyboard opens it with ArrowDown, gets one stop inside, moves
+   * between zones with the arrows, and Escape closes it and hands focus back.
+   */
+  const openSnap = (kbd = false): void => {
     if (snapPop || maxed) return;
+    const zoneEls: HTMLElement[] = [];
     snapPop = h('div', { class: 'wx-snap', role: 'menu', 'aria-label': 'Snap layouts' },
       ...LAYOUTS.map((zones) => h('div', { class: 'wx-snap-l' },
         ...zones.map((z) => {
           const b = h('button', {
-            class: 'wx-snap-z', type: 'button', role: 'menuitem',
+            class: 'wx-snap-z', type: 'button', role: 'menuitem', tabindex: '-1',
             'aria-label': `Snap ${z.name}`,
             style: `left:${z.l * 100}%;top:${z.t * 100}%;width:${z.w * 100}%;height:${z.h * 100}%`,
           }) as HTMLElement;
           b.addEventListener('click', () => { shutSnap(); snapTo(z); });
+          zoneEls.push(b);
           return b;
         })))) as HTMLElement;
+
+    snapPop.addEventListener('keydown', (e) => {
+      const ev = e as KeyboardEvent;
+      if (ev.key === 'Escape') {
+        ev.stopPropagation();
+        shutSnap();
+        maxBtn?.focus();
+        return;
+      }
+      const at = zoneEls.indexOf(document.activeElement as HTMLElement);
+      const d = ev.key === 'ArrowRight' || ev.key === 'ArrowDown' ? 1
+        : ev.key === 'ArrowLeft' || ev.key === 'ArrowUp' ? -1 : 0;
+      if (!d || at < 0) return;
+      ev.preventDefault();
+      const next = zoneEls[(at + d + zoneEls.length) % zoneEls.length]!;
+      for (const z of zoneEls) z.setAttribute('tabindex', '-1');
+      next.setAttribute('tabindex', '0');
+      next.focus();
+    });
+
     maxBtn?.setAttribute('aria-expanded', 'true');
     el.appendChild(snapPop);
+    if (kbd) {
+      zoneEls[0]?.setAttribute('tabindex', '0');
+      zoneEls[0]?.focus();
+    }
   };
 
   /* Hover intent, not hover: the flyout is a second meaning for a button whose
@@ -895,7 +934,7 @@ function win11(o: {
     maxBtn.setAttribute('aria-expanded', 'false');
     maxBtn.addEventListener('pointerenter', () => {
       window.clearTimeout(snapTimer);
-      snapTimer = window.setTimeout(openSnap, 480);
+      snapTimer = window.setTimeout(() => openSnap(false), 480);
     });
     maxBtn.addEventListener('pointerleave', () => {
       window.clearTimeout(snapTimer);
@@ -904,7 +943,21 @@ function win11(o: {
         if (!snapPop?.matches(':hover')) shutSnap();
       }, 160);
     });
-    maxBtn.addEventListener('focus', openSnap);
+    // ArrowDown, not focus. aria-haspopup already promises this exact gesture,
+    // and it is the one that does not ambush someone who is only tabbing past.
+    maxBtn.addEventListener('keydown', (e) => {
+      const ev = e as KeyboardEvent;
+      if (ev.key !== 'ArrowDown' && ev.key !== 'ArrowUp') return;
+      ev.preventDefault();
+      if (snapPop) { (snapPop.querySelector('.wx-snap-z') as HTMLElement | null)?.focus(); return; }
+      openSnap(true);
+    });
+    maxBtn.addEventListener('blur', () => {
+      // Leaving the button by keyboard closes it, unless focus went inside.
+      window.setTimeout(() => {
+        if (snapPop && !snapPop.contains(document.activeElement) && !snapPop.matches(':hover')) shutSnap();
+      }, 0);
+    });
     maxBtn.addEventListener('click', shutSnap);
   }
 
@@ -1209,7 +1262,12 @@ function explorerBody(onOpen: (id: string) => void): { body: HTMLElement; status
    * row factories each keeping their own idea of what was selected.
    */
   const rowFor = (e: Entry, inTree: boolean): HTMLElement => {
-    const r = h('div', { class: 'wx-row', tabindex: '0', role: 'option', 'aria-selected': 'false' },
+    // tabindex -1, not 0. Every row used to be its own tab stop, which QA
+    // measured at twenty-two consecutive stops in Hobby before Tab reached
+    // anything else. A listbox gets ONE stop and arrow keys inside it — the
+    // shape already used by the calendar grid and the desktop icons, and the
+    // shape Explorer's own file list has.
+    const r = h('div', { class: 'wx-row', tabindex: '-1', role: 'option', 'aria-selected': 'false' },
       h('span', { class: 'wx-ico' }, glyph(e.kind)),
       h('span', { class: 'wx-name' }, e.name),
       e.kind === 'folder' ? h('span', { class: 'wx-count' }, String((FOLDERS[e.to ?? ''] ?? []).length)) : null) as HTMLElement;
@@ -1237,6 +1295,44 @@ function explorerBody(onOpen: (id: string) => void): { body: HTMLElement; status
       if (k === 'F2') { ev.preventDefault(); rename(r, e); }
     });
     return r;
+  };
+
+  /**
+   * One tab stop per pane, arrows within it.
+   *
+   * Rows are tabindex -1; whichever row is current holds the only 0. Hidden rows
+   * are skipped, because the search filter hides rows and a cursor that lands on
+   * one would look like the arrow key did nothing.
+   */
+  const roam = (pane: HTMLElement): void => {
+    const rows = (): HTMLElement[] =>
+      [...pane.querySelectorAll('.wx-row')].filter((r) => !(r as HTMLElement).hidden) as HTMLElement[];
+
+    const setStop = (r: HTMLElement | null): void => {
+      for (const x of pane.querySelectorAll('.wx-row')) x.setAttribute('tabindex', '-1');
+      (r ?? rows()[0])?.setAttribute('tabindex', '0');
+    };
+    (pane as HTMLElement & { setStop?: (r: HTMLElement | null) => void }).setStop = setStop;
+
+    pane.addEventListener('keydown', (e) => {
+      const ev = e as KeyboardEvent;
+      const list = rows();
+      if (!list.length) return;
+      const at = list.indexOf(document.activeElement as HTMLElement);
+      let next = -1;
+      if (ev.key === 'ArrowDown') next = Math.min(list.length - 1, at + 1);
+      else if (ev.key === 'ArrowUp') next = Math.max(0, at - 1);
+      else if (ev.key === 'Home') next = 0;
+      else if (ev.key === 'End') next = list.length - 1;
+      if (next < 0) return;
+      ev.preventDefault();
+      const r = list[next]!;
+      setStop(r);
+      r.focus();
+      // Arrowing through a list moves the selection with it, as it does in
+      // Explorer — otherwise the highlight and the cursor drift apart.
+      select(r);
+    });
   };
 
   /** One selection across both panes, so highlights cannot accumulate. */
@@ -1338,6 +1434,9 @@ function explorerBody(onOpen: (id: string) => void): { body: HTMLElement; status
     }
     empty.hidden = hits > 0 || !q;
     countNow(hits, q !== '');
+    // The stop may have just been hidden by the filter; move it to a row that
+    // is still there.
+    (list as HTMLElement & { setStop?: (r: HTMLElement | null) => void }).setStop?.(null);
   };
   search.addEventListener('input', applyFilter);
 
@@ -1369,6 +1468,9 @@ function explorerBody(onOpen: (id: string) => void): { body: HTMLElement; status
     clear(list);
     for (const e of items) list.appendChild(rowFor(e, false));
     list.appendChild(empty);
+    // The rows were just replaced, so the pane has no tab stop until one is put
+    // back — a listbox you cannot Tab into is worse than one with too many stops.
+    (list as HTMLElement & { setStop?: (r: HTMLElement | null) => void }).setStop?.(null);
     // Moving folder clears the filter: a search box still holding the last
     // folder's word would hide half of this one for no visible reason.
     search.value = '';
@@ -1380,11 +1482,16 @@ function explorerBody(onOpen: (id: string) => void): { body: HTMLElement; status
     // and Explorer has no Back button in this layout.
     clear(crumb);
     const seg = (label: string, to?: string): HTMLElement => {
-      // A navigable segment is a button; the current folder is plain text, because
-      // "go to where you already are" is not an action.
+      /* A navigable segment is a button; everything else is plain text, because
+         "go to where you already are" is not an action.
+
+         aria-current was on exactly the wrong elements: it sat on This PC and
+         Documents — the two segments that are NOT where you are — while the
+         actual current folder, .wx-here, carried nothing. Three elements in one
+         breadcrumb claiming to be the current one is worse than none. */
       const el = (to
         ? h('button', { class: 'wx-crumb-up', type: 'button' }, label)
-        : h('span', { 'aria-current': 'true' }, label)) as HTMLElement;
+        : h('span', {}, label)) as HTMLElement;
       if (to) {
         el.addEventListener('click', () => go(to));
         el.addEventListener('keydown', (ev) => { if ((ev as KeyboardEvent).key === 'Enter') go(to); });
@@ -1397,10 +1504,10 @@ function explorerBody(onOpen: (id: string) => void): { body: HTMLElement; status
       seg('Documents'), h('span', { class: 'wx-sep' }, '›'),
     );
     if (folder === 'Work') {
-      crumb.appendChild(h('span', { class: 'wx-here' }, 'Work'));
+      crumb.appendChild(h('span', { class: 'wx-here', 'aria-current': 'page' }, 'Work'));
     } else {
       crumb.append(seg('Work', 'Work'), h('span', { class: 'wx-sep' }, '›'),
-        h('span', { class: 'wx-here' }, folder));
+        h('span', { class: 'wx-here', 'aria-current': 'page' }, folder));
     }
 
     for (const t of treeWrap.querySelectorAll('.wx-row')) {
@@ -1419,6 +1526,9 @@ function explorerBody(onOpen: (id: string) => void): { body: HTMLElement; status
     r.dataset.folder = name;
     treeWrap.appendChild(r);
   }
+  roam(treeWrap);
+  roam(list);
+  (treeWrap as HTMLElement & { setStop?: (r: HTMLElement | null) => void }).setStop?.(null);
 
   /*
    * Buttons, not spans. The audit measured 0 of 7 command-bar controls and 0 of 6
