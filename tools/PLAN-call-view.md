@@ -1324,3 +1324,35 @@ explicitly or the test exercises a path the user never takes.
 Re-tested with `btn.focus(); btn.click()`, which reproduces the real ordering.
 All four actions across both popups dismiss and still perform their job, focus
 lands on the chip without re-opening, and hover reopen is unaffected.
+
+## Round 13 — the composer frame
+
+Three claims from Nam, all three measured on the live composer rather than taken
+on trust:
+
+```
+frame  328 x 50 @ 2200,1013   TRANSPARENT, 1px solid #444746, radius 25
+send    48 x 48 @ 2479,1014   INSIDE the frame, transparent, #a8c7fa, radius 24
+field  278 x 24               transparent, padding 0 16px
+```
+
+Ours had the send button as a **sibling** of the field, so it sat outside the
+frame; painted the field itself with `#333537` rather than using a bordered
+frame; and put `outline: 2px solid #a8c7fa` on focus.
+
+**The focus ring is measured, not inferred.** I read the frame focused and
+blurred: every property identical — same 1px `#444746`, no box-shadow, textarea
+outline `none`. So there genuinely is no focus treatment. The caret is the
+indicator, which is why dropping the ring is acceptable on a text field in a way
+it would not be on a button.
+
+The geometry also cross-checks against last round: the frame sits 15px below the
+list, 16px above the panel's bottom and 16px in from each side, which reconstructs
+the 81px strip measured independently from the scrollport. Two readings taken for
+different reasons agreeing is the useful part.
+
+Verified on ours: frame `328 x 50` transparent radius 25 with the same 1px
+`#444746`, field `278 x 24` at padding `0 16px`, send `48 x 48` radius 24 fully
+inside the frame's box, side insets 16/16, gaps 15 above and 16 below, and
+focusing changes nothing. Send is `#5f6368` and disabled while empty, `#a8c7fa`
+and live once there is text — the same ink the original showed with text in it.

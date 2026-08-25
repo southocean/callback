@@ -5794,28 +5794,52 @@ body.is-pinned .solo { --pin-lead: 34px; }
   font: 400 14px/20px var(--font);
 }
 
+/* MEASURED on the live composer, 2026-08-25 -- all three of Nam's points
+   confirmed rather than taken on trust:
+     frame  328 x 50 @ 2200,1013  TRANSPARENT, 1px solid #444746, radius 25
+     send    48 x 48 @ 2479,1014  INSIDE the frame, transparent, #a8c7fa, r24
+     field  278 x 24, transparent, padding 0 16px
+   The frame sits 15px below the list and 16px above the panel's bottom, 16px in
+   from each side -- which is exactly the 81px strip measured last round, so the
+   two readings agree.
+
+   Ours had the send button as a SIBLING of the field, so it sat outside the
+   frame; painted the field itself with #333537 instead of using a bordered
+   frame; and added `outline: 2px solid #a8c7fa` on focus.
+
+   THE FOCUS RING IS NOT A GUESS EITHER WAY: I read the frame focused and
+   blurred, and every property is identical -- same 1px #444746, no box-shadow,
+   textarea outline `none`. So Nam's "the input frame doesnt have this bright on
+   focus effect" is measured, not inferred. The caret is the focus indicator,
+   which is why dropping the ring on a text field is acceptable here in a way it
+   would not be on a button. */
 .msg-composer {
-  /* 12 + 48 field + 20 = 80, against the 81px strip measured on the original. */
-  flex: 0 0 auto; display: flex; align-items: center; gap: 8px;
-  padding: 12px 24px 20px;
+  flex: 0 0 auto;
+  padding: 15px 16px 16px;
   background-color: var(--panel);
 }
+.msg-box {
+  display: flex; align-items: center;
+  height: 50px; box-sizing: border-box;
+  border: 1px solid #444746; border-radius: 25px;
+  background: transparent;
+}
 .msg-field {
-  flex: 1 1 auto; min-width: 0; height: 48px;
-  padding: 0 16px; border: 0; border-radius: 24px;
-  background-color: #333537; color: #e3e3e3;
-  font: 400 14px/20px var(--font);
+  flex: 1 1 auto; min-width: 0; height: 24px;
+  padding: 0 16px; border: 0; background: transparent; color: #e3e3e3;
+  font: 400 14px/24px var(--font);
 }
 .msg-field::placeholder { color: #9aa0a6; }
-.msg-field:focus-visible { outline: 2px solid #a8c7fa; outline-offset: 0; }
+/* Deliberately none, per the reading above. */
+.msg-field:focus, .msg-field:focus-visible { outline: none; }
 .msg-send {
   position: relative; overflow: hidden;
-  flex: 0 0 auto; width: 40px; height: 40px; border: 0; border-radius: 20px;
-  background: transparent; color: #8ab4f8; cursor: pointer;
-  display: grid; place-items: center; --sl: #8ab4f8;
+  flex: 0 0 auto; width: 48px; height: 48px; border: 0; border-radius: 24px;
+  background: transparent; color: #a8c7fa; cursor: pointer;
+  display: grid; place-items: center; --sl: #a8c7fa;
 }
 .msg-send:disabled { color: #5f6368; cursor: default; }
-.msg-send:not(:disabled):hover { background-color: rgba(138, 180, 248, .1); }
+.msg-send:not(:disabled):hover { background-color: rgba(168, 199, 250, .1); }
 
 /* --- 4. pinned WHILE presenting ------------------------------------------ */
 /* Nam: "the pinned video frame is completely wrong in our version - its exactly

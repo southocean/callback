@@ -53,7 +53,7 @@ export function renderChat(): HTMLElement {
   }) as HTMLInputElement;
   const send = h('button', {
     class: 'msg-send', type: 'button', 'aria-label': 'Send a message',
-  }, icon(icons.send, 20)) as HTMLButtonElement;
+  }, icon(icons.send, 24)) as HTMLButtonElement;
 
   const submit = (): void => {
     const text = field.value.trim();
@@ -72,9 +72,12 @@ export function renderChat(): HTMLElement {
   field.addEventListener('keydown', (e: KeyboardEvent) => { if (e.key === 'Enter') submit(); });
   send.addEventListener('click', submit);
 
+  // The send control lives INSIDE the frame, so the frame is its own element
+  // wrapping both rather than a background on the field. See styles.css.
   return h('div', { class: 'msg-wrap' },
     list,
-    h('div', { class: 'msg-composer' }, field, send));
+    h('div', { class: 'msg-composer' },
+      h('div', { class: 'msg-box' }, field, send)));
 }
 
 /**
