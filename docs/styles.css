@@ -4931,8 +4931,10 @@ body.presenting .solo {
      bottom of the share. Sitting the tile on top of it hid the Stop sharing
      button behind the self view — visible in QA, and a bad thing to hide. */
   left: auto; right: 16px; top: auto; bottom: 64px;
-  width: 240px; height: 135px; min-width: 0; min-height: 0;
-  border-radius: 8px; overflow: hidden;
+  /* MEASURED unpinned while presenting: 235x132, radius 12. We had 240x135 at
+     radius 8 -- close enough to pass, and free to correct now it is read. */
+  width: 235px; height: 132px; min-width: 0; min-height: 0;
+  border-radius: 12px; overflow: hidden;
   transition: width .24s cubic-bezier(0.2, 0, 0, 1), height .24s cubic-bezier(0.2, 0, 0, 1);
 }
 /* Everything on the tile scales to the smaller frame. */
@@ -5124,10 +5126,28 @@ body.presenting .hand-name { font-size: 13px; line-height: 20px; padding-right: 
  * page DOM. Flagged rather than presented as measured.
  */
 
-/* --- the share reserves the tile's column -------------------------------- */
-/* 240 tile + 16 gutter each side. Only while a tile is actually shown beside
-   it, which is why this hangs off .presenting rather than .shot-wrap. */
-body.presenting .shot-wrap { right: 272px; }
+/* --- the share does NOT reserve the tile's column ------------------------ */
+/* This used to be `right: 272px`, reserving a 240 tile plus two 16 gutters, so
+   the share shrank to sit beside the tile.
+ *
+ * WRONG, and Nam had the rule before I measured it: "the screensharing is
+ * centered on the space that is left after we exclude the right panel... The
+ * minimized video tile is fixed to the right side at a certain padding, so when
+ * we show the right panel, it only pushes the video tile to the left, keeping
+ * the same right-padding. This is what ends up creating that overlap."
+ *
+ * Confirmed on the live call, unpinned and presenting at 2560x1215:
+ *   share video  2047x1017 @ 61,63     -- centred in the 0..2184 left of the panel
+ *   self tile     235x132  @ 1917,931  -- right edge 2152
+ * The tile's right edge is our own stage's right edge (2168) less 16, so the
+ * tile position was already correct; it was the share that was wrong. And they
+ * OVERLAP from 1917 to 2108 -- 191px of it -- which is the whole point: the tile
+ * floats over the share rather than sitting in a column carved out of it.
+ *
+ * So the share fills the stage, which by construction is the space left after
+ * the panel, and the tile keeps its fixed right/bottom inset on top. The pinned
+ * case is genuinely two-column and keeps its own reservation. */
+body.presenting:not(.is-pinned) .shot-wrap { right: 0; }
 body.presenting .shot { min-width: 0; }
 @media (max-width: 720px) {
   body.presenting .shot-wrap { right: 0; bottom: 88px; }
@@ -5666,8 +5686,19 @@ body.is-pinned .solo { --pin-lead: 34px; }
    whole second half of the pill: a divider, "Presentation audio", and the switch
    whose knob carries volume_up at 12px in #d3e3fd. */
 .pres-chip {
-  height: 46px; border-radius: 23px;
-  padding: 0 8px 0 20px; gap: 10px;
+  /* CORRECTION. Last round I read 678x46 @ 1630,4 off this pill -- but that box
+     is a WRAPPER. The painted surface is 654x36 @ 1775,14, radius 18, #282a2c,
+     padding 0 0 0 12px. So the height was 10px too tall, the radius 5 too round
+     and the fill was the control bar's #333537 again.
+     That is Nam's "lopsided... the bottom padding is too small": a 46-tall pill
+     standing beside a 36-tall participant chip reads as top-heavy, and the
+     32-tall button inside it floated in too much room.
+     Lesson worth keeping: walk up to whatever actually PAINTS before trusting a
+     rect. Same mistake as the panel radius a few rounds back, where I measured
+     the lining instead of the surface. */
+  height: 36px; border-radius: 18px;
+  background-color: #282a2c;
+  padding: 0 2px 0 12px; gap: 8px;
   font: 500 14px/20px var(--font-title);
 }
 .pres-chip .ms { font-size: 24px; color: #e3e3e3; }
@@ -5676,22 +5707,31 @@ body.is-pinned .solo { --pin-lead: 34px; }
 
 /* M3's switch. The knob glyph and its ink are measured; the track's own box is
    matched to the screenshot, because the call ended before I could read it. */
+/* MEASURED this round: the switch is 39x24, sitting 6px clear top and bottom
+   inside the 36-tall pill. Not the 52x32 I had guessed from the screenshot. */
 .pres-aud {
-  position: relative; flex: 0 0 auto; width: 52px; height: 32px;
-  border: 0; border-radius: 16px; cursor: pointer; padding: 0;
+  position: relative; flex: 0 0 auto; width: 39px; height: 24px;
+  border: 0; border-radius: 12px; cursor: pointer; padding: 0;
   background-color: #8ab4f8; transition: background-color .2s linear;
 }
 .pres-aud-knob {
-  position: absolute; top: 4px; left: 24px;
-  width: 24px; height: 24px; border-radius: 50%;
+  position: absolute; top: 2px; left: 17px;
+  width: 20px; height: 20px; border-radius: 50%;
   display: grid; place-items: center;
   background-color: #062e6f; color: #d3e3fd;
   transition: left .2s cubic-bezier(0.2, 0, 0, 1), background-color .2s linear;
 }
 .pres-aud[aria-checked="false"] { background-color: #444746; }
-.pres-aud[aria-checked="false"] .pres-aud-knob { left: 4px; background-color: #8e918f; color: #202124; }
+.pres-aud[aria-checked="false"] .pres-aud-knob { left: 2px; background-color: #8e918f; color: #202124; }
 .pres-aud:focus-visible { outline: 2px solid #a8c7fa; outline-offset: 2px; }
-.pres-stop { height: 32px; padding: 0 16px; border-radius: 16px; font: 500 14px/1 var(--font-title); }
+/* MEASURED: 127x32 @ 2301,16 -- so 2px clear of the pill top and bottom, which
+   is the symmetry Nam is pointing at. Radius 16, padding 0 12px.
+   Its text reports as 13.33px Arial, i.e. the UA default with no font set on the
+   button at all, so 13px here rather than the 14 I had. The measured 127 also
+   includes a leading `cancel_presentation` glyph that the 7 kB subset does not
+   carry; the font ships pre-subset, so adding one glyph means regenerating it.
+   Left out deliberately, which is why ours is the narrower text-only button. */
+.pres-stop { height: 32px; padding: 0 12px; border-radius: 16px; font: 500 13px/1 var(--font-title); }
 
 /* --- 3. the chat, as Meet paints it -------------------------------------- */
 /* MEASURED with the chat open during a share:
@@ -5771,18 +5811,6 @@ body.presenting.is-pinned .solo {
   top: 50%; bottom: auto; transform: translateY(-50%);
   width: 26.2%; height: auto; aspect-ratio: 3 / 4; max-height: 100%;
   border-radius: 24px; overflow: hidden;
-  /* NO width transition here, and this one cost an hour to find.
-     `body.presenting .solo` carries `transition: width .24s` for the thumbnail's
-     grow and shrink. Against a PERCENTAGE width inside a `container-type: size`
-     parent that transition never settles: getAnimations() reported a live
-     `width` animation indefinitely and the computed width stayed pinned at the
-     old 872px, so the rule looked like it was losing a specificity fight it was
-     actually winning. An identical twin element in the same parent laid out
-     correctly at 228x305, which is what proved it was the element and not the
-     cascade.
-     Meet does not animate this change anyway -- the share and the tile just
-     appear at their new sizes. */
-  transition: none;
 }
 body.presenting.is-pinned .shot-wrap { right: calc(26.2% + 16px); }
 body.presenting .shot { border-radius: 8px; overflow: hidden; background-color: #3c4043; }

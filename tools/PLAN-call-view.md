@@ -1199,3 +1199,71 @@ Two probe lessons, both mine:
 - The first hands-popup check asserted `hidden === true` after a click without
   establishing it was `false` before, which proves nothing when the surface
   starts hidden. Re-run with the before-state asserted.
+
+## Round 10 — the top pill, the share's centring, and a retraction
+
+### The pill: I measured a wrapper, not the surface
+
+`678 x 46 @ 1630,4` from last round is a WRAPPER. The painted pill is
+**`654 x 36 @ 1775,14`, radius 18, `#282a2c`**, padding `0 0 0 12px`. So the
+height was 10px too tall, the radius 5 too round, and the fill was the control
+bar's `#333537` yet again.
+
+That is Nam's "lopsided… the bottom padding is too small": a 46-tall pill next to
+a 36-tall participant chip reads top-heavy. Inside the real pill everything is
+symmetric — `Stop presenting` is `127 x 32` with **2px** clear above and below,
+and the audio switch is `39 x 24` with **6px**. Ours now matches both.
+
+Also measured: the button's text reports as `13.33px Arial`, i.e. the UA default
+with no font set on it at all, and its 127px includes a leading
+`cancel_presentation` glyph the 7 kB subset does not carry. The font ships
+pre-subset, so that glyph is deliberately left out.
+
+Standing habit, third time now: **walk up to whatever actually paints before
+trusting a rect.** Same mistake as the panel radius (measured the lining) and the
+dark menu surface.
+
+### The share is centred, and the tile floats over it
+
+Nam had this before I measured it: "the screensharing is centered on the space
+that is left after we exclude the right panel… The minimized video tile is fixed
+to the right side at a certain padding, so when we show the right panel, it only
+pushes the video tile to the left, keeping the same right-padding. This is what
+ends up creating that overlap."
+
+Confirmed unpinned at 2560×1215: share video `2047 × 1017 @ 61,63` centred in the
+`0..2184` left of the panel, tile `235 × 132 @ 1917,931` with its right edge at
+2152 — and **191px of overlap**. Ours reserved a 272px column so the share shrank
+instead. The tile's position was already right; the share was wrong.
+
+Verified after: right gap 16 in both panel states, tile moves left by exactly the
+336 the stage loses, share fills the stage, 251px overlap. The pinned state keeps
+its own genuinely two-column reservation.
+
+### Retraction: the "stuck width transition" was my test rig
+
+Last round I diagnosed a width transition that "never settles against a
+percentage width inside a `container-type: size` parent", wrote it into a comment
+and a commit message as a standing lesson, and removed the transition.
+
+**That cause was wrong.** This QA pane runs with `document.visibilityState ===
+"hidden"`, and `document.timeline.currentTime` is **0** while `performance.now()`
+is 91 seconds. The timeline has never advanced, so *no* transition or animation
+ever completes here — every animated property sits frozen at its `from` value.
+The twin element laid out correctly only because it had no transition to be
+frozen in.
+
+So `transition: none` was a workaround for the harness, not a product fix, and it
+has been reverted. The real bug behind Nam's original report stands on its own:
+there was no `body.presenting.is-pinned .solo` rule at all, so pinning while
+presenting did nothing.
+
+**How to QA animated layout in this pane:** call
+`document.getAnimations().forEach(a => a.finish())` before reading geometry. Doing
+that turned the frozen stage/panel numbers into the real settled layout
+immediately — and confirmed both presenting layouts are correct with the
+transitions left in place.
+
+The wider lesson replaces the one I wrote last round: a live entry in
+`getAnimations()` does **not** imply a broken transition. Check whether the
+document timeline is running at all first.
