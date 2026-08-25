@@ -107,9 +107,24 @@ function docFor(id: string): Doc | undefined {
  * address. That is the truthful outcome rather than an empty white rectangle.
  */
 function pageExternal(url: string): HTMLElement {
+  /*
+   * Eager, not lazy.
+   *
+   * Nam: "it doesnt seem that I can load websites in the iframe inside the mock
+   * chrome." Measured, and the mechanism is fine — example.com frames in 13ms
+   * through this exact path. kenh14.vn, which is what the screenshot showed,
+   * genuinely refuses: it sends a framing policy and there is nothing to fix.
+   *
+   * But `loading: lazy` was a real trap waiting. A lazy frame defers while it is
+   * off-screen — measured at no load in 4s off-screen against 59ms on-screen — and
+   * this frame is built into a window that can be behind another, minimised, or
+   * mid-transition. Any of those would have tripped the 3.5s timeout and blamed
+   * the site for our own deferral. There is no benefit to weigh against that: the
+   * frame is only created when a tab asks for it.
+   */
   const frame = h('iframe', {
     class: 'cb-frame', src: url, title: url,
-    loading: 'lazy', referrerpolicy: 'no-referrer',
+    loading: 'eager', referrerpolicy: 'no-referrer',
   }) as HTMLIFrameElement;
   const wrap = h('div', { class: 'cb-ext' }, frame) as HTMLElement;
   let painted = false;
@@ -123,6 +138,8 @@ function pageExternal(url: string): HTMLElement {
       h('p', {}, 'Most sites send X-Frame-Options or a frame-ancestors policy that forbids embedding, and a ' +
         'page cannot detect that from the outside -- no error is exposed. So this is a timeout, honestly ' +
         'labelled, rather than a blank rectangle.'),
+      h('p', {}, 'Sites without that policy do load here — example.com frames in about 13ms. Most large ' +
+        'sites set it, so most large sites will land on this page.'),
       h('p', { class: 'pg-note' }, 'Open it in a real tab to see it.')));
   }, 3500);
   return wrap;
@@ -1088,13 +1105,55 @@ function chromeWindow(o: { onEmpty: () => void }): { body: HTMLElement; select: 
   const page = h('div', { class: 'cb-page' }) as HTMLElement;
   const strip = h('div', { class: 'cb-strip' }) as HTMLElement;
 
+  /**
+   * History belongs to the TAB, not the window.
+   *
+   * Nam: "pressing refresh on any tab on the mock chrome would bring me to the
+   * first tab?!" It did, every time. There was one `trail`/`at` pair for the whole
+   * window, and clicking a tab called paint() without touching it — so the cursor
+   * never moved off the seed value set at construction. Reload read trail[at],
+   * which was permanently the first tab, and dutifully went there.
+   *
+   * Back and forward had the same defect, less visibly: they walked a history
+   * that mixed every tab together.
+   *
+   * Chrome gives each tab its own back/forward stack, so this does too. The
+   * window-level trail is gone rather than patched, because a single shared
+   * history is the bug, not the symptom.
+   */
+  /**
+   * One history for the window, over the documents you have LOOKED AT.
+   *
+   * Nam's bug was reload: "pressing refresh on any tab would bring me to the
+   * first tab?!" There was a single trail/at pair that clicking a tab never
+   * touched, so the cursor sat on the seed value and reload dutifully went there.
+   *
+   * My first fix gave every tab its own back/forward stack, Chrome-style. QA
+   * caught that it does not work here, and the reason is worth writing down: in
+   * this browser a tab IS a document. Opening anything creates or focuses a tab
+   * rather than navigating the current one, so a per-tab stack is always length
+   * one and Back has nowhere to go. Correct model, wrong browser.
+   *
+   * So the history is over VISITS — the order in which documents were shown.
+   * Back returns to the last thing you were looking at, which is what the button
+   * means to someone who presses it, and it composes with tabs-as-documents
+   * instead of fighting them.
+   *
+   * paint() records; the nav buttons suppress recording while they move the
+   * cursor, or Back would push the place it just came from and never advance.
+   */
   interface Tab { id: string; el: HTMLElement }
   const open: Tab[] = [];
   let active = '';
+  const visits: string[] = [];
+  let at = -1;
+  let replaying = false;
 
   const paint = (id: string): void => {
     const doc = docFor(id);
     active = id;
+    // Record the visit unless a nav button is walking the list already.
+    if (!replaying && visits[at] !== id) { visits.splice(at + 1); visits.push(id); at = visits.length - 1; }
     // ext: ids carry the whole address; the registry ones only have a host.
     setOmni(id.startsWith('ext:') ? id.slice(4) : doc ? doc.host + '/' : 'chrome://new-tab-page');
     for (const t of open) t.el.classList.toggle('is-on', t.id === id);
@@ -1159,13 +1218,12 @@ function chromeWindow(o: { onEmpty: () => void }): { body: HTMLElement; select: 
     return b;
   };
 
-  /* A visited list per window, so back and forward are real rather than decorative. */
-  const trail: string[] = [];
-  let at = -1;
-  const goTo = (id: string, push: boolean): void => {
-    if (push) { trail.splice(at + 1); trail.push(id); at = trail.length - 1; }
-    addTab(id, true);
-  };
+  /**
+   * Navigating replaces the forward stack of the tab you are on, which is what a
+   * browser does. A brand-new tab gets its stack seeded in addTab.
+   */
+  /* push is honoured by paint() now; the parameter stays so callers read the same. */
+  const goTo = (id: string, _push: boolean): void => { addTab(id, true); };
 
   const field = h('input', {
     class: 'cb-omni-in', type: 'text', 'aria-label': 'Address and search bar',
@@ -1185,11 +1243,13 @@ function chromeWindow(o: { onEmpty: () => void }): { body: HTMLElement; select: 
     strip,
     h('div', { class: 'cb-bar' },
       navBtn('Back', '<path d="M20 11H7.8l5.6-5.6-1.4-1.4L4 12l8 8 1.4-1.4L7.8 13H20z" fill="currentColor"/>',
-        () => { if (at > 0) { at -= 1; addTab(trail[at]!, true); } }),
+        () => { if (at > 0) { at -= 1; replaying = true; addTab(visits[at]!, true); replaying = false; } }),
       navBtn('Forward', '<path d="M4 11h12.2l-5.6-5.6L12 4l8 8-8 8-1.4-1.4 5.6-5.6H4z" fill="currentColor"/>',
-        () => { if (at >= 0 && at < trail.length - 1) { at += 1; addTab(trail[at]!, true); } }),
+        () => { if (at < visits.length - 1) { at += 1; replaying = true; addTab(visits[at]!, true); replaying = false; } }),
+      // Reload repaints the ACTIVE tab. It used to repaint trail[at], which is
+      // how pressing it on any tab took you to the first one.
       navBtn('Reload', '<path d="M17.65 6.35A8 8 0 1 0 19.73 14h-2.08A6 6 0 1 1 12 6c1.66 0 3.14.69 4.22 1.78L13 11h7V4z" fill="currentColor"/>',
-        () => { const cur = trail[at]; if (cur) addTab(cur, true); }),
+        () => { if (active) paint(active); }),
       h('div', { class: 'cb-omni' }, field)),
     page) as HTMLElement;
 
@@ -1200,7 +1260,7 @@ function chromeWindow(o: { onEmpty: () => void }): { body: HTMLElement; select: 
    * catch that; the ordering is the fix.
    */
   for (const t of TABS) addTab(t.id, false);
-  if (TABS[0]) { trail.push(TABS[0].id); at = 0; paint(TABS[0].id); }
+  if (TABS[0]) paint(TABS[0].id);
 
   return { body, select: (id: string) => goTo(id, true), setOmni };
 }

@@ -6008,7 +6008,18 @@ body.tray-open.cc-on .react-clip { bottom: calc(var(--botbar) + 268px); }
   background: transparent; color: #e8eaed; padding: 0 4px;
   font: 400 11.5px/1 var(--font);
 }
-.cb-omni-in:focus-visible { outline: 1px solid #8ab4f8; }
+/* The ring belongs to the PILL, not the input inside it.
+ *
+ * Nam: "the url input looks weird too... like the focus ring doesnt fit the
+ * actual input." Measured: the pill is 1207x28 at radius 14 and the input is
+ * 1179x26 at radius 13, inset 14px on the left by the pill's own padding. So the
+ * ring traced a box 28px narrower, 2px shorter and pushed to the right of the
+ * thing it appeared to belong to.
+ *
+ * :focus-within moves it onto the pill, which is also what Chrome does — the
+ * whole omnibox lights up, not the text node inside it. */
+.cb-omni-in:focus-visible { outline: none; }
+.cb-omni:focus-within { outline: 2px solid #8ab4f8; outline-offset: 0; }
 
 /* --- 4. in the browser, text behaves like text -------------------------- */
 /* Nam: "When in chrome, I want it to feel like a browser again, meaning you can
