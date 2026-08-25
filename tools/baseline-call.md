@@ -170,3 +170,181 @@ the presenting banner, the tile arrangement, the stop-sharing affordance — was
 - Per-button hover states in the bar.
 - The overflow menu's contents (a stuck tooltip blocked it).
 - Reaction timing and easing.
+
+## The pinned state — measured 2026-08-25
+
+Read off `meet.google.com/jxc-zfzi-vjt` at **2560 × 1215**, via *More options →
+Pin to the screen → For myself only*. Nam drove the pin; the panel and hand were
+toggled from the console.
+
+### Pinning does not resize a solo tile
+
+| state | tile | panel |
+|---|---|---|
+| pinned, nothing else | `1889 × 1063 @ 335,64` | — |
+| pinned + People open | `1889 × 1063 @ 147,64` | `360 × 1063 @ 2184,64` |
+
+Identical to the unpinned numbers in the table above — same size, same re-centring
+(147). **Pin is orthogonal to layout.** It adds a marker and nothing else, which
+is the whole reason this state is cheap for us to support: no new geometry.
+
+Two corrections to the earlier chat-panel line while we are here: the panel reads
+**360 × 1063 @ 2184,64**, not 358 × 1061 @ 2185,73. Our 360 was right.
+
+### The tile marker
+
+The bottom-left strip is a flex row, 16px in from the tile's left edge, with its
+items centred on **y = tile bottom − 25**.
+
+| part | box | detail |
+|---|---|---|
+| pin glyph | `20 × 20 @ 163,1092` | ligature **`keep`**, `#fff`, 20px, weight 400, Google Symbols |
+| name | `96 × 20 @ 197,1092` | `#fff`, `500 16px/24px` Google Sans |
+
+Pin's right edge is 183, name starts at 197 — a **14px** gap.
+
+The glyph carries a visually-hidden span reading **"Pinned for yourself"** (12px
+Roboto, parked at x −9853). That is the accessible name, and it is worth copying
+verbatim: it names the scope, which is the distinction the submenu we skipped was
+there to make.
+
+### Pinned + hand raised — the marker survives
+
+This is the pairing Nam asked about, and the answer is that **the pin stays put
+and the name plate is what gives way**:
+
+- pin glyph: `20 × 20 @ 163,1092` — *unchanged*
+- green badge replaces the name: `140 × 32 @ 189,1086`, fill **`#6dd58c`**,
+  text **`#0a3818`**, radius **16**
+
+Badge centre y is 1102, exactly the pin's centre y. The gap from the pin's edge
+to the badge box is **6px** rather than 14, because the badge carries its own
+padding — so the text still lands about where the name text did.
+
+**The tile badge and the top-bar chip are different chips.** Top bar is
+`125 × 36 @ 2310,14`, fill `#80da88`, radius **48**. Tile badge is `#6dd58c`,
+32 tall, radius **16**. Easy to conflate and wrong to share one rule.
+
+### The People-panel marker
+
+A second, smaller pin rides the avatar in the contributor row:
+
+- ligature `keep`, `15 × 15 @ 2236,547`, `#e3e3e3`, 15px, Google Symbols
+- the row avatar is `32 × 32 @ 2216,527`, radius 50%
+
+So the marker sits at the avatar's **bottom-right, offset +20/+20** from its top
+left corner, overlapping the circle. It is present whether or not the hand is
+raised — when the hand goes up, a "Raised hands" section with *Lower all* appears
+*above* Contributors, and the pinned row keeps its marker in place below.
+
+### Still not captured
+
+**Pinned + screen share.** Nam's recollection is that the video frame becomes
+much taller when presenting while pinned. Starting a share needs Chrome's native
+picker driven, which is invisible to the page and to tab screenshots — the same
+wall documented above. Left unmeasured rather than guessed.
+
+### Pinned + presenting — finally measured
+
+Nam drove the native picker on 2026-08-25, which is the one thing that unblocks
+this. His recollection was right: **the pinned tile becomes much taller.** It is
+not a taller 16:9 — it turns portrait.
+
+| part | box | detail |
+|---|---|---|
+| share surface | `1587 × 787 @ 16,202` | radius **8**, fill **`#3c4043`** |
+| pinned self tile | `565 × 754 @ 1619,211` | radius **24**, AR **0.749** |
+| People panel | `360 × 1063 @ 2184,64` | unchanged |
+
+The self tile is **not aspect-locked** in this layout — it takes the column that
+is left over. Share ends at x 1603, a 16px gutter, tile from 1619 to 2184, which
+is exactly the panel's left edge: `2184 − 1619 = 565`. So width is leftover
+space, and the video letterboxes inside it rather than driving the box. That is a
+different rule from every other state in this document, where 16:9 drives
+everything — worth flagging before anyone reuses the keystone here.
+
+**The bottom-left strip rule does not change.** Pin glyph `20 × 20 @ 1635,930`
+against a tile at x 1619 with its bottom at 965: **16px in, 15px up**, the same
+two numbers as the wide tile. One rule covers both shapes, which is why the
+marker needed no special case.
+
+The top bar gains `Nam Nguyen (You, presenting, annotating)`, a *Presentation
+audio* toggle and a red *Stop presenting* — and the People panel goes to
+**Contributors 2**, adding a `Nam Nguyen / Your presentation` row. Both rows then
+carry the 15px pin marker, so the presentation row inherits it.
+
+Our own presenting view is a full-bleed composition of our own (see the note at
+the top of the share block in `styles.css`) rather than this two-column layout.
+Recording the real geometry here so that is a deliberate difference with a
+measurement behind it, not a gap.
+
+### The extreme state: pinned + presenting + hand + panel + tray + captions
+
+Nam turned the emoji tray and captions on over the presenting state, which
+answers the reservation question directly — and the answer is **not** the one the
+solo-tile keystone would predict.
+
+| | share surface | self tile |
+|---|---|---|
+| presenting | `1587 × 787 @ 16,**202**` | `565 × 754 @ 1619,**211**` |
+| + tray + captions | `1587 × 787 @ 16,**70**` | `565 × 754 @ 1619,**79**` |
+
+**Nothing resized. The whole stage moved up 132px.** Same widths, same heights,
+new y.
+
+The reservations are the same 52 and 216 measured on the solo tile — they just
+land differently:
+
+```
+region        1151 − 64          = 1087
+reserved      52 (tray) + 216 (cc) = 268
+left over     1087 − 268          =  819
+stage needs                          787   ->  fits, so it centres
+centre        64 + (819 − 787) / 2 =  80   ->  measured 70 / 79
+```
+
+So the presenting stage is **centred in whatever is left over and only shrinks
+once the region is smaller than it is**. With 787 needed and 819 available there
+is 32px of slack, and Meet spends it on position rather than scale. The solo tile
+shrinks because it is aspect-locked to fill; this stage is sized by the shared
+content and merely placed. Two different rules, and conflating them is how you
+would get a presenting layout that scales when the real one slides.
+
+The pin marker holds at 16/15 against the tile through all of it.
+
+### The tile menu while pinned
+
+Read straight off the open menu — Nam held the hover so it survived long enough
+to query, which the pill's own menu otherwise never does.
+
+```
+menu     247 x 160 @ 1926,476   radius 12      (3 x 48 rows + 8 top + 8 bottom)
+row 1    close_fullscreen  Minimize                      aria-disabled=true
+row 2    keep_off          Unpin                         LIVE
+row 3    aspect_ratio      Show my full video to others  aria-disabled=true
+```
+
+Three things settled:
+
+1. The live row genuinely reads **"Unpin"** when pinned. That was an inference
+   before; it is measured now.
+2. Its glyph is **`keep_off`**, which the 7 kB subset does not carry. We use
+   `keep` for both faces and let the label carry the difference — drawing a
+   stand-in is what Round 5 got wrong.
+3. **The menu is 247 wide, not 232.** Round 4's 232 came off a screenshot;
+   this is a `getBoundingClientRect`. Corrected.
+
+Note also, from Nam: the centre controller is on the tile **at all times** — in
+the pinned state and in the portrait presenting state alike. It is not a
+pinned-only affordance, which matches ours living on `.solo`.
+
+The surface itself, walked up from a row until something painted: **`#1e1f20`**,
+radius 12, **no shadow**, padding `8px 0`. Labels are `500 14px/20px "Google
+Sans Flex"` in `#e3e3e3` at **dx 52**. We had `#282a2c` on this surface — which
+is the control bar's chevron-pair fill, near enough to pass a glance and still
+the wrong token. Fixed.
+
+The two dead rows read visibly dimmer than "Unpin" in a screenshot, but every
+row, wrapper and label reports `opacity: 1` and `color: #e3e3e3`. So the dimming
+is applied somewhere we did not find in four levels of ancestry — recorded as
+unresolved rather than guessed at, since ours already distinguishes dead rows.

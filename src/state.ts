@@ -23,6 +23,12 @@ export interface State {
   micOn: boolean;
   captionsOn: boolean;
   handRaised: boolean;
+  /**
+   * Pinned to your own screen. Measured on the live product: pinning a solo
+   * tile changes no geometry at all — same 1889x1063, same re-centring when a
+   * panel opens. It is purely a marker, which is why it costs us one flag.
+   */
+  pinned: boolean;
   /** Meet's "Your meeting's ready" card, dismissible. */
   readyCard: boolean;
   fx: FxPreset;
@@ -44,6 +50,7 @@ export type Action =
   | { t: 'mic'; on: boolean }
   | { t: 'captions'; on: boolean }
   | { t: 'hand'; on: boolean }
+  | { t: 'pin'; on: boolean }
   | { t: 'readyCard'; on: boolean }
   | { t: 'fx'; preset: FxPreset }
   | { t: 'net'; profile: NetProfile }
@@ -63,6 +70,7 @@ export const initial: State = {
   // worse than no caption — the button is right there on the bar.
   captionsOn: false,
   handRaised: false,
+  pinned: false,
   readyCard: true,
   fx: 'off',
   net: 'good',
@@ -84,7 +92,7 @@ export function reduce(s: State, a: Action): State {
 
     case 'leave':
       // A CV has no business keeping a webcam warm after you walk away from it.
-      return { ...s, screen: 'ended', panel: 'none', cameraOn: false, micOn: false, fx: 'off', handRaised: false };
+      return { ...s, screen: 'ended', panel: 'none', cameraOn: false, micOn: false, fx: 'off', handRaised: false, pinned: false };
 
     case 'panel':
       // Clicking the open panel's own button closes it, the way a real call does.
@@ -109,6 +117,9 @@ export function reduce(s: State, a: Action): State {
 
     case 'hand':
       return { ...s, handRaised: a.on };
+
+    case 'pin':
+      return { ...s, pinned: a.on };
 
     case 'readyCard':
       return { ...s, readyCard: a.on };

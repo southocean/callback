@@ -963,3 +963,85 @@ layer, dim the ink, and set `aria-disabled`.
 6. Menu: left-aligned to the button, three items, no overflow, two disabled rows
    with no hover and one live row with hover.
 7. `npm run verify` green.
+
+---
+
+# Round 6 — the pinned state, and unpin
+
+## Phase 1 findings that decided the design
+
+Full measurements in `baseline-call.md`. The one that shaped everything:
+
+> **Pinning changes no geometry.** Tile stayed `1889 × 1063`; with a panel open
+> it still re-centred to x 147. Identical to unpinned.
+
+So there is no "pinned layout" to build. There is a marker, and a 34px lead that
+the rest of the bottom-left strip shifts by. That reduces the whole feature to
+one boolean, two markers and one custom property — which is why this round is
+small despite covering five combined states.
+
+Second finding, and the answer to what Nam actually asked: **the pin survives a
+raised hand.** The name plate is what gives way to the green badge; the pin does
+not move. So the marker is driven by `pinned` alone and never consults
+`handRaised`.
+
+## Phase 2 — the plan, reviewed twice
+
+1. `state.ts` — `pinned: boolean`, a `{ t: 'pin'; on }` action, reset on `leave`
+   alongside `handRaised`. A CV should not remember a pin after you walk away.
+2. `call.ts` — a `pinMark` element in the tile's bottom-left strip, `hidden`
+   driven from `sync()`. `body.is-pinned` follows the existing `has-panel` /
+   `tray-open` / `cc-on` pattern, so no tile reference has to be threaded around.
+3. The menu's one live row toggles label and dispatches. Built inside the
+   existing callback so it reads the store on each open rather than freezing.
+4. `panels.ts` — a `showPin` parameter on `row()`, not a value derived inside it.
+   With a hand up there are two rows for one person and **only the lower one is
+   marked**, so the caller has to decide.
+5. `styles.css` — `--pin-lead`, one number with two consumers.
+
+**Reviewed twice, two things caught:**
+
+- The `[hidden]` trap, for the fourth time in this file. `.solo-pin` needs
+  `display: grid` to centre its glyph, which would beat the UA rule and the
+  marker would never hide. Written as an explicit `[hidden] { display: none }`
+  with a comment, rather than discovered again in QA.
+- There was no visually-hidden utility in the codebase, and the first draft put
+  an `aria-label` on the glyph span. Wrong shape: the glyph should be
+  `aria-hidden` and a real `.sr-only` sentence should carry the meaning. Added
+  the utility.
+
+## Phase 3 — QA against the captured evidence
+
+Driven on our own build at a 1010×568 tile (so every number is a rule check, not
+a coincidence of matching viewports):
+
+| rule | original | ours | |
+|---|---|---|---|
+| pin inset from tile left | 16 | `151 − 135 = 16` | ✓ |
+| pin above tile bottom | 15 | `640 − 625 = 15` | ✓ |
+| pin → name gap | 14 | `185 − 171 = 14` | ✓ |
+| name lead when pinned | +34 | `151 → 185` | ✓ |
+| badge lead when pinned | +34 | `143 → 177` | ✓ |
+| pin → badge gap | 6 | `177 − 171 = 6` | ✓ |
+| badge fill | `#6dd58c` | `rgb(109,213,140)` | ✓ |
+| panel marker offset on avatar | +20/+20 | `1318−1298 / 345−325` | ✓ |
+| panel marker | 15px `#e3e3e3` | 15px `rgb(227,227,227)` | ✓ |
+| marked rows in panel | contributors only | 1 of 2 avatars | ✓ |
+| tile size, pinned vs not | unchanged | `1010×568` both | ✓ |
+
+Round trip: pinned → menu reads "Unpin" → click → marker hidden, name back to
+16, badge back to 8, panel marker gone, tile untouched → menu reads "Pin to the
+screen" → click → all three back. Both directions, verified by measurement.
+
+Two corrections fell out of the live menu while it was open: the surface is
+`#1e1f20` (we had the control bar's `#282a2c`) and it is **247** wide, not the
+232 Round 4 read off a screenshot.
+
+## Left deliberately undone
+
+The **presenting layout** is now measured for the first time — share surface
+`1587 × 787` radius 8 `#3c4043`, self tile `565 × 754` radius 24, portrait, and
+the stage *re-centres* rather than shrinking for the tray and captions. Ours is a
+full-bleed composition of its own, so adopting that two-column layout is a round
+of its own. It is written down in `baseline-call.md` now, which means the gap is
+a decision with a measurement behind it instead of an unknown.

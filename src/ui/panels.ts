@@ -44,7 +44,7 @@ export function renderChat(): HTMLElement {
  * Geometry measured in the live panel at 1440x900 — see the note in styles.css
  * for the offsets.
  */
-export function peopleLists(o: { handRaised: boolean; onLower: () => void; name: string }): HTMLElement {
+export function peopleLists(o: { handRaised: boolean; pinned: boolean; onLower: () => void; name: string }): HTMLElement {
   const initials = o.name.split(/\s+/).map((w) => w[0] ?? '').join('').slice(0, 2).toUpperCase();
 
   const section = (title: string, n: number, body: HTMLElement): HTMLElement => {
@@ -61,9 +61,20 @@ export function peopleLists(o: { handRaised: boolean; onLower: () => void; name:
     return sec;
   };
 
-  const row = (sub: string, action: HTMLElement | null): HTMLElement =>
+  /**
+   * MEASURED: the pinned marker rides the row avatar's bottom-right — a 15px
+   * `keep` in #e3e3e3 over a 32px circle, offset +20/+20 from its top left.
+   *
+   * It appears on the CONTRIBUTORS row only. With a hand up there are two rows
+   * for the same person and just one marker, on the lower one, so `showPin`
+   * is a parameter rather than something derived from `o.pinned` inside here.
+   */
+  const row = (sub: string, action: HTMLElement | null, showPin = false): HTMLElement =>
     h('div', { class: 'ppl-row' },
-      h('span', { class: 'ppl-av', 'aria-hidden': 'true' }, initials),
+      h('span', { class: 'ppl-av', 'aria-hidden': 'true' }, initials,
+        ...(showPin && o.pinned
+          ? [h('span', { class: 'ppl-pin', role: 'img', 'aria-label': 'Pinned for yourself' }, sym('keep', 15))]
+          : [])),
       h('div', { class: 'ppl-who' },
         h('span', { class: 'ppl-name' }, o.name + ' (You)'),
         h('span', { class: 'ppl-sub' }, sub)),
@@ -87,7 +98,7 @@ export function peopleLists(o: { handRaised: boolean; onLower: () => void; name:
 
   return h('div', { class: 'ppl-lists' },
     section('Raised hands', o.handRaised ? 1 : 0, hands),
-    section('Contributors', 1, row('Meeting host', micLabel)));
+    section('Contributors', 1, row('Meeting host', micLabel, true)));
 }
 
 /**
@@ -265,6 +276,6 @@ export function renderTranscript(): HTMLElement {
  * The People panel proper — the participants and nothing else, which is all the
  * original puts here.
  */
-export function renderPeople(o: { handRaised: boolean; onLower: () => void }): HTMLElement {
-  return peopleLists({ handRaised: o.handRaised, onLower: o.onLower, name: profile.name });
+export function renderPeople(o: { handRaised: boolean; pinned: boolean; onLower: () => void }): HTMLElement {
+  return peopleLists({ handRaised: o.handRaised, pinned: o.pinned, onLower: o.onLower, name: profile.name });
 }

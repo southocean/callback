@@ -156,6 +156,22 @@ export function renderCall(store: Store, quests: Quests, deps: CallDeps): HTMLEl
   const muteBadge = h('div', { class: 'solo-mute', role: 'img', 'aria-label': 'Your microphone is off' },
     sym('mic_off', 18)) as HTMLElement;
 
+  /**
+   * The pinned marker, MEASURED on the live product: a 20px `keep` in white at
+   * the tile's bottom-left, 16px in and 15px up — the exact anchor the name
+   * plate already uses. Pinning inserts a 34px lead (the 20px glyph plus a 14px
+   * gap) and everything in the strip shifts right by it; see --pin-lead.
+   *
+   * The hidden span carries Meet's own wording, "Pinned for yourself". Worth
+   * copying verbatim: it names the SCOPE, which is the distinction the "For
+   * myself only / For everyone" submenu existed to make. We pin directly and
+   * dropped the submenu, so this label is the only place that scope is stated.
+   */
+  const pinMark = h('div', { class: 'solo-pin' },
+    h('span', { 'aria-hidden': 'true' }, sym('keep', 20)),
+    h('span', { class: 'sr-only' }, 'Pinned for yourself')) as HTMLElement;
+  pinMark.hidden = true;
+
   const handPill = h('div', { class: 'hand-pill', role: 'status' },
     h('div', { class: 'hand-bg', 'aria-hidden': 'true' }),
     h('span', { class: 'hand-ico', 'aria-hidden': 'true' }, sym('back_hand', 16)),
@@ -187,6 +203,7 @@ export function renderCall(store: Store, quests: Quests, deps: CallDeps): HTMLEl
       h('div', { class: 'solo-blur', 'aria-hidden': 'true' }),
       h('div', { class: 'solo-scrim', 'aria-hidden': 'true' }),
       h('div', { class: 'solo-av', 'aria-hidden': 'true' }, 'NN'),
+      pinMark,
       h('span', { class: 'solo-name' }, profile.name),
       muteBadge,
       handPill,
@@ -221,18 +238,36 @@ export function renderCall(store: Store, quests: Quests, deps: CallDeps): HTMLEl
      *   - THREE rows, not four. We invented "Remove this tile", which was also
      *     the row overflowing the surface.
      *   - Minimize and "Show my full video" are DEAD; only "Pin to the screen"
-     *     is live, and it carries a submenu chevron. We gave all four the same
+     *     is live. (It carried a submenu chevron until Nam cut it — see below.)
      *     weight and none of them a hover.
      *   - "to others", not "to everyone".
      *
      * Left-aligned, because the original's left edge sits under the button.
      * Ours passed 'right' and landed off to the side.
      */
+    /**
+     * The one live row toggles. CONFIRMED live while pinned: the row reads
+     * "Unpin" and carries `keep_off`.
+     *
+     * `keep_off` is not in the 7 kB subset, and hand-drawing one next to a
+     * designed typeface is the exact mistake Round 5 made — so `keep` serves
+     * both faces and the label carries the difference. The label is also what
+     * gets read out, so nothing is lost to a screen reader.
+     *
+     * Built inside the callback, so it reads the store each time it opens
+     * rather than freezing whichever state it was first constructed in.
+     */
     attachMenu(more, (): MenuItem[] => [
       { icon: 'close_fullscreen', label: 'Minimize', disabled: true },
-      { icon: 'keep', label: 'Pin to the screen', submenu: true },
+      {
+        icon: 'keep',
+        label: store.get().pinned ? 'Unpin' : 'Pin to the screen',
+        onPick: () => { store.dispatch({ t: 'pin', on: !store.get().pinned }); },
+      },
       { icon: 'aspect_ratio', label: 'Show my full video to others', disabled: true },
-    ], { align: 'left', side: 'below', width: 232, cls: 'gm-dark' });
+    ], { align: 'left', side: 'below', width: 247, cls: 'gm-dark' });
+    // 247, MEASURED off the live menu (247 x 160 = three 48px rows plus the
+    // 8px top and bottom padding). Round 4's 232 came off a screenshot.
     /**
      * Measured left to right: `visual_effects` at 44x44 r22 ink #e3e3e3, a
      * middle control at 44x44 r100 ink #fff, then `more_vert` at 40x40 r20.
@@ -358,6 +393,7 @@ export function renderCall(store: Store, quests: Quests, deps: CallDeps): HTMLEl
       s.panel === 'chat' ? h('div', { class: 'side-body' }, renderChat())
       : s.panel === 'people' ? h('div', { class: 'side-body' }, renderPeople({
           handRaised: s.handRaised,
+          pinned: s.pinned,
           onLower: () => { store.dispatch({ t: 'hand', on: false }); },
         }))
       : s.panel === 'about' ? h('div', { class: 'side-body' }, renderAbout())
@@ -1333,6 +1369,14 @@ export function renderCall(store: Store, quests: Quests, deps: CallDeps): HTMLEl
     // bottom left for as long as the hand is up, and Nam asked for it back.
     // Colour and entrance are screenshot-derived, flagged in styles.css.
     handPill.hidden = !s.handRaised;
+    /**
+     * MEASURED: the pin marker SURVIVES a raised hand. It is the name plate
+     * that gives way to the green badge, and the pin stays exactly where it
+     * was at (16, 15). So this is driven by s.pinned alone and never consults
+     * s.handRaised -- which is the whole answer to what Nam asked about.
+     */
+    pinMark.hidden = !s.pinned;
+    document.body.classList.toggle('is-pinned', s.pinned);
     // Nam wants this on whenever the mic is not enabled, which on this page is
     // effectively always — turning the mic on raises a card whose close turns it
     // straight back off.

@@ -3272,7 +3272,11 @@ body.has-panel .grid-wrap.is-solo { inset: 72px 375px 80px 16px; }
 
 /* --- the dark menu surface --------------------------------------------- */
 /* Same component as the pre-join's, on the dark side of the palette. */
-.gm-dark .gm-menu { background-color: #282a2c; }
+/* MEASURED off the live pinned tile menu, 2026-08-25: the surface is #1e1f20,
+   247 x 160, radius 12, NO shadow, 8px 0 padding, rows 48, label 500 14/20 at
+   dx 52. We had #282a2c, which is the chevron-pair fill from the control bar —
+   close enough to look deliberate and still wrong. */
+.gm-dark .gm-menu { background-color: #1e1f20; }
 .gm-dark .gm-label { color: #e3e3e3; }
 .gm-dark .gm-sub { color: #9aa0a6; }
 .gm-dark .gm-item { --sl: #e3e3e3; }
@@ -5533,8 +5537,12 @@ body.presenting .shot { min-width: 0; }
 }
 .gm-item.is-off::before, .gm-item.is-off::after { display: none !important; }
 
-/* The chevron on a row that opens a submenu we do not clone. */
-.gm-more { margin-left: auto; color: #9aa0a6; font-size: 12px; line-height: 1; }
+/* The submenu chevron is gone, along with MenuItem.submenu that drew it. Nam:
+   "let's first remove the small triangle on the right side, cause we are not
+   copying the next selector". The original's Pin row opens a submenu offering
+   "For myself only" and "For everyone"; ours pins directly, so a chevron would
+   promise a step that does not exist. Removed rather than hidden — its only
+   caller was that one row, so the flag was dead the moment the row dropped it. */
 
 /* The tile menu's rows must not overflow their surface — the fourth row we had
    invented was also the one spilling out of it. Wrap rather than clip, so a
@@ -5559,3 +5567,54 @@ body.presenting .shot { min-width: 0; }
  * of an active control in the bar — so this borrows a real value from the same
  * palette rather than inventing one, but the pairing is a choice. */
 .solo-ctl:active { --sl: #a8c7fa; --sl-press: .22; }
+
+/* ================== PINNED ============================================== */
+/* MEASURED on the live product 2026-08-25, pinned via More options -> Pin to
+   the screen -> For myself only.
+ *
+ * The finding that shaped this whole block: pinning changes NO geometry. The
+ * tile stayed 1889x1063, and with a panel open it still re-centred to x 147 —
+ * identical to unpinned. So there is no pinned layout, only a pinned marker,
+ * and none of the keystone rules need a variant. */
+
+/* A real visually-hidden utility rather than an aria-label on a glyph span,
+   because the marker is decorative-plus-informative: the glyph is aria-hidden
+   and the sentence is what gets read. */
+.sr-only {
+  position: absolute; width: 1px; height: 1px; margin: -1px; padding: 0;
+  overflow: hidden; clip-path: inset(50%); white-space: nowrap; border: 0;
+}
+
+/* The [hidden] trap, for the fourth time in this file: a display here would
+   beat the UA rule and the marker would never hide. Stated so the next person
+   does not have to rediscover it. */
+.solo-pin[hidden] { display: none !important; }
+
+.solo-pin {
+  /* 20x20 at 163,1092 against a tile at x 147 with its bottom at 1127.
+     16px in, 15px up — the same anchor .solo-name already uses. Verified again
+     on the portrait presenting tile (20x20 @ 1635,930, tile 1619 / bottom 965),
+     so one rule covers both tile shapes. */
+  position: absolute; left: 16px; bottom: 15px; z-index: 4;
+  display: grid; place-items: center; width: 20px; height: 20px;
+  color: #fff;
+}
+
+/* Pinning inserts a 34px lead — the 20px glyph plus a 14px gap — and the rest
+   of the strip shifts right by exactly that:
+     name   16 -> 50   (measured 197 against a tile at 147)
+     badge   8 -> 42   (measured 189 against the same tile)
+   One number, two consumers, which is why it is a custom property. */
+.solo { --pin-lead: 0px; }
+body.is-pinned .solo { --pin-lead: 34px; }
+.solo-name { left: calc(16px + var(--pin-lead)); }
+.hand-pill { left: calc(8px + var(--pin-lead)); }
+
+/* The panel's own marker rides the row avatar's bottom-right: a 15px `keep` in
+   #e3e3e3 at +20/+20 from a 32px circle's top left. */
+.ppl-av { position: relative; }
+.ppl-pin {
+  position: absolute; left: 20px; top: 20px;
+  display: grid; place-items: center; width: 15px; height: 15px;
+  color: #e3e3e3;
+}
