@@ -1765,3 +1765,58 @@ Verified: the top pixel of all three caps hit-tests to the button; maximize afte
 both dragging and resizing fills the host exactly; un-maximising restores the
 dragged position and resized size to the pixel; a click on the very top row of
 Maximize registers.
+
+## Round 23 — the real reason nothing was clickable
+
+Nam: "I cannot click any of these minimize maximize and close button… How did you
+test them? can you test them in browser?" A fair challenge, because I had not.
+
+`pageDesktop` registered this on every window, in the **capture** phase:
+
+```js
+el.addEventListener('pointerdown', () => surface.appendChild(el), true);
+```
+
+Re-inserting a node mid-gesture destroys the pointerdown's target. The browser
+retargets the following mousedown to the container, mousedown and mouseup no
+longer share a target, and **no click event is dispatched**. The instrumented log
+from a real click on Maximize:
+
+```
+pointerdown target=<the button's svg>
+mousedown   target=dk-surface          <- retargeted by the DOM move
+pointerup   target=<the button's svg>
+mouseup     target=<the button's svg>
+(no click)
+```
+
+So it was never about the caption buttons. It killed **every click inside every
+window** on the desktop — caption buttons, tree rows, files, tabs. Raising
+`z-index` changes stacking without touching the tree, so the gesture survives.
+
+### Why three rounds of my tests missed it
+
+Every check I wrote called `.click()` directly on the element. `.click()`
+dispatches a click outright — it never performs the
+pointerdown/mousedown/mouseup sequence that this bug corrupts. **The one
+mechanism that was broken was the one mechanism my tests skipped.**
+
+`elementFromPoint` did not help either: hit-testing was always correct, the
+element really was on top. The defect lived entirely in event *sequencing*, which
+only a real pointer produces. Rounds 20–22 were all green against it.
+
+### Verified in a real browser
+
+Driven in Nam's own Chrome at real coordinates, screenshotting after each step:
+maximize fills the desktop; un-maximize restores position and size; the Tools
+folder navigates with breadcrumb, listing and count; `internal-tooling.html` opens
+the emulated Chrome on the real page; minimize hides the window and the taskbar
+item restores it; a tab's close button removes that tab; the window's close button
+removes the window and its taskbar item.
+
+### One more trap
+
+The first real-click test after the previous commit *still* failed — because the
+page was serving a **stale bundle**. It had to be loaded with a cache-busting
+query before the new build ran at all. Confirm a fix is actually live (here: an
+inline `z-index` that only the new code writes) before concluding it did not work.

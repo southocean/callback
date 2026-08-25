@@ -1020,6 +1020,32 @@ function pageDesktop(): HTMLElement {
   interface Live { el: HTMLElement; task: HTMLElement; min: boolean; kind: 'explorer' | 'chrome'; select?: (id: string) => void; }
   const live: Live[] = [];
 
+  /**
+   * Bring-to-front by z-index, NOT by moving the node.
+   *
+   * This was `surface.appendChild(el)` on pointerdown, in the capture phase --
+   * so every press inside a window re-inserted that window into the DOM. Moving
+   * a node mid-gesture destroys the pointerdown's target, so the browser
+   * retargets the following mousedown to .dk-surface, mousedown and mouseup no
+   * longer share a target, and NO CLICK EVENT IS DISPATCHED AT ALL.
+   *
+   * That is Nam's "I cannot click any of these minimize maximize and close
+   * button". It was not the caption buttons: it killed every click inside every
+   * window on the desktop -- caption buttons, tree rows, files, tabs, all of it.
+   * The event log is unambiguous:
+   *
+   *   pointerdown target=<the button's svg>
+   *   mousedown   target=dk-surface        <- retargeted by the DOM move
+   *   pointerup   target=<the button's svg>
+   *   mouseup     target=<the button's svg>
+   *   (no click)
+   *
+   * Raising z-index changes stacking without touching the tree, so the gesture
+   * survives intact.
+   */
+  let topZ = 10;
+  const raise = (el: HTMLElement): void => { el.style.zIndex = String(++topZ); };
+
   /** The taskbar hover preview — Nam asked for "a small render of the explorer
    *  folder", and the honest way to get one is to render the window small
    *  rather than draw a picture of it. A deep clone scaled down is the real
@@ -1052,7 +1078,7 @@ function pageDesktop(): HTMLElement {
       existing.min = false;
       existing.el.classList.remove('is-min');
       existing.task.classList.add('is-on');
-      surface.appendChild(existing.el);
+      raise(existing.el);
       existing.select?.(id);
       return;
     }
@@ -1093,12 +1119,13 @@ function pageDesktop(): HTMLElement {
     task.addEventListener('click', () => {
       if (rec.min) { rec.min = false; el.classList.remove('is-min'); task.classList.add('is-on'); }
       else { rec.min = true; el.classList.add('is-min'); task.classList.remove('is-on'); }
-      surface.appendChild(el);
+      raise(el);
     });
-    el.addEventListener('pointerdown', () => surface.appendChild(el), true);
+    el.addEventListener('pointerdown', () => raise(el), true);
     live.push(rec);
     taskItems.appendChild(task);
     surface.appendChild(el);
+    raise(el);
     preview(task, rec, title);
   };
 
