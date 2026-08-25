@@ -694,7 +694,23 @@ function win11(o: {
   };
 
   let maxed = false;
-  const el = h('div', { class: 'wx' + (o.full ? '' : ' wx-solo') }) as HTMLElement;
+  /**
+   * A window announces itself now.
+   *
+   * The audit found role=NONE and label=NONE on every window shell, which means a
+   * screen reader user could not tell a window existed, what it was, or which of
+   * two they were in. role="dialog" plus a name from the title fixes that — and
+   * aria-labelledby rather than aria-label so a retitled window (Chrome does it
+   * per tab, the player per clip) renames itself without a second update path.
+   *
+   * NOT aria-modal: these windows do not trap, and claiming they do would hide
+   * the taskbar and the rest of the desktop from AT for no reason.
+   */
+  const titleId = 'wx-t-' + Math.random().toString(36).slice(2, 8);
+  const el = h('div', {
+    class: 'wx' + (o.full ? '' : ' wx-solo'),
+    role: 'dialog', 'aria-labelledby': titleId, tabindex: '-1',
+  }) as HTMLElement;
 
   /**
    * Maximise, and put the window back exactly where it was.
@@ -735,7 +751,7 @@ function win11(o: {
 
   const bar = h('div', { class: 'wx-bar' },
     h('span', { class: 'wx-bar-ico' }, o.icon()),
-    h('span', { class: 'wx-title' }, o.title),
+    h('span', { class: 'wx-title', id: titleId }, o.title),
     h('div', { class: 'wx-btns' },
       o.full && o.onMinimise ? cap('wx-min', 'Minimize', 'min', o.onMinimise) : null,
       // Maximize is offered in BOTH modes now. Nam asked for "the rest", and
@@ -777,6 +793,21 @@ function win11(o: {
       toggleMax();
     });
   }
+
+  /*
+   * Escape closes the window, and focus moves into it when it opens.
+   *
+   * The audit measured "focus did NOT move" on open, so launching Explorer from
+   * the taskbar left you stranded on the taskbar with nothing announced. Focus
+   * goes to the shell rather than the first control: the shell is labelled, so a
+   * screen reader reads the window's name on arrival, and Tab then walks the
+   * contents in order instead of starting halfway down them.
+   */
+  el.addEventListener('keydown', (e) => {
+    if ((e as KeyboardEvent).key !== 'Escape') return;
+    e.stopPropagation();
+    o.onClose();
+  });
 
   el.append(bar, o.body);
   if (o.status) el.appendChild(o.status);
@@ -1465,6 +1496,16 @@ function pageDesktop(): HTMLElement {
    * active -- and a minimised window still counts as running.
    */
   const paint = (): void => {
+    /*
+     * Which window is active, said in CSS as well as in z-index.
+     *
+     * The audit found both windows reporting an identical shadow and border with
+     * no focus class — z-index was the only cue, which is no cue at all if you
+     * are not watching them overlap. Windows dims the inactive title bar and
+     * flattens its shadow, and that single difference is most of what makes a
+     * stack of windows read as real.
+     */
+    for (const w of live) w.el.classList.toggle('is-focus', w === focused && !w.min);
     for (const app of APPS) {
       const b = buttons.get(app.kind);
       if (!b) continue;
@@ -1499,8 +1540,20 @@ function pageDesktop(): HTMLElement {
     paint();
   };
 
+  /*
+   * Windows scale and fade on the way out, and shrink toward their taskbar button
+   * on minimise. Both are 140ms — long enough to read as motion, short enough
+   * that it never stands between a click and its result. The element outlives the
+   * state change by that long, which is why closeWin removes on a timer.
+   */
+  const OUT_MS = 140;
+
   const closeWin = (w: Live): void => {
-    w.el.remove();
+    // Let the exit animation play, then drop the node. The record leaves the
+    // list immediately so the taskbar updates on the click rather than 140ms
+    // after it.
+    w.el.classList.add('is-out');
+    window.setTimeout(() => w.el.remove(), OUT_MS);
     const i = live.indexOf(w);
     if (i >= 0) live.splice(i, 1);
     if (focused === w) {
@@ -1619,6 +1672,8 @@ function pageDesktop(): HTMLElement {
     live.push(rec);
     surface.appendChild(el);
     focus(rec);
+    // Focus the shell so its name is announced and Tab starts at the top.
+    el.focus();
   }
 
   // Start, and a small menu so the button is not a lie.

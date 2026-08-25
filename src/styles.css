@@ -4585,7 +4585,7 @@ body.set-open .cc { bottom: calc(var(--botbar) + 52px + 12px); }
 .wx-solo { position: relative; margin: auto; width: min(760px, 90%); height: min(480px, 84%); }
 .pg-win { display: flex; }
 .wx.is-max { left: 0 !important; top: 0 !important; width: 100%; height: 100%; border-radius: 0; }
-.wx.is-min { display: none; }
+/* superseded by the animated minimise below */
 .wx.is-drag { transition: none; cursor: grabbing; }
 
 .wx-bar {
@@ -6199,4 +6199,108 @@ body.tray-open.cc-on .react-clip { bottom: calc(var(--botbar) + 268px); }
 @media (prefers-reduced-motion: reduce) {
   .quest-toast, .quest-toast.out, .qt-bump { animation: none; }
   .qt-x::after { transition: none; }
+}
+
+/* ================= WINDOWS: MICA, FOCUS, MOTION ========================== */
+/* Three findings from the audit of the mock OS, all on the window shell.
+ *
+ * 1. FOCUSED AND UNFOCUSED LOOKED IDENTICAL. Measured: both windows reported the
+ *    same box-shadow and the same border-color, with no focus class anywhere —
+ *    z-index was the only difference, which is no signal at all unless you happen
+ *    to be watching them overlap. Windows dims the inactive title bar and
+ *    flattens its shadow hard, and that one difference is most of what makes a
+ *    stack of windows read as a stack rather than a collage.
+ *
+ * 2. THE WINDOWS WERE OPAQUE. rgb(39,39,39), backdrop-filter: none. Win11's Mica
+ *    is faintly translucent so the wallpaper tints the chrome — it is the most
+ *    recognisable material in the OS and we had none of it. Applied to the title
+ *    bar and the window ground, not the content panes: Mica is a chrome material,
+ *    and a translucent file list would just be hard to read.
+ *
+ * 3. NOTHING ANIMATED. animationName: none on every window; open, close and
+ *    minimise all snapped. 140ms in, 140ms out — long enough to read as motion,
+ *    short enough that it never sits between a click and its result. Minimise
+ *    shrinks toward the bottom of the screen, which is where the taskbar button
+ *    is.
+ *
+ * Every one of these is drawn from knowledge of Win11 and Nam's screenshots
+ * rather than measured off a running copy — there is no Windows here to
+ * instrument the way Meet was. Flagged, not presented as captured.
+ */
+.wx {
+  /* Mica. The alpha is what lets the wallpaper through; the blur is what stops
+     it being a window with a picture behind it. */
+  background-color: rgba(43, 43, 43, .82);
+  backdrop-filter: blur(30px) saturate(130%);
+  -webkit-backdrop-filter: blur(30px) saturate(130%);
+  border-color: rgba(255, 255, 255, .09);
+  transition: box-shadow .14s linear, border-color .14s linear;
+  animation: wx-in .14s cubic-bezier(0, 0, 0.2, 1) both;
+}
+/* No backdrop to sample in Window-share mode — it sits on nothing — so that one
+   stays solid rather than blending with the share's own background. */
+.wx-solo { background-color: #272727; backdrop-filter: none; -webkit-backdrop-filter: none; }
+/* The content panes stay opaque. Text on a blurred wallpaper is a legibility
+   problem dressed as a material. */
+.wx-body, .wx-tree, .wx-files, .cb-page, .mp-stage { backdrop-filter: none; }
+
+/* --- focused vs not ----------------------------------------------------- */
+/* Unfocused is the default state, so the dimmer values live on .wx and the
+   focused ones override. That way a window with no class yet cannot look active. */
+.wx { box-shadow: 0 8px 20px rgba(0, 0, 0, .34); }
+.wx > .wx-bar { background-color: rgba(32, 32, 32, .74); }
+.wx > .wx-bar .wx-title { color: #9d9d9d; }
+.wx > .wx-bar .wx-cap { color: #9d9d9d; }
+
+.wx.is-focus {
+  box-shadow: 0 28px 64px rgba(0, 0, 0, .62), 0 2px 8px rgba(0, 0, 0, .4);
+  border-color: rgba(255, 255, 255, .16);
+}
+.wx.is-focus > .wx-bar { background-color: rgba(24, 24, 24, .88); }
+.wx.is-focus > .wx-bar .wx-title { color: #fff; }
+.wx.is-focus > .wx-bar .wx-cap { color: #fff; }
+
+/* The shell takes focus on open so its name is announced; it must not draw a
+   ring for that — the window's own chrome already says which one is active. */
+.wx:focus { outline: none; }
+.wx:focus-visible { outline: none; }
+
+/* --- motion ------------------------------------------------------------- */
+@keyframes wx-in {
+  from { opacity: 0; transform: scale(.96); }
+  to   { opacity: 1; transform: none; }
+}
+@keyframes wx-out {
+  from { opacity: 1; transform: none; }
+  to   { opacity: 0; transform: scale(.96); }
+}
+.wx.is-out { animation: wx-out .14s cubic-bezier(0.4, 0, 1, 1) both; pointer-events: none; }
+/* Minimise travels toward the taskbar rather than just vanishing, which is the
+   cue that tells you where the window went. */
+.wx.is-min {
+  display: block;
+  animation: wx-min .14s cubic-bezier(0.4, 0, 1, 1) both;
+  pointer-events: none;
+}
+/* visibility is the load-bearing part, not the fade. Animating only opacity
+   left the minimised window at display:block and opacity:0 — still in the tab
+   order, still read by a screen reader, a ghost you could focus but not see.
+   That would have been a fresh a11y bug introduced by an animation added to fix
+   a beauty one. visibility animates discretely, so it flips at the end of the
+   keyframe and the window leaves the accessibility tree once it has gone. */
+@keyframes wx-min {
+  from { opacity: 1; transform: none; visibility: visible; }
+  to   { opacity: 0; transform: translateY(14%) scale(.9); visibility: hidden; }
+}
+/* A maximised window has no scale to animate from without looking like a lurch,
+   and it is already filling the surface. */
+.wx.is-max { animation: none; }
+
+@media (prefers-reduced-motion: reduce) {
+  /* Item 3 above would otherwise BE an accessibility regression: four new
+     animations on the most-moved element in the mock OS. The states still have
+     to differ, so is-min keeps hiding the window — it just stops travelling. */
+  .wx, .wx.is-out, .wx.is-min { animation: none; }
+  .wx { transition: none; }
+  .wx.is-min { display: none; }
 }
