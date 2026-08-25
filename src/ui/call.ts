@@ -13,7 +13,7 @@
 // Review U7's two-tier rule still holds: the story is in the tiles and the first
 // four panels; everything technical lives behind Meeting tools.
 
-import { h, clear, icon, icons } from '../dom.js';
+import { h, clear } from '../dom.js';
 import { sym } from './icons.js';
 import { ripple, attachMenu, micMeter, menu as gmMenu, warnBadge, noticeCard, dropCaret } from './gm3.js';
 import { tipAll, tip } from './tooltip.js';
@@ -193,11 +193,20 @@ export function renderCall(store: Store, quests: Quests, deps: CallDeps): HTMLEl
       micMeter(),
     );
     // The three controls Meet floats over its own tile, at 656 / 700 / 744.
-    const fx = (glyph: IconName | { path: string }, label: string, cls: string): HTMLElement => {
-      const mark = typeof glyph === 'string' ? sym(glyph, 20) : icon(glyph.path, 20);
+    /**
+     * MEASURED: the pill's glyphs are 24px, not the 20 we were passing. That
+     * alone is why more_vert's dots read undersized — three dots scaled to 20
+     * lose their weight long before an outline does.
+     *
+     * And these are font glyphs again, not authored paths. Round 5's hand-drawn
+     * marks were thin and frail, which is what hand-drawn outlines are at 20px
+     * next to a typeface designed for the size. The subset is a real type
+     * programme with real stroke weights; drawing over it was the mistake.
+     */
+    const fx = (glyph: IconName, label: string, cls: string): HTMLElement => {
       const b = h('button', {
         class: 'solo-ctl ' + cls, type: 'button', 'aria-label': label,
-      }, mark) as HTMLButtonElement;
+      }, sym(glyph, 24)) as HTMLButtonElement;
       ripple(b);
       tipAll(b);
       return b;
@@ -238,9 +247,27 @@ export function renderCall(store: Store, quests: Quests, deps: CallDeps): HTMLEl
      * 4's stand-ins (blur_on, close_fullscreen) are what Nam read as "completely
      * wrong" — they are legible glyphs for different controls.
      */
+    /**
+     * Two substitutions, and the first is not really a substitution at all:
+     * `blur_on` is the glyph MEET ITSELF uses for "Backgrounds and effects" on
+     * the pre-join screen, measured there earlier in this project. Same control,
+     * same function, Meet's own choice — just from the Apache-2.0 sibling
+     * programme rather than the proprietary `visual_effects`, which is not in
+     * Material Symbols at all (the contents API 404s it, checked against
+     * blur_on as a known-good control).
+     *
+     * `aspect_ratio` stands in for the crossed-tile mark, which has no open
+     * equivalent. Flagged as a substitution rather than dressed up as a match.
+     *
+     * Nam offered Google's own artwork, lightly modified. Declined: a light edit
+     * of someone's artwork is still their artwork, and this repo's loudest claim
+     * is that the only Google-owned assets here are named and licensed for the
+     * use. A real type programme at the right size beats both a hand-drawing and
+     * a borrowed file.
+     */
     t.append(h('div', { class: 'solo-ctls' },
-      fx({ path: icons.effects }, 'Backgrounds and effects', ''),
-      fx({ path: icons.tileOff }, 'Show in a tile', 'solo-tile'),
+      fx('blur_on', 'Backgrounds and effects', ''),
+      fx('aspect_ratio', 'Show in a tile', 'solo-tile'),
       more));
     return t;
   };
