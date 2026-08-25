@@ -4273,101 +4273,12 @@ body.tray-open .cc { bottom: calc(var(--botbar) + 52px + 12px); }
   .reaction-em { animation: none; }
 }
 
-/* --- 8. The share window: Explorer, not Finder --------------------------- */
-/* Nam's note was blunt and right — ours had three traffic-light dots and Finder
-   proportions, on a page whose premise is that this is a Windows box. Windows 11
-   Explorer: a light chrome bar with the caption buttons on the RIGHT, a
-   breadcrumb, a tree, a file pane, and a status line. */
-.pg-win, .pg-desk { position: relative; width: 100%; height: 100%; overflow: hidden; }
-
-.wx {
-  position: relative; width: min(720px, 92%); height: min(420px, 76%);
-  display: flex; flex-direction: column; overflow: hidden;
-  background-color: #f3f3f3; color: #1b1b1b; border-radius: 8px;
-  box-shadow: 0 8px 28px rgba(0, 0, 0, .45);
-  /* Explorer does not let you drag-select a filename. Honouring that is the
-     difference between a window and a picture of one. */
-  user-select: none; -webkit-user-select: none;
-  font: 400 13px/1.4 "Segoe UI", var(--font), sans-serif;
-}
-.pg-desk .wx { position: absolute; left: 6%; top: 8%; }
-.pg-win .wx { margin: auto; }
-
-.wx-bar {
-  height: 34px; flex: 0 0 auto; display: flex; align-items: center; gap: 8px;
-  padding-left: 10px; background-color: #f3f3f3;
-}
-.wx-bar-ico { width: 16px; height: 16px; border-radius: 2px; background-color: #ffc83d; flex: 0 0 auto; }
-.wx-title { font-weight: 400; font-size: 12.5px; }
-/* Caption buttons on the right, and no colour on them — Windows tints only the
-   close button, and only on hover. */
-.wx-btns { margin-left: auto; display: flex; }
-.wx-btns > span {
-  width: 44px; height: 34px; display: grid; place-items: center;
-  font-size: 11px; color: #1b1b1b;
-}
-.wx-close:hover { background-color: #c42b1c; color: #fff; }
-.wx-min:hover, .wx-max:hover { background-color: rgba(0, 0, 0, .06); }
-
-.wx-crumb {
-  height: 38px; flex: 0 0 auto; display: flex; align-items: center; gap: 6px;
-  padding: 0 12px; font-size: 12.5px; color: #444;
-  border-bottom: 1px solid #e5e5e5; background-color: #fbfbfb;
-}
-.wx-sep { color: #9b9b9b; }
-.wx-here { color: #1b1b1b; }
-
-.wx-cols { flex: 1 1 auto; display: grid; grid-template-columns: 200px 1fr; min-height: 0; }
-.wx-tree { border-right: 1px solid #e5e5e5; padding: 6px 4px; overflow: auto; background-color: #fbfbfb; }
-.wx-files { padding: 6px 4px; overflow: auto; background-color: #fff; }
-
-.wx-row {
-  display: flex; align-items: center; gap: 8px; height: 28px; padding: 0 8px;
-  border-radius: 4px; cursor: default; outline: 0;
-}
-.wx-row:hover { background-color: #ededed; }
-.wx-row.is-sel { background-color: #cce4f7; }
-.wx-row:focus-visible { outline: 1px solid #0b57d0; outline-offset: -1px; }
-.wx-ico { width: 16px; height: 16px; flex: 0 0 auto; border-radius: 2px; }
-.wx-folder { background-color: #ffc83d; }
-.wx-file { background-color: #e8ecf1; box-shadow: inset 0 0 0 1px #c8cdd4; }
-.wx-name { flex: 1 1 auto; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.wx-count { color: #6b6b6b; font-size: 12px; }
-/* The rename field: Explorer selects the stem and leaves the extension. */
-.wx-rename {
-  flex: 1 1 auto; min-width: 0; height: 20px; padding: 0 4px;
-  font: inherit; color: #1b1b1b; background: #fff;
-  border: 1px solid #0b57d0; border-radius: 2px; outline: 0;
-  user-select: text; -webkit-user-select: text;
-}
-.wx-status {
-  height: 26px; flex: 0 0 auto; display: flex; align-items: center; padding: 0 12px;
-  font-size: 12px; color: #5c5c5c; border-top: 1px solid #e5e5e5; background-color: #f3f3f3;
-}
-/* Resize from the corner, which is where Windows puts it. */
-.wx-grip {
-  position: absolute; right: 0; bottom: 0; width: 16px; height: 16px;
-  cursor: nwse-resize; touch-action: none;
-}
-
-/* The desktop behind it, which is what makes "Entire screen" a different
-   picture from "Window" — Nam: "window and screen get you the same food". */
-.dk-wall {
-  position: absolute; inset: 0;
-  background-image: radial-gradient(120% 90% at 30% 20%, #1c3f6e 0%, #0d1f38 55%, #060d18 100%);
-}
-.dk-taskbar {
-  position: absolute; left: 0; right: 0; bottom: 0; height: 40px;
-  display: flex; align-items: center; gap: 10px; padding: 0 12px;
-  background-color: rgba(32, 32, 32, .86); backdrop-filter: blur(8px);
-}
-.dk-start { width: 18px; height: 18px; border-radius: 3px; background-color: #4cc2ff; }
-.dk-task { width: 18px; height: 18px; border-radius: 3px; background-color: rgba(255, 255, 255, .28); }
-.dk-task.is-on { background-color: #ffc83d; }
-.dk-tray {
-  margin-left: auto; display: flex; gap: 12px; align-items: center;
-  font-size: 11.5px; color: #e6e6e6;
-}
+/* The first-draft Explorer used to live here — a light-theme window with a
+   #ffc83d square for a folder icon. It was superseded by "THE WINDOWS DESKTOP,
+   REBUILT" further down, but the old rules were never deleted, and two of them
+   were still winning: .wx-bar-ico and .dk-task.is-on both painted #ffc83d.
+   That is the "bright yellow really a sore on the eyes" Nam saw behind every
+   title-bar icon and every running task. Deleted rather than overridden. */
 
 /* --- the framed pages --------------------------------------------------- */
 /* Our own pages, actually framed, so the responsive layout is real. */
@@ -5375,6 +5286,27 @@ body.presenting .shot { min-width: 0; }
 
 /* The chips need a positioning context for the popups they own. */
 .hand-chip-wrap, .count-wrap { position: relative; display: inline-flex; align-items: center; height: 36px; }
+/* The [hidden] trap, for the THIRD time in this project: the JS sets
+   handWrap.hidden = true, [hidden] is a UA display:none rule, and the author
+   display above beats it. Nam caught the result — the green chip sitting in the
+   top bar with the hand button plainly off. Restating it is the fix; the lesson
+   is that any element in here which script hides needs this line written at the
+   same moment the display is. */
+.hand-chip-wrap[hidden] { display: none !important; }
+
+/* --- the participant button ---------------------------------------------- */
+/* Nam: "I want a separate button for showing people in the call, and this is
+   independent from the raise hand button... we dont have 6 people, but only 1
+   person here and its me."
+   Right on both counts. It was a people glyph with an invented 6 beside it; it
+   is now Nam's own avatar and a truthful 1, and it is the button that owns the
+   People popup and the way through to "View more about Nam". */
+.count-chip .ppl-av-sm {
+  width: 32px; height: 32px; border-radius: 50%; flex: 0 0 auto;
+  background-color: #a8c7fa; color: #062e6f;
+  display: grid; place-items: center; font: 500 12px/1 var(--font-title);
+}
+.count-chip .count-n { padding-right: 6px; }
 
 @media (prefers-reduced-motion: reduce) { .pop { animation: none; } }
 
@@ -5382,3 +5314,68 @@ body.presenting .shot { min-width: 0; }
 /* Drawn on one 10px box with one stroke width, because three text glyphs at
    three optical sizes is exactly what Nam saw as "way too small". */
 .wx-cap-mark { width: 10px; height: 10px; display: block; }
+
+/* ================= THE SIDE PANEL SLIDES IN ============================== */
+/* Measured on the live product: the panel translates in from its own width and
+ * the stage's width animates down in step, both over 500ms on
+ * cubic-bezier(0.4, 0, 0.2, 1).
+ *
+ *   aside   transform: translateX(376px) -> none   500ms
+ *   stage   width: 1329px -> 1031px                500ms, same curve
+ *
+ * The second half is what makes it read as a push rather than an overlay, and it
+ * is the half that is easy to miss — animate only the panel and the stage snaps
+ * out from under it a frame early.
+ *
+ * Ours is a flex sibling rather than an absolutely positioned aside, so the
+ * stage follows for free once the panel's own basis animates. Both properties
+ * still get the same duration and curve so they cannot drift apart.
+ */
+.side {
+  animation: side-in .5s cubic-bezier(0.4, 0, 0.2, 1) both;
+  transition: flex-basis .5s cubic-bezier(0.4, 0, 0.2, 1),
+              width .5s cubic-bezier(0.4, 0, 0.2, 1);
+  will-change: transform;
+}
+@keyframes side-in { from { transform: translateX(100%); } }
+
+/* ================= THE END SCREEN COUNTS YOU HOME ======================== */
+/* Nam: "when you end the call, there should be an auto timer that takes you back
+ * to home screen."
+ *
+ * Measured on the original: a 56x56 ring at 20,20 in Google blue, the number
+ * inside it at 14px/400, "Returning to home screen" beside it at the same size,
+ * and it ticks once a second (41 -> 40 -> 39 sampled a second apart).
+ *
+ * Google draws the ring with the two-half rotating-mask trick — its fillWrapper,
+ * fill and mask keyframes flip overflow at the halfway mark so one rotating
+ * half-disc can describe a full circle. This uses stroke-dasharray on an SVG
+ * instead: the same read, one animated property, and it stays in step with the
+ * countdown because both are driven from the same duration.
+ */
+.end-timer {
+  position: absolute; top: 20px; left: 20px; z-index: 5;
+  display: flex; align-items: center; gap: 12px;
+  font: 400 14px/20px var(--font); color: var(--on-dark);
+}
+.end-ring { position: relative; width: 56px; height: 56px; flex: 0 0 auto; }
+.end-ring svg { width: 56px; height: 56px; display: block; transform: rotate(-90deg); }
+.end-ring circle { fill: none; stroke-width: 3; }
+.end-ring .end-track { stroke: rgba(255, 255, 255, .16); }
+.end-ring .end-arc {
+  stroke: #8ab4f8; stroke-linecap: round;
+  stroke-dasharray: var(--c); stroke-dashoffset: 0;
+  animation: end-drain var(--dur) linear both;
+}
+@keyframes end-drain { to { stroke-dashoffset: var(--c); } }
+.end-n {
+  position: absolute; inset: 0; display: grid; place-items: center;
+  font: 400 14px/20px var(--font); color: var(--on-dark);
+  font-variant-numeric: tabular-nums;
+}
+@media (max-width: 720px) { .end-timer { position: static; margin: 0 0 20px; } }
+
+@media (prefers-reduced-motion: reduce) {
+  .side { animation: none; transition: none; }
+  .end-ring .end-arc { animation: none; }
+}

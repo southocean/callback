@@ -678,3 +678,51 @@ more about us into this CV."
 - **Files open tabs.** Each file names a tab; clicking focuses an open Chrome or
   opens one. Single click, because on a drawn desktop the double-click
   convention only costs people the discovery.
+
+---
+
+## Round 8 — the yellow plates, the count button, two animations
+
+### The yellow was a ghost
+
+`.wx-bar-ico` and `.dk-task.is-on` both painted `#ffc83d`, and neither rule
+belonged to the current design — they were survivors of the first-draft Explorer,
+a light-theme window with a coloured square standing in for a folder icon. That
+whole 96-line block had been superseded months of work ago and never deleted, so
+two of its rules were quietly winning against the rebuilt ones.
+
+Deleted rather than overridden. **Dead CSS is not inert** — it is a rule waiting
+for a selector to match it again.
+
+With the plate gone the folder could go back up toward Windows' real amber
+(`#c98f22` / `#f2c04b` / `#dbe6f2`), which is what Nam actually wanted: a yellower
+folder on no background, not a duller folder on a yellow one.
+
+### The [hidden] trap, third time
+
+`.hand-chip-wrap` declared `display: inline-flex`, the JS set `hidden = true`, and
+the UA's `[hidden] { display: none }` lost. Same shape as the reactions tray and
+the hand pill before it. Standing rule for this codebase: **if script hides it,
+the stylesheet has to say so too**, written at the same moment the display is.
+
+### The side panel slide
+
+```
+aside   transform: translateX(376px) -> none   500ms  cubic-bezier(0.4, 0, 0.2, 1)
+stage   width: 1329px -> 1031px                500ms  same curve
+```
+
+The second half is the one that is easy to miss. Animate only the panel and the
+stage snaps out from under it a frame early; it is the paired width transition
+that makes it read as a push rather than an overlay.
+
+### The end-screen countdown
+
+A 56×56 ring at `20,20` in Google blue, the number inside at 14px/400, the label
+beside it, ticking once a second (sampled 41 → 40 → 39).
+
+Google draws the ring with a two-half rotating mask — its `fillWrapper`, `fill`
+and `mask` keyframes flip `overflow` at the halfway mark so one rotating half-disc
+can describe a full circle. Ours uses `stroke-dasharray` on an SVG instead: same
+read, one animated property, and it cannot drift from the countdown because both
+run off the same duration.

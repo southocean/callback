@@ -335,9 +335,9 @@ const svg = (vb: string, body: string, cls = ''): HTMLElement => {
    with a lighter front and a cool document peeking out, so it reads as an object
    rather than a highlighter. */
 const icFolder = (): HTMLElement => svg('0 0 20 20', `
-  <path d="M1.6 5.2a1.4 1.4 0 0 1 1.4-1.4h3.9l1.7 1.7h7.8a1.4 1.4 0 0 1 1.4 1.4v.5H1.6z" fill="#9c7530"/>
-  <path d="M4.6 6.2h10.8v3.4H4.6z" fill="#c4cedb"/>
-  <path d="M1.6 7.3h16.8v7.9a1.4 1.4 0 0 1-1.4 1.4H3a1.4 1.4 0 0 1-1.4-1.4z" fill="#c2a05a"/>`);
+  <path d="M1.6 5.2a1.4 1.4 0 0 1 1.4-1.4h3.9l1.7 1.7h7.8a1.4 1.4 0 0 1 1.4 1.4v.5H1.6z" fill="#c98f22"/>
+  <path d="M4.6 6.2h10.8v3.4H4.6z" fill="#dbe6f2"/>
+  <path d="M1.6 7.3h16.8v7.9a1.4 1.4 0 0 1-1.4 1.4H3a1.4 1.4 0 0 1-1.4-1.4z" fill="#f2c04b"/>`);
 
 const icPdf = (): HTMLElement => svg('0 0 20 20', `
   <path d="M4 2.2h7.4L16 6.8v11a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1v-14.6a1 1 0 0 1 1-1z" fill="#f4f4f4"/>
@@ -361,9 +361,9 @@ const icStart = (): HTMLElement => svg('0 0 20 20', `
 /* The taskbar's Explorer icon, matched to Nam's own bar: a muted amber folder
    with a pale document and the blue strip Windows puts along its front. */
 const icExplorerTask = (): HTMLElement => svg('0 0 20 20', `
-  <path d="M1.4 4.8a1.3 1.3 0 0 1 1.3-1.3h4l1.6 1.6h8a1.3 1.3 0 0 1 1.3 1.3v.4H1.4z" fill="#9c7530"/>
-  <path d="M4.4 5.9h11.2v3.6H4.4z" fill="#c4cedb"/>
-  <path d="M1.4 7.1h17.2v8.1a1.3 1.3 0 0 1-1.3 1.3H2.7a1.3 1.3 0 0 1-1.3-1.3z" fill="#c2a05a"/>
+  <path d="M1.4 4.8a1.3 1.3 0 0 1 1.3-1.3h4l1.6 1.6h8a1.3 1.3 0 0 1 1.3 1.3v.4H1.4z" fill="#c98f22"/>
+  <path d="M4.4 5.9h11.2v3.6H4.4z" fill="#dbe6f2"/>
+  <path d="M1.4 7.1h17.2v8.1a1.3 1.3 0 0 1-1.3 1.3H2.7a1.3 1.3 0 0 1-1.3-1.3z" fill="#f2c04b"/>
   <path d="M5.4 13.6h9.2v1.5H5.4z" fill="#5b8fd0"/>`);
 
 /* Chrome's mark: the three arcs and the blue hub. Nam's note was that ours was

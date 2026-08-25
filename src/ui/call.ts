@@ -468,12 +468,26 @@ export function renderCall(store: Store, quests: Quests, deps: CallDeps): HTMLEl
   const clockEl = h('span', { class: 'call-clock' }, clock(new Date()));
   window.setInterval(() => { clockEl.textContent = clock(new Date()); }, 20000);
 
+  /**
+   * The participant button — Nam's avatar and a truthful count of one.
+   *
+   * It used to be a people glyph beside an invented 6, which is two problems:
+   * this call has exactly one person in it, and the button that shows who is
+   * here had been quietly conflated with the raised-hand chip. They are separate
+   * controls in the original and they are separate here.
+   */
   const countChip = h(
     'button',
-    { class: 'count-chip', type: 'button', 'aria-label': 'Show people', onclick: () => store.dispatch({ t: 'panel', panel: 'people' }) },
-    sym('group', 18),
-    String(roles.length + 2),
+    {
+      class: 'count-chip', type: 'button',
+      'aria-label': '1 person in this call. Show everyone.',
+      onclick: () => store.dispatch({ t: 'panel', panel: 'people' }),
+    },
+    h('span', { class: 'ppl-av-sm', 'aria-hidden': 'true' },
+      profile.name.split(/\s+/).map((w) => w[0] ?? '').join('').slice(0, 2).toUpperCase()),
+    h('span', { class: 'count-n' }, '1'),
   );
+
 
   /**
    * The hover popups the top-right chips own.

@@ -32,9 +32,62 @@ export function renderEnded(store: Store, quests: Quests): HTMLElement {
     'Copy the referral note',
   );
 
+  /**
+   * The auto-return, copied from the original.
+   *
+   * Meet counts down from 60 and goes home on its own, with a ring draining
+   * beside the number — measured at a 56x56 ring ticking once a second. It is a
+   * small thing that matters: a dead-end screen with only a button on it makes
+   * leaving feel like a failure state, and the countdown says the product still
+   * has somewhere to put you.
+   *
+   * The interval is cleared if anything else navigates first, so a click on
+   * "Return to home screen" cannot race the timer.
+   */
+  const SECONDS = 60;
+  const CIRC = 2 * Math.PI * 26;
+  const numEl = h('span', { class: 'end-n' }, String(SECONDS));
+  const timer = h(
+    'div',
+    { class: 'end-timer', role: 'status', 'aria-live': 'polite' },
+    h('span', { class: 'end-ring' },
+      h('span', { class: 'end-n-host', 'aria-hidden': 'true' }),
+      numEl),
+    h('span', {}, 'Returning to home screen'),
+  ) as HTMLElement;
+  {
+    const ring = timer.querySelector('.end-ring') as HTMLElement;
+    ring.style.setProperty('--c', String(CIRC));
+    ring.style.setProperty('--dur', SECONDS + 's');
+    const ns = 'http://www.w3.org/2000/svg';
+    const svg = document.createElementNS(ns, 'svg');
+    svg.setAttribute('viewBox', '0 0 56 56');
+    svg.setAttribute('aria-hidden', 'true');
+    for (const cls of ['end-track', 'end-arc']) {
+      const c = document.createElementNS(ns, 'circle');
+      c.setAttribute('cx', '28'); c.setAttribute('cy', '28'); c.setAttribute('r', '26');
+      c.setAttribute('class', cls);
+      svg.appendChild(c);
+    }
+    ring.insertBefore(svg as unknown as Node, ring.firstChild);
+    let left = SECONDS;
+    const tick = window.setInterval(() => {
+      left -= 1;
+      numEl.textContent = String(Math.max(0, left));
+      if (left <= 0) {
+        window.clearInterval(tick);
+        store.dispatch({ t: 'screen', screen: 'home' });
+      }
+    }, 1000);
+    // If the screen goes away for any other reason, the timer goes with it.
+    const stop = (): void => window.clearInterval(tick);
+    window.addEventListener('hashchange', stop, { once: true });
+  }
+
   return h(
     'main',
     { class: 'ended', id: 'main' },
+    timer,
     h(
       'div',
       { class: 'ended-in' },
