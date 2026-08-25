@@ -46,19 +46,29 @@ export function renderEnded(store: Store, quests: Quests): HTMLElement {
    */
   const SECONDS = 60;
   /**
-   * The ring's radius, and everything else derives from it so the two cannot
-   * drift. It was 26 inside a 56 box, which with a 3px stroke puts the outer
-   * edge at 55 — the ring all but filled its own box, which is the "radius is
-   * too big" Nam saw.
+   * MEASURED, finally, and not from a screenshot.
    *
-   * 22 with a 4px stroke gives a 48 outer diameter inside the same 56 box.
-   * SCREENSHOT-DERIVED, not measured: the countdown label and ring are transient
-   * — caught once at 3s after leaving and already gone by 2s on the next run —
-   * so the inner diameter and stroke width are read off Nam's capture of the
-   * original rather than off the DOM. The 56 box, the position and the colours
-   * below ARE measured.
+   * The original's ring is a <canvas> — canvas.XMqAKd, 56x56 at dpr 1, so its
+   * units are CSS pixels. Canvas geometry is not in the DOM, which is why every
+   * computed-style probe reported border: 0px none and why two earlier passes
+   * had to guess. But the canvas is same-origin, so getImageData works: casting
+   * rays from the centre and recording where ink starts and stops gives the
+   * inner and outer edge directly.
+   *
+   * Rays at 0/30/90/120/240 degrees, inner -> outer:
+   *   15.5 -> 19.3,  15.0 -> 19.0,  15.5 -> 19.3,  15.8 -> 20.0,  16.8 -> 20.8
+   *
+   * So the stroke is ~4 and the CENTRELINE RADIUS IS ~18. Ours was 22, which is
+   * why Nam said the radius was still off after the first correction — 26 was
+   * far too big, and 22 was still 4 too big.
+   *
+   * The same scan settled the sweep direction as a side effect: at 48s of 60
+   * remaining, the rays at -90, -60 and -30 had NO ink, so the spent 20% (72
+   * degrees) opens at 12 o'clock and grows CLOCKWISE. That is measurement
+   * agreeing with the dashoffset reasoning in styles.css rather than just my
+   * arithmetic.
    */
-  const RING_R = 22;
+  const RING_R = 18;
   const CIRC = 2 * Math.PI * RING_R;
   const numEl = h('span', { class: 'end-n' }, String(SECONDS));
   const timer = h(
