@@ -643,7 +643,12 @@ export function renderCall(store: Store, quests: Quests, deps: CallDeps): HTMLEl
     pop.hidden = true;
     host.appendChild(pop);
     let shut = 0;
-    const open = (): void => { window.clearTimeout(shut); pop.hidden = false; };
+    /**
+     * Set only while dismiss() hands focus back, so the focusin that causes
+     * cannot re-open what we are closing. See dismiss() for why.
+     */
+    let restoring = false;
+    const open = (): void => { if (restoring) return; window.clearTimeout(shut); pop.hidden = false; };
     // A short grace period, so crossing the gap between chip and popup does
     // not count as leaving.
     const close = (): void => { window.clearTimeout(shut); shut = window.setTimeout(() => { pop.hidden = true; }, 180); };
@@ -674,9 +679,21 @@ export function renderCall(store: Store, quests: Quests, deps: CallDeps): HTMLEl
       pop.hidden = true;
       // Hiding the element that holds focus would drop focus to the body and
       // lose the keyboard user's place, so hand it back to the chip.
+      //
+      // ...and that re-opened the popup, which is the bug Nam reported twice.
+      // `open` is bound to focusin, focus() fires focusin SYNCHRONOUSLY, and the
+      // chip is inside `host` -- so restoring focus immediately undid the hide.
+      //
+      // It only bit in a real browser: clicking a button focuses it, so hadFocus
+      // is true and this branch runs. A synthetic .click() moves no focus, so my
+      // probe took the hadFocus === false path and passed. Second time this
+      // session a synthetic event has bought a false pass, after body.click()
+      // failing to reach a pointerdown listener.
       if (hadFocus) {
         const back = [...host.querySelectorAll<HTMLElement>('button,[tabindex]')].find((el) => !pop.contains(el));
+        restoring = true;
         back?.focus();
+        restoring = false;
       }
     };
     pop.addEventListener('click', (e: MouseEvent) => {

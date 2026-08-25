@@ -1294,3 +1294,33 @@ Verified: `.side-body` no longer scrolls, the list does, gutter 8, strip 80
 against the measured 81, composer flush to the panel's bottom edge at full width,
 and the list's box ends exactly where the composer begins — so nothing can show
 through rather than merely being painted over.
+
+## Round 12 — the dismissal that dismissed and then undid itself
+
+Nam, reporting the same bug a second time: "clicking view more about nam still
+doesnt also auto close that hover panel. I reported this bug earlier."
+
+Round 9's fix was real but incomplete, and the incompleteness was mine: the
+focus-restoration I added *re-opened the popup it had just closed*.
+
+`open` is bound to `focusin`. `dismiss()` hides the popup, then hands focus back
+to the chip so a keyboard user is not dropped to the body. But `focus()` fires
+`focusin` **synchronously**, and the chip lives inside `host` — so the restore
+immediately undid the hide. Guarded with a `restoring` flag that `open` checks.
+
+**Why the Round 9 test passed a broken fix.** Clicking a real button focuses it,
+so `pop.contains(document.activeElement)` is true and the restore branch runs. A
+synthetic `.click()` moves no focus at all, so the probe took the
+`hadFocus === false` path — the one branch where the bug cannot occur — and
+reported green.
+
+That is the second false pass from a synthetic event this session, after
+`document.body.click()` never reaching a `pointerdown` listener. Both share a
+shape worth naming: **`.click()` is not a click.** It dispatches one event and
+skips everything the browser does around it — focus, pointerdown/up, default
+scroll behaviour. When the code under test reacts to any of those, drive them
+explicitly or the test exercises a path the user never takes.
+
+Re-tested with `btn.focus(); btn.click()`, which reproduces the real ordering.
+All four actions across both popups dismiss and still perform their job, focus
+lands on the chip without re-opening, and hover reopen is unaffected.
