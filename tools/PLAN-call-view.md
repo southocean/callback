@@ -1714,3 +1714,54 @@ Honest limitation recorded beside it: sharing a single window and opening a file
 is a case where a real viewer would see nothing at all, because the browser is
 not the window being captured. Routing to the host app is the useful lie; the
 alternative is a dead row.
+
+## Round 22 — the caption buttons I broke last round
+
+Nam: "the minimize, maximize and close buttons here dont work AT ALL!?"
+
+Two real defects, both introduced by Round 21's resizing, and **both sitting
+directly under green tests**.
+
+### 1. The resize handles covered the buttons
+
+`.wx-cap` fills the title bar's full 40px height, and `.wx-rz-n` / `.wx-rz-ne`
+sit at `top: -3px` with `z-index: 6`. So the top 3px of all three buttons — and
+the entire top-right corner of Close — belonged to a resize handle, whose
+`pointerdown` calls `preventDefault()`. No click ever fired.
+
+That is very likely the whole report: people aim at the **top-right corner** of a
+window to close it, which was exactly the dead spot. Raising `.wx-btns` above the
+handles fixes it, and matches Windows, where you cannot resize by grabbing the
+close button.
+
+### 2. Maximize did nothing after a resize
+
+`.wx.is-max` maximises with `width: 100%`; resizing writes an **inline** width.
+Inline always wins, so once the window had been resized the class flipped and the
+window did not move an inch. `toggleMax` also cleared `left`/`top` without
+restoring them, so un-maximising dropped the window at the host's origin instead
+of where it had been dragged. All four values are now saved and cleared going in,
+restored coming out.
+
+Minimize and close could **not** be reproduced as broken with a full pointer
+sequence — minimize sets `display: none` and the taskbar restores it, close
+removes the node and its task item. They were most likely being clicked near the
+top edge, where defect 1 killed them.
+
+### The testing lesson, third costume
+
+Round 21's checks called `.click()` on the button elements and asserted **class**
+changes. Two distinct blind spots:
+
+- `.click()` bypasses hit-testing, so an element completely covered by an overlay
+  still "works" in a test.
+- `classList.contains('is-max')` passes even when the window has not moved a
+  pixel — the class is not the outcome.
+
+The checks are now `elementFromPoint` on the exact pixel a user aims at, and
+`getBoundingClientRect` compared against the host, not class flags.
+
+Verified: the top pixel of all three caps hit-tests to the button; maximize after
+both dragging and resizing fills the host exactly; un-maximising restores the
+dragged position and resized size to the pixel; a click on the very top row of
+Maximize registers.

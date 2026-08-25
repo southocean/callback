@@ -6127,3 +6127,13 @@ body.tray-open.cc-on .react-clip { bottom: calc(var(--botbar) + 268px); }
   width: 100%; max-height: 320px; margin: 4px 0 10px;
   background-color: #000; border-radius: 8px; object-fit: contain;
 }
+
+/* --- the caption buttons outrank the resize edges ------------------------ */
+/* .wx-cap fills the title bar's full 40px height, so the north and north-east
+   resize handles (top: -3px) covered the top 3px of Minimize, Maximize and
+   Close. A press there hit the handle, which preventDefaults, and the click
+   never fired -- so the buttons were dead along their top edge.
+   Raising the cluster above the handles matches Windows anyway: you cannot
+   resize a window by grabbing its close button. The rest of the top edge still
+   resizes. */
+.wx-btns { position: relative; z-index: 7; }

@@ -589,10 +589,41 @@ function win11(o: {
   let maxed = false;
   const el = h('div', { class: 'wx' + (o.full ? '' : ' wx-solo') }) as HTMLElement;
 
+  /**
+   * Maximise, and put the window back exactly where it was.
+   *
+   * Two bugs lived here once resizing existed, and both were invisible to a test
+   * that asserted the class instead of the geometry:
+   *
+   *   1. `.wx.is-max` maximises with `width: 100%`, and resizing writes an INLINE
+   *      width. Inline always wins, so after any resize the class flipped and the
+   *      window did not move an inch. Nam: "the minimize, maximize and close
+   *      buttons here dont work AT ALL" -- maximize genuinely did not.
+   *   2. it cleared left/top on the way in and never restored them, so
+   *      un-maximising dropped the window at the host's origin rather than
+   *      returning it to where it had been dragged.
+   *
+   * Saving all four and clearing all four fixes both: with no inline width there
+   * is nothing left to beat the stylesheet.
+   */
+  let saved: { left: string; top: string; width: string; height: string } | null = null;
+
   const toggleMax = (): void => {
     maxed = !maxed;
     el.classList.toggle('is-max', maxed);
-    if (maxed) { el.style.left = ''; el.style.top = ''; }
+    if (maxed) {
+      saved = { left: el.style.left, top: el.style.top, width: el.style.width, height: el.style.height };
+      el.style.left = '';
+      el.style.top = '';
+      el.style.width = '';
+      el.style.height = '';
+    } else if (saved) {
+      el.style.left = saved.left;
+      el.style.top = saved.top;
+      el.style.width = saved.width;
+      el.style.height = saved.height;
+      saved = null;
+    }
   };
 
   const bar = h('div', { class: 'wx-bar' },
