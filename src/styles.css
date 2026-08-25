@@ -4700,6 +4700,11 @@ body.set-open .cc { bottom: calc(var(--botbar) + 52px + 12px); }
   display: flex; align-items: center; gap: 6px;
 }
 
+/* The [hidden] trap, pre-empted. .dk-task sets display:grid, and any author
+   display beats the UA's [hidden] rule — which has already cost this project
+   three bugs (the reactions tray, the hand pill, the hand chip). The unpinned
+   task button is script-hidden, so the stylesheet says so in the same breath. */
+.dk-task[hidden] { display: none !important; }
 .dk-task {
   width: 40px; height: 40px; border-radius: 6px; padding: 9px; box-sizing: border-box;
   display: grid; place-items: center; position: relative;

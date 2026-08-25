@@ -1375,10 +1375,24 @@ function pageDesktop(): HTMLElement {
      following mousedown and the click is never dispatched. */
   const raise = (el: HTMLElement): void => { el.style.zIndex = String(++topZ); };
 
-  const APPS: { kind: AppKind; label: string; ico: () => HTMLElement }[] = [
-    { kind: 'explorer', label: 'File Explorer', ico: icExplorerTask },
-    { kind: 'chrome', label: 'Google Chrome', ico: icChrome },
-    { kind: 'player', label: 'Media Player', ico: icVideo },
+  /**
+   * Pinned apps stay on the bar; unpinned ones appear only while running.
+   *
+   * Nam: "we have a media player on the taskbar, and clicking it auto opening the
+   * tandem video, which is weird." It was. A launcher for a media player has to
+   * answer "which media?", and the only answer available was eggs[0] — so the
+   * button silently decided you wanted the skydiving clip.
+   *
+   * A media player is a document-launched app. You open a file and it appears;
+   * you close it and it goes. So it is no longer pinned, which deletes the
+   * arbitrary choice rather than dressing it up, and it still gets a task button
+   * for as long as a window is open — minimise, restore and grouping all keep
+   * working because they were never tied to the pin.
+   */
+  const APPS: { kind: AppKind; label: string; ico: () => HTMLElement; pinned: boolean }[] = [
+    { kind: 'explorer', label: 'File Explorer', ico: icExplorerTask, pinned: true },
+    { kind: 'chrome', label: 'Google Chrome', ico: icChrome, pinned: true },
+    { kind: 'player', label: 'Media Player', ico: icVideo, pinned: false },
   ];
   const buttons = new Map<AppKind, HTMLElement>();
 
@@ -1396,6 +1410,8 @@ function pageDesktop(): HTMLElement {
       if (!b) continue;
       const mine = live.filter((w) => w.kind === app.kind);
       const isActive = !!focused && !focused.min && focused.kind === app.kind;
+      // An unpinned app has no button of its own; it borrows one while it runs.
+      if (!app.pinned) b.hidden = mine.length === 0;
       b.classList.toggle('is-running', mine.length > 0);
       b.classList.toggle('is-on', isActive);
       b.classList.toggle('is-multi', mine.length > 1);
@@ -1553,9 +1569,11 @@ function pageDesktop(): HTMLElement {
     menu = h('div', { class: 'dk-start-menu' },
       h('div', { class: 'dk-start-h' }, 'Pinned'),
       h('div', { class: 'dk-start-grid' },
-        ...APPS.map((a) => h('button', {
+        // Same reasoning as the pin: Start is a list of things you can launch, and
+        // a media player with no file to open is not one of them.
+        ...APPS.filter((a) => a.pinned).map((a) => h('button', {
           class: 'dk-start-app', type: 'button',
-          onclick: () => { openWindow(a.kind, a.kind === 'player' ? 'vid:' + eggs[0]!.id : undefined); menu?.remove(); menu = null; },
+          onclick: () => { openWindow(a.kind); menu?.remove(); menu = null; },
         }, h('span', {}, a.ico()), h('span', {}, a.label)))),
       h('div', { class: 'dk-start-foot' }, h('span', { class: 'dk-start-av' }, 'NN'), profile.name)) as HTMLElement;
     surface.appendChild(menu);
@@ -1567,12 +1585,15 @@ function pageDesktop(): HTMLElement {
    *   one window       -> focused? minimise : focus
    *   several          -> show the list and let the pointer choose
    */
-  const taskBtn = (app: { kind: AppKind; label: string; ico: () => HTMLElement }): HTMLElement => {
+  const taskBtn = (app: { kind: AppKind; label: string; ico: () => HTMLElement; pinned: boolean }): HTMLElement => {
     const b = h('button', { class: 'dk-task dk-pin', type: 'button', 'aria-label': app.label }, app.ico()) as HTMLButtonElement;
     b.addEventListener('click', () => {
       const mine = live.filter((w) => w.kind === app.kind);
       if (!mine.length) {
-        openWindow(app.kind, app.kind === 'player' ? 'vid:' + eggs[0]!.id : undefined);
+        // Only pinned apps can be launched from the bar. An unpinned button is
+        // hidden when nothing is running, so this branch is unreachable for the
+        // player — and it must not invent a clip if that ever changes.
+        if (app.pinned) openWindow(app.kind);
         return;
       }
       if (mine.length > 1) return;   // the peek list is the picker
@@ -1597,6 +1618,8 @@ function pageDesktop(): HTMLElement {
     h('div', { class: 'dk-taskbar' },
       h('div', { class: 'dk-task-wrap' },
         start,
+        // Every app gets a button; paint() hides the unpinned ones until they run,
+        // which keeps their position on the bar stable across open and close.
         ...APPS.map(taskBtn)),
       h('div', { class: 'dk-tray' },
         h('span', { class: 'dk-weather' }, '11°C  Klart'),
