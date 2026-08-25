@@ -93,4 +93,8 @@ export const icons = {
   // magnifier, and the block mark on the call dialog's one menu item.
   search: 'M10 4a6 6 0 1 0 3.7 10.7l4.8 4.8 1.4-1.4-4.8-4.8A6 6 0 0 0 10 4Zm0 2a4 4 0 1 1 0 8 4 4 0 0 1 0-8Z',
   block: 'M12 3a9 9 0 1 0 0 18 9 9 0 0 0 0-18Zm0 2c1.6 0 3.1.5 4.2 1.4L6.4 16.2A7 7 0 0 1 12 5Zm0 14c-1.6 0-3.1-.5-4.2-1.4l9.8-9.8A7 7 0 0 1 12 19Z',
+  // The chat composer's send arrow. The subset has no `send`, and this is a
+  // simple enough shape that an authored path is not the Round 5 mistake --
+  // that was drawing over glyphs a designed typeface already carried well.
+  send: 'M3 20.5v-6l8-2.5-8-2.5v-6L21 12 3 20.5Z',
 };

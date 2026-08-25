@@ -1045,3 +1045,125 @@ the stage *re-centres* rather than shrinking for the tray and captions. Ours is 
 full-bleed composition of its own, so adopting that two-column layout is a round
 of its own. It is written down in `baseline-call.md` now, which means the gap is
 a decision with a measurement behind it instead of an unknown.
+
+---
+
+# Round 8 — five items from Nam's overlay QA
+
+Nam sent three screenshots (ours presenting, and Meet presenting with the People
+and chat panels) and asked for them overlaid. The live call was still up, so
+almost everything below is a live read rather than a screenshot estimate — the
+first time the presenting surfaces have been measurable at all, because reaching
+that state needs the native picker driven by hand.
+
+## What the original actually does
+
+| surface | measured |
+|---|---|
+| presenting pill | `678 × 46 @ 1630,4`; glyph `present_to_all` 24px `#e3e3e3`; label `500 14px/20px` Google Sans `#e3e3e3`; then a divider, `Presentation audio`, and a switch whose knob carries `volume_up` at 12px in `#d3e3fd` |
+| side panel | `360 × 1015 @ 2184,64`, `#202124`, radius 20 — top and bottom shared with the stage |
+| panel scroller | `358` outer / `350` client, so an **8px** gutter |
+| own chat bubble | `#004a77`, radius `20px 20px 4px`, `#e3e3e3` at 14/20, right-aligned, capped 244 |
+| chat info card | `#282a2c`, radius 8, padding 12, `#c4c7c5` at 12/16 |
+| share surface | radius **8** on **`#3c4043`** |
+| pinned self tile, panel open | `565 × 754 @ 1619,211` |
+| pinned self tile, panel closed | `666 × 889 @ 1892,119` |
+
+Two rules fall out of the last two rows, and they are what make this
+implementable rather than two more magic numbers:
+
+- `565/754 = 666/889 = 0.749`. The pinned tile is **aspect-locked 3:4 portrait**.
+- It is **26.2%** of the stage in both cases (`666/2542`, `565/2152`), with the
+  share taking the rest less a 16px gutter, and the tile's right edge flush with
+  the stage's.
+
+## The five, and what was actually wrong
+
+1. **"font is very small, missing some info"** — the pill was `500 12px/12px`
+   with an 18px glyph in `#a8c7fa`: two size misses and a colour. And it had no
+   second half at all. Now 14/20, a 24px glyph in `#e3e3e3`, plus the divider,
+   the label and the switch.
+2. **"the right panel is way too short, the scrollbar is wrong"** — `.side`
+   carried `height: 746px`, a pixel height read off a 1440×900 session. It could
+   only ever be right at that one size: at 1280×720 it made the panel 26px
+   **taller** than the window, and on Nam's 2560×1215 screen it stopped short.
+   Replaced with the two insets the stage already uses, so the panel shares the
+   stage's extent the way the measurement says it does.
+3. **"wrong chat text color, should be an input"** — every bubble was painted in
+   the neutral surface at radius `4px 16px 16px`, left-aligned, and there was no
+   composer. Now own messages take the measured own-message side, the intro line
+   becomes the measured info card, and there is a working field and send.
+4. **"the pinned video frame is completely wrong… should be much bigger, pushing
+   the screensharing frame smaller"** and **"the hand raised text is hiding the
+   pinned icon"** — ours was a `240 × 135` landscape thumbnail that pinning did
+   nothing to. Now 3:4 portrait at 26.2%. The overlap was a separate bug: the
+   presenting overrides set a flat `left: 6px` on the hand pill that beat the
+   `--pin-lead` calc outright.
+5. **"no red stop sharing button on the bottom"** — removed. Confirmed against
+   both screenshots: the only red bar in them is Chrome's own "Sharing … to this
+   tab", which is browser chrome and not ours to draw. Nothing is orphaned,
+   because `presStop` in the top bar has always called `stopShare()`.
+
+## The bug that cost the most time
+
+The pinned tile rule would not apply. It was in the built CSS, it matched, it had
+the highest specificity of any matching rule, nothing after it overrode it, and
+there was no `!important` anywhere — and the computed width stayed at the old
+`872px`. Even an inline `width !important` was ignored, while an inline
+`aspect-ratio !important` on the same element took effect immediately.
+
+What settled it was building a twin: same class, same parent, same properties. It
+laid out correctly at `228 × 305`. So the cascade was innocent and the element
+was not — and `getAnimations()` on the real tile returned a live **`width`**
+animation that never ended.
+
+`body.presenting .solo` carries `transition: width .24s` for the thumbnail's
+grow and shrink. Against a **percentage** width inside a `container-type: size`
+parent it never settles, so the computed width sits at its old value forever and
+the rule looks like it is losing a fight it is winning. `transition: none` on the
+pinned rule fixes it, and Meet does not animate this change anyway.
+
+Worth keeping as a diagnostic habit: when a rule that should win appears to lose,
+check `getAnimations()` before re-reading the cascade. A stuck transition and a
+lost specificity battle look identical from the computed style alone.
+
+A smaller version of the same lesson in the scrollbar. Two measured false starts:
+`scrollbar-width: thin` alongside `::-webkit-scrollbar` gives 10px, and
+`scrollbar-color` alone gives 15px. Touching **either** standard property opts
+Chrome into its own scrollbar and makes the webkit rules inert. Both are now
+quarantined behind a support query only Firefox fails, and Chrome lands on 8.
+
+## QA against the captured evidence
+
+Driven on our build at 1280×720 — deliberately not Nam's viewport, so each row
+is a rule holding rather than two screenshots happening to agree.
+
+| rule | original | ours | |
+|---|---|---|---|
+| pinned tile aspect | 0.749 | 0.748 | ✓ |
+| tile share of stage | 26.2% | 26.1% | ✓ |
+| tile right edge | flush with stage | `888` = `888` | ✓ |
+| share/tile gutter | 16 | 16 | ✓ |
+| pin inset / above | 16 / 15 | 16 / 15 | ✓ |
+| pin → hand pill gap | 6 | 6 | ✓ |
+| panel height | = stage | `568` = `568` | ✓ |
+| panel scroll gutter | 8 | 8 | ✓ |
+| own bubble | `#004a77`, `20px 20px 4px`, max 244 | identical | ✓ |
+| own bubble ink | `#e3e3e3` at 14/20 | identical | ✓ |
+| info card | `#282a2c`, r8, p12, `#c4c7c5` 12/16 | identical | ✓ |
+| share surface | radius 8, `#3c4043` | identical | ✓ |
+| pill label | `500 14px/20px` | identical | ✓ |
+| pill glyph | 24px `#e3e3e3` | identical | ✓ |
+| bottom banner | none | removed | ✓ |
+
+Composer checked behaviourally too: send is disabled until the field has content,
+Enter and the button both post, and a posted message renders as a guest bubble on
+the opposite side with the mirrored radius.
+
+## Stated rather than dressed up
+
+The switch's own track and the Stop presenting button's box are **matched to the
+screenshot, not measured** — the call ended before I could read them. The switch
+also gates nothing, because an authored HTML page has no audio track to share;
+that is recorded in `state.ts` next to the flag rather than left for someone to
+find out by clicking it.

@@ -29,6 +29,13 @@ export interface State {
    * panel opens. It is purely a marker, which is why it costs us one flag.
    */
   pinned: boolean;
+  /**
+   * Meet's "Presentation audio" switch, which sits in the presenting pill.
+   * Ours records the preference and gates nothing, because an authored HTML
+   * page has no audio track to share. Said plainly here rather than left for
+   * someone to discover that the switch is decorative.
+   */
+  presAudio: boolean;
   /** Meet's "Your meeting's ready" card, dismissible. */
   readyCard: boolean;
   fx: FxPreset;
@@ -51,6 +58,7 @@ export type Action =
   | { t: 'captions'; on: boolean }
   | { t: 'hand'; on: boolean }
   | { t: 'pin'; on: boolean }
+  | { t: 'presAudio'; on: boolean }
   | { t: 'readyCard'; on: boolean }
   | { t: 'fx'; preset: FxPreset }
   | { t: 'net'; profile: NetProfile }
@@ -71,6 +79,7 @@ export const initial: State = {
   captionsOn: false,
   handRaised: false,
   pinned: false,
+  presAudio: true,
   readyCard: true,
   fx: 'off',
   net: 'good',
@@ -120,6 +129,9 @@ export function reduce(s: State, a: Action): State {
 
     case 'pin':
       return { ...s, pinned: a.on };
+
+    case 'presAudio':
+      return { ...s, presAudio: a.on };
 
     case 'readyCard':
       return { ...s, readyCard: a.on };

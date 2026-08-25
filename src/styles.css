@@ -656,6 +656,23 @@ button { font: inherit; }
 .side-head .icon-btn { margin-left: auto; color: var(--on-dark3); }
 .side-head .icon-btn:hover { background: rgba(255,255,255,.12); }
 .side-body { flex: 1 1 auto; overflow-y: auto; padding: 0 24px 24px; }
+/* MEASURED: the panel's scroll container is 358 wide with a 350 client box, so
+   Meet's scrollbar is an 8px gutter, not the ~15px default one Nam saw as "the
+   scrollbar is wrong". Firefox gets the same treatment via scrollbar-width. */
+/* Two false starts here, both measured, because the two scrollbar APIs are
+   mutually exclusive rather than complementary in current Chrome:
+     scrollbar-width: thin + ::-webkit-scrollbar  -> 10px (standard path wins)
+     scrollbar-color alone + ::-webkit-scrollbar  -> 15px (still standard path)
+   Touching EITHER standard property opts Chrome into its own scrollbar and
+   makes ::-webkit-scrollbar inert. So the webkit rules stand alone, and both
+   standard properties are quarantined behind a query only Firefox fails. */
+.side-body::-webkit-scrollbar { width: 8px; }
+@supports not selector(::-webkit-scrollbar) {
+  .side-body { scrollbar-width: thin; scrollbar-color: #5f6368 transparent; }
+}
+.side-body::-webkit-scrollbar-track { background: transparent; }
+.side-body::-webkit-scrollbar-thumb { background-color: #5f6368; border-radius: 4px; }
+.side-body::-webkit-scrollbar-thumb:hover { background-color: #7f8386; }
 .side.wide .side-body { padding: 0 20px 24px; }
 
 /* ---- "Your meeting's ready" card ---------------------------------------- */
@@ -3325,8 +3342,25 @@ body.has-panel .grid-wrap.is-solo { inset: 72px 375px 80px 16px; }
 }
 
 /* The older .side rule set top via a shorthand that won on cascade order and
-   left the panel 4px low. Meet's is 1065,73 358x746 exactly. */
-.side { top: 73px !important; height: 746px; }
+   left the panel 4px low. Meet's is 1065,73 358x746 exactly.
+
+   ...at 1440x900, which is the whole problem. Nam: "the right panel is way too
+   short". That 746 is a pixel height read off ONE viewport, so it could only
+   ever be correct at that one size -- at 1280x720 it made the panel 26px TALLER
+   than the window, and on his 2560x1215 screen it stopped less than two thirds
+   of the way down.
+
+   MEASURED at 2560x1215: the panel is 360 x 1063 @ 2184,64 -- the same top and
+   the same bottom as the tile beside it, both 1063 tall. So the panel is not a
+   fixed height at all; it shares the stage's vertical extent. Expressed as the
+   two insets the stage already uses, which is a rule instead of a number. */
+.side {
+  top: 72px !important;
+  bottom: var(--botbar);
+  height: auto;
+  right: 16px;
+  width: 360px;
+}
 
 /* --- four corrections after measuring ours against Meet's ---------------- */
 
@@ -5618,3 +5652,165 @@ body.is-pinned .solo { --pin-lead: 34px; }
   display: grid; place-items: center; width: 15px; height: 15px;
   color: #e3e3e3;
 }
+
+/* ============== ROUND 7: FIVE THINGS FROM NAM'S OVERLAY QA =============== */
+/* All measured off the live product on 2026-08-25 while Nam held a share up,
+   which is the first time the presenting surfaces have been readable at all. */
+
+/* --- 1. the presenting pill ---------------------------------------------- */
+/* MEASURED: container 678x46 @ 1630,4. The label is 500 14px/20px Google Sans
+   in #e3e3e3 and the leading glyph is 24px in the same ink.
+
+   Ours was 500 12px/12px with an 18px glyph in #a8c7fa -- two size misses and a
+   colour, which together are Nam's "font is very small". And it was missing the
+   whole second half of the pill: a divider, "Presentation audio", and the switch
+   whose knob carries volume_up at 12px in #d3e3fd. */
+.pres-chip {
+  height: 46px; border-radius: 23px;
+  padding: 0 8px 0 20px; gap: 10px;
+  font: 500 14px/20px var(--font-title);
+}
+.pres-chip .ms { font-size: 24px; color: #e3e3e3; }
+.pres-div { flex: 0 0 auto; width: 1px; height: 20px; background-color: #5f6368; }
+.pres-aud-label { flex: 0 0 auto; white-space: nowrap; }
+
+/* M3's switch. The knob glyph and its ink are measured; the track's own box is
+   matched to the screenshot, because the call ended before I could read it. */
+.pres-aud {
+  position: relative; flex: 0 0 auto; width: 52px; height: 32px;
+  border: 0; border-radius: 16px; cursor: pointer; padding: 0;
+  background-color: #8ab4f8; transition: background-color .2s linear;
+}
+.pres-aud-knob {
+  position: absolute; top: 4px; left: 24px;
+  width: 24px; height: 24px; border-radius: 50%;
+  display: grid; place-items: center;
+  background-color: #062e6f; color: #d3e3fd;
+  transition: left .2s cubic-bezier(0.2, 0, 0, 1), background-color .2s linear;
+}
+.pres-aud[aria-checked="false"] { background-color: #444746; }
+.pres-aud[aria-checked="false"] .pres-aud-knob { left: 4px; background-color: #8e918f; color: #202124; }
+.pres-aud:focus-visible { outline: 2px solid #a8c7fa; outline-offset: 2px; }
+.pres-stop { height: 32px; padding: 0 16px; border-radius: 16px; font: 500 14px/1 var(--font-title); }
+
+/* --- 3. the chat, as Meet paints it -------------------------------------- */
+/* MEASURED with the chat open during a share:
+     own bubble  #004a77, radius 20px 20px 4px, #e3e3e3 at 14/20, right-aligned,
+                 capped at 244 inside a 360 panel
+     info card   #282a2c, radius 8, padding 12, #c4c7c5 at 12/16
+   Ours had every bubble in the neutral surface, left-aligned, and no composer at
+   all -- Nam: "wrong chat text color, should be an input here for the chat." */
+.msg-wrap { display: flex; flex-direction: column; min-height: 100%; }
+.msg-list { flex: 1 1 auto; }
+.msg-card {
+  background-color: #282a2c; border-radius: 8px; padding: 12px;
+  font: 400 12px/16px var(--font); color: #c4c7c5; margin: 0 0 18px;
+}
+/* Nam's own messages take the own-message side, because this is his session. */
+.msg-own { display: flex; flex-direction: column; align-items: flex-end; }
+.msg-own .msg-body {
+  max-width: 244px;
+  background-color: #004a77; color: #e3e3e3;
+  border-radius: 20px 20px 4px 20px;
+  font: 400 14px/20px var(--font);
+}
+.msg-own .msg-from { align-self: flex-end; }
+/* Anything a visitor types is a guest: grey, and on the other side. That is
+   Meet's real rule rather than a layout picked to look tidy. */
+.msg-guest { margin: 0 0 16px; display: flex; flex-direction: column; align-items: flex-start; }
+.msg-guest .msg-body {
+  max-width: 244px;
+  background-color: #333537; color: #e3e3e3;
+  border-radius: 20px 20px 20px 4px; padding: 12px;
+  font: 400 14px/20px var(--font);
+}
+
+.msg-composer {
+  position: sticky; bottom: 0; z-index: 2;
+  flex: 0 0 auto; display: flex; align-items: center; gap: 8px;
+  margin-top: 12px; padding: 12px 0 4px;
+  background-color: var(--panel);
+}
+.msg-field {
+  flex: 1 1 auto; min-width: 0; height: 48px;
+  padding: 0 16px; border: 0; border-radius: 24px;
+  background-color: #333537; color: #e3e3e3;
+  font: 400 14px/20px var(--font);
+}
+.msg-field::placeholder { color: #9aa0a6; }
+.msg-field:focus-visible { outline: 2px solid #a8c7fa; outline-offset: 0; }
+.msg-send {
+  position: relative; overflow: hidden;
+  flex: 0 0 auto; width: 40px; height: 40px; border: 0; border-radius: 20px;
+  background: transparent; color: #8ab4f8; cursor: pointer;
+  display: grid; place-items: center; --sl: #8ab4f8;
+}
+.msg-send:disabled { color: #5f6368; cursor: default; }
+.msg-send:not(:disabled):hover { background-color: rgba(138, 180, 248, .1); }
+
+/* --- 4. pinned WHILE presenting ------------------------------------------ */
+/* Nam: "the pinned video frame is completely wrong in our version - its exactly
+   the same video frame when not pinned... The video here should be much bigger,
+   pushing the screensharing frame smaller."
+
+   MEASURED, twice, which is what turns it into a rule instead of two numbers:
+
+     panel open    share 1587x787 @ 16,202    tile 565x754 @ 1619,211
+     panel closed  share 1860x882 @ 16,131    tile 666x889 @ 1892,119
+
+   565/754 = 666/889 = 0.749, so the tile is aspect-locked 3:4 PORTRAIT -- which
+   is the whole of "completely wrong": ours was a 240x135 landscape thumbnail in
+   the corner, and pinning did nothing to it at all.
+
+   The tile is 26.2% of the stage in both cases (666/2542, 565/2152) and the
+   share takes the rest less a 16px gutter. Both cases also give the share
+   surface radius 8 on #3c4043. */
+body.presenting.is-pinned .solo {
+  position: absolute; z-index: 6;
+  left: auto; right: 0;
+  top: 50%; bottom: auto; transform: translateY(-50%);
+  width: 26.2%; height: auto; aspect-ratio: 3 / 4; max-height: 100%;
+  border-radius: 24px; overflow: hidden;
+  /* NO width transition here, and this one cost an hour to find.
+     `body.presenting .solo` carries `transition: width .24s` for the thumbnail's
+     grow and shrink. Against a PERCENTAGE width inside a `container-type: size`
+     parent that transition never settles: getAnimations() reported a live
+     `width` animation indefinitely and the computed width stayed pinned at the
+     old 872px, so the rule looked like it was losing a specificity fight it was
+     actually winning. An identical twin element in the same parent laid out
+     correctly at 228x305, which is what proved it was the element and not the
+     cascade.
+     Meet does not animate this change anyway -- the share and the tile just
+     appear at their new sizes. */
+  transition: none;
+}
+body.presenting.is-pinned .shot-wrap { right: calc(26.2% + 16px); }
+body.presenting .shot { border-radius: 8px; overflow: hidden; background-color: #3c4043; }
+
+/* At this size the tile carries full-size furniture again, so the thumbnail's
+   shrunk avatar, name plate and hand pill must not apply. Scoping it to the
+   pinned case beats five more overrides undoing the shrink one property at a
+   time. */
+body.presenting.is-pinned .solo-av { width: 112px; height: 112px; font-size: 36px; }
+body.presenting.is-pinned .solo-name { left: calc(16px + var(--pin-lead)); bottom: 15px; font: 500 16px/20px var(--font-title); }
+body.presenting.is-pinned .solo-mute { top: 10px; right: 10px; width: 28px; height: 28px; }
+body.presenting.is-pinned .solo-mute .ms { font-size: 18px; }
+body.presenting.is-pinned .solo-ctl { display: grid; }
+body.presenting.is-pinned .hand-pill { left: calc(8px + var(--pin-lead)); bottom: 8px; height: 35px; }
+body.presenting.is-pinned .hand-bg { height: 32px; }
+body.presenting.is-pinned .hand-name { font: 500 16px/24px var(--font-title); padding-right: 12px; }
+
+/* The raised hand was covering the pin because the presenting overrides set a
+   flat `left: 6px` that beat the --pin-lead calc outright. Nam: "the hand raised
+   text is hiding the pinned icon". Same shape of bug as the state layer a few
+   rounds back -- a rule that was written, looked right, and could not apply. */
+body.presenting .solo-name { left: calc(8px + var(--pin-lead)); }
+body.presenting .hand-pill { left: calc(6px + var(--pin-lead)); }
+
+/* --- 5. no banner along the bottom of the share -------------------------- */
+/* The tile used to sit 64px up to clear a 48px banner that no longer exists.
+   Nam: "there is no red stop sharing button on the bottom of the sharing
+   screen, only the stop presenting on the top bar." The only red bar in his
+   screenshots is CHROME's own "Sharing ... to this tab", which is browser
+   chrome and not ours to draw. */
+body.presenting:not(.is-pinned) .solo { bottom: 16px; }

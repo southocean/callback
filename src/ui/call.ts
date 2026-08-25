@@ -724,8 +724,37 @@ export function renderCall(store: Store, quests: Quests, deps: CallDeps): HTMLEl
   presStop.addEventListener('click', () => stopShare());
   tip(presStop, 'Stop presenting your screen');
   const presWho = h('span', { class: 'pres-who' }, '');
+  /**
+   * MEASURED off the live presenting pill, 2026-08-25 — Nam kept the share up
+   * long enough to read it, which is the first time this surface has been
+   * measurable at all:
+   *
+   *   container   678 x 46 @ 1630,4
+   *   glyph       present_to_all, 24px, #e3e3e3   (we had 18px in #a8c7fa)
+   *   label       500 14px/20px Google Sans #e3e3e3  (we had 12px/1)
+   *   audio label 500 14px/20px, same ink, after a divider
+   *   knob glyph  volume_up at 12px in #d3e3fd
+   *
+   * The 14px is the whole of Nam's "font is very small": ours was 12px with a
+   * 12px line-height, which is two misses stacked.
+   *
+   * The switch and the Stop presenting button's own box are matched to the
+   * screenshot rather than measured — the call ended before I could read them,
+   * and that is worth saying rather than presenting all of this as one number.
+   */
+  const presAud = h('button', {
+    class: 'pres-aud', type: 'button', role: 'switch', 'aria-checked': 'true',
+    'aria-label': 'Presentation audio',
+  }, h('span', { class: 'pres-aud-knob' }, sym('volume_up', 12))) as HTMLButtonElement;
+  presAud.addEventListener('click', () => {
+    store.dispatch({ t: 'presAudio', on: !store.get().presAudio });
+  });
+  tip(presAud, 'Share audio from the presentation');
   const presChip = h('div', { class: 'pres-chip', role: 'status' },
-    sym('present_to_all', 18), presWho, presStop) as HTMLElement;
+    sym('present_to_all', 24), presWho,
+    h('span', { class: 'pres-div', 'aria-hidden': 'true' }),
+    h('span', { class: 'pres-aud-label' }, 'Presentation audio'),
+    presAud, presStop) as HTMLElement;
   presChip.hidden = true;
   tip(presWho, 'You are presenting to everyone in the call');
 
@@ -1235,12 +1264,18 @@ export function renderCall(store: Store, quests: Quests, deps: CallDeps): HTMLEl
 
   function startShare(content: HTMLElement, title: string): void {
     stopShare();
-    const stop = h('button', { class: 'shot-stop', type: 'button' }, 'Stop sharing') as HTMLButtonElement;
-    ripple(stop);
-    stop.addEventListener('click', () => stopShare());
-    const wrap = h('div', { class: 'shot-wrap' },
-      content,
-      h('div', { class: 'shot-banner' }, h('span', {}, `You are presenting ${title}`), stop));
+    /**
+     * No banner and no red Stop sharing along the bottom.
+     *
+     * Nam: "there is no red stop sharing button on the bottom of the sharing
+     * screen, only the stop presenting on the top bar." Confirmed against both
+     * of his screenshots — the only red bar in them is CHROME's own "Sharing
+     * ... to this tab", which is browser chrome and not ours to draw.
+     *
+     * Nothing is orphaned by dropping it: `presStop` in the top-bar pill has
+     * always called stopShare(), so the action keeps its one real home.
+     */
+    const wrap = h('div', { class: 'shot-wrap' }, content);
     // The share belongs to the STAGE, not to the tile. It used to be appended
     // inside .solo, which is why the shared screen and the self view were the
     // same box. Meet splits them: the share takes the stage and the self view

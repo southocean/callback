@@ -4,7 +4,7 @@
 // studies. Review U7 pushed everything technical out of here and behind one
 // Engineering door, so these three stay narrative.
 
-import { h, clear } from '../dom.js';
+import { h, clear, icon, icons } from '../dom.js';
 import { sym } from './icons.js';
 import { ripple } from './gm3.js';
 import { layoutTimeline, overlaps } from '../state.js';
@@ -14,22 +14,67 @@ import { chat, roles, caseStudies, transcript, profile } from '../data/cv.js';
 /** 2026-08-20 as a decimal year, for timeline geometry. */
 export const NOW = 2026.63;
 
+/**
+ * The cover letter, as Meet's chat.
+ *
+ * MEASURED off the live panel, 2026-08-25, with the chat open during a share:
+ *
+ *   own bubble   #004a77, radius `20px 20px 4px`, text #e3e3e3 14/20,
+ *                right-aligned, capped at 244 inside a 360 panel
+ *   info card    #282a2c, radius 8, padding 12, #c4c7c5 at 12/16
+ *
+ * Nam: "wrong chat text color, should be an input here for the chat." Both.
+ * Ours painted every bubble in the neutral surface at 4px/16px and left-aligned
+ * them, and had no composer at all.
+ *
+ * These are Nam's own messages in Nam's own session, so they take the own-message
+ * side. Anything a visitor types is a guest and takes the other side -- which is
+ * Meet's actual rule (own right in blue, others left in grey) rather than a
+ * layout picked to look tidy.
+ */
 export function renderChat(): HTMLElement {
-  return h(
-    'div',
-    {},
-    h('p', { class: 'pnote' }, 'The cover letter. It is a chat panel because a chat panel is where people actually read things.'),
+  const list = h('div', { class: 'msg-list' },
+    h('div', { class: 'msg-card' }, 'The cover letter. It is a chat panel because a chat panel is where people actually read things.'),
     ...chat.map((m) =>
       h(
         'div',
-        { class: m.from === 'system' ? 'msg msg-sys' : 'msg' },
+        { class: m.from === 'system' ? 'msg msg-sys' : 'msg msg-own' },
         m.from === 'nam' ? h('div', { class: 'msg-from' }, `Nam Nguyen  ${m.at}`) : null,
         h('div', { class: 'msg-body' }, m.text),
       ),
     ),
     h('div', { class: 'shead' }, 'Transcript'),
     renderTranscript(),
-  );
+  ) as HTMLElement;
+
+  const field = h('input', {
+    class: 'msg-field', type: 'text', 'aria-label': 'Send a message',
+    placeholder: 'Send a message', autocomplete: 'off',
+  }) as HTMLInputElement;
+  const send = h('button', {
+    class: 'msg-send', type: 'button', 'aria-label': 'Send a message',
+  }, icon(icons.send, 20)) as HTMLButtonElement;
+
+  const submit = (): void => {
+    const text = field.value.trim();
+    if (!text) return;
+    field.value = '';
+    send.disabled = true;
+    list.insertBefore(
+      h('div', { class: 'msg msg-guest' },
+        h('div', { class: 'msg-from' }, 'You'),
+        h('div', { class: 'msg-body' }, text)),
+      list.querySelector('.shead'),
+    );
+  };
+  send.disabled = true;
+  field.addEventListener('input', () => { send.disabled = field.value.trim() === ''; });
+  field.addEventListener('keydown', (e: KeyboardEvent) => { if (e.key === 'Enter') submit(); });
+  send.addEventListener('click', submit);
+
+  return h('div', { class: 'msg-wrap' },
+    list,
+    h('div', { class: 'msg-composer' }, field, send));
 }
 
 /**
