@@ -45,7 +45,21 @@ export function renderEnded(store: Store, quests: Quests): HTMLElement {
    * "Return to home screen" cannot race the timer.
    */
   const SECONDS = 60;
-  const CIRC = 2 * Math.PI * 26;
+  /**
+   * The ring's radius, and everything else derives from it so the two cannot
+   * drift. It was 26 inside a 56 box, which with a 3px stroke puts the outer
+   * edge at 55 — the ring all but filled its own box, which is the "radius is
+   * too big" Nam saw.
+   *
+   * 22 with a 4px stroke gives a 48 outer diameter inside the same 56 box.
+   * SCREENSHOT-DERIVED, not measured: the countdown label and ring are transient
+   * — caught once at 3s after leaving and already gone by 2s on the next run —
+   * so the inner diameter and stroke width are read off Nam's capture of the
+   * original rather than off the DOM. The 56 box, the position and the colours
+   * below ARE measured.
+   */
+  const RING_R = 22;
+  const CIRC = 2 * Math.PI * RING_R;
   const numEl = h('span', { class: 'end-n' }, String(SECONDS));
   const timer = h(
     'div',
@@ -63,9 +77,12 @@ export function renderEnded(store: Store, quests: Quests): HTMLElement {
     const svg = document.createElementNS(ns, 'svg');
     svg.setAttribute('viewBox', '0 0 56 56');
     svg.setAttribute('aria-hidden', 'true');
-    for (const cls of ['end-track', 'end-arc']) {
+    // Only the arc. The original draws this with the rotating-mask trick, which
+    // has no separate track — and ours was painting one in rgba(255,255,255,.16),
+    // a white track on a light surface, so it was invisible anyway.
+    for (const cls of ['end-arc']) {
       const c = document.createElementNS(ns, 'circle');
-      c.setAttribute('cx', '28'); c.setAttribute('cy', '28'); c.setAttribute('r', '26');
+      c.setAttribute('cx', '28'); c.setAttribute('cy', '28'); c.setAttribute('r', String(RING_R));
       c.setAttribute('class', cls);
       svg.appendChild(c);
     }

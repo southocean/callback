@@ -5393,24 +5393,39 @@ body.presenting .shot { min-width: 0; }
  * instead: the same read, one animated property, and it stays in step with the
  * countdown because both are driven from the same duration.
  */
+/* Round 11. Nam: wrong text colour, line too thin, radius too big, curved ends
+ * instead of flat.
+ *
+ * ROOT CAUSE for the colour: this whole block was written for a DARK surface
+ * while the end screen is light. .ended already uses --ink3 and --outline, the
+ * light-theme tokens, and the timer sat on top of it in --on-dark (#e3e3e3) with
+ * a white track. Light-grey text on white, and a white track on white.
+ *
+ * MEASURED on the original's end screen: it is a light surface, the label is
+ * #202124 at 14/20, the ring box is 56x56 at 20,20, its colour is #1a73e8, and
+ * the gap from ring to label is 8 (ring ends at x 76, label starts at 84).
+ *
+ * THE FLAT ENDS are not a style choice in the original — it draws the ring by
+ * rotating a masked half-disc, and a masked border has butt ends by
+ * construction. Ours is an SVG arc, which defaults to round, so it needs saying
+ * explicitly. */
 .end-timer {
   position: absolute; top: 20px; left: 20px; z-index: 5;
-  display: flex; align-items: center; gap: 12px;
-  font: 400 14px/20px var(--font); color: var(--on-dark);
+  display: flex; align-items: center; gap: 8px;
+  font: 400 14px/20px var(--font); color: #202124;
 }
 .end-ring { position: relative; width: 56px; height: 56px; flex: 0 0 auto; }
 .end-ring svg { width: 56px; height: 56px; display: block; transform: rotate(-90deg); }
-.end-ring circle { fill: none; stroke-width: 3; }
-.end-ring .end-track { stroke: rgba(255, 255, 255, .16); }
+.end-ring circle { fill: none; stroke-width: 4; }
 .end-ring .end-arc {
-  stroke: #8ab4f8; stroke-linecap: round;
+  stroke: #1a73e8; stroke-linecap: butt;
   stroke-dasharray: var(--c); stroke-dashoffset: 0;
   animation: end-drain var(--dur) linear both;
 }
 @keyframes end-drain { to { stroke-dashoffset: var(--c); } }
 .end-n {
   position: absolute; inset: 0; display: grid; place-items: center;
-  font: 400 14px/20px var(--font); color: var(--on-dark);
+  font: 400 14px/20px var(--font); color: #202124;
   font-variant-numeric: tabular-nums;
 }
 @media (max-width: 720px) { .end-timer { position: static; margin: 0 0 20px; } }
