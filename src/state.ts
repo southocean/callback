@@ -36,6 +36,12 @@ export interface State {
    * someone to discover that the switch is decorative.
    */
   presAudio: boolean;
+  /**
+   * The self tile collapsed to a name bar. Only reachable while presenting and
+   * unpinned, which is the one state where the original's Minimize row is live
+   * -- on the full-stage tile it reports aria-disabled=true.
+   */
+  minimized: boolean;
   /** Meet's "Your meeting's ready" card, dismissible. */
   readyCard: boolean;
   fx: FxPreset;
@@ -59,6 +65,7 @@ export type Action =
   | { t: 'hand'; on: boolean }
   | { t: 'pin'; on: boolean }
   | { t: 'presAudio'; on: boolean }
+  | { t: 'minimize'; on: boolean }
   | { t: 'readyCard'; on: boolean }
   | { t: 'fx'; preset: FxPreset }
   | { t: 'net'; profile: NetProfile }
@@ -80,6 +87,7 @@ export const initial: State = {
   handRaised: false,
   pinned: false,
   presAudio: true,
+  minimized: false,
   readyCard: true,
   fx: 'off',
   net: 'good',
@@ -101,7 +109,7 @@ export function reduce(s: State, a: Action): State {
 
     case 'leave':
       // A CV has no business keeping a webcam warm after you walk away from it.
-      return { ...s, screen: 'ended', panel: 'none', cameraOn: false, micOn: false, fx: 'off', handRaised: false, pinned: false };
+      return { ...s, screen: 'ended', panel: 'none', cameraOn: false, micOn: false, fx: 'off', handRaised: false, pinned: false, minimized: false };
 
     case 'panel':
       // Clicking the open panel's own button closes it, the way a real call does.
@@ -128,10 +136,15 @@ export function reduce(s: State, a: Action): State {
       return { ...s, handRaised: a.on };
 
     case 'pin':
-      return { ...s, pinned: a.on };
+      // Pinning gives the tile the whole right column, so a collapsed bar makes
+      // no sense there -- and the original's Minimize row is dead in that state.
+      return { ...s, pinned: a.on, minimized: a.on ? false : s.minimized };
 
     case 'presAudio':
       return { ...s, presAudio: a.on };
+
+    case 'minimize':
+      return { ...s, minimized: a.on };
 
     case 'readyCard':
       return { ...s, readyCard: a.on };

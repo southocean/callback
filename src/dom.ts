@@ -97,4 +97,8 @@ export const icons = {
   // simple enough shape that an authored path is not the Round 5 mistake --
   // that was drawing over glyphs a designed typeface already carried well.
   send: 'M3 20.5v-6l8-2.5-8-2.5v-6L21 12 3 20.5Z',
+  // The minimized bar's Expand. MEASURED as `open_in_full` at 20px, which the
+  // subset carries no counterpart for -- it has close_fullscreen but not this.
+  // Two corner arrows, same authored-path slot as `send`.
+  expand: 'M10 21H3v-7h2v3.59l4.29-4.3 1.42 1.42L6.41 19H10v2zm11-11h-2V6.41l-4.29 4.3-1.42-1.42L17.59 5H14V3h7v7z',
 };

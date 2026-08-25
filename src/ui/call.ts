@@ -13,7 +13,7 @@
 // Review U7's two-tier rule still holds: the story is in the tiles and the first
 // four panels; everything technical lives behind Meeting tools.
 
-import { h, clear } from '../dom.js';
+import { h, clear, icon, icons } from '../dom.js';
 import { sym } from './icons.js';
 import { ripple, attachMenu, micMeter, menu as gmMenu, warnBadge, noticeCard, dropCaret } from './gm3.js';
 import { tipAll, tip } from './tooltip.js';
@@ -172,6 +172,25 @@ export function renderCall(store: Store, quests: Quests, deps: CallDeps): HTMLEl
     h('span', { class: 'sr-only' }, 'Pinned for yourself')) as HTMLElement;
   pinMark.hidden = true;
 
+  /**
+   * The collapsed bar, MEASURED on the live product: 208 x 36, #4a4e51, radius 8,
+   * sharing the small tile's exact bottom-right corner (right edge 2528, bottom
+   * 1063 -- identical to the tile it replaces, so it collapses in place).
+   * Inside: a level glyph, videocam_off, the name at 500 14px/20px white, then an
+   * Expand at 32 x 32 carrying open_in_full at 20px.
+   */
+  const minExpand = h('button', {
+    class: 'min-expand', type: 'button', 'aria-label': 'Expand',
+  }, icon(icons.expand, 20)) as HTMLButtonElement;
+  minExpand.addEventListener('click', () => store.dispatch({ t: 'minimize', on: false }));
+  ripple(minExpand);
+  const minBar = h('div', { class: 'solo-min' },
+    h('span', { class: 'min-ico', 'aria-hidden': 'true' }, sym('mic_off', 18)),
+    h('span', { class: 'min-ico', 'aria-hidden': 'true' }, sym('videocam_off', 18)),
+    h('span', { class: 'min-name' }, profile.name),
+    minExpand) as HTMLElement;
+  minBar.hidden = true;
+
   const handPill = h('div', { class: 'hand-pill', role: 'status' },
     h('div', { class: 'hand-bg', 'aria-hidden': 'true' }),
     h('span', { class: 'hand-ico', 'aria-hidden': 'true' }, sym('back_hand', 16)),
@@ -196,6 +215,115 @@ export function renderCall(store: Store, quests: Quests, deps: CallDeps): HTMLEl
     handPill.classList.add('hand-pill');
   }
 
+  /**
+   * The small tile can be dragged, and latches to one of the four corners.
+   *
+   * Nam found this by accident: "in this small video tile state, it can be moved
+   * anywhere and will latch on on of the four corners of the screen."
+   *
+   * MEASURED on the live product, though not the gesture itself. The tile is
+   * absolutely positioned inside the stage carrying concrete `left`/`right`/
+   * `top`/`bottom` offsets rather than a transform, at a 16px inset, and its
+   * transition reads:
+   *
+   *   bottom .3s cubic-bezier(0.4, 0, 0.2, 1), left .3s cubic-bezier(0.4, 0, 0.2, 1)
+   *
+   * Both axes animated, which is the snap. HONEST LIMIT: `left_click_drag` could
+   * not reproduce the gesture -- it presses, jumps and releases without the
+   * intermediate pointermove events the handler needs -- so the corners, the
+   * inset and the easing are read off the style, and the feel of the drag
+   * itself (any ghost, any cursor change) is not measured.
+   *
+   * Numeric left/top throughout rather than flipping between `auto` and a
+   * length, because `auto` does not interpolate and the transition above proves
+   * the original animates real numbers.
+   */
+  type Corner = 'tl' | 'tr' | 'bl' | 'br';
+  const INSET = 16;
+  let corner: Corner = 'br';
+  let tileEl: HTMLElement | null = null;
+
+  const dragHost = (): HTMLElement | null => document.querySelector('.grid-wrap');
+
+  function place(el: HTMLElement, animate: boolean): void {
+    const host = dragHost();
+    if (!host) return;
+    const hb = host.getBoundingClientRect();
+    const w = el.offsetWidth;
+    const hgt = el.offsetHeight;
+    const left = corner === 'tl' || corner === 'bl' ? INSET : Math.max(INSET, hb.width - w - INSET);
+    const top = corner === 'tl' || corner === 'tr' ? INSET : Math.max(INSET, hb.height - hgt - INSET);
+    el.classList.toggle('is-snapping', animate);
+    el.style.right = 'auto';
+    el.style.bottom = 'auto';
+    el.style.left = `${left}px`;
+    el.style.top = `${top}px`;
+  }
+
+  /** Clears the inline placement, so the stylesheet governs again. */
+  function unplace(el: HTMLElement): void {
+    el.classList.remove('is-snapping', 'is-dragging');
+    el.style.left = el.style.top = el.style.right = el.style.bottom = '';
+  }
+
+  function draggable(): boolean {
+    return document.body.classList.contains('presenting') && !store.get().pinned;
+  }
+
+  function wireDrag(el: HTMLElement): void {
+    let id = -1;
+    let ox = 0;
+    let oy = 0;
+    el.addEventListener('pointerdown', (e: PointerEvent) => {
+      if (!draggable()) return;
+      // The control pill and the Expand button live on this tile; a press on one
+      // of them is a click, not the start of a drag.
+      if ((e.target as HTMLElement).closest('button')) return;
+      const host = dragHost();
+      if (!host) return;
+      const b = el.getBoundingClientRect();
+      const hb = host.getBoundingClientRect();
+      ox = e.clientX - b.left;
+      oy = e.clientY - b.top;
+      id = e.pointerId;
+      // Guarded: a synthetic PointerEvent carries no real pointer, and capture
+      // throws on one. The drag works either way; only capture is optional.
+      try { el.setPointerCapture(id); } catch { /* not a real pointer */ }
+      el.classList.add('is-dragging');
+      el.classList.remove('is-snapping');
+      el.style.right = 'auto';
+      el.style.bottom = 'auto';
+      el.style.left = `${b.left - hb.left}px`;
+      el.style.top = `${b.top - hb.top}px`;
+      e.preventDefault();
+    });
+    el.addEventListener('pointermove', (e: PointerEvent) => {
+      if (e.pointerId !== id) return;
+      const host = dragHost();
+      if (!host) return;
+      const hb = host.getBoundingClientRect();
+      el.style.left = `${e.clientX - hb.left - ox}px`;
+      el.style.top = `${e.clientY - hb.top - oy}px`;
+    });
+    const end = (e: PointerEvent): void => {
+      if (e.pointerId !== id) return;
+      id = -1;
+      el.classList.remove('is-dragging');
+      const host = dragHost();
+      if (!host) return;
+      const hb = host.getBoundingClientRect();
+      const b = el.getBoundingClientRect();
+      // Nearest corner by the tile's own centre, so a tile more than halfway
+      // across latches to the far side rather than snapping back.
+      const cx = b.left + b.width / 2 - hb.left;
+      const cy = b.top + b.height / 2 - hb.top;
+      corner = `${cy < hb.height / 2 ? 't' : 'b'}${cx < hb.width / 2 ? 'l' : 'r'}` as Corner;
+      place(el, true);
+    };
+    el.addEventListener('pointerup', end);
+    el.addEventListener('pointercancel', end);
+  }
+
   const soloTile = (): HTMLElement => {
     const t = h(
       'div',
@@ -205,6 +333,7 @@ export function renderCall(store: Store, quests: Quests, deps: CallDeps): HTMLEl
       h('div', { class: 'solo-av', 'aria-hidden': 'true' }, 'NN'),
       pinMark,
       h('span', { class: 'solo-name' }, profile.name),
+      minBar,
       muteBadge,
       handPill,
       micMeter(),
@@ -258,7 +387,23 @@ export function renderCall(store: Store, quests: Quests, deps: CallDeps): HTMLEl
      * rather than freezing whichever state it was first constructed in.
      */
     attachMenu(more, (): MenuItem[] => [
-      { icon: 'close_fullscreen', label: 'Minimize', disabled: true },
+      /**
+       * MEASURED: Minimize is context-dependent. On the full-stage tile it
+       * reports aria-disabled=true; on the small tile while presenting unpinned
+       * it is LIVE, and it really does collapse the tile. Nam spotted this --
+       * "there is a minimize option that actualy minimize the video tile" -- and
+       * the menu confirmed it, with only "Show my full video to others" dead in
+       * that state.
+       *
+       * So the row mirrors the original's own condition rather than being
+       * permanently dead or permanently live.
+       */
+      {
+        icon: 'close_fullscreen',
+        label: 'Minimize',
+        disabled: sharing === null || store.get().pinned,
+        onPick: () => { store.dispatch({ t: 'minimize', on: true }); },
+      },
       {
         icon: 'keep',
         label: store.get().pinned ? 'Unpin' : 'Pin to the screen',
@@ -307,6 +452,8 @@ export function renderCall(store: Store, quests: Quests, deps: CallDeps): HTMLEl
       fx('blur_on', 'Backgrounds and effects', ''),
       fx('aspect_ratio', 'Show in a tile', 'solo-tile'),
       more));
+    tileEl = t as HTMLElement;
+    wireDrag(tileEl);
     return t;
   };
 
@@ -1359,6 +1506,9 @@ export function renderCall(store: Store, quests: Quests, deps: CallDeps): HTMLEl
     presWho.textContent = `${profile.name} (You, presenting)`;
     presChip.hidden = false;
     sharing = { el: wrap };
+    // Not a dispatch, so sync() will not fire for this: the tile becomes the
+    // free-floating small one here and needs its corner applied now.
+    if (tileEl && !store.get().pinned) place(tileEl, false);
     presentBtn.classList.add('is-active');
     presentBtn.sync?.();
     quests.unlock('present');
@@ -1369,6 +1519,12 @@ export function renderCall(store: Store, quests: Quests, deps: CallDeps): HTMLEl
     sharing?.el.remove();
     sharing = null;
     document.body.classList.remove('presenting');
+    // The bar only exists beside a share, so ending one restores the tile rather
+    // than leaving a collapsed bar with nothing to sit next to.
+    if (store.get().minimized) store.dispatch({ t: 'minimize', on: false });
+    // The inline corner placement must go with it, or a stale left/top would
+    // fight the full-stage rules once the tile is the whole stage again.
+    if (tileEl) unplace(tileEl);
     presChip.hidden = true;
     // The tile has just gone from 240x135 back to the full stage. Anything
     // mid-animation on it was sized for the small frame, so the hand replays
@@ -1485,6 +1641,20 @@ export function renderCall(store: Store, quests: Quests, deps: CallDeps): HTMLEl
      */
     pinMark.hidden = !s.pinned;
     document.body.classList.toggle('is-pinned', s.pinned);
+    // Only meaningful while presenting and unpinned, which is the only state the
+    // original offers it in.
+    const collapsed = s.minimized && sharing !== null && !s.pinned;
+    minBar.hidden = !collapsed;
+    document.body.classList.toggle('is-min', collapsed);
+    /**
+     * The corner placement is inline, so it has to be withdrawn whenever the tile
+     * stops being the free-floating small one -- otherwise a stale left/top would
+     * fight the pinned column or the full-stage rules.
+     */
+    if (tileEl) {
+      if (sharing !== null && !s.pinned) place(tileEl, false);
+      else unplace(tileEl);
+    }
     // Nam wants this on whenever the mic is not enabled, which on this page is
     // effectively always — turning the mic on raises a card whose close turns it
     // straight back off.

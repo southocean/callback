@@ -4935,7 +4935,17 @@ body.presenting .solo {
      radius 8 -- close enough to pass, and free to correct now it is read. */
   width: 235px; height: 132px; min-width: 0; min-height: 0;
   border-radius: 12px; overflow: hidden;
-  transition: width .24s cubic-bezier(0.2, 0, 0, 1), height .24s cubic-bezier(0.2, 0, 0, 1);
+  /* No width/height transition, and this time the reason is MEASURED rather than
+     inferred. The live small tile's transition list reads
+       bottom .3s cubic-bezier(0.4, 0, 0.2, 1), left .3s cubic-bezier(0.4, 0, 0.2, 1)
+     -- it animates POSITION and never size. Ours animated size, which was
+     invented, and it also broke the corner placement: place() reads offsetWidth
+     to work out the right-hand inset, and mid-transition that still reported the
+     old full-stage 872, so 872 - 872 - 16 clamped to 16 and the tile opened in
+     the bottom-LEFT corner. Dropping it makes the size correct on the same frame
+     the class lands. The snap's own easing lives on .is-snapping, so a drag stays
+     immediate and only the release animates. */
+  transition: none;
 }
 /* Everything on the tile scales to the smaller frame. */
 body.presenting .solo-av { width: 56px; height: 56px; font-size: 18px; }
@@ -5895,3 +5905,89 @@ body.presenting .hand-pill { left: calc(6px + var(--pin-lead)); }
    screenshots is CHROME's own "Sharing ... to this tab", which is browser
    chrome and not ours to draw. */
 body.presenting:not(.is-pinned) .solo { bottom: 16px; }
+
+/* ====== ROUND 16: THE SMALL TILE IS A REAL TILE ========================== */
+
+/* --- the centre control belongs on every state of the tile ---------------- */
+/* Nam checked all three and found it on 2/3: "Not pinned, while sharing screen:
+   not available... Add this control there too, the same that is available on the
+   other two."
+ *
+ * MEASURED on the small tile with a real hover: the pill is 128 x 44 @ 2347,975
+ * on a 235 x 132 tile at 2293,931 -- so it is DEAD CENTRE (both centres land on
+ * 2411 / 997) and it is not scaled down at all. Same #202124, same radius 44,
+ * same 44 + 44 + 40 = 128 as the full-stage tile, opacity .9.
+ *
+ * Ours hid it outright with `body.presenting .solo-ctl { display: none }`, and
+ * the pinned rule added last round only put it back for the pinned case. Nothing
+ * to restyle -- the pill is already centred on .solo -- so this is a deletion. */
+body.presenting .solo-ctl { display: grid; }
+
+/* --- Minimize, which is live only here ----------------------------------- */
+/* MEASURED: 208 x 36, #4a4e51, radius 8, sharing the tile's own bottom-right
+   corner exactly (right edge 2528, bottom 1063, identical to the 235 x 132 tile
+   it replaces -- it collapses in place). Inside: a level glyph, videocam_off,
+   the name at 500 14px/20px white, then Expand at 32 x 32 carrying open_in_full
+   at 20px. */
+body.presenting.is-min .solo {
+  width: 208px; height: 36px;
+  border-radius: 8px; background-color: #4a4e51;
+  aspect-ratio: auto;
+}
+/* Everything the tile normally carries goes away; the bar replaces all of it. */
+body.presenting.is-min .solo-blur,
+body.presenting.is-min .solo-scrim,
+body.presenting.is-min .solo-av,
+body.presenting.is-min .solo-name,
+body.presenting.is-min .solo-ctls,
+body.presenting.is-min .solo-mute,
+body.presenting.is-min .solo-pin,
+body.presenting.is-min .hand-pill { display: none !important; }
+
+.solo-min[hidden] { display: none !important; }
+.solo-min {
+  position: absolute; inset: 0; z-index: 7;
+  display: flex; align-items: center; gap: 8px;
+  padding: 0 0 0 12px;
+  color: #fff;
+}
+.min-ico { flex: 0 0 auto; display: grid; place-items: center; width: 18px; height: 18px; }
+.min-ico .ms { font-size: 18px; }
+.min-name {
+  flex: 1 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  font: 500 14px/20px var(--font-title);
+}
+.min-expand {
+  position: relative; overflow: hidden;
+  flex: 0 0 auto; width: 32px; height: 32px; margin-right: 2px;
+  border: 0; border-radius: 16px; background: transparent; color: #fff;
+  display: grid; place-items: center; cursor: pointer; --sl: #fff;
+}
+
+/* --- drag, and latch to a corner ---------------------------------------- */
+/* Nam, by accident: "it can be moved anywhere and will latch on on of the four
+ * corners of the screen."
+ *
+ * MEASURED off the live tile's own style rather than the gesture: it is
+ * absolutely positioned in the stage with concrete left/right/top/bottom at a
+ * 16px inset, and carries
+ *
+ *   bottom .3s cubic-bezier(0.4, 0, 0.2, 1), left .3s cubic-bezier(0.4, 0, 0.2, 1)
+ *
+ * -- both axes animated, which is the latch. The offsets are real numbers, not
+ * `auto`, which matters: `auto` does not interpolate, so a rule that flipped
+ * between `left: auto` and `left: 16px` could never produce that transition.
+ * Ours therefore drives numeric left/top from script; see call.ts.
+ *
+ * The transition lives on a class rather than the tile, so dragging is
+ * immediate and only the release animates. */
+body.presenting:not(.is-pinned) .solo { cursor: grab; touch-action: none; }
+body.presenting:not(.is-pinned) .solo.is-dragging { cursor: grabbing; }
+/* Nothing on the tile should swallow the drag except the real controls. */
+body.presenting:not(.is-pinned) .solo.is-dragging * { pointer-events: none; }
+body.presenting:not(.is-pinned) .solo.is-snapping {
+  transition: left .3s cubic-bezier(0.4, 0, 0.2, 1), top .3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+@media (prefers-reduced-motion: reduce) {
+  body.presenting:not(.is-pinned) .solo.is-snapping { transition: none; }
+}

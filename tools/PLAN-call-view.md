@@ -1414,3 +1414,84 @@ the CV does not claim to have had.
 Verified: both the button and Enter add a visible bubble, labelled `You  HH:MM`,
 inserted before the Transcript heading so several sends stack in order; the field
 clears and send re-disables each time; and a whitespace-only send does nothing.
+
+## Round 16 — the small tile becomes a real tile
+
+Nam audited the centre control across all three tile states and found it on 2/3,
+then discovered two more behaviours by accident.
+
+### The control belongs on every state
+
+MEASURED with a real hover: the pill is `128 x 44 @ 2347,975` on a `235 x 132`
+tile at `2293,931` — **dead centre** (both centres land on 2411/997) and **not
+scaled down**. Same `#202124`, same radius 44, same 44 + 44 + 40 = 128 as the
+full-stage tile, at opacity .9.
+
+Ours hid it with `body.presenting .solo-ctl { display: none }`, and last round's
+pinned rule only put it back for the pinned case. Since the pill is already
+centred on `.solo`, the fix was a deletion rather than any new geometry.
+
+Nam also explained why it had been so hard to reach: it triggers on **mouse
+enter**, not on position, so the pointer has to travel from outside the tile to
+inside. A single hover to the centre never fires it; two hovers do.
+
+### Minimize is context-dependent
+
+MEASURED, and this contradicts what we had: on the full-stage tile the row
+reports `aria-disabled=true`, but on the small tile while presenting unpinned it
+is **live**, with only "Show my full video to others" dead. We had it permanently
+dead. It now mirrors the original's own condition.
+
+The collapsed bar: `208 x 36`, **`#4a4e51`**, radius 8, sharing the tile's exact
+bottom-right corner (right edge 2528, bottom 1063 — identical to the `235 x 132`
+tile it replaces, so it collapses in place). Inside: a level glyph,
+`videocam_off`, the name at `500 14px/20px` white, then Expand at `32 x 32`
+carrying `open_in_full` at 20px. `open_in_full` is not in the 7 kB subset — it has
+`close_fullscreen` but not its counterpart — so that one is an authored path
+beside `send`.
+
+### Drag, and latch to a corner
+
+MEASURED off the tile's own style rather than the gesture: absolutely positioned
+in the stage with concrete `left`/`right`/`top`/`bottom` at a **16px** inset, and
+a transition of `bottom .3s cubic-bezier(0.4, 0, 0.2, 1)` plus
+`left .3s cubic-bezier(0.4, 0, 0.2, 1)`.
+
+Both axes animated — that is the latch. The offsets are real numbers, never
+`auto`, which matters: `auto` does not interpolate, so a rule flipping between
+`left: auto` and `left: 16px` could not produce that transition. Ours therefore
+drives numeric left/top from script.
+
+**Honest limit:** `left_click_drag` could not reproduce the gesture — it presses,
+jumps and releases without the intermediate pointermove events the handler needs.
+Nam confirmed the same thing from the other side ("make sure to move the mouse in
+instead of just poping the mouse up at the exact location"). So the corners, the
+inset and the easing are read off the computed style; the *feel* of the drag is
+not measured.
+
+### The invented transition that broke the placement
+
+`body.presenting .solo` carried `transition: width .24s, height .24s`. The
+original's list is `bottom`/`left` — it animates **position, never size** — so
+ours was invented.
+
+It also broke the corner maths: `place()` reads `offsetWidth` for the right-hand
+inset, and mid-transition that still reported the old full-stage 872, so
+`872 - 872 - 16` clamped to 16 and the tile opened bottom-**left**. Removing it
+makes the size correct on the frame the class lands. Note this is a *different*
+justification from Round 10's retracted removal — that one was a frozen-timeline
+artefact; this one is a measurement plus a reproducible off-by-a-corner.
+
+### QA
+
+Initial corner bottom-right at 16/16. All four corners snap to exactly 16px on
+both axes. Menu rows match the original's small-tile state (Minimize live, Pin
+live, full-video dead). Minimized bar `208 x 36` `#4a4e51` radius 8 with the menu
+auto-closing; Expand restores `235 x 132` **in the same corner**. A press on the
+control pill does not drag; a press on the bare tile does.
+
+Third synthetic-event lesson, and the same shape as the previous two. Two probes
+were invalid before they were right: one dispatched pointerdown on the tile so
+`e.target` was never the button the guard checks, and one snapshotted the tile
+mid-frozen-transition so a completing snap read as a drag. Settle animations
+first, and dispatch on the element a user would actually hit.
