@@ -1356,3 +1356,34 @@ Verified on ours: frame `328 x 50` transparent radius 25 with the same 1px
 inside the frame's box, side insets 16/16, gaps 15 above and 16 below, and
 focusing changes nothing. Send is `#5f6368` and disabled while empty, `#a8c7fa`
 and live once there is text — the same ink the original showed with text in it.
+
+## Round 14 — closing the panel closes the panel
+
+Nam: open About, then Chat, then hit close — "I only close the chat panel, but the
+more about nam panel is still up!? … The right panel is contextual… Closing the
+right panel is closing right panel - not closing it onto another right panel that
+is still open underneath."
+
+There was never a second panel underneath. There is one `panel` value in the
+store and one aside in the DOM. What happened is that **close switched panels
+instead of closing.**
+
+The close button dispatched `{ t: 'panel', panel: s.panel }`, leaning on the
+reducer's toggle — and `s` is captured from the render that first *mounted* the
+aside. Round 4's re-animation fix deliberately keeps that element alive and swaps
+only the heading and body, so the handler kept pointing at whichever panel opened
+first. With About opened first and Chat showing, close dispatched
+`{panel:'about'}` against a state of `'chat'`, and
+`s.panel === a.panel ? 'none' : a.panel` resolved to **'about'**.
+
+So the panel-reuse optimisation and the toggle-based close were each fine alone
+and wrong together. Fixed by making close unconditional — `panel: 'none'`. A close
+button has no business consulting the current panel; the toggle belongs to the bar
+controls, where clicking People while People is open should close it.
+
+The same staleness had a quieter victim: the close button's `aria-label` was baked
+in at mount, so it still announced "Close More about Nam" while the chat was
+showing. Now refreshed alongside the heading.
+
+Verified: About → Chat → close leaves no aside and no `has-panel`; the button's
+accessible name tracks the content; and the bar controls still toggle.

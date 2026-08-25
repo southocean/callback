@@ -420,7 +420,24 @@ export function renderCall(store: Store, quests: Quests, deps: CallDeps): HTMLEl
             class: 'icon-btn',
             type: 'button',
             'aria-label': `Close ${title}`,
-            onclick: () => store.dispatch({ t: 'panel', panel: s.panel }),
+            /**
+             * Closes, unconditionally. It used to dispatch `s.panel`, relying on
+             * the reducer's toggle -- and `s` is captured from the render that
+             * first MOUNTED this aside. The reuse path below deliberately keeps
+             * that element alive and only swaps the heading and body, so this
+             * handler kept pointing at whichever panel opened first.
+             *
+             * Nam: open About, then Chat, then close -> "I only close the chat
+             * panel, but the more about nam panel is still up!?" It was not still
+             * up; the button dispatched {panel:'about'} while the state said
+             * 'chat', and `s.panel === a.panel ? 'none' : a.panel` therefore
+             * SWITCHED to About instead of closing.
+             *
+             * A close button has no business consulting the current panel at all.
+             * The toggle belongs to the bar controls, where clicking People while
+             * People is open should close it; here the intent is unambiguous.
+             */
+            onclick: () => store.dispatch({ t: 'panel', panel: 'none' }),
           },
           sym('close', 22),
         ),
@@ -435,6 +452,10 @@ export function renderCall(store: Store, quests: Quests, deps: CallDeps): HTMLEl
       mounted.el.setAttribute('aria-label', title);
       const h2 = mounted.head.querySelector('h2');
       if (h2) h2.textContent = title;
+      // Same staleness, quieter: the close button's accessible name was baked in
+      // at mount, so it still announced "Close More about Nam" over the chat.
+      const closeBtn = mounted.head.querySelector('button');
+      if (closeBtn) closeBtn.setAttribute('aria-label', `Close ${title}`);
       const oldBody = mounted.el.lastElementChild;
       if (oldBody && oldBody !== mounted.head) oldBody.replaceWith(body);
       else mounted.el.appendChild(body);
