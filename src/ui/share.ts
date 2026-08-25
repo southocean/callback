@@ -789,6 +789,120 @@ function win11(o: {
     }
   };
 
+  /**
+   * SNAP.
+   *
+   * The audit's measurement was blunt: dragging a window to x=2 left it 720px
+   * wide sitting against the edge. Nothing snapped, and nothing previewed. Snap
+   * is the most recognisable thing Windows 11 does with a window — it is in the
+   * ads — so a mock OS without it is a mock of Windows 7 with rounded corners.
+   *
+   * Two halves of the feature, both here:
+   *   · drag to an edge and a translucent ghost shows where the window will land
+   *   · hover Maximise and the snap-layouts flyout offers the zones directly
+   *
+   * Everything is expressed as fractions of the host so it survives the share
+   * area being any size, which it is — the desktop is whatever the call stage
+   * leaves it.
+   */
+  type Zone = { l: number; t: number; w: number; h: number; name: string };
+  const Z_LEFT: Zone = { l: 0, t: 0, w: .5, h: 1, name: 'left half' };
+  const Z_RIGHT: Zone = { l: .5, t: 0, w: .5, h: 1, name: 'right half' };
+  const Z_FULL: Zone = { l: 0, t: 0, w: 1, h: 1, name: 'full screen' };
+
+  const snapTo = (z: Zone): void => {
+    const host = el.parentElement?.getBoundingClientRect();
+    if (!host) return;
+    // A maximised window has no inline box; snapping gives it one, so the class
+    // has to come off or .is-max's width:100% would fight the inline width. That
+    // is the same collision toggleMax was written to avoid.
+    if (maxed) { maxed = false; el.classList.remove('is-max'); saved = null; }
+    el.style.left = `${Math.round(host.width * z.l)}px`;
+    el.style.top = `${Math.round(host.height * z.t)}px`;
+    el.style.width = `${Math.round(host.width * z.w)}px`;
+    el.style.height = `${Math.round(host.height * z.h)}px`;
+    o.say?.(`${o.title} snapped ${z.name}`);
+  };
+
+  /* The drag preview. One element per window, made on first use and left in the
+     surface after — it is a 4-property style change to move it, against a DOM
+     insertion on every pointermove otherwise. */
+  let ghost: HTMLElement | null = null;
+  const showGhost = (z: Zone | null): void => {
+    const host = el.parentElement;
+    if (!host) return;
+    if (!z) { ghost?.remove(); ghost = null; return; }
+    if (!ghost) { ghost = h('div', { class: 'wx-ghost' }) as HTMLElement; host.appendChild(ghost); }
+    const r = host.getBoundingClientRect();
+    ghost.style.left = `${Math.round(r.width * z.l)}px`;
+    ghost.style.top = `${Math.round(r.height * z.t)}px`;
+    ghost.style.width = `${Math.round(r.width * z.w)}px`;
+    ghost.style.height = `${Math.round(r.height * z.h)}px`;
+  };
+
+  /* --- the snap-layouts flyout ------------------------------------------- */
+  /* Three layouts, which is what a screen this shape gets in the real thing:
+     halves, a 60/40 split for a document beside a reference, and quadrants. Each
+     zone is its own button, so it is reachable and named rather than being a
+     region of a picture. */
+  const LAYOUTS: Zone[][] = [
+    [Z_LEFT, Z_RIGHT],
+    [{ l: 0, t: 0, w: .6, h: 1, name: 'left, wide' }, { l: .6, t: 0, w: .4, h: 1, name: 'right, narrow' }],
+    [
+      { l: 0, t: 0, w: .5, h: .5, name: 'top left' }, { l: .5, t: 0, w: .5, h: .5, name: 'top right' },
+      { l: 0, t: .5, w: .5, h: .5, name: 'bottom left' }, { l: .5, t: .5, w: .5, h: .5, name: 'bottom right' },
+    ],
+  ];
+
+  let snapPop: HTMLElement | null = null;
+  let snapTimer = 0;
+  const shutSnap = (): void => {
+    window.clearTimeout(snapTimer);
+    snapPop?.remove();
+    snapPop = null;
+    maxBtn?.setAttribute('aria-expanded', 'false');
+  };
+
+  const openSnap = (): void => {
+    if (snapPop || maxed) return;
+    snapPop = h('div', { class: 'wx-snap', role: 'menu', 'aria-label': 'Snap layouts' },
+      ...LAYOUTS.map((zones) => h('div', { class: 'wx-snap-l' },
+        ...zones.map((z) => {
+          const b = h('button', {
+            class: 'wx-snap-z', type: 'button', role: 'menuitem',
+            'aria-label': `Snap ${z.name}`,
+            style: `left:${z.l * 100}%;top:${z.t * 100}%;width:${z.w * 100}%;height:${z.h * 100}%`,
+          }) as HTMLElement;
+          b.addEventListener('click', () => { shutSnap(); snapTo(z); });
+          return b;
+        })))) as HTMLElement;
+    maxBtn?.setAttribute('aria-expanded', 'true');
+    el.appendChild(snapPop);
+  };
+
+  /* Hover intent, not hover: the flyout is a second meaning for a button whose
+     first meaning is one click away, so it must not appear on the way past.
+     Windows waits about half a second and so does this. Focus opens it at once,
+     because a keyboard user arriving on the button has already committed. */
+  const maxBtn = cap('wx-max', 'Maximize', 'max', toggleMax);
+  if (o.full) {
+    maxBtn.setAttribute('aria-haspopup', 'true');
+    maxBtn.setAttribute('aria-expanded', 'false');
+    maxBtn.addEventListener('pointerenter', () => {
+      window.clearTimeout(snapTimer);
+      snapTimer = window.setTimeout(openSnap, 480);
+    });
+    maxBtn.addEventListener('pointerleave', () => {
+      window.clearTimeout(snapTimer);
+      // A moment's grace so the pointer can cross the gap into the flyout.
+      snapTimer = window.setTimeout(() => {
+        if (!snapPop?.matches(':hover')) shutSnap();
+      }, 160);
+    });
+    maxBtn.addEventListener('focus', openSnap);
+    maxBtn.addEventListener('click', shutSnap);
+  }
+
   const bar = h('div', { class: 'wx-bar' },
     h('span', { class: 'wx-bar-ico' }, o.icon()),
     h('span', { class: 'wx-title', id: titleId }, o.title),
@@ -798,7 +912,7 @@ function win11(o: {
       // maximising a lone shared window is harmless and useful. Minimize still
       // is not: with no taskbar in Window mode there would be nowhere to restore
       // it from, so that one stays out.
-      cap('wx-max', 'Maximize', 'max', toggleMax),
+      maxBtn,
       cap('wx-close', 'Close', 'close', o.onClose)));
 
   // Dragging. Pointer events so it works with a mouse or a pen, capture so a
@@ -814,14 +928,27 @@ function win11(o: {
       const dy = e.clientY - r.top;
       el.classList.add('is-drag');
       bar.setPointerCapture(e.pointerId);
+      // Which edge the POINTER is in, not the window: a window dragged by its
+      // right-hand end can have its left edge nowhere near the screen edge while
+      // the cursor is hard against it, and it is the cursor you are aiming with.
+      const EDGE = 18;
+      let pending: Zone | null = null;
       const move = (ev: PointerEvent): void => {
         const x = Math.max(0, Math.min(ev.clientX - host.left - dx, host.width - r.width));
         const y = Math.max(0, Math.min(ev.clientY - host.top - dy, host.height - r.height));
         el.style.left = `${x}px`;
         el.style.top = `${y}px`;
+        pending = ev.clientX - host.left <= EDGE ? Z_LEFT
+          : host.right - ev.clientX <= EDGE ? Z_RIGHT
+            : ev.clientY - host.top <= EDGE ? Z_FULL
+              : null;
+        showGhost(pending);
       };
       const up = (): void => {
         el.classList.remove('is-drag');
+        showGhost(null);
+        if (pending) snapTo(pending);
+        pending = null;
         bar.removeEventListener('pointermove', move);
         bar.removeEventListener('pointerup', up);
       };
@@ -2213,6 +2340,206 @@ function pageDesktop(onQuit: () => void): HTMLElement {
     h('span', { class: 'dk-weather' }, '11°C  Klart'),
     trayQs, trayClock) as HTMLElement;
 
+  /**
+   * THE DESKTOP HAD NOTHING ON IT.
+   *
+   * The audit put this second only to the tray: .dk-surface held windows and
+   * bare wallpaper — no icons, no selection, no right-click. A Windows desktop
+   * with an empty top-left corner is the single clearest tell that you are
+   * looking at a drawing of one.
+   *
+   * Three icons, and all three open something real. There is no Recycle Bin,
+   * because ours would have nothing in it and nothing to do — an icon whose only
+   * job is to look like Windows is exactly the kind of prop this build keeps
+   * refusing to add.
+   *
+   * Behaviour follows the OS: click selects, double-click opens, Enter opens the
+   * selection, arrows move it, a drag on empty ground draws a marquee, and a
+   * right-click gets a menu whose every item does what it says.
+   */
+  const DESK_ICONS: { id: string; label: string; ico: () => HTMLElement; kind: string; open: () => void }[] = [
+    { id: 'work', label: 'Work', ico: icFolder, kind: 'folder', open: () => openWindow('explorer') },
+    { id: 'chrome', label: 'Google Chrome', ico: icChrome, kind: 'app', open: () => openWindow('chrome') },
+    { id: 'cv', label: 'NamNguyen_CV_2026.pdf', ico: icPdf, kind: 'pdf', open: () => openFile('cv') },
+  ];
+
+  const iconLayer = h('div', {
+    class: 'dk-icons', role: 'listbox', 'aria-label': 'Desktop', 'aria-multiselectable': 'true',
+  }) as HTMLElement;
+  let iconOrder = DESK_ICONS.slice();
+  let iconSize: 'lg' | 'md' | 'sm' = 'md';
+  const chosen = new Set<string>();
+  let cursorIcon = 0;
+
+  const drawIcons = (): void => {
+    iconLayer.className = 'dk-icons is-' + iconSize;
+    iconLayer.textContent = '';
+    iconOrder.forEach((it, i) => {
+      const on = chosen.has(it.id);
+      const el = h('button', {
+        class: 'dk-icon' + (on ? ' is-sel' : ''),
+        type: 'button', role: 'option', 'aria-selected': String(on),
+        tabindex: i === cursorIcon ? '0' : '-1',
+        'data-icon': it.id,
+      }, h('span', { class: 'dk-icon-img' }, it.ico()),
+         h('span', { class: 'dk-icon-t' }, it.label)) as HTMLElement;
+      el.addEventListener('click', () => { cursorIcon = i; only(it.id); });
+      el.addEventListener('dblclick', () => it.open());
+      iconLayer.appendChild(el);
+    });
+  };
+
+  const only = (id: string | null): void => {
+    chosen.clear();
+    if (id) chosen.add(id);
+    drawIcons();
+    if (id) (iconLayer.querySelector(`[data-icon="${id}"]`) as HTMLElement | null)?.focus();
+  };
+
+  /* Enter opens, arrows move, Escape clears — the desktop's own keyboard, which
+     it did not have at all. The layer is a listbox with one tab stop, same
+     roving-tabindex shape as the calendar grid. */
+  iconLayer.addEventListener('keydown', (e) => {
+    const ev = e as KeyboardEvent;
+    const cur = iconOrder[cursorIcon];
+    if (ev.key === 'Enter' || ev.key === ' ') {
+      if (!cur) return;
+      ev.preventDefault();
+      cur.open();
+      return;
+    }
+    // The icons flow in one column, so up and down are the axis that moves.
+    const d = ev.key === 'ArrowDown' || ev.key === 'ArrowRight' ? 1
+      : ev.key === 'ArrowUp' || ev.key === 'ArrowLeft' ? -1 : 0;
+    if (!d) return;
+    ev.preventDefault();
+    cursorIcon = Math.max(0, Math.min(iconOrder.length - 1, cursorIcon + d));
+    only(iconOrder[cursorIcon]!.id);
+  });
+
+  /* --- the marquee ------------------------------------------------------- */
+  /* A drag on empty ground draws a rectangle and selects what it touches. It is
+     the one desktop gesture with no button behind it, so its absence is felt
+     rather than seen — the ground simply did not respond to being dragged on. */
+  const marquee = h('div', { class: 'dk-marquee' }) as HTMLElement;
+  marquee.hidden = true;
+  surface.appendChild(marquee);
+
+  surface.addEventListener('pointerdown', (e) => {
+    const ev = e as PointerEvent;
+    if (ev.button !== 0) return;
+    const t = ev.target as HTMLElement;
+    if (t.closest('.wx, .dk-icon, .dk-flyout, .dk-ctx')) return;
+    const host = surface.getBoundingClientRect();
+    const x0 = ev.clientX - host.left;
+    const y0 = ev.clientY - host.top;
+    only(null);
+    let dragging = false;
+
+    const move = (m: PointerEvent): void => {
+      const x = m.clientX - host.left;
+      const y = m.clientY - host.top;
+      // A few pixels of slack, so a click that wobbles is still a click.
+      if (!dragging && Math.abs(x - x0) < 4 && Math.abs(y - y0) < 4) return;
+      dragging = true;
+      marquee.hidden = false;
+      marquee.style.left = `${Math.min(x0, x)}px`;
+      marquee.style.top = `${Math.min(y0, y)}px`;
+      marquee.style.width = `${Math.abs(x - x0)}px`;
+      marquee.style.height = `${Math.abs(y - y0)}px`;
+      const box = marquee.getBoundingClientRect();
+      chosen.clear();
+      for (const it of iconOrder) {
+        const el = iconLayer.querySelector(`[data-icon="${it.id}"]`);
+        if (!el) continue;
+        const r = el.getBoundingClientRect();
+        const hit = r.left < box.right && r.right > box.left && r.top < box.bottom && r.bottom > box.top;
+        if (hit) chosen.add(it.id);
+      }
+      drawIcons();
+    };
+    const up = (): void => {
+      marquee.hidden = true;
+      window.removeEventListener('pointermove', move);
+      window.removeEventListener('pointerup', up);
+      if (dragging && chosen.size) say(`${chosen.size} selected`);
+    };
+    window.addEventListener('pointermove', move);
+    window.addEventListener('pointerup', up);
+  });
+
+  /* --- the context menu -------------------------------------------------- */
+  /* Every item here does what it says. Windows' own desktop menu is mostly
+     Personalise and Display settings, which for us would be two dead rows; what
+     is left is the part that was always real anyway — how big the icons are, how
+     they are sorted, and redraw. */
+  let ctx: HTMLElement | null = null;
+  const shutCtx = (): void => { ctx?.remove(); ctx = null; };
+
+  const ctxItem = (label: string, run: () => void, checked?: boolean): HTMLElement => {
+    const b = h('button', {
+      class: 'dk-ctx-item', type: 'button',
+      ...(checked === undefined ? {} : { role: 'menuitemradio', 'aria-checked': String(checked) }),
+      ...(checked === undefined ? { role: 'menuitem' } : {}),
+    }, h('span', { class: 'dk-ctx-tick', 'aria-hidden': 'true' }, checked ? '\u2713' : ''),
+       h('span', {}, label)) as HTMLElement;
+    b.addEventListener('click', () => { shutCtx(); run(); });
+    return b;
+  };
+
+  surface.addEventListener('contextmenu', (e) => {
+    const ev = e as MouseEvent;
+    if ((ev.target as HTMLElement).closest('.wx, .dk-flyout')) return;
+    ev.preventDefault();
+    shutCtx();
+    const onIcon = (ev.target as HTMLElement).closest('.dk-icon') as HTMLElement | null;
+    const id = onIcon?.getAttribute('data-icon') ?? null;
+    if (id) only(id);
+
+    const items = id
+      ? [ctxItem('Open', () => iconOrder.find((i) => i.id === id)?.open())]
+      : [
+        ctxItem('Large icons', () => { iconSize = 'lg'; drawIcons(); say('Large icons'); }, iconSize === 'lg'),
+        ctxItem('Medium icons', () => { iconSize = 'md'; drawIcons(); say('Medium icons'); }, iconSize === 'md'),
+        ctxItem('Small icons', () => { iconSize = 'sm'; drawIcons(); say('Small icons'); }, iconSize === 'sm'),
+        h('div', { class: 'dk-ctx-sep', role: 'separator' }) as HTMLElement,
+        ctxItem('Sort by name', () => {
+          iconOrder = iconOrder.slice().sort((a, b) => a.label.localeCompare(b.label));
+          drawIcons();
+          say('Sorted by name');
+        }),
+        ctxItem('Sort by type', () => {
+          iconOrder = iconOrder.slice().sort((a, b) => a.kind.localeCompare(b.kind) || a.label.localeCompare(b.label));
+          drawIcons();
+          say('Sorted by type');
+        }),
+        h('div', { class: 'dk-ctx-sep', role: 'separator' }) as HTMLElement,
+        ctxItem('Refresh', () => { only(null); drawIcons(); say('Refreshed'); }),
+      ];
+
+    ctx = h('div', { class: 'dk-ctx', role: 'menu', 'aria-label': 'Desktop' }, ...items) as HTMLElement;
+    surface.appendChild(ctx);
+
+    /* Keep it on screen by FLIPPING about the cursor, not by sliding it back in.
+       Clamping to the surface edge leaves the menu detached from the pointer that
+       summoned it — QA caught it opening 50px above a click with room to spare.
+       Windows opens upward or leftward instead, so the corner stays on the
+       cursor whichever way it has to go. */
+    const host = surface.getBoundingClientRect();
+    const w = ctx.offsetWidth;
+    const hgt = ctx.offsetHeight;
+    const cx = ev.clientX - host.left;
+    const cy = ev.clientY - host.top;
+    const x = cx + w > host.width - 4 ? cx - w : cx;
+    const y = cy + hgt > host.height - 4 ? cy - hgt : cy;
+    ctx.style.left = `${Math.max(4, Math.min(x, host.width - w - 4))}px`;
+    ctx.style.top = `${Math.max(4, Math.min(y, host.height - hgt - 4))}px`;
+    (ctx.firstElementChild as HTMLElement | null)?.focus();
+  });
+
+  drawIcons();
+  surface.appendChild(iconLayer);
+
   const page = h('div', { class: 'pg pg-desk' },
     wallpaper(),
     live_region,
@@ -2229,6 +2556,7 @@ function pageDesktop(onQuit: () => void): HTMLElement {
     const t = e.target as HTMLElement;
     // Innermost first: a press inside Start that misses the power button closes
     // the power menu and nothing else.
+    if (ctx && !t.closest('.dk-ctx')) shutCtx();
     if (pwr && !t.closest('.dk-pwr-wrap')) shutPwr();
     if (menu && !t.closest('.dk-start-menu, .dk-start')) { shutPwr(); menu.remove(); menu = null; }
     if (flyout && !t.closest('.dk-flyout, .dk-tray-btn')) shutFlyout();
@@ -2240,6 +2568,7 @@ function pageDesktop(onQuit: () => void): HTMLElement {
   page.addEventListener('keydown', (e) => {
     const ev = e as KeyboardEvent;
     if (ev.key !== 'Escape') return;
+    if (ctx) { ev.stopPropagation(); shutCtx(); return; }
     if (pwr) { ev.stopPropagation(); const b = pwr.btn; shutPwr(); b.focus(); return; }
     if (menu) { ev.stopPropagation(); menu.remove(); menu = null; start.focus(); return; }
     if (flyout) { ev.stopPropagation(); shutFlyout(); }

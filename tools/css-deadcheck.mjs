@@ -41,7 +41,11 @@ import { join } from 'node:path';
  *
  *   wx-rz-*   share.ts: `'wx-rz wx-rz-' + dir` over the eight resize handles
  */
-const DYNAMIC = [/^wx-rz-(n|s|e|w|ne|nw|se|sw)$/];
+const DYNAMIC = [
+  /^wx-rz-(n|s|e|w|ne|nw|se|sw)$/,
+  // ```dk-icons is-${iconSize}``` in share.ts -- the desktop icon size.
+  /^is-(lg|md|sm)$/,
+];
 
 const walk = (dir) => readdirSync(dir, { withFileTypes: true })
   .flatMap((e) => (e.isDirectory() ? walk(join(dir, e.name)) : [join(dir, e.name)]));

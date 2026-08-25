@@ -4586,6 +4586,13 @@ body.set-open .cc { bottom: calc(var(--botbar) + 52px + 12px); }
 .wx {
   position: absolute; width: min(720px, 82%); height: min(460px, 78%);
   display: flex; flex-direction: column; overflow: hidden;
+  /* A size container, so everything inside responds to the WINDOW rather than to
+     the viewport. Snap made this necessary the moment it shipped: a window that
+     can become half a screen wide is a window whose contents have to cope, and
+     the viewport has nothing to say about that. Media queries genuinely cannot
+     express it — the browser is the same width either way. */
+  container-type: size;
+  container-name: wx;
   background-color: #272727; color: #fff;
   border-radius: 8px; border: 1px solid #3a3a3a;
   box-shadow: 0 28px 64px rgba(0, 0, 0, .62), 0 2px 8px rgba(0, 0, 0, .4);
@@ -4778,6 +4785,209 @@ body.set-open .cc { bottom: calc(var(--botbar) + 52px + 12px); }
   color: #06283d; display: grid; place-items: center; font-size: 11px; font-weight: 600;
 }
 
+
+
+
+
+/* ================= EXPLORER AT HALF WIDTH =============================== */
+/* Found by QA the minute snap landed: snapped to the left half, Explorer's
+ * "+ New" wrapped onto two lines and the Name / Date modified / Type heads
+ * collided into "NameDate modified". Both are what a 720px layout does at 345px,
+ * and neither had ever been reachable before — until snap there was no way to
+ * make a window narrow except to drag the resize grip, which nobody had.
+ *
+ * Windows sheds the same things in the same order: the navigation pane goes
+ * first, then the secondary columns, then the command-bar labels. Container
+ * queries rather than media queries, because the viewport is not what changed.
+ */
+@container wx (max-width: 560px) {
+  /* The tree is the biggest thing that is not the files, and Explorer's own
+     narrow layout drops it too. */
+  .wx-cols { grid-template-columns: 1fr; }
+  .wx-tree { display: none; }
+}
+@container wx (max-width: 430px) {
+  /* Type first: it is the column a file's own icon already tells you. */
+  .wx-head { grid-template-columns: 1fr 130px; }
+  .wx-head span:nth-child(3) { display: none; }
+}
+@container wx (max-width: 340px) {
+  .wx-head { grid-template-columns: 1fr; }
+  .wx-head span:nth-child(2) { display: none; }
+  /* Sort and View are labels for menus we do not have; the icon row is the part
+     that is doing work, so the words go before it does. */
+  .wx-cmd-btn { padding: 0 6px; }
+  .wx-cmd-btn:nth-last-child(-n+2) { display: none; }
+}
+/* Height matters too, and snapping to a quadrant is what proved it: on a short
+ * share area a quarter window is ~180px, and 40 of bar + 40 of command row + 42
+ * of breadcrumb + 28 of column heads + 27 of status leaves the file list about
+ * three pixels. An empty list under a full set of chrome reads as broken, when
+ * the truth is only that the chrome does not fit.
+ *
+ * So the chrome sheds in the order you would miss it: the breadcrumb goes first
+ * (the status bar repeats the same path), then the status bar. This needs
+ * container-type: size rather than inline-size -- both axes -- which .wx can
+ * afford because its width and height are always set, never derived from what is
+ * inside it. */
+@container wx (max-height: 270px) {
+  .wx-crumb { display: none; }
+}
+@container wx (max-height: 215px) {
+  .wx-status { display: none; }
+}
+
+/* Whatever the width, the command bar is one row. It was wrapping because
+   nothing said it could not, and a wrapped 40px bar clips its own second line. */
+.wx-cmd { flex-wrap: nowrap; overflow: hidden; }
+.wx-cmd-btn { white-space: nowrap; flex: 0 0 auto; }
+.wx-cmd-ico { flex: 0 0 auto; }
+
+/* ================= SNAP ================================================== */
+/* Measured before: dragging a window to x=2 left it 720px wide against the edge.
+ * Nothing snapped and nothing previewed. Snap is the most recognisable thing
+ * Windows 11 does with a window, so a mock without it is a mock of Windows 7
+ * with rounded corners.
+ */
+
+/* The drag preview. Windows draws a translucent pane where the window will land,
+   with the same corner radius the window will have — it is a promise about the
+   result, not a marker for the edge. */
+.wx-ghost {
+  position: absolute; z-index: 30; pointer-events: none;
+  border-radius: 8px;
+  background-color: rgba(76, 194, 255, .16);
+  border: 1px solid rgba(76, 194, 255, .55);
+  backdrop-filter: blur(2px);
+  -webkit-backdrop-filter: blur(2px);
+  animation: wx-ghost-in .1s linear both;
+}
+@keyframes wx-ghost-in { from { opacity: 0; } to { opacity: 1; } }
+
+/* --- the snap-layouts flyout --------------------------------------------- */
+/* Hangs under the Maximise button, inside the window — which is where the real
+   one hangs, and why .wx's overflow:hidden is not a problem for it. */
+.wx-snap {
+  position: absolute; z-index: 20; top: 42px; right: 6px;
+  display: flex; gap: 10px; padding: 10px; border-radius: 8px;
+  background-color: rgba(43, 43, 43, .98);
+  backdrop-filter: blur(28px) saturate(140%);
+  -webkit-backdrop-filter: blur(28px) saturate(140%);
+  border: 1px solid #3a3a3a; box-shadow: 0 12px 32px rgba(0, 0, 0, .55);
+  animation: wx-snap-in .12s cubic-bezier(0, 0, 0.2, 1) both;
+}
+@keyframes wx-snap-in {
+  from { opacity: 0; transform: translateY(-6px); }
+  to   { opacity: 1; transform: none; }
+}
+/* Each layout is a little screen. The 16:10 keeps the zones reading as regions
+   of a display rather than as buttons in a row. */
+.wx-snap-l {
+  position: relative; width: 96px; height: 60px; border-radius: 4px;
+  background-color: rgba(255, 255, 255, .06);
+}
+/* The 2px inset is the gutter Windows leaves between snapped windows, and it is
+   what makes two halves read as two windows instead of one split rectangle. */
+.wx-snap-z {
+  position: absolute; padding: 0; border: 0; cursor: pointer;
+  background-color: rgba(255, 255, 255, .16);
+  box-shadow: inset 0 0 0 2px rgba(43, 43, 43, .98);
+  border-radius: 3px;
+}
+.wx-snap-z:hover { background-color: #4cc2ff; }
+.wx-snap-z:focus-visible { outline: 2px solid #4cc2ff; outline-offset: -2px; z-index: 1; }
+
+@media (prefers-reduced-motion: reduce) {
+  .wx-ghost, .wx-snap { animation: none; }
+}
+
+/* ================= THE DESKTOP GETS SOMETHING ON IT ====================== */
+/* .dk-surface held windows and bare wallpaper. An empty top-left corner is the
+ * clearest tell that you are looking at a drawing of a desktop rather than one.
+ *
+ * Icons flow down a single column, which is where Windows starts them, and the
+ * three sizes the context menu offers are real size changes rather than a zoom.
+ */
+.dk-icons {
+  position: absolute; left: 8px; top: 8px; z-index: 1;
+  display: grid; grid-auto-flow: column; align-content: start;
+  gap: 2px;
+}
+.dk-icons.is-lg { grid-template-rows: repeat(6, 116px); grid-auto-columns: 108px; }
+.dk-icons.is-md { grid-template-rows: repeat(7, 92px);  grid-auto-columns: 90px; }
+.dk-icons.is-sm { grid-template-rows: repeat(9, 68px);  grid-auto-columns: 76px; }
+
+.dk-icon {
+  display: flex; flex-direction: column; align-items: center; gap: 5px;
+  padding: 6px 4px; border-radius: 4px; box-sizing: border-box;
+  background: none; border: 1px solid transparent; cursor: default;
+  color: #fff; font: 400 12px/1.25 "Segoe UI", var(--font), sans-serif;
+  text-align: center; overflow: hidden;
+}
+.dk-icon-img { display: block; flex: 0 0 auto; }
+.dk-icon-img svg { width: 100%; height: 100%; display: block; }
+.is-lg .dk-icon-img { width: 56px; height: 56px; }
+.is-md .dk-icon-img { width: 40px; height: 40px; }
+.is-sm .dk-icon-img { width: 24px; height: 24px; }
+.is-sm .dk-icon { font-size: 11.5px; }
+
+/* Two lines, then ellipsis — long file names are the norm on a desktop and the
+   grid cell cannot grow to fit them. */
+.dk-icon-t {
+  display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2;
+  overflow: hidden; word-break: break-word;
+  /* The wallpaper is a photograph as far as this text is concerned, so the label
+     carries its own contrast rather than trusting whatever is behind it. */
+  text-shadow: 0 1px 2px rgba(0, 0, 0, .75);
+}
+.dk-icon:hover { background-color: rgba(255, 255, 255, .09); border-color: rgba(255, 255, 255, .1); }
+/* Selected is Windows' translucent accent wash, not a solid fill: the wallpaper
+   still shows through, which is what stops a selected icon looking like a chip. */
+.dk-icon.is-sel { background-color: rgba(76, 194, 255, .28); border-color: rgba(76, 194, 255, .55); }
+.dk-icon.is-sel:hover { background-color: rgba(76, 194, 255, .36); }
+.dk-icon:focus-visible { outline: 2px solid #4cc2ff; outline-offset: -2px; }
+
+/* --- the marquee --------------------------------------------------------- */
+.dk-marquee {
+  position: absolute; z-index: 2; pointer-events: none;
+  background-color: rgba(76, 194, 255, .18);
+  border: 1px solid rgba(76, 194, 255, .8);
+}
+.dk-marquee[hidden] { display: none !important; }
+
+/* --- the context menu ---------------------------------------------------- */
+/* Win11's menu is a small rounded acrylic card with generous rows, not the thin
+   grey list from previous versions — the roundness and the padding are most of
+   what makes it read as current. */
+.dk-ctx {
+  position: absolute; z-index: 50; min-width: 190px; padding: 4px;
+  border-radius: 8px;
+  background-color: rgba(43, 43, 43, .98);
+  backdrop-filter: blur(28px) saturate(140%);
+  -webkit-backdrop-filter: blur(28px) saturate(140%);
+  border: 1px solid #3a3a3a; box-shadow: 0 12px 32px rgba(0, 0, 0, .55);
+  color: #fff; font: 400 13px/1.4 "Segoe UI", var(--font), sans-serif;
+  animation: dk-ctx-in .1s cubic-bezier(0, 0, 0.2, 1) both;
+}
+@keyframes dk-ctx-in {
+  from { opacity: 0; transform: scale(.97); }
+  to   { opacity: 1; transform: none; }
+}
+.dk-ctx-item {
+  display: flex; align-items: center; gap: 4px; width: 100%;
+  padding: 8px 10px; border-radius: 5px; text-align: left;
+  background: none; border: 0; color: #fff; font: inherit; cursor: pointer;
+}
+.dk-ctx-item:hover { background-color: rgba(255, 255, 255, .08); }
+.dk-ctx-item:focus-visible { outline: 2px solid #4cc2ff; outline-offset: -2px; }
+/* The tick column is always there, checked or not, so the labels stay on one
+   left edge instead of shuffling as the checkmark moves between rows. */
+.dk-ctx-tick { width: 16px; flex: 0 0 auto; text-align: center; color: #4cc2ff; }
+.dk-ctx-sep { height: 1px; margin: 4px 8px; background-color: #3a3a3a; }
+
+@media (prefers-reduced-motion: reduce) {
+  .dk-ctx { animation: none; }
+}
 
 /* ================= THE TRAY, AND WHAT IS BEHIND IT ======================= */
 /* The audit's flattest finding: the system tray held two <span>s of text and
