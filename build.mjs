@@ -68,9 +68,31 @@ const deferred = readdirSync(OUT)
   .map((f) => ({ f, gz: sizeOf(`${OUT}/${f}`) }));
 const chunkGz = deferred.reduce((a, c) => a + c.gz, 0);
 
-const cssRaw = readFileSync('src/styles.css');
-writeFileSync(`${OUT}/styles.css`, cssRaw);
-const cssGz = gz(cssRaw);
+/*
+ * The stylesheet gets minified, which it did not until now, and the omission was
+ * expensive: this file was copied byte for byte into the build while the
+ * JavaScript beside it went through `minify: true`.
+ *
+ * styles.css is 314 KB and 51% of that is comments — every measured value, every
+ * wrong turn, every reason a number is the number it is. That record is the most
+ * useful thing in the repo and it is staying exactly where it is. It just has no
+ * business being downloaded by someone who wants to read a CV.
+ *
+ *   copied verbatim   314 KB -> 93.3 KB gzip
+ *   minified          130 KB -> 25.8 KB gzip
+ *
+ * 72% off, which is roughly seventy times what two careful passes of deleting
+ * provably dead rules achieved. Worth remembering which axis actually mattered.
+ *
+ * The transform is verified rather than trusted: esbuild rewrites colours,
+ * collapses shorthands and drops the last semicolon, all safe by spec but all
+ * capable of surprising. tools/css-snapshot.js fingerprints every element in 26
+ * states before and after, and it came back identical.
+ */
+const cssSrc = readFileSync('src/styles.css', 'utf8');
+const cssMin = (await esbuild.transform(cssSrc, { loader: 'css', minify: true })).code;
+writeFileSync(`${OUT}/styles.css`, cssMin);
+const cssGz = gz(Buffer.from(cssMin));
 
 let commit = 'local';
 try {

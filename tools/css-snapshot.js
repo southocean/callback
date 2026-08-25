@@ -32,6 +32,23 @@
  * one, and compare. Always run the control too — the same stylesheet twice —
  * because a harness that has not been shown to be stable is not evidence.
  *
+ * COMPARE BUILT OUTPUT AGAINST BUILT OUTPUT, not source against build. Learned
+ * by getting it wrong: switching the pipeline to minify the stylesheet reported
+ * all 6,428 elements changed, and none of it was real. getComputedStyle
+ * serialises what was SPECIFIED, so any reformatting shows up as a difference:
+ *
+ *   custom properties  cubic-bezier(0.4, 0, 0.2, 1) -> cubic-bezier(.4, 0, .2, 1)
+ *                      — computed as a raw token stream, and on :root, so every
+ *                        element inherits the new spelling. 6,428 false hits.
+ *   gradients          #17181b 100% -> #17181b — a redundant end stop dropped,
+ *                        identical by spec and verified by differencing the two
+ *                        spellings on screen until the result was pure black.
+ *
+ * Bare decimals are normalised below, which killed the first case. The second is
+ * left alone on purpose: chasing every serialisation quirk with another
+ * normalisation rule hollows out the test until it agrees with everything.
+ * Fingerprint the artefact you ship, on both sides, and the question disappears.
+ *
  * Remove the copy from docs/ before committing; it is a tool, not part of the
  * published site.
  */
@@ -179,6 +196,26 @@
       // property on the box itself.
       acc += '@' + Math.round(r.width) + 'x' + Math.round(r.height)
            + '+' + Math.round(r.left) + ',' + Math.round(r.top);
+      /*
+       * Canonicalise bare-decimal numbers before hashing.
+       *
+       * Minifying the stylesheet reported all 6,428 elements changed, including
+       * <meta>, which is not a rendering difference — it is a global one. The
+       * cause: esbuild rewrites `0.4` as `.4`, and three of the values it
+       * shortened are custom properties on :root.
+       *
+       * Custom properties compute to their literal token stream rather than a
+       * parsed value, so `cubic-bezier(0.4, 0, 0.2, 1)` and
+       * `cubic-bezier(.4, 0, .2, 1)` are different STRINGS for an identical
+       * curve — and because they live on :root, every element inherits the
+       * difference. One formatting choice, 6,428 false positives.
+       *
+       * So numbers are normalised to a leading zero. This keeps custom
+       * properties in the comparison, which matters because a real change to one
+       * would be invisible everywhere else, while making the fingerprint immune
+       * to how a minifier chooses to spell the same number.
+       */
+      acc = acc.replace(/(^|[^\w.])\.(\d)/g, '$10.$2');
       const key = label + ' ' + pathOf(el);
       // Collisions mean the path was not unique; count them so a silent
       // undercount cannot be mistaken for agreement.
