@@ -3174,9 +3174,27 @@ body.has-panel .grid-wrap.is-solo { inset: 72px 375px 80px 16px; }
  * sense over the old lavender base and does not over #131314. A blurred
  * greyscale photo lifts the base's LUMINANCE rather than tinting it, so this is
  * now a near-neutral lift and the hue comes from the measured scrim above. */
+/* Round 8. Nam: "it looks like navy yes, but its a gradient if you look closely
+   ... in our version you collapsed it to just one flat navy".
+ *
+ * The gradient was technically present. The problem was that it was a SYMMETRIC
+ * BULLSEYE at 50% 45%, and a centred radial reads as uniform — your eye finds no
+ * direction in it, so it registers as flat. The original's middle layer is a
+ * blurred photograph, so its bright region sits off-centre with a soft diagonal
+ * drift, and that is what makes it read as two navies rather than one.
+ *
+ * So: the highlight moves off centre and widens, with a directional layer under
+ * it. Composited through the measured scrim (rgba(0,46,105,.5)) the tile now runs
+ * roughly #1d3556 at the bright end to #0a213f at the corners — two navies of
+ * the same family, a few percent apart, which is what Nam is describing.
+ *
+ * Still ours, still flagged: we have initials rather than a photo, so this is
+ * drawn to behave like a blurred photo rather than being one. */
 .solo-blur {
   position: absolute; inset: 0;
-  background-image: radial-gradient(62% 52% at 50% 45%, #2c2d33 0%, #1c1d21 58%, #131314 100%);
+  background-image:
+    radial-gradient(80% 70% at 62% 32%, #3a3c44 0%, #23242a 55%, #17181b 100%),
+    linear-gradient(160deg, #1d1e23 0%, #131314 100%);
 }
 /* Layer 3: the scrim, and this is the exact value — it is what turns a purple
    tile into the dark blue everyone reads as "Meet". */
@@ -5445,7 +5463,11 @@ body.presenting .shot { min-width: 0; }
   box-shadow: rgba(0, 0, 0, .3) 0 1px 2px 0, rgba(0, 0, 0, .15) 0 1px 3px 1px;
 }
 .solo:hover .solo-ctls, .solo:focus-within .solo-ctls { opacity: .72; }
-.solo-ctls:hover, .solo-ctls:focus-within { opacity: .9; }
+/* MEASURED on the live pill: .9. Nam is trialling .95 — "I want transparency
+   95%, we test that and see how we like it" — so this is a deliberate departure
+   from the measurement rather than a correction to it. Put .9 back if it reads
+   too solid; that is the number the product actually uses. */
+.solo-ctls:hover, .solo-ctls:focus-within { opacity: .95; }
 
 /* The middle control is disabled, and looks it. Meet's own tooltip explains why,
    and a control that cannot act should not look like it can. */
