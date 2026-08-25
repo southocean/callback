@@ -6049,3 +6049,31 @@ body.presenting:not(.is-pinned) .solo.is-snapping {
 body.tray-open .react-clip { bottom: calc(var(--botbar) + 52px); }
 body.cc-on .react-clip { bottom: calc(var(--botbar) + 216px); }
 body.tray-open.cc-on .react-clip { bottom: calc(var(--botbar) + 268px); }
+
+/* ====== ROUND 20: THE SHARED SCREEN IS A PICTURE, NOT A DOCUMENT ========= */
+/* Nam: "nothing on this screensharing is selectable (text wise)".
+ *
+ * His screenshot has "Nam Nguyen" highlighted blue in the Start menu, which is
+ * the tell: a real screen share is a video stream, so there is no text to
+ * select. Ours was real DOM and behaved like it. `user-select: none` across the
+ * whole shared surface, and a drag on the desktop no longer paints a selection
+ * over the wallpaper either.
+ *
+ * The rename field is the one exemption -- an input you cannot select inside is
+ * an input you cannot correct. */
+.shot { user-select: none; -webkit-user-select: none; }
+.shot .wx-rename { user-select: text; -webkit-user-select: text; }
+
+/* --- explorer navigation ------------------------------------------------- */
+/* The breadcrumb is now how you get back out of a folder, so the clickable
+   segments have to look clickable. */
+.wx-crumb-up { cursor: pointer; border-radius: 4px; padding: 1px 4px; }
+.wx-crumb-up:hover { background-color: rgba(255, 255, 255, .1); text-decoration: underline; }
+.wx-crumb-up:focus-visible { outline: 1px solid #8ab4f8; outline-offset: 1px; }
+
+/* The tree marks where you are, which the old static list had no way to show. */
+.wx-tree .wx-row.is-open { background-color: rgba(255, 255, 255, .1); }
+.wx-tree .wx-row.is-open .wx-name { color: #fff; }
+
+/* Folders in the file list get the pointer too: they are the other way in. */
+.wx-list .wx-row { cursor: pointer; }

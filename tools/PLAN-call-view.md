@@ -1608,3 +1608,59 @@ measurement with its reasoning visible is more useful than a silent replacement.
 Verified by driving the animation frame by frame: born fully below the line with
 7px clear, first sliver visible at 76ms (2% of life), fully above the line by
 680ms (15%), arc ending where it did before.
+
+## Round 20 — the mocked OS
+
+Nam listed seven things. **Three needed building; four already worked** — worth
+recording so a later round does not rebuild them.
+
+### Already working (verified by driving Entire Screen mode)
+
+Explorer maximize / unmaximize / minimize / restore-from-taskbar; Chrome
+minimize / maximize / close; tab switching (strip highlights, page repaints); and
+a file click opening Chrome on the right tab.
+
+Why it may have looked broken: in **Window** mode minimize and maximize are
+deliberately absent and close ends the share — Nam's own earlier request, since a
+window you can minimise with no taskbar to minimise it *to* is a dead end. Only
+**Entire Screen** carries the full desktop.
+
+### Not selectable
+
+Nam's screenshot has "Nam Nguyen" highlighted blue in the Start menu, which is
+the tell: a real screen share is a video stream, so there is nothing to select.
+Ours was real DOM and behaved like it. `user-select: none` across the shared
+surface, with the rename field exempted — an input you cannot select inside is an
+input you cannot correct.
+
+### Folder navigation
+
+The tree was four static rows with no handlers; the folders were decoration. Now
+Real-time client, Tools, This CV and Hobby all open, from the tree **or** the file
+list, with the breadcrumb, item count and tree highlight following. The
+breadcrumb's `Work` segment is the way back out, since this layout has no Back
+button. "Off the clock" is "Hobby".
+
+### Files
+
+`requirement-map.md` and `measured-spec.md` are gone. They opened the work and
+riichi tabs, which had nothing to do with either name — exactly the dead
+affordance this project keeps deleting.
+
+The rule is now **nothing is listed that cannot be opened**. Every file names one
+of the four pages the emulated Chrome already serves, so the listing cannot drift
+from what exists. Hobby holds the mahjong client, which is the honest link rather
+than filler: the hobby is what became the product.
+
+| folder | contents |
+|---|---|
+| Work | the four folders + `NamNguyen_CV_2026.pdf` |
+| Real-time client | `Riichi Mahjong client.url`, `Four things I built.url` |
+| Tools | `Four things I built.url` |
+| This CV | `NamNguyen_CV_2026.pdf`, `Google Careers posting.url` |
+| Hobby | `Riichi Mahjong client.url` |
+
+Verified: into all four folders with correct contents, crumb, singular/plural
+count and tree highlight; back out via the crumb with the highlight clearing;
+navigation from the file list as well as the tree; the CV pdf opening the CV tab;
+a `.url` inside Hobby opening the riichi tab.

@@ -313,7 +313,6 @@ function pageRiichi(): HTMLElement {
  * Opening is the part that matters most: NamNguyen_CV_2026.pdf did nothing at
  * all, which made the whole window a picture of a window.
  */
-interface Node { name: string; kind: 'folder' | 'pdf' | 'md'; n?: number; open?: () => void; }
 
 /* ----------------------------------------------------------- the artwork --
  * Hand-authored SVG. Windows 11's own icon files are not mine to ship, and a
@@ -345,13 +344,15 @@ const icPdf = (): HTMLElement => svg('0 0 20 20', `
   <rect x="2.2" y="10" width="11.6" height="6.4" rx="1" fill="#d13438"/>
   <text x="8" y="14.9" font-family="Segoe UI, sans-serif" font-size="4.6" font-weight="700" fill="#fff" text-anchor="middle">PDF</text>`);
 
-const icMd = (): HTMLElement => svg('0 0 20 20', `
-  <path d="M4 2.2h7.4L16 6.8v11a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1v-14.6a1 1 0 0 1 1-1z" fill="#f4f4f4"/>
-  <path d="M11.4 2.2 16 6.8h-4.6z" fill="#c8c8c8"/>
-  <rect x="2.2" y="10" width="11.6" height="6.4" rx="1" fill="#4a5568"/>
-  <path d="M4 15.4v-3.6h1.1l1.1 1.5 1.1-1.5h1.1v3.6H8.3v-2.2l-1.1 1.4-1.1-1.4v2.2zm7 0-1.7-1.9h1v-1.7h1.4v1.7h1z" fill="#fff"/>`);
+/* A .url shortcut: Windows shows these as a browser document, and every file in
+   the Explorer listing is one of these or the CV pdf -- nothing that cannot be
+   opened is listed at all. */
+const icUrl = (): HTMLElement => svg('0 0 20 20', `
+  <rect x="2.5" y="2.5" width="15" height="15" rx="2.5" fill="#1f6feb"/>
+  <path d="M8.6 9.55h2.8v.9H8.6z" fill="#fff"/>
+  <path d="M7.2 10a1.6 1.6 0 0 1 1.6-1.6h1.1v1.2H8.8a.4.4 0 0 0 0 .8h1.1v1.2H8.8A1.6 1.6 0 0 1 7.2 10Z" fill="#fff"/>
+  <path d="M12.8 10a1.6 1.6 0 0 0-1.6-1.6h-1.1v1.2h1.1a.4.4 0 0 1 0 .8h-1.1v1.2h1.1A1.6 1.6 0 0 0 12.8 10Z" fill="#fff"/>`, 'wx-g');
 
-/* The Windows flag: four panes, tilted the way 11 draws it. */
 const icStart = (): HTMLElement => svg('0 0 20 20', `
   <rect x="2.4" y="2.4" width="6.6" height="6.6" rx=".7" fill="#4cc2ff"/>
   <rect x="11" y="2.4" width="6.6" height="6.6" rx=".7" fill="#4cc2ff"/>
@@ -456,10 +457,6 @@ const wallpaper = (): HTMLElement => svg('0 0 1200 750', `
 
 // ------------------------------------------------------------ the windows --
 
-interface Node { name: string; kind: 'folder' | 'pdf' | 'md'; n?: number; open?: () => void; }
-
-const glyphFor = (k: Node['kind']): HTMLElement =>
-  k === 'folder' ? icFolder() : k === 'pdf' ? icPdf() : icMd();
 
 /**
  * One Windows 11 window: a real one, as far as a drawing can be.
@@ -557,67 +554,125 @@ function win11(o: {
 
 /** The Explorer window's insides: command bar, breadcrumb, tree, list, status. */
 function explorerBody(onOpen: (id: string) => void): { body: HTMLElement; status: HTMLElement } {
-  const TREE: Node[] = [
-    { name: 'Real-time client', kind: 'folder', n: 4 },
-    { name: 'Tools', kind: 'folder', n: 6 },
-    { name: 'This CV', kind: 'folder', n: 1 },
-    { name: 'Off the clock', kind: 'folder', n: 7 },
-  ];
-  /* Nam: "the files on the folder I cannot click to open them. Clicking on them
-     should open the tab we already have on the chrome browser, if the browser
-     was already open, or open up chrome and go to the correct tab otherwise."
-     So each file names a tab, and onOpen carries that id up to the desktop,
-     which focuses an open Chrome or opens one. Single click opens, because on a
-     drawn desktop the double-click convention only costs people the discovery.*/
-  const FILES: Node[] = [
-    { name: 'NamNguyen_CV_2026.pdf', kind: 'pdf', open: () => onOpen('cv') },
-    { name: 'requirement-map.md', kind: 'md', open: () => onOpen('work') },
-    { name: 'measured-spec.md', kind: 'md', open: () => onOpen('riichi') },
-  ];
+  /**
+   * A folder tree you can actually walk, and every file opens.
+   *
+   * Nam: "richer navigation on the explorer, like other folders, real time
+   * clinet, tools, this cv and off the clock - lets call it hobby instead...
+   * Files should be openable, on chrome ofc... Irrelevant files should not be
+   * shown at all, such as requirement map and measured spec."
+   *
+   * The rule is now: nothing is listed that cannot be opened. Every file names
+   * one of the four pages the emulated Chrome already serves, so the listing
+   * cannot drift from what exists -- a file that opened nothing would be exactly
+   * the dead affordance the rest of this project keeps deleting.
+   *
+   * requirement-map.md and measured-spec.md are gone. They opened the work and
+   * riichi tabs, which had nothing to do with either name.
+   */
+  interface Entry { name: string; kind: 'folder' | 'pdf' | 'url'; tab?: string; to?: string; }
+
+  const CV: Entry = { name: 'NamNguyen_CV_2026.pdf', kind: 'pdf', tab: 'cv' };
+  const POSTING: Entry = { name: 'Google Careers posting.url', kind: 'url', tab: 'jobad' };
+  const BUILT: Entry = { name: 'Four things I built.url', kind: 'url', tab: 'work' };
+  const CLIENT: Entry = { name: 'Riichi Mahjong client.url', kind: 'url', tab: 'riichi' };
+
+  /* "Off the clock" is "Hobby" now, per Nam. Its one shortcut is the mahjong
+     client, which is the honest link rather than a filler: the hobby is what
+     became the product. */
+  const FOLDERS: Record<string, Entry[]> = {
+    Work: [
+      { name: 'Real-time client', kind: 'folder', to: 'Real-time client' },
+      { name: 'Tools', kind: 'folder', to: 'Tools' },
+      { name: 'This CV', kind: 'folder', to: 'This CV' },
+      { name: 'Hobby', kind: 'folder', to: 'Hobby' },
+      CV,
+    ],
+    'Real-time client': [CLIENT, BUILT],
+    Tools: [BUILT],
+    'This CV': [CV, POSTING],
+    Hobby: [CLIENT],
+  };
+
+  const TREE = ['Real-time client', 'Tools', 'This CV', 'Hobby'];
 
   let selected: HTMLElement | null = null;
 
-  const rename = (row: HTMLElement): void => {
-    const label = row.querySelector<HTMLElement>('.wx-name');
-    if (!label || row.querySelector('input')) return;
-    const was = label.textContent ?? '';
-    const input = h('input', { class: 'wx-rename', type: 'text', value: was }) as HTMLInputElement;
-    label.replaceWith(input);
-    input.focus();
-    // Explorer selects the stem and leaves the extension alone.
-    const dot = was.lastIndexOf('.');
-    input.setSelectionRange(0, dot > 0 ? dot : was.length);
-    const finish = (commit: boolean): void => {
-      input.replaceWith(h('span', { class: 'wx-name' }, commit && input.value.trim() ? input.value.trim() : was));
-    };
-    input.addEventListener('keydown', (e) => {
-      if (e.key === 'Enter') { e.preventDefault(); finish(true); }
-      if (e.key === 'Escape') { e.preventDefault(); finish(false); }
-    });
-    input.addEventListener('blur', () => finish(true));
-  };
+  const glyph = (k: Entry['kind']): HTMLElement =>
+    k === 'folder' ? icFolder() : k === 'pdf' ? icPdf() : icUrl();
 
-  const row = (nd: Node, inTree: boolean): HTMLElement => {
+  const list = h('div', { class: 'wx-list', role: 'list' }) as HTMLElement;
+  const crumb = h('div', { class: 'wx-crumb' }) as HTMLElement;
+  const treeWrap = h('div', { class: 'wx-tree', role: 'list' }) as HTMLElement;
+  const status = h('div', { class: 'wx-status' }) as HTMLElement;
+
+  const rowFor = (e: Entry): HTMLElement => {
     const r = h('div', { class: 'wx-row', tabindex: '0', role: 'listitem' },
-      h('span', { class: 'wx-ico' }, glyphFor(nd.kind)),
-      h('span', { class: 'wx-name' }, nd.name),
-      nd.n !== undefined ? h('span', { class: 'wx-count' }, String(nd.n)) : null) as HTMLElement;
+      h('span', { class: 'wx-ico' }, glyph(e.kind)),
+      h('span', { class: 'wx-name' }, e.name),
+      e.kind === 'folder' ? h('span', { class: 'wx-count' }, String((FOLDERS[e.to ?? ''] ?? []).length)) : null) as HTMLElement;
+    const act = (): void => {
+      if (e.to) { go(e.to); return; }
+      if (e.tab) onOpen(e.tab);
+    };
     r.addEventListener('click', () => {
-      const already = selected === r;
       selected?.classList.remove('is-sel');
       selected = r;
       r.classList.add('is-sel');
-      if (nd.open) { nd.open(); return; }
-      if (already && !inTree) rename(r);
+      // Single click opens. On a drawn desktop the double-click convention only
+      // costs people the discovery.
+      act();
     });
-    r.addEventListener('dblclick', () => nd.open?.());
-    r.addEventListener('keydown', (e) => {
-      if (e.key === 'Enter') nd.open?.();
-      if (e.key === 'F2') { e.preventDefault(); rename(r); }
-    });
-    r.addEventListener('contextmenu', (e) => { e.preventDefault(); rename(r); });
+    r.addEventListener('keydown', (ev) => { if ((ev as KeyboardEvent).key === 'Enter') act(); });
     return r;
   };
+
+  function go(folder: string): void {
+    selected = null;
+    const items = FOLDERS[folder] ?? [];
+
+    clear(list);
+    for (const e of items) list.appendChild(rowFor(e));
+
+    // The breadcrumb navigates. Without it there is no way back out of a folder,
+    // and Explorer has no Back button in this layout.
+    clear(crumb);
+    const seg = (label: string, to?: string): HTMLElement => {
+      const el = h('span', to ? { class: 'wx-crumb-up', role: 'button', tabindex: '0' } : {}, label) as HTMLElement;
+      if (to) {
+        el.addEventListener('click', () => go(to));
+        el.addEventListener('keydown', (ev) => { if ((ev as KeyboardEvent).key === 'Enter') go(to); });
+      }
+      return el;
+    };
+    crumb.append(
+      h('span', { class: 'wx-crumb-ico' }, icFolder()),
+      seg('This PC'), h('span', { class: 'wx-sep' }, '›'),
+      seg('Documents'), h('span', { class: 'wx-sep' }, '›'),
+    );
+    if (folder === 'Work') {
+      crumb.appendChild(h('span', { class: 'wx-here' }, 'Work'));
+    } else {
+      crumb.append(seg('Work', 'Work'), h('span', { class: 'wx-sep' }, '›'),
+        h('span', { class: 'wx-here' }, folder));
+    }
+
+    for (const t of treeWrap.querySelectorAll('.wx-row')) {
+      t.classList.toggle('is-open', (t as HTMLElement).dataset.folder === folder);
+    }
+
+    clear(status);
+    status.append(
+      h('span', {}, items.length + ' item' + (items.length === 1 ? '' : 's')),
+      h('span', { class: 'wx-status-r' }, folder === 'Work' ? 'Documents › Work' : 'Documents › Work › ' + folder),
+    );
+  }
+
+  for (const name of TREE) {
+    const r = rowFor({ name, kind: 'folder', to: name });
+    r.dataset.folder = name;
+    treeWrap.appendChild(r);
+  }
 
   const cmdBtn = (label: string): HTMLElement => h('span', { class: 'wx-cmd-btn' }, label);
   const cmdIco = (mark: string): HTMLElement => h('span', { class: 'wx-cmd-ico' }, mark);
@@ -629,20 +684,14 @@ function explorerBody(onOpen: (id: string) => void): { body: HTMLElement; status
       cmdIco('✂'), cmdIco('⧉'), cmdIco('\u{1F4CB}'), cmdIco('↻'),
       h('span', { class: 'wx-cmd-sep' }),
       cmdBtn('Sort'), cmdBtn('View')),
-    h('div', { class: 'wx-crumb' },
-      h('span', { class: 'wx-crumb-ico' }, icFolder()),
-      h('span', {}, 'This PC'), h('span', { class: 'wx-sep' }, '›'),
-      h('span', {}, 'Documents'), h('span', { class: 'wx-sep' }, '›'),
-      h('span', { class: 'wx-here' }, 'Work')),
+    crumb,
     h('div', { class: 'wx-cols' },
-      h('div', { class: 'wx-tree', role: 'list' }, ...TREE.map((n) => row(n, true))),
+      treeWrap,
       h('div', { class: 'wx-files' },
         h('div', { class: 'wx-head' }, h('span', {}, 'Name'), h('span', {}, 'Date modified'), h('span', {}, 'Type')),
-        h('div', { class: 'wx-list', role: 'list' }, ...FILES.map((n) => row(n, false))))));
+        list)));
 
-  const status = h('div', { class: 'wx-status' },
-    h('span', {}, `${FILES.length} items`),
-    h('span', { class: 'wx-status-r' }, 'Documents › Work'));
+  go('Work');
 
   return { body, status };
 }
