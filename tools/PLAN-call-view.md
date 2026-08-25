@@ -1387,3 +1387,30 @@ showing. Now refreshed alongside the heading.
 
 Verified: About → Chat → close leaves no aside and no `has-panel`; the button's
 accessible name tracks the content; and the bar controls still toggle.
+
+## Round 15 — sending a message actually shows it
+
+Nam: "typing the chat and sending doesnt do anything on our site. I would like to
+still add the message to the chat as if we have sent it, but of course if you
+refresh the site those messages will be gone. It adds to the illusion."
+
+It was already being added. Nobody could see it: the bubble landed **1813px down
+a 423px-tall scrollport** with `scrollTop` still at 0. So the panel looked inert
+while working correctly — a send that produces no visible change is
+indistinguishable from a dead button, which is the actual defect.
+
+Fixed by bringing the new bubble to the bottom of the scrollport. Computed
+against the list rather than `scrollIntoView`, which is free to scroll ancestors
+too. Also timestamped `HH:MM` to match the messages beside it — `clock()` in
+state.ts returns "2:47 PM", which is right for the top-bar clock and wrong next
+to a column of "09:00".
+
+Nothing is persisted, which is the intended behaviour rather than a shortcut: a
+reload restores the cover letter exactly as authored.
+
+No auto-reply from Nam. It was tempting, and it would be inventing a conversation
+the CV does not claim to have had.
+
+Verified: both the button and Enter add a visible bubble, labelled `You  HH:MM`,
+inserted before the Transcript heading so several sends stack in order; the field
+clears and send re-disables each time; and a whitespace-only send does nothing.

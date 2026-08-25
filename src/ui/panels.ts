@@ -55,17 +55,44 @@ export function renderChat(): HTMLElement {
     class: 'msg-send', type: 'button', 'aria-label': 'Send a message',
   }, icon(icons.send, 24)) as HTMLButtonElement;
 
+  /**
+   * Sending really does add the message, for the length of the session.
+   *
+   * Nam: "typing the chat and sending doesnt do anything on our site. I would
+   * like to still add the message to the chat as if we have sent it, but of
+   * course if you refresh the site those messages will be gone. It adds to the
+   * illusion." Nothing is persisted, which is the intended behaviour rather than
+   * a shortcut -- a reload puts the cover letter back exactly as written.
+   *
+   * It was already being added, in fact. The bug was that nobody could see it:
+   * the bubble landed 1813px down a 423px-tall scrollport with scrollTop still
+   * at 0, so the panel looked inert. Hence the scroll below -- a send that
+   * produces no visible change is indistinguishable from a dead button.
+   *
+   * Timestamped HH:MM to match the messages it sits beside. `clock()` in state.ts
+   * would give "2:47 PM", which is right for the top-bar clock and wrong next to
+   * a column of "09:00".
+   *
+   * No auto-reply from Nam. It was tempting and it would be inventing a
+   * conversation the CV does not claim to have had.
+   */
   const submit = (): void => {
     const text = field.value.trim();
     if (!text) return;
     field.value = '';
     send.disabled = true;
-    list.insertBefore(
-      h('div', { class: 'msg msg-guest' },
-        h('div', { class: 'msg-from' }, 'You'),
-        h('div', { class: 'msg-body' }, text)),
-      list.querySelector('.shead'),
-    );
+    const now = new Date();
+    const at = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
+    const bubble = h('div', { class: 'msg msg-guest' },
+      h('div', { class: 'msg-from' }, `You  ${at}`),
+      h('div', { class: 'msg-body' }, text)) as HTMLElement;
+    // Before the Transcript heading, so sent messages land at the end of the
+    // conversation and stack in order across several sends.
+    list.insertBefore(bubble, list.querySelector('.shead'));
+    // Bring it to the bottom of the scrollport rather than calling
+    // scrollIntoView, which would be free to scroll ancestors too.
+    const top = bubble.getBoundingClientRect().top - list.getBoundingClientRect().top + list.scrollTop;
+    list.scrollTop = top - list.clientHeight + bubble.offsetHeight + 16;
   };
   send.disabled = true;
   field.addEventListener('input', () => { send.disabled = field.value.trim() === ''; });
