@@ -127,49 +127,82 @@ export class Quests {
    * has no uppercase kickers anywhere, and the information fits Meet's split as
    * it stands: what happened goes in the title, the detail in the body.
    */
+  /**
+   * One toast, however many quests land.
+   *
+   * The old design gave every unlock its own 386x140 card: a 24px icon, a 16px
+   * title, a 14px subtitle 14px below it, and a 20px progress bar. Three at once
+   * covered 420px of screen to say three short things, which is exactly what Nam
+   * objected to — "taking a massive amount of space for very little info", and
+   * conspicuously unlike the product it sits inside. Meet's own notices are one
+   * line until they have a reason not to be.
+   *
+   * So this is a single strip that accumulates. The first unlock creates it; the
+   * next one adds a badge and rewrites the label rather than stacking a second
+   * card. Quantity is carried by the badge row, which reads at a glance in a way
+   * a number does not, and each badge names its own quest on hover — so nothing
+   * is lost by not printing every title.
+   *
+   * The progress bar survives as the strip's bottom edge. Nam asked for a bar
+   * and was right to; it just does not need twenty pixels and its own margin to
+   * do the job, so it is 2px of the border the toast already has.
+   */
+  private strip: {
+    card: HTMLElement;
+    badges: HTMLElement;
+    label: HTMLElement;
+    count: HTMLElement;
+    fill: HTMLElement;
+    names: string[];
+    timer: number;
+  } | null = null;
+
+  /** The badge cap. Past this the row would out-grow the label it belongs to. */
+  private static readonly MAX_BADGES = 5;
+
   private toast(quest: Quest, complete: boolean): void {
     if (!this.tray) return;
     const { got, total } = this.count();
 
-    const kind = quest.secret ? 'Secret found' : 'Side quest';
-    const detail = complete
-      ? 'All of them. That is more thorough than most interview loops.'
-      : kind + ' ' + got + ' of ' + total;
+    if (this.strip) {
+      this.extend(quest, complete, got, total);
+      return;
+    }
 
-    // auto_awesome rather than a trophy: already in the icon subset, so it costs
-    // nothing, and it is Google's own glyph for a small delight. Tinted #a8c7fa,
-    // Meet's accent on dark — the warning card puts #fbbc04 in the same slot, so
-    // the colour is what tells you which kind of notice this is.
+    const badges = h('div', { class: 'qt-badges' });
+    const label = h('span', { class: 'qt-label' }, quest.name);
+    const count = h('span', { class: 'qt-count' }, `${got}/${total}`);
+    const fill = h('i', { class: 'qt-fill' }) as HTMLElement;
+    fill.style.width = `${Math.round((got / total) * 100)}%`;
+
     const close = h(
       'button',
-      { class: 'quest-x', type: 'button', 'aria-label': 'Dismiss' },
-      sym('close', 24),
+      { class: 'qt-x', type: 'button', 'aria-label': 'Dismiss', title: 'Dismiss' },
+      sym('close', 18),
     ) as HTMLButtonElement;
 
     const card = h(
       'div',
-      { class: 'quest-toast', role: 'status' },
-      h('div', { class: 'quest-row' }, sym('auto_awesome', 24), h('span', { class: 'quest-name' }, quest.name)),
-      h('div', { class: 'quest-sub' }, detail),
-      // A bar as well as the count, which Nam asked for. Meet has no progress
-      // bar in a notice, so this is ours — built in its language rather than
-      // borrowed: a 4px track on the surface's own white at 24%, filled with the
-      // #a8c7fa accent the icon already uses.
-      complete ? null : h('div', { class: 'quest-bar' }, h('i', { style: `width:${Math.round((got / total) * 100)}%` })),
-      close,
-    );
+      { class: 'quest-toast', role: 'status', 'aria-live': 'polite' },
+      badges, label, count, close,
+      h('div', { class: 'qt-bar', 'aria-hidden': 'true' }, fill),
+    ) as HTMLElement;
+
     this.tray.appendChild(card);
+    this.strip = { card, badges, label, count, fill, names: [], timer: 0 };
+    this.addBadge(quest);
+    if (complete) label.textContent = 'All of them';
 
     // It leaves on its own, but not while someone is reading it. A notice that
     // vanishes mid-sentence because the pointer happened to be elsewhere is the
     // reason people learn to distrust toasts.
-    let timer = 0;
     const leave = (): void => {
       card.classList.add('out');
-      window.setTimeout(() => card.remove(), 500);
+      window.setTimeout(() => card.remove(), 320);
+      this.strip = null;
     };
-    const arm = (): void => { timer = window.setTimeout(leave, 4200); };
-    const hold = (): void => { window.clearTimeout(timer); };
+    const hold = (): void => { if (this.strip) window.clearTimeout(this.strip.timer); };
+    const arm = (): void => { if (this.strip) this.strip.timer = window.setTimeout(leave, 4200); };
     card.addEventListener('pointerenter', hold);
     card.addEventListener('pointerleave', arm);
     card.addEventListener('focusin', hold);
@@ -177,6 +210,59 @@ export class Quests {
     close.addEventListener('click', () => { hold(); leave(); });
     arm();
   }
+
+  /** A badge per quest, each naming itself on hover. */
+  private addBadge(quest: Quest): void {
+    const live = this.strip;
+    if (!live) return;
+    live.names.push(quest.name);
+    const shown = live.badges.querySelectorAll('.qt-badge').length;
+    if (shown < Quests.MAX_BADGES) {
+      live.badges.appendChild(h(
+        'span',
+        { class: 'qt-badge', title: quest.name, 'aria-label': quest.name },
+        sym(quest.secret ? 'bolt' : 'auto_awesome', 16),
+      ));
+      return;
+    }
+    // Past the cap, the overflow badge counts the rest and names them all.
+    let more = live.badges.querySelector<HTMLElement>('.qt-more');
+    if (!more) {
+      more = h('span', { class: 'qt-badge qt-more' }, '') as HTMLElement;
+      live.badges.appendChild(more);
+    }
+    const extra = live.names.length - Quests.MAX_BADGES;
+    more.textContent = `+${extra}`;
+    const rest = live.names.slice(Quests.MAX_BADGES).join(', ');
+    more.setAttribute('title', rest);
+    more.setAttribute('aria-label', `${extra} more: ${rest}`);
+  }
+
+  /** A second unlock while the strip is up joins it instead of stacking. */
+  private extend(quest: Quest, complete: boolean, got: number, total: number): void {
+    const live = this.strip;
+    if (!live) return;
+    this.addBadge(quest);
+    live.count.textContent = `${got}/${total}`;
+    live.fill.style.width = `${Math.round((got / total) * 100)}%`;
+    live.label.textContent = complete
+      ? 'All of them'
+      : live.names.length > 1
+        ? `${quest.name} +${live.names.length - 1}`
+        : quest.name;
+    // Restart the dwell, so the newest arrival gets its full read.
+    window.clearTimeout(live.timer);
+    live.timer = window.setTimeout(() => {
+      live.card.classList.add('out');
+      window.setTimeout(() => live.card.remove(), 320);
+      this.strip = null;
+    }, 4200);
+    // A pulse, so a badge appearing on a strip already on screen is noticed.
+    live.card.classList.remove('qt-bump');
+    void live.card.offsetWidth;
+    live.card.classList.add('qt-bump');
+  }
+
 }
 
 /**

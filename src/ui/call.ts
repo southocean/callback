@@ -1488,6 +1488,11 @@ export function renderCall(store: Store, quests: Quests, deps: CallDeps): HTMLEl
       dying.classList.add('is-out');
       window.setTimeout(() => dying.remove(), 110);
     }
+    // Captions sit in the same band, so they lift for the row exactly as they
+    // lift for the tray. Nam found them overlapping it, which is how the row got
+    // noticed at all: it was still open from a previous step when captions came
+    // on, and the two drew on top of each other.
+    document.body.classList.toggle('set-open', next !== null);
     if (next !== null) {
       if (settingsKind === null) trayBeforeSettings = trayOpen;
       closeMicNote(false);
@@ -1710,8 +1715,21 @@ export function renderCall(store: Store, quests: Quests, deps: CallDeps): HTMLEl
       { icon: 'settings', label: 'Settings' },
     ];
     const box = gmMenu(rows, 225);
-    box.classList.add('gm-dark');
-    const wrap = h('div', { class: 'gm-pop call-more' }, box);
+    /*
+     * gm-dark goes on the WRAPPER, not on the menu.
+     *
+     * Nam: "This menu has the wrong theme." It was: every dark rule is written
+     * `.gm-dark .gm-menu`, a descendant selector, and this call site was adding
+     * the class to the .gm-menu element itself. `.gm-menu.gm-dark` is not a
+     * descendant of anything, so not one of those rules ever matched and the
+     * in-call overflow rendered in the pre-join light theme.
+     *
+     * The other call site passes cls through attachMenu, which lands it on the
+     * wrapper — which is why that one has always looked right and this one never
+     * did. Same fix as the [hidden] trap in spirit: a selector that assumes a
+     * wrapper needs a wrapper.
+     */
+    const wrap = h('div', { class: 'gm-pop call-more gm-dark' }, box);
     layer.appendChild(wrap);
     const first = box.querySelector('li');
     if (first) (first as HTMLElement).focus();

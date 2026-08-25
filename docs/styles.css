@@ -4295,7 +4295,10 @@ body.has-panel .reaction, body.has-panel .reaction-who { left: 0; }
 /* --- 11. Captions must not sit on top of the tray ----------------------- */
 /* They occupied the same band. With the tray open the caption block lifts by
    the tray's own 52px reservation, which is the number the tile already uses. */
-body.tray-open .cc { bottom: calc(var(--botbar) + 52px + 12px); }
+/* The tray reserves 52px and the settings row's top edge lands on the same
+   line, so one value serves both. Captions lift clear of whichever is open. */
+body.tray-open .cc,
+body.set-open .cc { bottom: calc(var(--botbar) + 52px + 12px); }
 
 @media (prefers-reduced-motion: reduce) {
   .grid-wrap.is-solo { transition: none; }
@@ -6179,3 +6182,105 @@ body.tray-open.cc-on .react-clip { bottom: calc(var(--botbar) + 268px); }
 .bd-stack b { font: 500 13px/19px var(--font); }
 .bd-stack span { color: #5f6368; font-size: 12.5px; }
 @media (max-width: 620px) { .bd-cards, .bd-rows { grid-template-columns: 1fr; } }
+
+/* ================= THE ACHIEVEMENT STRIP ================================= */
+/* Nam: "achievement toasts are taking a big portion of the screen... we are
+ * taking a massive amount of space for very little info."
+ *
+ * True, and the numbers say how badly. The old card was 386x140: a 24px icon, a
+ * 16/24 title, a 14/20 subtitle 14px below it, a 20px progress bar, and 34/21/35
+ * of padding. Three at once covered 420px to deliver three short strings. Meet's
+ * own notices are a single line until they earn a second one, so this is one
+ * line — and one STRIP, however many quests land, because stacking was the real
+ * cost.
+ *
+ * Sized to content, capped so a long quest name cannot run away with it. The
+ * surface, radius and shadow are the notice card's, so it still reads as part of
+ * the same product; only the proportions changed.
+ */
+.quest-tray {
+  position: fixed; right: 16px; bottom: calc(var(--botbar) + 16px); z-index: 70;
+  display: flex; flex-direction: column; align-items: flex-end; gap: 8px;
+  pointer-events: none; max-width: min(360px, calc(100vw - 32px));
+}
+.quest-toast {
+  position: relative; box-sizing: border-box;
+  width: auto; max-width: 100%;
+  display: flex; align-items: center; gap: 10px;
+  padding: 0 6px 0 12px; min-height: 44px;
+  border-radius: 8px; overflow: hidden;
+  background-color: #3c4043; color: #fff;
+  box-shadow: 0 2px 2px rgba(0, 0, 0, .14), 0 3px 1px -2px rgba(0, 0, 0, .12),
+              0 1px 5px rgba(0, 0, 0, .2);
+  pointer-events: auto;
+  animation: qin .22s cubic-bezier(0, 0, 0.2, 1) both;
+}
+.quest-toast.out { animation: qout .32s cubic-bezier(0.4, 0, 1, 1) both; }
+@keyframes qin  { from { opacity: 0; transform: translateY(10px); } }
+@keyframes qout { to   { opacity: 0; transform: translateY(-6px); } }
+/* A badge arriving on a strip already on screen needs to be noticed, and a
+   2% nudge is enough to catch the eye without becoming a bounce. */
+.qt-bump { animation: qt-bump .24s cubic-bezier(0.2, 0, 0, 1) both; }
+@keyframes qt-bump { 0% { transform: scale(1); } 45% { transform: scale(1.02); } 100% { transform: scale(1); } }
+
+/* --- the badges, which carry the count ---------------------------------- */
+/* Quantity reads faster as a row of marks than as a number, and each badge
+   names its own quest on hover — so nothing is lost by not printing every
+   title. Negative margins overlap them slightly, the way stacked avatars do,
+   which keeps five in the width three would otherwise take. */
+.qt-badges { display: flex; align-items: center; flex: 0 0 auto; }
+.qt-badge {
+  width: 24px; height: 24px; flex: 0 0 auto; border-radius: 50%;
+  background-color: #004a77; color: #a8c7fa;
+  display: grid; place-items: center;
+  box-shadow: 0 0 0 2px #3c4043;
+  font: 500 11px/1 var(--font-title);
+}
+.qt-badge + .qt-badge { margin-left: -6px; }
+.qt-badge .ms { font-size: 16px; }
+/* The overflow badge is text, so it inverts to stay legible at 11px. */
+.qt-more { background-color: #a8c7fa; color: #062e6f; }
+
+.qt-label {
+  flex: 1 1 auto; min-width: 0;
+  font: 500 14px/20px var(--font); color: #fff;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.qt-count {
+  flex: 0 0 auto; font: 400 12px/16px var(--font); color: #c4c7c5;
+  font-variant-numeric: tabular-nums;
+}
+.qt-x {
+  flex: 0 0 auto; position: relative; overflow: hidden;
+  width: 32px; height: 32px; padding: 0; border: 0; border-radius: 50%;
+  background: none; color: #c4c7c5; cursor: pointer;
+  display: grid; place-items: center; --sl: #fff;
+}
+/* The M3 hover layer, same 0.08 the rest of the page uses. */
+.qt-x::after {
+  content: ''; position: absolute; inset: 0; border-radius: 50%;
+  background-color: currentColor; opacity: 0;
+  transition: opacity .12s linear; pointer-events: none;
+}
+.qt-x:hover::after { opacity: .08; }
+.qt-x:active::after { opacity: .12; }
+.qt-x:focus-visible { outline: 2px solid #a8c7fa; outline-offset: -2px; }
+
+/* --- the progress bar, as the strip's own edge -------------------------- */
+/* Nam asked for a bar and was right to. It just does not need twenty pixels and
+   a margin to do the job — it is the bottom 2px of a card that already has an
+   edge there. */
+.qt-bar {
+  position: absolute; left: 0; right: 0; bottom: 0; height: 2px;
+  background-color: rgba(255, 255, 255, .24);
+}
+.qt-fill { display: block; height: 100%; background-color: #a8c7fa; }
+
+@media (max-width: 480px) {
+  .quest-tray { right: 8px; left: 8px; max-width: none; align-items: stretch; }
+  .quest-toast { width: 100%; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .quest-toast, .quest-toast.out, .qt-bump { animation: none; }
+  .qt-x::after { transition: none; }
+}
