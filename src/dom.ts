@@ -93,4 +93,14 @@ export const icons = {
   // magnifier, and the block mark on the call dialog's one menu item.
   search: 'M10 4a6 6 0 1 0 3.7 10.7l4.8 4.8 1.4-1.4-4.8-4.8A6 6 0 0 0 10 4Zm0 2a4 4 0 1 1 0 8 4 4 0 0 1 0-8Z',
   block: 'M12 3a9 9 0 1 0 0 18 9 9 0 0 0 0-18Zm0 2c1.6 0 3.1.5 4.2 1.4L6.4 16.2A7 7 0 0 1 12 5Zm0 14c-1.6 0-3.1-.5-4.2-1.4l9.8-9.8A7 7 0 0 1 12 19Z',
+  // The tile pill's two glyphs. Meet uses `visual_effects` and a framed-tile
+  // mark; neither is in the subset, and Round 4's substitutes (blur_on,
+  // close_fullscreen) read as different controls entirely.
+  //
+  // effects: a picture frame with a sparkle off its corner, which is what
+  // visual_effects draws — an image plus the suggestion of alteration.
+  effects: 'M5 5h9a1 1 0 0 1 1 1v5.2l-2.6-2.6a1 1 0 0 0-1.4 0L8.2 12 6.6 10.4a1 1 0 0 0-1.4 0L4 11.6V6a1 1 0 0 1 1-1Zm-1 9.4 1.9-1.9 1.6 1.6a1 1 0 0 0 1.4 0l2.8-2.8 3.3 3.3V18a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1v-3.6ZM18.6 3l.9 2.1 2.1.9-2.1.9-.9 2.1-.9-2.1-2.1-.9 2.1-.9.9-2.1Z',
+  // show-in-tile: a tile outline crossed through, the "take me out of / put me
+  // back in the grid" control.
+  tileOff: 'M4 5.5h16a1 1 0 0 1 1 1v11a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1v-11a1 1 0 0 1 1-1Zm1 2v9h14v-9H5Zm-.3-4.8 16.6 16.6-1.4 1.4L2.9 4.1l1.8-1.4Z',
 };

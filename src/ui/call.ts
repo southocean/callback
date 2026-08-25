@@ -13,7 +13,7 @@
 // Review U7's two-tier rule still holds: the story is in the tiles and the first
 // four panels; everything technical lives behind Meeting tools.
 
-import { h, clear } from '../dom.js';
+import { h, clear, icon, icons } from '../dom.js';
 import { sym } from './icons.js';
 import { ripple, attachMenu, micMeter, menu as gmMenu, warnBadge, noticeCard, dropCaret } from './gm3.js';
 import { tipAll, tip } from './tooltip.js';
@@ -193,37 +193,54 @@ export function renderCall(store: Store, quests: Quests, deps: CallDeps): HTMLEl
       micMeter(),
     );
     // The three controls Meet floats over its own tile, at 656 / 700 / 744.
-    const fx = (icon: IconName, label: string, cls: string, off = false): HTMLElement => {
+    const fx = (glyph: IconName | { path: string }, label: string, cls: string): HTMLElement => {
+      const mark = typeof glyph === 'string' ? sym(glyph, 20) : icon(glyph.path, 20);
       const b = h('button', {
         class: 'solo-ctl ' + cls, type: 'button', 'aria-label': label,
-        ...(off ? { 'aria-disabled': 'true' } : {}),
-      }, sym(icon, 20)) as HTMLButtonElement;
-      if (!off) ripple(b);
+      }, mark) as HTMLButtonElement;
+      ripple(b);
       tipAll(b);
       return b;
     };
     const more = fx('more_vert', 'More options for ' + profile.name, 'solo-more');
+    /**
+     * FROM NAM'S SCREENSHOT OF THE ORIGINAL, not measured — the menu could not
+     * be opened live, because the pill it lives in only exists while the tile is
+     * hovered and a synthetic hover does not survive to the click.
+     *
+     * What that screenshot shows, and what we had wrong:
+     *   - THREE rows, not four. We invented "Remove this tile", which was also
+     *     the row overflowing the surface.
+     *   - Minimize and "Show my full video" are DEAD; only "Pin to the screen"
+     *     is live, and it carries a submenu chevron. We gave all four the same
+     *     weight and none of them a hover.
+     *   - "to others", not "to everyone".
+     *
+     * Left-aligned, because the original's left edge sits under the button.
+     * Ours passed 'right' and landed off to the side.
+     */
     attachMenu(more, (): MenuItem[] => [
-      { label: 'Remove this tile' },
-      { icon: 'close_fullscreen', label: 'Minimize' },
-      { icon: 'keep', label: 'Pin to the screen' },
-      { icon: 'aspect_ratio', label: 'Show my full video to everyone' },
-      // Measured: the original drops this DOWNWARD from the control. Ours was
-      // 'above'. And note the dark surface only started working once the
-      // .gm-dark selector was fixed in styles.css — cls lands on the wrapper,
-      // and the rule that painted the background wanted it on the menu itself.
-    ], { align: 'right', side: 'below', width: 247, cls: 'gm-dark' });
-    // Measured left to right: effects 44x44 r22, a remove-tile control 44x44
-    // r100 that is DISABLED and carries Meet's own explanation, then more_vert
-    // 40x40 r20. Ours had Reframe in the middle, which the original does not
-    // put here.
-    //
-    // Two glyph substitutions, because the 7 kB subset does not carry Meet's:
-    // blur_on for visual_effects — already what the lobby uses for this exact
-    // control — and close_fullscreen for the remove-tile mark.
+      { icon: 'close_fullscreen', label: 'Minimize', disabled: true },
+      { icon: 'keep', label: 'Pin to the screen', submenu: true },
+      { icon: 'aspect_ratio', label: 'Show my full video to others', disabled: true },
+    ], { align: 'left', side: 'below', width: 232, cls: 'gm-dark' });
+    /**
+     * Measured left to right: `visual_effects` at 44x44 r22 ink #e3e3e3, a
+     * middle control at 44x44 r100 ink #fff, then `more_vert` at 40x40 r20.
+     *
+     * THE MIDDLE CONTROL IS CONTEXT-DEPENDENT, which Round 4 got wrong. On one
+     * call it read "Can't remove your tile in this layout" and was disabled; on
+     * another it read "Show in a tile" and was live. Round 4 froze the first as
+     * permanent. Ours carries the live label and acts, rather than pretending to
+     * switch on a layout system we do not have.
+     *
+     * Both marks are authored paths in dom.ts. The subset has neither, and Round
+     * 4's stand-ins (blur_on, close_fullscreen) are what Nam read as "completely
+     * wrong" — they are legible glyphs for different controls.
+     */
     t.append(h('div', { class: 'solo-ctls' },
-      fx('blur_on', 'Backgrounds and effects', ''),
-      fx('close_fullscreen', "Can't remove your tile in this layout", '', true),
+      fx({ path: icons.effects }, 'Backgrounds and effects', ''),
+      fx({ path: icons.tileOff }, 'Show in a tile', 'solo-tile'),
       more));
     return t;
   };

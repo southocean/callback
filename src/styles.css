@@ -1279,6 +1279,7 @@ body.plain { background: #fff; color: #16181c; }
 .composer-join::before,
 .banner a::before,
 .cal-btn::before,
+.solo-ctl::before,
 .rail-pill::before {
   content: ''; position: absolute; inset: 0; z-index: 0;
   border-radius: inherit; pointer-events: none;
@@ -1297,6 +1298,7 @@ body.plain { background: #fff; color: #16181c; }
 .composer-join:hover::before,
 .banner a:hover::before,
 .cal-btn:hover::before,
+.solo-ctl:hover::before,
 .rail-item:hover .rail-pill::before { opacity: var(--sl-hover, .08); }
 .icon-btn:focus-visible::before,
 .avatar-btn:focus-visible::before,
@@ -3195,7 +3197,9 @@ body.has-panel .grid-wrap.is-solo { inset: 72px 375px 80px 16px; }
   display: flex; align-items: center; gap: 0;
   opacity: 0; transition: opacity .12s linear;
 }
-.solo:hover .solo-ctls, .solo:focus-within .solo-ctls { opacity: 1; }
+/* The opacity:1 rule that used to live here is gone, not overridden. Round 5
+   supersedes it with .72/.9, and a dead rule left in place is a rule waiting
+   for a selector to match again — which is how the yellow plates happened. */
 .solo-ctl {
   position: relative; overflow: hidden;
   width: 44px; height: 44px; border-radius: 22px;
@@ -5413,7 +5417,15 @@ body.presenting .shot { min-width: 0; }
  * hover does not persist long enough for a probe to read it. 0.72 is CHOSEN to
  * leave the headroom Nam describes, and is the one number here that is not off
  * the product. */
-.solo-ctls { transition: opacity .1s linear; }
+/* Measured 0.3s while hidden, which is the appear. Round 4 read 0.1s, but that
+   was taken while the pill was VISIBLE, so it governs the fade OUT. Both reads
+   are real; this is the one Nam is asking for ("just pops up instantly"). */
+.solo-ctls {
+  transition: opacity .3s linear;
+  /* Measured: two layers, GM3 elevation 1. Nam's "slight shadow/dark glow ...
+     so it looks much softer". We had none at all. */
+  box-shadow: rgba(0, 0, 0, .3) 0 1px 2px 0, rgba(0, 0, 0, .15) 0 1px 3px 1px;
+}
 .solo:hover .solo-ctls, .solo:focus-within .solo-ctls { opacity: .72; }
 .solo-ctls:hover, .solo-ctls:focus-within { opacity: .9; }
 
@@ -5424,3 +5436,28 @@ body.presenting .shot { min-width: 0; }
 }
 .solo-ctl[aria-disabled="true"]::before,
 .solo-ctl[aria-disabled="true"]::after { display: none; }
+
+/* ---- Round 5: the pill's buttons, and dead menu rows ------------------- */
+/* The white tint Nam describes is a state layer, which every other control here
+   already uses. .solo-ctl declared --sl: #fff and was simply never added to the
+   shared ::before list, so there was nothing to raise. */
+.solo-ctl { --sl: #fff; --sl-hover: .08; }
+.solo-ctl > * { position: relative; z-index: 1; }
+
+/* A row that is present but cannot act. Measured on the original: two of the
+   three tile-menu rows are dead, and the difference shows on hover — they do not
+   answer the pointer at all. Ours answered on none of them, which made the live
+   row indistinguishable from the dead ones. */
+.gm-item.is-off {
+  cursor: default; opacity: .38;
+}
+.gm-item.is-off::before, .gm-item.is-off::after { display: none !important; }
+
+/* The chevron on a row that opens a submenu we do not clone. */
+.gm-more { margin-left: auto; color: #9aa0a6; font-size: 12px; line-height: 1; }
+
+/* The tile menu's rows must not overflow their surface — the fourth row we had
+   invented was also the one spilling out of it. Wrap rather than clip, so a
+   longer label degrades instead of disappearing. */
+.gm-dark .gm-menu { max-width: 100%; }
+.gm-dark .gm-label { white-space: normal; overflow-wrap: anywhere; }

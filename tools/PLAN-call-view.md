@@ -853,3 +853,113 @@ refuses to do.
 6. Tile menu: dark surface, opens downward.
 7. Pill: invisible at rest, partly transparent on tile hover, less so on pill hover.
 8. `npm run verify` green.
+
+---
+
+# Round 5: polishing the tile's control pill
+
+Analysed on a live call (gcp-vuep-yta) at 2560x1271. Three items are measured,
+three are from Nam's screenshots, and the split is marked per item because the
+hover state could not be reached this session.
+
+## What could not be measured, and why
+
+The pill never appeared under a synthetic hover this session — a zoom of the tile
+centre after a held hover shows the avatar alone. Meet drives that pill from a
+jsaction `mouseenter`, which wants a trusted event; our synthetic pointer fires
+something the handler does not accept. It DID work in an earlier session on a
+different call, which is how opacity 0.9 was captured, so this is flaky rather
+than impossible.
+
+Computed styles still read fine while hidden, because they do not depend on
+layout. That is where the two headline values below come from.
+
+## 1. The appear transition — measured
+
+`transition: opacity 0.3s linear` on the pill while hidden.
+
+Note the discrepancy with Round 4, which recorded 0.1s. Both are real reads at
+different moments: 0.1s was read while the pill was visible, 0.3s while hidden.
+The transition that governs a change is the one on the element when the change
+BEGINS, so hidden -> visible is the 0.3s one. That is the appear, which is what
+Nam is complaining about ("just pops up instantly"), so **0.3s is the value to
+use**. The 0.1s reading is not wrong, it just governs the other direction.
+
+Ours currently declares 0.1s for both. Change the base to 0.3s.
+
+## 2. The soft glow — measured
+
+```
+box-shadow: rgba(0,0,0,.3) 0 1px 2px 0, rgba(0,0,0,.15) 0 1px 3px 1px
+```
+
+Two layers, which is GM3's elevation 1. This is Nam's "slight shadow/dark glow
+around it so it looks much softer". We had none.
+
+## 3. Opacity — one measured, one still chosen
+
+- pill hovered: **0.9**, measured in the Round 4 session, and independently
+  corroborated by Nam ("something like 90 or 95%, I can barely see my avatar
+  through it").
+- tile hovered but not the pill: **0.72**, still CHOSEN. Never captured. Left as
+  is and still flagged in source. Nam's description does not pin it either.
+
+## 4. The buttons have no hover response — cause found
+
+`.solo-ctl` sets `--sl: #fff` but was never added to the shared state-layer
+`::before` rule list, so there is no layer to raise. That is the whole of
+"nothing has any hover effect whatsoever".
+
+Fix: add `.solo-ctl` to the shared list, `--sl-hover: .08`. Nam calls it "a
+subtle white tint", which is exactly what a white state layer at .08 is.
+
+## 5. The glyphs — measured names, and a discovery
+
+Measured left to right:
+
+| control | glyph | radius | ink |
+|---|---|---|---|
+| Backgrounds and effects | `visual_effects` | 22 | `#e3e3e3` |
+| middle | (icon font, no ligature name read) | 100 | `#fff` |
+| More options for Nam Nguyen | `more_vert` | 20 | `#e3e3e3` |
+
+**The middle control is context-dependent**, which Round 4 got wrong. In one call
+it read "Can't remove your tile in this layout" and was DISABLED; in this call it
+reads **"Show in a tile"** and is NOT disabled. Round 4 hard-coded the first as
+permanent. It is a layout-dependent control, so ours should carry one honest
+label rather than pretend to switch on a layout we do not have.
+
+`more_vert` we already have right. The other two are not in the 7 kB subset, and
+Round 4's substitutes (`blur_on`, `close_fullscreen`) are what Nam is calling
+wrong. Author them as SVG paths in `dom.ts` instead — the same route `search` and
+`block` took — rather than settling for a glyph that means something else.
+
+## 6. The dropdown — from Nam's screenshot, not measured
+
+The menu could not be opened (see above), so this is read off his screenshot of
+the original. Marked as such in source.
+
+- It lines up with `more_vert`. Ours passes `align: 'right'` and lands off to the
+  side; the original's left edge sits under the button. Change to `'left'`.
+- **Three items, not four.** The original has Minimize, Pin to the screen, Show
+  my full video to others. Ours invents a fourth, "Remove this tile", which is
+  also the one that overflows the surface.
+- Wording: "to others", not "to everyone".
+- **Minimize and Show my full video are disabled; Pin to the screen is not.** The
+  disabled rows have no hover response, the live one does. Ours gives none of
+  them any.
+- Pin to the screen carries a submenu arrow.
+
+`MenuItem` has no `disabled` field, so add one: skip the ripple, drop the state
+layer, dim the ink, and set `aria-disabled`.
+
+## QA
+
+1. Pill fades in over 0.3s rather than popping.
+2. Shadow present, two layers.
+3. Pill 0.72 on tile hover, 0.9 on pill hover.
+4. Each button takes a white tint at .08 on hover.
+5. Three glyphs, two of them new SVG paths.
+6. Menu: left-aligned to the button, three items, no overflow, two disabled rows
+   with no hover and one live row with hover.
+7. `npm run verify` green.

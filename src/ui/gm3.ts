@@ -108,6 +108,14 @@ export interface MenuItem {
   onPick?: () => void;
   /** A rule above this item, as the overflow menu has after its first row. */
   ruleBefore?: boolean;
+  /**
+   * A row that is present but dead. The original's tile menu has two of these
+   * and one live row, and the difference is visible: the dead ones take no
+   * hover. A row that cannot act should not answer the pointer.
+   */
+  disabled?: boolean;
+  /** A trailing chevron, for a row that opens a submenu we do not clone. */
+  submenu?: boolean;
 }
 
 /**
@@ -146,8 +154,15 @@ export function menu(items: MenuItem[], width?: number): HTMLElement {
     );
     if (it.warn) row.classList.add('is-warn');
     if (it.checked) row.classList.add('is-checked');
-    ripple(row);
-    const go = (): void => { if (it.onPick) it.onPick(); };
+    if (it.submenu) row.appendChild(h('span', { class: 'gm-more', 'aria-hidden': 'true' }, '▸'));
+    if (it.disabled) {
+      row.classList.add('is-off');
+      row.setAttribute('aria-disabled', 'true');
+      row.removeAttribute('tabindex');
+    } else {
+      ripple(row);
+    }
+    const go = (): void => { if (it.disabled) return; if (it.onPick) it.onPick(); };
     row.addEventListener('click', go);
     row.addEventListener('keydown', (e) => {
       if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); go(); }
