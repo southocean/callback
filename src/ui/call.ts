@@ -265,7 +265,10 @@ export function renderCall(store: Store, quests: Quests, deps: CallDeps): HTMLEl
      * use. A real type programme at the right size beats both a hand-drawing and
      * a borrowed file.
      */
-    t.append(h('div', { class: 'solo-ctls' },
+    // data-tip-base: the three controls tip from the PILL's bottom edge rather
+    // than their own, so a 40-tall button does not sit its tooltip 2px above a
+    // 44-tall one. See tooltip.ts.
+    t.append(h('div', { class: 'solo-ctls', 'data-tip-base': '' },
       fx('blur_on', 'Backgrounds and effects', ''),
       fx('aspect_ratio', 'Show in a tile', 'solo-tile'),
       more));

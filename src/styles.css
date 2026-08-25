@@ -5514,3 +5514,21 @@ body.presenting .shot { min-width: 0; }
    longer label degrades instead of disappearing. */
 .gm-dark .gm-menu { max-width: 100%; }
 .gm-dark .gm-label { white-space: normal; overflow-wrap: anywhere; }
+
+/* ---- Round 10: the press flash is blue, not white --------------------- */
+/* Nam: "each of these buttons on the original when clicked it has a blueish
+   tint (instead of white) for just a split second".
+ *
+ * One state layer drives both hover and press, and it took its colour from a
+ * single --sl. So making the press blue without touching the hover is just a
+ * cascade trick: custom properties inherit, so :active re-declares --sl and the
+ * ::before repaints. No second layer, no extra element.
+ *
+ * The hover stays white at .08, which is what Nam asked for two rounds ago.
+ *
+ * NOT MEASURED: the press colour itself. Catching a split-second layer on a
+ * control that only exists while the tile is hovered was not something the
+ * synthetic pointer could do. #a8c7fa is a MEASURED Meet token — it is the fill
+ * of an active control in the bar — so this borrows a real value from the same
+ * palette rather than inventing one, but the pairing is a choice. */
+.solo-ctl:active { --sl: #a8c7fa; --sl-press: .22; }

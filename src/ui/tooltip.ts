@@ -67,7 +67,17 @@ function place(anchor: HTMLElement, text: string, where: Placement): void {
   tip.textContent = text;
   root().appendChild(tip);
 
+  // Buttons that sit together in one strip must tip from a COMMON baseline.
+  // Nam spotted the tile pill's first two tooltips sitting lower than the
+  // third: its buttons are 44, 44 and 40 tall, all vertically centred in a
+  // 44-tall pill, so the 40 one's bottom edge is 2px higher and its tooltip
+  // rode up with it. Anchoring the vertical edge to the strip fixes every
+  // button in it at once, and leaves each button's own box — which is measured —
+  // alone. Horizontal centring still follows the button, so the tooltip stays
+  // over the thing you are pointing at.
   const a = anchor.getBoundingClientRect();
+  const baseEl = anchor.closest('[data-tip-base]');
+  const base = baseEl ? baseEl.getBoundingClientRect() : a;
   const t = tip.getBoundingClientRect();
   // Centred under the anchor, then nudged back inside the viewport if the
   // anchor is near an edge — which is most of the top-right cluster.
@@ -77,10 +87,10 @@ function place(anchor: HTMLElement, text: string, where: Placement): void {
   // BELOW its controls; the week strip puts it 4px ABOVE them, because below
   // would land on the meeting list. Measured on both: Support tipped at y+4
   // under a 40px button, "Selected" tipped at y-4 over a 56px day column.
-  let y = where === 'above' ? a.top - t.height - GAP : a.bottom + GAP;
+  let y = where === 'above' ? base.top - t.height - GAP : base.bottom + GAP;
   // Flip if the preferred side has no room.
-  if (y < 8) y = a.bottom + GAP;
-  if (y + t.height > window.innerHeight - 8) y = a.top - t.height - GAP;
+  if (y < 8) y = base.bottom + GAP;
+  if (y + t.height > window.innerHeight - 8) y = base.top - t.height - GAP;
 
   tip.style.left = `${Math.round(x)}px`;
   tip.style.top = `${Math.round(y)}px`;
