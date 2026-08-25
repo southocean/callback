@@ -230,7 +230,6 @@ button { font: inherit; }
    #1f1f1f. So the first word of the wordmark is half a pixel bigger and two
    shades darker than the second, forever, on every Google property that uses
    this asset. Mirroring the inconsistency rather than tidying it up. */
-.lk-google { color: #212226; font-size: 23.5px; overflow: hidden; }
 .lk-meet { color: #1f1f1f; margin-left: 4px; }
 .lk-nam { color: #1f1f1f; margin-left: 4px; }
 
@@ -249,13 +248,9 @@ button { font: inherit; }
    longer than it measures: the static shell paints "Google Meet" before the
    bundle mounts, and the delay only starts at mount, so the real hold is this
    plus however long the JavaScript took to arrive. */
-.lockup { --lk-delay: 1.2s; --lk-hit: calc(var(--lk-delay) + .5s); }
 
-.lk-play .lk-nam { animation: lk-fly  .52s var(--ease-spring) var(--lk-delay) both; }
 /* (all declarations here are overridden below) */
-.lk-play .lk-google { animation: lk-out  .42s var(--ease-emph)   var(--lk-hit)   both; }
 /* (all declarations here are overridden below) */
-.lk-play .lk-mark { animation: lk-bump .2s  var(--ease-emph)   var(--lk-hit)   both; }
 
 @keyframes lk-fly {
   from { opacity: 0; transform: translateX(96px) scale(1.08); }
@@ -475,7 +470,6 @@ button { font: inherit; }
   display: grid; place-items: center;
 }
 .round-ctl:hover { background: rgba(255,255,255,.12); }
-.round-ctl.off { background-color: var(--danger); border-color: transparent; }
 .preview-warn {
   position: absolute; z-index: 4; left: 50%; transform: translateX(-50%); bottom: 70px;
   background-color: var(--toast); color: #fff; border-radius: 8px; padding: 14px 18px 16px; width: 330px;
@@ -503,8 +497,6 @@ button { font: inherit; }
    outranks .ms — which turned the icon inside the card into the literal text
    "description". Same trap as the background shorthand earlier: shorthands
    quietly reset properties you never mentioned. */
-.join-card span:not(.ms) { font: 400 13px/18px var(--font); color: var(--sec); }
-.join-card .m-text { margin-left: auto; }
 .join-actions { display: flex; flex-direction: column; gap: 12px; align-items: center; }
 .join-now { height: 48px; padding: 0 40px; border-radius: 24px; font-size: 15px; }
 
@@ -601,7 +593,6 @@ button { font: inherit; }
   display: flex; align-items: center; padding: 0 12px;
 }
 .bar-group { margin: 0 auto; display: flex; align-items: center; gap: 8px; }
-.unit { display: flex; align-items: stretch; }
 .chev {
   width: 40px; height: var(--ctl-h); border: 0; cursor: pointer; background-color: var(--ctl2);
   color: var(--ctl-ink2); border-radius: var(--ctl-r) 0 0 var(--ctl-r);
@@ -619,7 +610,6 @@ button { font: inherit; }
 .cbtn.off { background: #f9dedc; color: #601410; }
 .cbtn.leave { width: 72px; background-color: var(--danger); color: #fff; }
 .cbtn.leave:hover { background: #e04a41; }
-.cbtn.active { background-color: var(--dark-blue); color: #062e6f; }
 .cbtn-badge {
   position: absolute; top: 4px; right: 6px; min-width: 16px; height: 16px; border-radius: 8px;
   background-color: var(--dark-blue); color: #062e6f; font: 500 10px/16px var(--font); padding: 0 4px;
@@ -649,9 +639,6 @@ button { font: inherit; }
   margin: 4px 0 8px; min-height: 0; color: var(--on-dark); overflow: hidden;
 }
 .side.wide { flex-basis: 460px; width: 460px; }
-.side-head {
-  display: flex; align-items: center; gap: 8px; padding: 18px 12px 12px 24px; flex: 0 0 auto;
-}
 .side-head h2 { font: 500 18px/24px var(--font); color: #fff; }
 .side-head .icon-btn { margin-left: auto; color: var(--on-dark3); }
 .side-head .icon-btn:hover { background: rgba(255,255,255,.12); }
@@ -716,10 +703,6 @@ button { font: inherit; }
 
 /* ---- reaction fly-ups --------------------------------------------------- */
 
-.reaction {
-  position: fixed; bottom: calc(var(--botbar) + 20px); left: 50%; z-index: 55;
-  font-size: 34px; pointer-events: none; animation: fly 2.2s ease-out forwards;
-}
 @keyframes fly {
   0%   { opacity: 0; transform: translate(-50%, 0) scale(.6); }
   15%  { opacity: 1; transform: translate(-50%, -30px) scale(1); }
@@ -998,8 +981,6 @@ code { font: 400 12px/1.4 ui-monospace, Consolas, monospace; color: var(--dark-b
 .quest-toast.out { animation: qout .5s ease-in both; }
 @keyframes qin  { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: none; } }
 @keyframes qout { to { opacity: 0; transform: translateY(-6px); } }
-.quest-name { font: 500 14px/20px var(--font); margin-top: 2px; }
-.quest-sub { font: 400 12px/17px var(--font); color: #dadce0; margin-top: 4px; }
 
 .mahjong {
   background-color: var(--panel); border: 1px solid var(--dark-blue); border-radius: 12px;
@@ -1414,13 +1395,11 @@ body.plain { background: #fff; color: #16181c; }
 
 /* ---- the wavy loader ---------------------------------------------------- */
 .load-pad { display: grid; place-items: center; min-height: 320px; }
-.spin { display: block; }
 
 /* Rotating the arc inside the rotating svg is what makes the lit length appear
    to breathe, without animating the path itself. */
 
 @keyframes spin-rot { to { transform: rotate(360deg); } }
-
 
 /* ---- entrance ----------------------------------------------------------- */
 /* Meet's own animation is called `fadeIn` and runs 500ms. The list arrives
@@ -1543,7 +1522,6 @@ body.plain { background: #fff; color: #16181c; }
    (the crop keeps the g's descender, which is 6px below the baseline). */
 /* No font-size: 0 here. The span holds an image, so it reserves no text space
    anyway, and zeroing it silently broke the em-based collapse above. */
-.lk-google { overflow: hidden; }
 /* (all declarations here are overridden below) */
 
 /* The impact. "Meet" takes the hit by squeezing its letters together and
@@ -1556,17 +1534,11 @@ body.plain { background: #fff; color: #16181c; }
   65%  { letter-spacing: .35px; }
   100% { letter-spacing: normal; }
 }
-.lk-play .lk-meet {
-  animation:
-    lk-close   .42s var(--ease-emph) var(--lk-hit) both,
-    lk-squeeze .46s cubic-bezier(0.3, 1.4, 0.4, 1) var(--lk-hit) both;
-}
 
 /* The beat no longer starts at mount. It starts when the page has finished
    arriving, because a joke told underneath a loading spinner and three
    entrance animations is a joke nobody sees. home.ts adds .lk-play once the
    boot sequence is done, so the delay below is only the pause after that. */
-.lockup { --lk-delay: .55s; }
 
 /* The name must not exist until it flies in. Previously the animation's `both`
    fill held it at opacity 0 through the delay — but the animation only applies
@@ -1576,7 +1548,6 @@ body.plain { background: #fff; color: #16181c; }
    and only the fly-in or reduced-motion reveals it. */
 .lk-nam { opacity: 0; }
 .lk-static .lk-nam { opacity: 1; }
-
 
 /* ---- the loader, from Google’s own path data -------------------------- */
 /* Lengths are exact and precomputed, so nothing has to be measured at runtime:
@@ -1591,8 +1562,6 @@ body.plain { background: #fff; color: #16181c; }
 .spin-arc, .spin-track { animation-duration: 1.5s; animation-iteration-count: infinite;
   animation-direction: alternate; animation-timing-function: cubic-bezier(0.4, 0, 0.2, 1); }
 
-.spin-cold .spin-arc { animation-name: arc-cold; }
-.spin-cold .spin-track { animation-name: trk-cold; }
 .spin-light .spin-arc { animation-name: arc-light; }
 .spin-light .spin-track { animation-name: trk-light; }
 
@@ -1618,8 +1587,6 @@ body.plain { background: #fff; color: #16181c; }
 }
 @media (prefers-reduced-motion: reduce) {
   .spin, .spin-arc, .spin-track { animation: none; }
-  .spin-arc { stroke-dasharray: 53 148.96; }
-  .spin-track { stroke-dasharray: 62 138.23; stroke-dashoffset: -72; }
 }
 
 /* ============================================================================
@@ -1698,7 +1665,6 @@ body.plain { background: #fff; color: #16181c; }
 /* The bitmap squashes horizontally from its left edge, and the container it
    sits in narrows with it, which is what makes "Meet" slide left as Google is
    crushed instead of Google simply being sliced off. */
-.lk-google { overflow: hidden; display: inline-flex; }
 .lk-gimg { will-change: transform; }
 .lk-nam { will-change: transform; }
 
@@ -1708,10 +1674,6 @@ body.plain { background: #fff; color: #16181c; }
    text baseline and lifting the whole word by the height of the g's descender.
    That descender is 6px in the crop (glyph baseline at row 25, crop ends at 31),
    plus the 1px the box itself contributes, so -7px puts it back. */
-.lk-google {
-  display: inline-block; overflow: hidden;
-  vertical-align: -7px; height: 25px; line-height: 0;
-}
 .lk-gimg { display: block; transform-origin: left center; vertical-align: top; }
 
 /* ============================================================================
@@ -1805,7 +1767,6 @@ body.plain { background: #fff; color: #16181c; }
 
 @media (max-width: 839px) {
   .menu-btn { display: inline-flex; }
-  .lockup { padding-left: 0; }
   .home-bar { padding-left: 12px; }
 
   /* The rail becomes a drawer: off-canvas, over the content, with a scrim.
@@ -2016,8 +1977,6 @@ body.plain { background: #fff; color: #16181c; }
   .egg-capt { bottom: 8px; font-size: 13px; }
 }
 
-
-
 /* Captions sit clear of the control bar AND of the self-view tile, which is the
    overlap that was reported. Narrower and lower, and it never covers the tile
    in the bottom-right because it stops short of it. */
@@ -2030,7 +1989,6 @@ body.plain { background: #fff; color: #16181c; }
   /* No room to sit beside the tile, so it goes above it instead. */
   .cc { width: calc(100% - 32px); bottom: calc(var(--botbar) + 116px); }
 }
-
 
 /* Hover wins over focus on the meeting card, and it has to be said last.
    The shared state-layer block lists hover then focus-visible, so a card that is
@@ -2075,18 +2033,10 @@ body.plain { background: #fff; color: #16181c; }
 
 /* --- the round controls, inside the tile -------------------------------- */
 .preview-ctls { bottom: 19px; gap: 16px; }
-.round-ctl {
-  width: 56px; height: 48px; border-radius: 24px;
-  border: 0; background-color: #dde3ea; color: var(--ink);
-}
 /* Meet does not use a red fill for "off" here — that is the in-call treatment.
    In the green room a disabled control is the same fill at 40%, which reads as
    unavailable rather than as an alarm. */
 .round-ctl.off { background-color: #dde3ea; border-color: transparent; color: var(--ink); }
-.round-ctl[aria-disabled="true"], .round-ctl:disabled {
-  background-color: rgba(221, 227, 234, .4); color: rgba(31, 31, 31, .4); cursor: default;
-}
-.round-ctl { --sl: #1f1f1f; }
 
 /* --- device chips ------------------------------------------------------- */
 .devices { gap: 8px; margin-top: 20px; }
@@ -2095,9 +2045,6 @@ body.plain { background: #fff; color: #16181c; }
   border: 1px solid #c4c7c5; padding: 0 12px; gap: 8px;
   font: 500 14px/1 var(--font-title); color: var(--sec);
   justify-content: flex-start; box-sizing: border-box;
-}
-.device-chip.is-off {
-  border-color: rgba(31, 31, 31, .12); color: rgba(16, 16, 16, .3);
 }
 .device-chip.is-off .ms { color: rgba(31, 31, 31, .38); }
 
@@ -2506,7 +2453,6 @@ body.plain { background: #fff; color: #16181c; }
  * badge up to the button reads transition-duration: 0s, and nothing is running
  * when it opens. The reveal is instant. Against the "everything is a
  * transition" rule, but it is what the product does, so it is what this does. */
-.warn-pill { transition: none; }
 /* The badge has no caret. See the note in lobby.ts: Meet has the element and
    does not paint it, and ours was painting it in white. */
 .warn-pill > .caret { display: none; }
@@ -2980,7 +2926,6 @@ body.plain { background: #fff; color: #16181c; }
 
 /* A two-line row is 60 tall in Meet, not 56: 8 + 44 + 8, so the text block gets
    44 rather than the 40 that two 20px lines occupy on their own. */
-.gm-item.has-sub { min-height: 44px; }
 
 /* Row heights, stated in border-box terms because that is what the project's
    reset uses — min-height on the content box would have been ignored, which is
@@ -3118,11 +3063,6 @@ body.plain { background: #fff; color: #16181c; }
  * carrying its own hover layer while the extending body does not. 180ms on
  * emphasized-decelerate, and the text on a short linear fade with a beat of
  * delay so it arrives inside a pill that is already most of the way open. */
-.warn-pill {
-  transition: width .18s cubic-bezier(0.2, 0, 0, 1),
-              height .18s cubic-bezier(0.2, 0, 0, 1),
-              padding .18s cubic-bezier(0.2, 0, 0, 1);
-}
 .warn-text {
   opacity: 0; transition: opacity .1s linear .07s;
 }
@@ -3141,7 +3081,6 @@ body.plain { background: #fff; color: #16181c; }
 }
 /* Measured offsets in the expanded pill: disc at dx 2, label at dx 24, caret at
    dx 149, all inside 169x20. */
-.warn-pill:hover, .warn-pill:focus-visible { padding: 0 5px 0 2px; }
 
 @media (prefers-reduced-motion: reduce) {
   .warn-pill, .warn-text, .warn-dot { transition: none; }
@@ -3159,7 +3098,6 @@ body.plain { background: #fff; color: #16181c; }
   position: absolute; inset: 72px 56px 80px 55px;
   display: block; padding: 0; overflow: visible;
 }
-body.has-panel .grid-wrap.is-solo { inset: 72px 375px 80px 16px; }
 
 .solo {
   position: relative; width: 100%; height: 100%;
@@ -3236,7 +3174,6 @@ body.has-panel .grid-wrap.is-solo { inset: 72px 375px 80px 16px; }
    PRE-JOIN tile; nothing like it appeared in the call, so putting one here would
    be inventing. */
 .solo .mic-meter { display: none; }
-
 
 /* --- the three controls Meet floats on its own tile --------------------- */
 /* Reframe 656,424 44x44 r22 · Backgrounds 700,424 44x44 r22 · More 744,426
@@ -3433,9 +3370,6 @@ body.has-panel .grid-wrap.is-solo { inset: 72px 392px 80px 16px; }
 
    Meet's observed band was 47..177 against a tile at 55; ours was landing at
    -7..113 against a layer at 0, which is the same band in the wrong place. */
-.reaction, .reaction-who { left: 55px; }
-body.has-panel .reaction, body.has-panel .reaction-who { left: 16px; }
-
 
 /* --- the top row's internal gap ------------------------------------------ */
 /* Meet: time ends at 86, meeting name starts at 111. Ours had a 16px gap and
@@ -3455,7 +3389,6 @@ body:has(.grid-wrap.is-solo) .count-chip[style*="transparent"] { display: none; 
 
    The height has to be explicit too: a 44px glyph on a 53px line still gave the
    div an 86px box, which was dragging the start point up with it. */
-.reaction { bottom: 80px; height: 53px; }
 /* The name chip: 58,793 41x22, so its bottom is 815 — 85 up from the viewport. */
 .reaction-who { bottom: 85px; }
 
@@ -4197,7 +4130,6 @@ body.has-panel .reaction, body.has-panel .reaction-who { left: 0; }
 }
 /* The label arrives while the pill is still on its way out to the peak — at
    16% of the way through, the pill is already at full width. */
-.warn-text { transition: opacity .1s linear .08s; }
 
 @media (prefers-reduced-motion: reduce) {
   .warn-pill, .warn-pill:hover, .warn-pill:focus-visible { transition: none; }
@@ -4472,7 +4404,6 @@ body.tray-open .cc { bottom: calc(var(--botbar) + 52px + 12px); }
 .warn-text { flex: 1 1 auto; min-width: 0; text-align: center; }
 /* Symmetric now that the slack is shared rather than dumped on one side. The
    disc still sits at dx 2, which is where Meet's is. */
-.warn-pill:hover, .warn-pill:focus-visible { padding: 0 2px; }
 /* The text arrives a little later than I had it: ink first shows around t=617
    against an expansion starting at t=433, so ~185ms in rather than 80. */
 .warn-text { transition: opacity .1s linear .15s; }
@@ -4850,7 +4781,6 @@ body.tray-open .cc { bottom: calc(var(--botbar) + 52px + 12px); }
 .cb-tab.is-on { background-color: #35363a; color: #fff; }
 .cb-tab-ico { width: 14px; height: 14px; flex: 0 0 auto; }
 .cb-tab-t { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.cb-new { width: 28px; height: 28px; display: grid; place-items: center; color: #c5c5c5; border-radius: 4px; }
 .cb-bar { flex: 0 0 auto; display: flex; align-items: center; gap: 10px; padding: 8px 12px; background-color: #35363a; }
 .cb-nav { color: #c5c5c5; font-size: 13px; }
 .cb-omni {
@@ -4988,7 +4918,6 @@ body.presenting .solo-av { width: 56px; height: 56px; font-size: 18px; }
 body.presenting .solo-name { left: 8px; bottom: 6px; font-size: 12px; line-height: 16px; }
 body.presenting .solo-mute { top: 6px; right: 6px; width: 20px; height: 20px; }
 body.presenting .solo-mute .ms { font-size: 13px; }
-body.presenting .solo-ctl { display: none; }
 body.presenting .hand-pill { left: 6px; bottom: 6px; height: 26px; }
 body.presenting .hand-bg { height: 24px; }
 body.presenting .hand-name { font-size: 13px; line-height: 20px; padding-right: 8px; }
@@ -5343,7 +5272,6 @@ body.presenting .shot { min-width: 0; }
 .count-chip:hover { background-color: #37393b; }
 /* The presenting pill keeps its inset button, which is what the original does:
    one 36-tall container with a smaller primary inside it, not two chips. */
-.pres-chip { height: 36px; border-radius: 48px; }
 
 /* ================= THE TWO HOVER PANELS ================================== */
 /* Both are the same shell — measured off the live product, and Google clearly
