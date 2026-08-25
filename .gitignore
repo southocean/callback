@@ -2,3 +2,7 @@ node_modules/
 .tmp/
 _private/
 QA/
+
+# The CSS fingerprint harness gets copied here to be served (the page CSP is
+# script-src 'self'), but it is a tool and must never ship with the site.
+docs/css-snapshot.js
