@@ -71,7 +71,6 @@
 
   /* Meet dark surfaces — in call */
   --canvas:       #131314;
-  --panel:        #202124;
   --ctl:          #333537;
   --ctl2:         #282a2c;
   --ctl-ink:      #e3e3e3;
@@ -296,7 +295,7 @@ button { font: inherit; }
 .composer-pill svg { color: var(--sec); flex: 0 0 auto; }
 .composer-pill input {
   border: 0; background: transparent; outline: none; flex: 1 1 auto;
-  font: 400 16px/24px var(--font-title); color: var(--ink); padding: 0 6px; min-width: 0;
+  font: 400 16px/24px var(--font-title); color: var(--ink); min-width: 0;
 }
 .composer-pill input::placeholder { color: var(--sec); }
 /* Disabled is a real filled button in Meet, not ghost text: a 12% black
@@ -312,7 +311,7 @@ button { font: inherit; }
 .composer-join:active { border-radius: 8px; }
 /* Column 3 explicitly: the composer is absolutely positioned so it no longer
    occupies column 2, and without this the cluster falls into the gap. */
-.home-bar-right { grid-column: 3; display: flex; align-items: center; gap: 4px; justify-self: end; }
+.home-bar-right { grid-column: 3; display: flex; align-items: center; justify-self: end; }
 /* Apps and the avatar are true circles; Support and Settings are radius 20. */
 .home-bar-right .icon-btn:nth-child(3) { border-radius: 50%; }
 /* Measured: a 40x40 hit area with 4px of padding, so the picture is 32px and
@@ -356,7 +355,7 @@ button { font: inherit; }
    column. Ours was left-aligned, which was the single most visible miss. */
 .home-main { flex: 1 1 auto; display: flex; justify-content: center; padding: 22px 24px 60px; min-width: 0; }
 .home-col { width: 100%; max-width: 1052px; min-width: 0; }
-.date-row { display: flex; align-items: center; gap: 12px; margin-bottom: 22px; padding: 0 16px; }
+.date-row { display: flex; align-items: center; padding: 0 16px; }
 .date-title { font: 400 22px/28px var(--font-title); color: var(--ink); }
 .week { margin-left: auto; display: flex; align-items: center; gap: 10px; }
 /* The arrows share the day column's footprint — 48x56 at radius 28 — rather
@@ -382,17 +381,16 @@ button { font: inherit; }
 .day[aria-current="true"] .day-num { color: var(--nav-icon); }
 
 .banner {
-  display: flex; align-items: center; gap: 11px; border: 1px solid var(--outline);
+  display: flex; align-items: center; border: 1px solid var(--outline);
   /* This banner is ours, not Meet's, so the rule is match-the-style: it takes
      the card's 28px radius and the same 16px column inset, because nothing on
      Meet's home uses a 12px radius or spans the column edge to edge. */
-  border-radius: 28px; padding: 16px 24px; margin: 0 16px 32px;
-  width: calc(100% - 32px); box-sizing: border-box; background-color: var(--w);
+  border-radius: 28px; background-color: var(--w);
 }
 .banner-ico { flex: 0 0 auto; color: var(--blue); }
 .banner-t { font: 500 16px/24px var(--font-title); color: var(--ink); }
 .banner-s { font: 400 14px/20px var(--font); color: var(--sec); }
-.banner a { margin-left: auto; color: var(--blue); font: 500 14px/1 var(--font); text-decoration: none; white-space: nowrap; }
+.banner a { color: var(--blue); font: 500 14px/1 var(--font); text-decoration: none; white-space: nowrap; }
 /* (all declarations here are overridden below) */
 
 /* Measured: the card sits in a 16px-inset column, so it is 1020 wide inside a
@@ -402,13 +400,8 @@ button { font: inherit; }
   font: 500 14px/20px var(--font-title); color: var(--sec);
   padding: 6px 0 6px 16px; margin: 0 16px;
 }
-.sched-card {
-  /* Radius 28, measured. Nothing on Meet's home uses 16 or 12 — the shape
-     scale on this screen is 20 (icon button), 28 (card, day pill, week arrow)
-     and 999 (composer). */
-  background-color: var(--sched); border-radius: 28px; padding: 25px 40px;
+.sched-card { border-radius: 28px; padding: 25px 40px;
   display: flex; align-items: center; gap: 20px; border: 0; text-align: left;
-  width: calc(100% - 32px); margin: 0 16px;
   cursor: pointer; color: inherit; font: inherit;
 }
 /* The card overlay is #f0f4f9 at rest and #f0f4f9 hovered. No hover state. */
@@ -421,8 +414,7 @@ button { font: inherit; }
 .sched-time { font: 700 14px/20px var(--font-title); color: var(--blue); }
 .sched-title { font: 400 24px/32px var(--font-title); color: var(--ink); }
 .sched-join {
-  margin-left: auto; background-color: var(--blue); color: #fff; border: 0; border-radius: 24px;
-  height: 48px; padding: 0 32px; font: 500 15px/1 var(--font); cursor: pointer; flex: 0 0 auto;
+  margin-left: auto; background-color: var(--blue); color: #fff; border: 0; font: 500 15px/1 var(--font); cursor: pointer; flex: 0 0 auto;
 }
 .sched-note { font: 400 12px/18px var(--font); color: var(--sec); margin: 14px 32px 0; }
 .home-alt { margin-top: 34px; display: flex; gap: 10px; flex-wrap: wrap; }
@@ -435,8 +427,7 @@ button { font: inherit; }
 .lobby-acct b { display: block; font-weight: 400; }
 .lobby-acct span { color: var(--link); cursor: default; }
 .lobby-body {
-  flex: 1 1 auto; display: flex; align-items: center; justify-content: center;
-  gap: 56px; padding: 12px 40px 60px; flex-wrap: wrap;
+  flex: 1 1 auto; display: flex; align-items: center; justify-content: center; padding: 12px 40px 60px; flex-wrap: wrap;
 }
 
 .preview {
@@ -461,60 +452,48 @@ button { font: inherit; }
   display: grid; place-items: center; font: 500 34px/1 var(--font);
 }
 .preview-ctls {
-  position: absolute; bottom: 14px; left: 0; right: 0; z-index: 3;
-  display: flex; justify-content: center; gap: 10px;
+  position: absolute; left: 0; right: 0; z-index: 3;
+  display: flex; justify-content: center;
 }
-.round-ctl {
-  width: 44px; height: 44px; border-radius: 50%; cursor: pointer;
-  border: 1px solid rgba(255,255,255,.5); background: transparent; color: #fff;
+.round-ctl { cursor: pointer; background: transparent;
   display: grid; place-items: center;
 }
 .round-ctl:hover { background: rgba(255,255,255,.12); }
-.preview-warn {
-  position: absolute; z-index: 4; left: 50%; transform: translateX(-50%); bottom: 70px;
-  background-color: var(--toast); color: #fff; border-radius: 8px; padding: 14px 18px 16px; width: 330px;
-}
-.preview-warn b { display: block; font: 400 16px/24px var(--font); letter-spacing: .1px; }
-.preview-warn span { font: 400 13px/18px var(--font); letter-spacing: .2px; color: #e3e3e3; }
-.devices { display: flex; gap: 10px; justify-content: center; flex-wrap: wrap; margin-top: 16px; }
-.device-chip {
-  height: 36px; border: 1px solid var(--outline); border-radius: 8px; background-color: var(--w);
-  display: inline-flex; align-items: center; gap: 8px; padding: 0 12px;
-  font: 400 13px/1 var(--font); color: var(--ink); cursor: default;
+
+.devices { display: flex; justify-content: center; }
+.device-chip { background-color: var(--w);
+  display: inline-flex; align-items: center;
 }
 .device-chip svg { color: var(--sec); }
-.preview-col { flex: 0 1 740px; max-width: 100%; }
+.preview-col { max-width: 100%; }
 
 .join-col { flex: 0 1 448px; max-width: 100%; text-align: center; }
-.join-col h1 { font: 400 28px/36px var(--font-title); color: var(--ink2); margin-bottom: 10px; }
-.join-sub { font: 400 14px/20px var(--font); color: var(--sec); letter-spacing: .2px; margin-bottom: 22px; }
-.join-card {
-  background-color: var(--surface); border-radius: 12px; padding: 14px 16px; text-align: left;
-  display: flex; align-items: center; gap: 14px; margin-bottom: 24px;
+.join-col h1 { font: 400 28px/36px var(--font-title); }
+.join-sub { margin-bottom: 22px; }
+.join-card { text-align: left;
+  display: flex; align-items: center; margin-bottom: 24px;
 }
-.join-card b { font: 500 14px/20px var(--font); color: var(--ink); display: block; }
+.join-card b { font: 500 14px/20px var(--font); display: block; }
 /* :not(.ms) because a font shorthand resets font-family, and this rule
    outranks .ms — which turned the icon inside the card into the literal text
    "description". Same trap as the background shorthand earlier: shorthands
    quietly reset properties you never mentioned. */
-.join-actions { display: flex; flex-direction: column; gap: 12px; align-items: center; }
-.join-now { height: 48px; padding: 0 40px; border-radius: 24px; font-size: 15px; }
+.join-actions { display: flex; flex-direction: column; align-items: center; }
+.join-now { font-size: 15px; }
 
 /* ============================================================= CALL ====== */
 
 .call { position: fixed; inset: 0; background-color: var(--canvas); display: flex; flex-direction: column; }
 .call-top {
-  height: var(--callbar); flex: 0 0 auto; display: flex; align-items: center;
-  padding: 0 12px 0 24px; gap: 16px; color: #fff;
+  height: var(--callbar); flex: 0 0 auto; display: flex;
+  padding: 0 12px 0 24px; color: #fff;
 }
 .call-clock { font: 500 16px/24px var(--font); letter-spacing: .1px; }
 .call-code { font: 500 16px/24px var(--font); letter-spacing: .1px; }
 .call-sep { color: rgba(255,255,255,.5); }
-.call-top-right { margin-left: auto; display: flex; align-items: center; gap: 4px; }
+.call-top-right { margin-left: auto; display: flex; align-items: center; }
 .count-chip {
-  display: inline-flex; align-items: center; gap: 6px; height: 32px; padding: 0 12px;
-  border-radius: 16px; background: rgba(255,255,255,.12); color: #fff; border: 0; cursor: pointer;
-  font: 500 13px/1 var(--font);
+  display: inline-flex; align-items: center; background: rgba(255,255,255,.12); border: 0; cursor: pointer;
 }
 .count-chip:hover { background: rgba(255,255,255,.2); }
 
@@ -579,8 +558,7 @@ button { font: inherit; }
 
 /* captions overlay — Meet floats them above the control bar */
 .cc {
-  position: absolute; left: 50%; transform: translateX(-50%); bottom: calc(var(--botbar) + 8px);
-  width: min(720px, calc(100% - 48px)); background: rgba(0,0,0,.82); border-radius: 8px;
+  position: absolute; left: 50%; transform: translateX(-50%); border-radius: 8px;
   padding: 14px 18px; z-index: 20; color: #fff;
 }
 .cc-who { font: 500 13px/18px var(--font); color: var(--on-dark2); margin-bottom: 2px; }
@@ -607,13 +585,10 @@ button { font: inherit; }
 .cbtn.w48 { width: 48px; }
 .cbtn.w36 { width: 36px; }
 .unit .cbtn { border-radius: 0 var(--ctl-r) var(--ctl-r) 0; width: 48px; }
-.cbtn.off { background: #f9dedc; color: #601410; }
+.cbtn.off { background: #f9dedc; }
 .cbtn.leave { width: 72px; background-color: var(--danger); color: #fff; }
 .cbtn.leave:hover { background: #e04a41; }
-.cbtn-badge {
-  position: absolute; top: 4px; right: 6px; min-width: 16px; height: 16px; border-radius: 8px;
-  background-color: var(--dark-blue); color: #062e6f; font: 500 10px/16px var(--font); padding: 0 4px;
-}
+
 .bar-right {
   position: absolute; right: 12px; top: 50%; transform: translateY(-50%);
   display: flex; align-items: center; gap: 0;
@@ -634,15 +609,13 @@ button { font: inherit; }
 /* ---- side panel --------------------------------------------------------- */
 
 .side {
-  flex: 0 0 var(--panel-w); width: var(--panel-w); background-color: var(--panel);
-  border-radius: var(--panel-r); display: flex; flex-direction: column;
-  margin: 4px 0 8px; min-height: 0; color: var(--on-dark); overflow: hidden;
+  flex: 0 0 var(--panel-w); min-height: 0; color: var(--on-dark); overflow: hidden;
 }
 .side.wide { flex-basis: 460px; width: 460px; }
 .side-head h2 { font: 500 18px/24px var(--font); color: #fff; }
 .side-head .icon-btn { margin-left: auto; color: var(--on-dark3); }
 .side-head .icon-btn:hover { background: rgba(255,255,255,.12); }
-.side-body { flex: 1 1 auto; overflow-y: auto; padding: 0 24px 24px; }
+.side-body { overflow-y: auto; }
 /* MEASURED: the panel's scroll container is 358 wide with a 350 client box, so
    Meet's scrollbar is an 8px gutter, not the ~15px default one Nam saw as "the
    scrollbar is wrong". Firefox gets the same treatment via scrollbar-width. */
@@ -755,7 +728,7 @@ code { font: 400 12px/1.4 ui-monospace, Consolas, monospace; color: var(--dark-b
 .msg { margin: 0 0 16px; }
 .msg-from { font: 500 12px/16px var(--font); color: var(--on-dark2); margin-bottom: 4px; }
 .msg-body {
-  background-color: var(--dark-surface); border-radius: 4px 16px 16px 16px; padding: 12px 14px;
+  background-color: var(--dark-surface);
   font: 400 14px/21px var(--font); color: var(--on-dark);
 }
 .msg-sys .msg-body { background: none; padding: 0; color: var(--on-dark2); font-size: 13px; font-style: italic; }
@@ -986,10 +959,8 @@ code { font: 400 12px/1.4 ui-monospace, Consolas, monospace; color: var(--dark-b
   background-color: var(--panel); border: 1px solid var(--dark-blue); border-radius: 12px;
   padding: 16px; margin-bottom: 10px; text-align: center; grid-column: 1 / -1;
 }
-.mahjong-tiles { font-size: 34px; line-height: 1.1; letter-spacing: 2px; margin-bottom: 8px; }
-.mahjong-tiles span { display: inline-block; animation: deal .4s ease-out both; }
+
 @keyframes deal { from { opacity: 0; transform: translateY(-14px) rotate(-8deg); } to { opacity: 1; transform: none; } }
-.mahjong-note { font: 400 13px/19px var(--font); color: var(--on-dark3); margin-bottom: 12px; }
 
 .help {
   position: fixed; right: 16px; bottom: calc(var(--botbar) + 16px); z-index: 80; max-width: 330px;
@@ -1127,13 +1098,6 @@ body.plain { background: #fff; color: #16181c; }
   z-index: 65; background-color: var(--panel); border-radius: 8px; padding: 8px 0; min-width: 260px;
   box-shadow: 0 8px 28px rgba(0,0,0,.6); border: 1px solid var(--dark-line);
 }
-.menu-item {
-  display: flex; align-items: center; gap: 14px; width: 100%; text-align: left;
-  background: none; border: 0; padding: 11px 20px; cursor: pointer;
-  color: var(--on-dark); font: 400 14px/20px var(--font);
-}
-.menu-item:hover { background: rgba(255,255,255,.08); }
-.menu-item svg { color: var(--on-dark3); flex: 0 0 auto; }
 
 /* ========================================================= dev portal ==== */
 /* Reachable only by the Konami code. Working notes, not part of the CV. */
@@ -1208,7 +1172,7 @@ body.plain { background: #fff; color: #16181c; }
 
 .tt-layer { position: fixed; inset: 0; pointer-events: none; z-index: 400; }
 .tt {
-  position: fixed; background: #303030; color: #f2f2f2;
+  position: fixed; background: #303030;
   font: 400 12px/16px var(--font); letter-spacing: .1px;
   padding: 4px 8px; border-radius: 4px; white-space: nowrap; max-width: 22em;
   opacity: 0; transform: translateY(-2px);
@@ -1665,7 +1629,7 @@ body.plain { background: #fff; color: #16181c; }
 /* The bitmap squashes horizontally from its left edge, and the container it
    sits in narrows with it, which is what makes "Meet" slide left as Google is
    crushed instead of Google simply being sliced off. */
-.lk-gimg { will-change: transform; }
+
 .lk-nam { will-change: transform; }
 
 /* Baseline, properly this time. The word is a bitmap in a clipping box, and a
@@ -1674,7 +1638,6 @@ body.plain { background: #fff; color: #16181c; }
    text baseline and lifting the whole word by the height of the g's descender.
    That descender is 6px in the crop (glyph baseline at row 25, crop ends at 31),
    plus the 1px the box itself contributes, so -7px puts it back. */
-.lk-gimg { display: block; transform-origin: left center; vertical-align: top; }
 
 /* ============================================================================
    The wordmark is real text again.
@@ -2032,19 +1995,15 @@ body.plain { background: #fff; color: #16181c; }
 .lobby-body { gap: 16px; padding-bottom: 18px; }
 
 /* --- the round controls, inside the tile -------------------------------- */
-.preview-ctls { bottom: 19px; gap: 16px; }
+.preview-ctls { gap: 16px; }
 /* Meet does not use a red fill for "off" here — that is the in-call treatment.
    In the green room a disabled control is the same fill at 40%, which reads as
    unavailable rather than as an alarm. */
-.round-ctl.off { background-color: #dde3ea; border-color: transparent; color: var(--ink); }
+.round-ctl.off { border-color: transparent; }
 
 /* --- device chips ------------------------------------------------------- */
 .devices { gap: 8px; margin-top: 20px; }
-.device-chip {
-  width: 179px; height: 32px; border-radius: 16px; background: none;
-  border: 1px solid #c4c7c5; padding: 0 12px; gap: 8px;
-  font: 500 14px/1 var(--font-title); color: var(--sec);
-  justify-content: flex-start; box-sizing: border-box;
+.device-chip { height: 32px; box-sizing: border-box;
 }
 .device-chip.is-off .ms { color: rgba(31, 31, 31, .38); }
 
@@ -2062,20 +2021,17 @@ body.plain { background: #fff; color: #16181c; }
 }
 .join-card {
   width: 322px; height: 64px; box-sizing: border-box;
-  background-color: #f0f4f9; border-radius: 16px;
-  /* 16 above, measured: the subline ends at 398 and the card starts at 414. */
-  padding: 0 12px 0 16px; margin: 16px auto 0; gap: 12px;
+  background-color: #f0f4f9; border-radius: 16px; margin: 16px auto 0;
 }
 .join-card .m-text {
   height: 40px; min-width: 80px; border-radius: 20px;
-  background-color: #e9eef6; color: var(--blue); padding: 0 16px;
+  background-color: #e9eef6; padding: 0 16px;
 }
 /* 16 between the offer card and Join now, measured: the card ends at 478 and
    the button starts at 494. 44 read as a section break; 16 reads as one group. */
-.join-actions { gap: 28px; margin-top: 16px; }
+.join-actions { margin-top: 16px; }
 .join-now {
   width: 240px; height: 56px; border-radius: 28px; padding: 0;
-  font: 500 15px/1 var(--font-title);
 }
 /* Present, and deliberately inert — Meet opens dial-in numbers here and we have
    no phone number to offer. Kept because the shape of the screen is the point;
@@ -2084,7 +2040,7 @@ body.plain { background: #fff; color: #16181c; }
   width: 186px; height: 40px; border-radius: 20px; padding: 0;
   background: none; border: 1px solid #747775; color: var(--blue);
   font: 500 14px/1 var(--font-title); display: inline-flex;
-  align-items: center; justify-content: center; gap: 6px; cursor: pointer;
+  align-items: center; justify-content: center; gap: 6px;
   --sl: #0b57d0;
 }
 
@@ -2153,17 +2109,14 @@ body.plain { background: #fff; color: #16181c; }
   display: flex; align-items: center; gap: 4px;
   overflow: hidden; white-space: nowrap; cursor: default;
   padding: 0; box-sizing: border-box;
-  transition: width .22s cubic-bezier(0.2, 0, 0, 1), height .22s cubic-bezier(0.2, 0, 0, 1),
-              padding .22s cubic-bezier(0.2, 0, 0, 1);
 }
 .warn-dot {
   flex: 0 0 16px; width: 16px; height: 16px;
   display: grid; place-items: center;
-  font: 700 11px/1 var(--font-title); color: #6D3A01;
+  font: 700 11px/1 var(--font-title);
 }
 .warn-text {
   font: 500 11px/16px var(--font-title); color: #6D3A01;
-  opacity: 0; transition: opacity .14s linear .06s;
 }
 /* Hover OR keyboard focus, because a note nobody can reach is not a note. */
 .warn-pill:hover, .warn-pill:focus-visible {
@@ -2309,34 +2262,19 @@ body.plain { background: #fff; color: #16181c; }
 /* 6px after the icon, and stopping clear of the close button so a long quest
    name wraps instead of running underneath it. Meet's own strings are short
    enough that it never has to solve this; ours are not. */
-.quest-row { display: flex; align-items: flex-start; gap: 6px; padding-right: 24px; }
-.quest-row .ms { color: #a8c7fa; }
+
 /* margin-top: 0 is load-bearing. The original rule set margin-top: 2px, and an
    override that does not mention margin leaves it in place — which pushed the
    title 2px below the icon, made the row 26 tall instead of 24, and carried the
    error down into the body and the card height. Third time this shape of bug
    has cost me an afternoon: a partial override is not an override. */
-.quest-name {
-  font: 400 16px/24px var(--font); letter-spacing: .1px; color: #fff; margin-top: 0;
-}
-.quest-sub {
-  font: 400 14px/20px var(--font); letter-spacing: .2px; color: #fff;
-  margin-top: 14px;
-}
-.quest-x {
-  position: absolute; top: 11px; right: 11px;
-  width: 24px; height: 24px; padding: 0; border: 0; background: none;
-  color: #c4c7c5; cursor: pointer; display: grid; place-items: center;
-  border-radius: 50%; --sl: #fff;
-}
-.quest-x:focus-visible { outline: 2px solid #a8c7fa; outline-offset: 2px; }
 
 @media (max-width: 480px) {
   /* At 386 the card would be wider than the viewport's usable width. The
      padding comes in with it — 34/21 on a 368px card is proportionally much
      heavier than on Meet's 386. */
   .quest-toast { padding: 20px 16px 22px; }
-  .quest-sub { margin-top: 10px; }
+
 }
 
 /* The tray has to outrank the surfaces a quest can fire from. It was 70, and:
@@ -2631,7 +2569,7 @@ body.plain { background: #fff; color: #16181c; }
  * Ours had the body at 13/18 in a 132-wide column, which is why it broke. Two
  * causes, not one: the type was a size too big AND the column was 30px narrow,
  * because our icon sat at dx 16 with a 12px gap where Meet uses 24 and 16. */
-.join-card { padding: 0 12px 0 24px; gap: 16px; }
+.join-card { padding: 0 12px 0 24px; }
 .join-card > .ms { font-size: 20px; width: 20px; height: 20px; color: #444746; }
 .join-card > div { width: 162px; flex: 0 0 162px; }
 .join-card b { color: #1f1f1f; }
@@ -2876,8 +2814,7 @@ body.plain { background: #fff; color: #16181c; }
 @keyframes gm-pop-in { from { opacity: 0; transform: translateY(-4px); } }
 .gm-item {
   position: relative; overflow: hidden;
-  display: flex; align-items: center; gap: 16px; padding: 8px 12px;
-  min-height: 32px; cursor: pointer; --sl: #1f1f1f;
+  display: flex; align-items: center; gap: 16px; padding: 8px 12px; cursor: pointer; --sl: #1f1f1f;
 }
 .gm-item .ms { color: #444746; flex: 0 0 auto; }
 .gm-item.is-warn .ms { color: rgb(255, 141, 65); }
@@ -3029,19 +2966,8 @@ body.plain { background: #fff; color: #16181c; }
    language rather than borrowed: a 4px track on the surface's own white at 24%,
    filled with the #a8c7fa the icon already uses, and it animates from 0 so the
    step you just earned is the thing that moves. */
-.quest-bar {
-  height: 4px; border-radius: 2px; margin-top: 14px;
-  background-color: rgba(255, 255, 255, .24); overflow: hidden;
-}
-.quest-bar i {
-  display: block; height: 100%; border-radius: 2px; background-color: #a8c7fa;
-  animation: quest-fill .6s cubic-bezier(0.2, 0, 0, 1) both;
-}
-@keyframes quest-fill { from { width: 0 !important; } }
 
-@media (prefers-reduced-motion: reduce) {
-  .quest-bar i { animation: none; }
-}
+@keyframes quest-fill { from { width: 0 !important; } }
 
 /* --- correction: the warning badge IS animated -------------------------- */
 /* I had this as an instant flip, on the grounds that every element from the
@@ -3064,7 +2990,7 @@ body.plain { background: #fff; color: #16181c; }
  * emphasized-decelerate, and the text on a short linear fade with a beat of
  * delay so it arrives inside a pill that is already most of the way open. */
 .warn-text {
-  opacity: 0; transition: opacity .1s linear .07s;
+  opacity: 0;
 }
 /* And the darkening is not a state layer at all — it is a colour INVERSION,
    which is a better detail than the one I guessed. Measured on the expanded
@@ -3095,12 +3021,11 @@ body.plain { background: #fff; color: #16181c; }
 /* Page #131314. Tile 55,72 1329x748 radius 24 with no panel, and 16,72
    1032x748 with one — which is one sum: 16 + 1032 + 17 + 358 + 17 = 1440. */
 .grid-wrap.is-solo {
-  position: absolute; inset: 72px 56px 80px 55px;
-  display: block; padding: 0; overflow: visible;
+  position: absolute; inset: 72px 56px 80px 55px; padding: 0; overflow: visible;
 }
 
 .solo {
-  position: relative; width: 100%; height: 100%;
+  position: relative;
   border-radius: 24px; overflow: hidden;
   /* Layer 1, re-measured 2026-08-25. This was #c4b3dc — the participant colour
      Meet assigns Nam — painted opaque, and that is why ours read brighter and
@@ -3167,7 +3092,7 @@ body.plain { background: #fff; color: #16181c; }
    the bottom, and a 20px line box rather than 24 — the glyphs are 16px on a 24px
    line but the box Meet measures is 20 tall. */
 .solo-name {
-  position: absolute; left: 16px; bottom: 15px; z-index: 3;
+  position: absolute; bottom: 15px; z-index: 3;
   font: 500 16px/20px var(--font-title); color: #fff;
 }
 /* No level meter on the in-call tile. The 26px meter I measured was on the
@@ -3184,8 +3109,8 @@ body.plain { background: #fff; color: #16181c; }
      are at y 424..468 and its avatar at 398..494, both centred on 446. Only
      visible on hover, so the overlap is by design rather than a clash. */
   transform: translate(-50%, -50%);
-  display: flex; align-items: center; gap: 0;
-  opacity: 0; transition: opacity .12s linear;
+  display: flex; align-items: center;
+  opacity: 0;
 }
 /* The opacity:1 rule that used to live here is gone, not overridden. Round 5
    supersedes it with .72/.9, and a dead rule left in place is a rule waiting
@@ -3193,16 +3118,16 @@ body.plain { background: #fff; color: #16181c; }
 .solo-ctl {
   position: relative; overflow: hidden;
   width: 44px; height: 44px; border-radius: 22px;
-  border: 0; background: none; color: #fff; cursor: pointer;
-  display: grid; place-items: center; --sl: #fff;
+  border: 0; background: none; cursor: pointer;
+  display: grid; place-items: center;
 }
 .solo-ctl.solo-more { width: 40px; height: 40px; border-radius: 20px; }
 
 /* --- side panels: all four are the same box ----------------------------- */
 /* 1065,73 358x746, #1e1f20, radius 0. Only the 18px heading changes. */
 .side {
-  position: fixed; top: 73px; right: 17px; width: 358px; height: 746px;
-  background-color: #1e1f20; border-radius: 0;
+  position: fixed;
+  background-color: #1e1f20;
   display: flex; flex-direction: column; z-index: 40;
 }
 .side-head {
@@ -3222,7 +3147,7 @@ body.plain { background: #fff; color: #16181c; }
    both look like "the button is lit". */
 .cbtn { transition: border-radius .2s steps(6, jump-none), background-color .2s steps(6, jump-none); }
 .cbtn.off { border-radius: 12px; background-color: #f9dedc; color: #601410; --sl: #601410; }
-.cbtn.is-active { background-color: #a8c7fa; color: #062e6f; --sl: #062e6f; }
+.cbtn.is-active { --sl: #062e6f; }
 
 /* --- the dark menu surface --------------------------------------------- */
 /* Same component as the pre-join's, on the dark side of the palette. */
@@ -3264,11 +3189,8 @@ body.plain { background: #fff; color: #16181c; }
    the tile's bottom': that was the first position they could be OBSERVED at,
    not where they are created. Below the line there is nothing to see. */
 .reaction {
-  position: absolute; left: 0; bottom: -88px; z-index: 6;
   transform: translateX(var(--rx, 0px));
-  font-size: 44px; line-height: 53px; width: 53px; text-align: center;
-  pointer-events: none;
-  animation: react-rise var(--dur, 3.85s) linear both;
+  font-size: 44px; line-height: 53px; text-align: center;
 }
 @keyframes react-rise {
   from { transform: translateX(var(--rx, 0px)) translateY(0); opacity: 1; }
@@ -3280,11 +3202,7 @@ body.plain { background: #fff; color: #16181c; }
    58, which is the tile's left edge plus 3, while the emoji beside it wanders
    across the band. Ours was inheriting --rx and drifting with it. */
 .reaction-who {
-  position: absolute; left: 3px; bottom: 27px; z-index: 6;
-  height: 22px; padding: 0 8px; border-radius: 11px;
-  background-color: #8ab4f8; color: #062e6f;
-  font: 500 14px/22px var(--font-title); pointer-events: none;
-  animation: react-who 1.6s cubic-bezier(0, 0, 0.2, 1) both;
+  position: absolute; z-index: 6; pointer-events: none;
 }
 @keyframes react-who { from { opacity: 0; } 20% { opacity: 1; } 80% { opacity: 1; } to { opacity: 0; } }
 
@@ -3336,7 +3254,7 @@ body.has-panel .grid-wrap.is-solo { inset: 72px 392px 80px 16px; }
       small caret tab next to a separate round button rather than one capsule.
       Ours had `r24 0 0 24` + `0 24 24 0`, a joined capsule, which is a different
       shape entirely once the mic goes to its off radius of 12. */
-.unit { position: relative; display: flex; align-items: center; }
+.unit { display: flex; align-items: center; }
 .unit > .chev {
   width: 88px; height: 48px; border-radius: 24px; margin-right: -48px;
   display: flex; align-items: center; justify-content: flex-start; padding-left: 13px;
@@ -3851,11 +3769,8 @@ body.tray-open.cc-on .grid-wrap.is-solo { bottom: calc(var(--botbar) + 268px); }
    Meet puts a skin-tone control after a 12px gap; ours does not, because it
    configures a Google account preference we have no equivalent for, and an
    inert control that looks configurable is worse than no control. */
-.tray {
-  position: absolute; left: 50%; transform: translateX(-50%);
-  bottom: calc(var(--botbar) + 6px); z-index: 7;
+.tray { z-index: 7;
   display: flex; align-items: center; gap: 0;
-  padding: 0 4px; border-radius: 24px; background-color: rgba(32, 33, 36, .9);
 }
 .tray-btn {
   width: 40px; height: 40px; border: 0; border-radius: 9999px; padding: 0;
@@ -4014,19 +3929,6 @@ body.has-panel .reaction, body.has-panel .reaction-who { left: 0; }
 .shot-page { flex: 1 1 auto; min-height: 0; overflow: auto; background-color: #fff; }
 .shot-desk { background-color: #16233c; }
 
-.shot-banner {
-  flex: 0 0 auto; display: flex; align-items: center; gap: 12px;
-  background-color: rgba(0, 0, 0, .55); color: #fff;
-  font: 500 13px/1 var(--font); padding: 8px 12px;
-}
-.shot-banner > span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.shot-stop {
-  position: relative; overflow: hidden;
-  margin-left: auto; flex: 0 0 auto; height: 32px; padding: 0 16px; border: 0;
-  border-radius: 16px; background-color: #dc362e; color: #fff; cursor: pointer;
-  font: 500 13px/1 var(--font); --sl: #fff;
-}
-
 /* --- the authored pages -------------------------------------------------- */
 /* Every line of content here comes from src/data/cv.ts. Nothing is invented to
    fill a mockup: if a page claims he did something, the CV claims it too. */
@@ -4048,7 +3950,7 @@ body.has-panel .reaction, body.has-panel .reaction-who { left: 0; }
 }
 /* The honest rows get a different mark, because a tick on a requirement he only
    partly meets would be the one dishonest pixel on the whole page. */
-.pg-req.is-honest .pg-tick { background-color: #fef7cd; color: #4a3b00; }
+
 .pg-cards { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
 .pg-card { background-color: #f1f3f4; border-radius: 8px; padding: 12px; }
 .pg-card b { display: block; margin-bottom: 4px; font: 500 13px/18px var(--font); }
@@ -4070,18 +3972,6 @@ body.has-panel .reaction, body.has-panel .reaction-who { left: 0; }
 /* The desktop. One convincing window rather than four thin ones — the folder
    tree with real names carries the value; a trash can would be set dressing. */
 .dk { height: 100%; padding: 26px; }
-.dk-win { background-color: #f1f3f4; border-radius: 8px; overflow: hidden; color: #202124; box-shadow: 0 10px 30px rgba(0, 0, 0, .35); }
-.dk-bar { display: flex; align-items: center; gap: 6px; background-color: #e3e6e8; padding: 8px 10px; }
-.dk-dot { width: 10px; height: 10px; border-radius: 50%; background-color: #c4c7c5; }
-.dk-title { margin-left: 8px; font: 500 12px/1 var(--font); }
-.dk-cols { display: flex; min-height: 190px; }
-.dk-tree { flex: 0 0 46%; border-right: 1px solid #dadce0; padding: 8px; }
-.dk-files { flex: 1 1 auto; padding: 8px; }
-.dk-item, .dk-file { display: flex; align-items: center; gap: 8px; padding: 6px 8px; border-radius: 6px; font: 400 12px/16px var(--font); }
-.dk-item:hover, .dk-file:hover { background-color: #e8eaed; }
-.dk-folder { width: 16px; height: 13px; border-radius: 2px; background-color: #f7c948; flex: 0 0 auto; }
-.dk-name { flex: 1 1 auto; }
-.dk-count { color: #80868b; font-size: 11px; }
 
 /* --- the warning badge: the spring, and a disc that is actually round ----- */
 /* Nam caught two things, and both were mine.
@@ -4241,7 +4131,6 @@ body.has-panel .reaction, body.has-panel .reaction-who { left: 0; }
   animation: react-rise var(--dur, 3.65s) linear both;
 }
 .reaction-em {
-  font-size: 44px; line-height: 53px; height: 53px;
   /* Meet ships animated WebPs per emoji. Ours are text glyphs, so the movement
      is a CSS loop — the fact that it moves is Meet's, the way it moves is mine.
      --phase staggers a burst so they do not pulse in lockstep. */
@@ -4342,8 +4231,7 @@ body.set-open .cc { bottom: calc(var(--botbar) + 52px + 12px); }
 /* And the glyph needs a box. Without one it rendered 73x65, because a 44px
    emoji in a 53px line box is simply larger than 53 wide. */
 .reaction-em {
-  width: 53px; height: 53px; font-size: 44px; line-height: 53px;
-  text-align: center; flex: 0 0 auto;
+  text-align: center;
 }
 
 /* Two more from QA.
@@ -4531,7 +4419,7 @@ body.set-open .cc { bottom: calc(var(--botbar) + 52px + 12px); }
 .hand-pill[hidden] { display: none !important; }
 
 .hand-pill {
-  position: absolute; left: 8px; bottom: 8px; z-index: 8;
+  position: absolute; bottom: 8px; z-index: 8;
   display: flex; align-items: center; height: 35px;
   /* The clipping frame. expandName grows the label from 0 inside it, so the
      frame's own width follows the content and the pill fills whatever it is. */
@@ -4785,7 +4673,7 @@ body.set-open .cc { bottom: calc(var(--botbar) + 52px + 12px); }
 .cb-tab-ico { width: 14px; height: 14px; flex: 0 0 auto; }
 .cb-tab-t { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .cb-bar { flex: 0 0 auto; display: flex; align-items: center; gap: 10px; padding: 8px 12px; background-color: #35363a; }
-.cb-nav { color: #c5c5c5; font-size: 13px; }
+.cb-nav { font-size: 13px; }
 .cb-omni {
   flex: 1 1 auto; height: 28px; border-radius: 14px; background-color: #202124;
   display: flex; align-items: center; padding: 0 14px; color: #c5c5c5; font-size: 12px;
@@ -4806,7 +4694,7 @@ body.set-open .cc { bottom: calc(var(--botbar) + 52px + 12px); }
   position: absolute; left: 50%; transform: translateX(-50%);
   display: flex; align-items: center; gap: 6px;
 }
-.dk-task-mid { display: flex; align-items: center; gap: 6px; }
+
 .dk-task {
   width: 40px; height: 40px; border-radius: 6px; padding: 9px; box-sizing: border-box;
   display: grid; place-items: center; position: relative;
@@ -4815,8 +4703,7 @@ body.set-open .cc { bottom: calc(var(--botbar) + 52px + 12px); }
 .dk-task:hover { background-color: rgba(255, 255, 255, .09); }
 .dk-task:focus-visible { outline: 2px solid #4cc2ff; outline-offset: -2px; }
 .dk-task.is-on::after {
-  content: ''; position: absolute; bottom: 2px; left: 50%; transform: translateX(-50%);
-  width: 16px; height: 3px; border-radius: 2px; background-color: #4cc2ff;
+  content: ''; position: absolute; bottom: 2px; left: 50%; transform: translateX(-50%); height: 3px; border-radius: 2px;
 }
 .dk-tray { margin-left: auto; display: flex; align-items: center; gap: 18px; font-size: 11.5px; color: #e6e6e6; }
 .dk-weather { opacity: .9; }
@@ -4829,11 +4716,7 @@ body.set-open .cc { bottom: calc(var(--botbar) + 52px + 12px); }
    of it. 200/1000 = the 0.2 scale, and the box is sized to match so the clone
    fills it exactly whatever the window's own size works out to. */
 .dk-peek {
-  position: absolute; bottom: 8px; transform: translateX(-50%); z-index: 40;
-  width: 212px; padding: 8px; border-radius: 8px;
-  background-color: rgba(43, 43, 43, .96);
-  backdrop-filter: blur(20px);
-  border: 1px solid #3a3a3a; box-shadow: 0 8px 24px rgba(0, 0, 0, .5);
+  width: 212px;
   pointer-events: none;
 }
 .dk-peek-t {
@@ -4918,10 +4801,10 @@ body.presenting .solo {
 }
 /* Everything on the tile scales to the smaller frame. */
 body.presenting .solo-av { width: 56px; height: 56px; font-size: 18px; }
-body.presenting .solo-name { left: 8px; bottom: 6px; font-size: 12px; line-height: 16px; }
+body.presenting .solo-name { bottom: 6px; font-size: 12px; line-height: 16px; }
 body.presenting .solo-mute { top: 6px; right: 6px; width: 20px; height: 20px; }
 body.presenting .solo-mute .ms { font-size: 13px; }
-body.presenting .hand-pill { left: 6px; bottom: 6px; height: 26px; }
+body.presenting .hand-pill { bottom: 6px; height: 26px; }
 body.presenting .hand-bg { height: 24px; }
 body.presenting .hand-name { font-size: 13px; line-height: 20px; padding-right: 8px; }
 
@@ -5133,24 +5016,20 @@ body.presenting .shot { min-width: 0; }
 
 /* --- the presenting chip -------------------------------------------------- */
 .pres-chip {
-  display: inline-flex; align-items: center; gap: 8px;
-  height: 36px; padding: 0 6px 0 8px; border-radius: 18px;
-  background-color: #333537; color: #e3e3e3;
-  font: 500 12px/1 var(--font-title); white-space: nowrap;
+  display: inline-flex; align-items: center; color: #e3e3e3; white-space: nowrap;
   max-width: 42vw; overflow: hidden;
   animation: pres-in .2s cubic-bezier(0, 0, 0.2, 1) both;
 }
 @keyframes pres-in { from { opacity: 0; transform: translateY(-6px); } }
 .pres-chip[hidden] { display: none !important; }
-.pres-chip .ms { font-size: 18px; color: #a8c7fa; flex: 0 0 auto; }
+.pres-chip .ms { flex: 0 0 auto; }
 .pres-who { overflow: hidden; text-overflow: ellipsis; }
 /* The one primary control that is not on the bottom bar, so it carries the
    same tokens the Join button does. */
 .pres-stop {
   position: relative; overflow: hidden;
-  flex: 0 0 auto; height: 28px; padding: 0 14px; border: 0; border-radius: 14px;
-  background-color: #a8c7fa; color: #062e6f; cursor: pointer;
-  font: 500 12px/1 var(--font-title); --sl: #062e6f;
+  flex: 0 0 auto; border: 0;
+  background-color: #a8c7fa; color: #062e6f; cursor: pointer; --sl: #062e6f;
 }
 /* "A very very slight tint on hover" — M3's hover state layer, 0.08, tinted
    with the container's own on-colour rather than plain black. */
