@@ -18,13 +18,30 @@ function email(): string {
   return `${profile.emailUser}@${profile.emailHost}`;
 }
 
-export function renderPlain(onBack: () => void): HTMLElement {
+/**
+ * @param embedded True when this document is being framed by the share view.
+ *
+ * The share view puts this page in an iframe so the shared "tab" is the real
+ * responsive document rather than a drawing of one. That makes "Back to the
+ * call" wrong in two ways at once, and Nam caught the visible half: it sits over
+ * the shared page in the top-right corner, inside a screen share, where the
+ * viewer is being shown a CV and not offered navigation.
+ *
+ * The half that does not show is worse — it was already a dead control. Pressing
+ * it dispatches plain:false, and render() coerces a framed copy of this app
+ * straight back to 'plain' precisely so a share can never nest the call inside
+ * itself. So the button could not have worked from in here even if you wanted it
+ * to. Dropping it rather than hiding it also keeps it out of the tab order,
+ * which matters more than usual: the iframe is focusable content inside a page
+ * that is already a full application.
+ */
+export function renderPlain(onBack: () => void, embedded = false): HTMLElement {
   const b = buildMeta();
 
   return h(
     'main',
     { class: 'doc', id: 'main' },
-    h(
+    !embedded && h(
       'div',
       { class: 'doc-back no-print' },
       h('button', { class: 'btn btn-sm btn-primary', type: 'button', onclick: onBack }, 'Back to the call'),

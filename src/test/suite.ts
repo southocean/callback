@@ -13,6 +13,9 @@ import { reduce, initial, parseRoute, routeToHash, layoutTimeline, overlaps, cap
 import type { State } from '../state.js';
 import { sample, policy, rng, profiles } from '../net/degrade.js';
 import { cssFallback } from '../fx/pipeline.js';
+import {
+  readyCardOpens, afterReadyShown, afterReadyClosed, READY_MUTE_MS, READY_MAX_SHOWS,
+} from '../prefs.js';
 
 export interface Result {
   suite: string;
@@ -306,6 +309,76 @@ suite('effects', () => {
       ok(cssFallback(p).length > 0, `${p} has no fallback`);
     }
     eq(cssFallback('off'), '');
+  });
+});
+
+suite("the meeting's ready card", () => {
+  // The whole point of splitting prefs.ts into pure rules plus two lines of
+  // storage is that the rules can be driven against a fixed clock. T0 is
+  // arbitrary; every case below is relative to it.
+  const T0 = 1_700_000_000_000;
+  const HOUR = READY_MUTE_MS;
+
+  test('a first-time visitor sees it', () => {
+    ok(readyCardOpens(null, T0), 'nothing remembered should mean it opens');
+  });
+
+  test('it opens a second time if the first went unread', () => {
+    const g = afterReadyShown(null, T0);
+    eq(g.shows, 1);
+    ok(readyCardOpens(g, T0 + 60_000), 'one unread show is not enough to mute it');
+  });
+
+  test('two shows mute it', () => {
+    const g = afterReadyShown(afterReadyShown(null, T0), T0 + 60_000);
+    eq(g.shows, READY_MAX_SHOWS);
+    ok(!readyCardOpens(g, T0 + 120_000), 'it should be muted after the second show');
+  });
+
+  test('closing it mutes it immediately, after only one show', () => {
+    const g = afterReadyClosed(afterReadyShown(null, T0), T0 + 5_000);
+    ok(g.closed);
+    ok(!readyCardOpens(g, T0 + 6_000), 'closing it is the clearest possible signal');
+  });
+
+  test('the mute expires after exactly an hour', () => {
+    const g = afterReadyClosed(null, T0);
+    ok(!readyCardOpens(g, T0 + HOUR - 1), 'still muted one millisecond early');
+    ok(readyCardOpens(g, T0 + HOUR), 'the hour is up, so it may open again');
+  });
+
+  test('an expired record resets the count rather than carrying it', () => {
+    // Otherwise a visitor who saw it twice yesterday gets one show today
+    // instead of two, and the count would only ever ratchet upward.
+    const stale = afterReadyShown(afterReadyShown(null, T0), T0 + 1);
+    eq(afterReadyShown(stale, T0 + HOUR * 2).shows, 1);
+  });
+
+  test('closing it survives a reload inside the window', () => {
+    // The bug this guards: reading the flag but rebuilding the record from
+    // scratch on the next visit, which un-mutes it on every page load.
+    const g = afterReadyClosed(null, T0);
+    const roundTripped = JSON.parse(JSON.stringify(g)) as typeof g;
+    ok(!readyCardOpens(roundTripped, T0 + 30 * 60_000));
+  });
+
+  test('junk in storage reads as a first visit rather than throwing', () => {
+    // localStorage is hand-editable, so none of these may take the card down.
+    for (const junk of [{}, { shows: 'lots' }, { shows: 1 }, { at: T0 }, null]) {
+      ok(readyCardOpens(junk as never, T0), `junk ${JSON.stringify(junk)} should open`);
+    }
+  });
+
+  test('a clock that jumped backwards does not mute it forever', () => {
+    // A record stamped in the future would otherwise never satisfy now - at >= HOUR.
+    const future = afterReadyClosed(null, T0 + HOUR * 24);
+    ok(readyCardOpens(future, T0), 'a future record is a moved clock, not a mute');
+  });
+
+  test('being closed always implies having been seen', () => {
+    // shows: 0 with closed: true is contradictory, and would read as muted
+    // forever to anything that counts shows instead of checking the flag.
+    ok(afterReadyClosed(null, T0).shows >= 1);
   });
 });
 

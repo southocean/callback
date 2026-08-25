@@ -165,8 +165,12 @@ function render(): void {
   }
 
   if (key === 'plain') {
+    // EMBEDDED is passed through rather than recomputed: the share view frames
+    // this document, and inside a frame "Back to the call" is both misplaced
+    // (it lands in the top-right of a screen share) and inert (the coercion
+    // above sends a framed copy straight back to plain).
     mount(key, () => import('./ui/plain.js')
-      .then((m) => m.renderPlain(() => store.dispatch({ t: 'plain', on: false }))));
+      .then((m) => m.renderPlain(() => store.dispatch({ t: 'plain', on: false }), EMBEDDED)));
     quests.unlock('plain');
     return;
   }

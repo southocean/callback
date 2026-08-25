@@ -31,6 +31,7 @@ import { rovingGrid, trapFocus, announcer } from '../a11y.js';
 import { sample } from '../net/degrade.js';
 import type { Profile } from '../net/degrade.js';
 import type { Quests } from '../achievements.js';
+import { noteReadyShown, noteReadyClosed } from '../prefs.js';
 
 const TITLES: Record<Exclude<Panel, 'none'>, string> = {
   chat: 'In-call messages',
@@ -1071,6 +1072,16 @@ export function renderCall(store: Store, quests: Quests, deps: CallDeps): HTMLEl
 
   // ------------------------------------------------- "meeting's ready" card --
 
+  // Reaching the call screen with the card armed IS the automatic open, so this
+  // is where it gets counted. The view is built once per join — render() returns
+  // early for an already-mounted call — so one arrival is one show, and going
+  // home and joining again counts as the second one it is.
+  //
+  // Deliberately NOT counted: the two buttons below that open the card on
+  // request (Meeting details, and Add people). Asking to see it is not the same
+  // event as being shown it unprompted, and only the unprompted one is annoying.
+  if (store.get().readyCard) noteReadyShown();
+
   const readyHost = h('div', {});
   const drawReady = (): void => {
     clear(readyHost);
@@ -1081,7 +1092,16 @@ export function renderCall(store: Store, quests: Quests, deps: CallDeps): HTMLEl
         { class: 'ready', role: 'region', 'aria-label': "Your meeting's ready" },
         h(
           'button',
-          { class: 'icon-btn', type: 'button', 'aria-label': 'Close', onclick: () => store.dispatch({ t: 'readyCard', on: false }) },
+          {
+            class: 'icon-btn',
+            type: 'button',
+            'aria-label': 'Close',
+            onclick: () => {
+              // Closing it is the clearest signal there is: mute for an hour.
+              noteReadyClosed();
+              store.dispatch({ t: 'readyCard', on: false });
+            },
+          },
           sym('close', 20),
         ),
         h('h2', {}, "Your meeting's ready"),
