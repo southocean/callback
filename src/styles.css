@@ -5463,11 +5463,24 @@ body.presenting .shot { min-width: 0; }
   box-shadow: rgba(0, 0, 0, .3) 0 1px 2px 0, rgba(0, 0, 0, .15) 0 1px 3px 1px;
 }
 .solo:hover .solo-ctls, .solo:focus-within .solo-ctls { opacity: .72; }
-/* MEASURED on the live pill: .9. Nam is trialling .95 — "I want transparency
-   95%, we test that and see how we like it" — so this is a deliberate departure
-   from the measurement rather than a correction to it. Put .9 back if it reads
-   too solid; that is the number the product actually uses. */
-.solo-ctls:hover, .solo-ctls:focus-within { opacity: .95; }
+/* THIS RULE COULD NEVER WIN, which is why Nam saw no change on hover at all.
+ *
+ *   .solo:hover .solo-ctls   (0,3,0)   <- the base, .72
+ *   .solo-ctls:hover         (0,2,0)   <- this one, .95
+ *
+ * The pill lives INSIDE the tile, so hovering the pill satisfies both selectors
+ * at once — and the descendant rule outranks the bare one, so .72 applied
+ * always and .95 applied never. Same shape as the .gm-menu.gm-dark bug a few
+ * rounds back: a rule that was written, looked right, and could not apply.
+ *
+ * Qualifying it with the ancestor takes it to (0,4,0), which beats the base
+ * outright rather than relying on source order.
+ *
+ * MEASURED on the live pill: .9. Nam is trialling .95 — "we test that and see
+ * how we like it" — so this value is a deliberate departure from the
+ * measurement, not a correction to it. Put .9 back if it reads too solid. */
+.solo:hover .solo-ctls:hover,
+.solo:focus-within .solo-ctls:focus-within { opacity: .95; }
 
 /* The middle control is disabled, and looks it. Meet's own tooltip explains why,
    and a control that cannot act should not look like it can. */
