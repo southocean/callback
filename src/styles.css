@@ -4638,12 +4638,61 @@ body.set-open .cc { bottom: calc(var(--botbar) + 52px + 12px); }
 .wx-cmd-btn:hover, .wx-cmd-ico:hover { background-color: rgba(255, 255, 255, .07); }
 .wx-cmd-sep { width: 1px; height: 18px; background-color: #3a3a3a; margin: 0 5px; }
 
+/* ---- the address row --------------------------------------------------- */
+/* Back, Forward, Up, the path, and a search box — Explorer's second row, which
+ * we had been rendering as the path alone. The three buttons are the controls
+ * people actually navigate with, and all three were missing.
+ */
+.wx-navbar {
+  flex: 0 0 auto; display: flex; align-items: center; gap: 2px;
+  padding: 0 10px 8px;
+}
+.wx-nav {
+  width: 30px; height: 30px; flex: 0 0 auto; border-radius: 4px; padding: 0;
+  display: grid; place-items: center; font-size: 14px;
+  background: none; border: 0; color: #e6e6e6; cursor: pointer;
+}
+.wx-nav:hover:not(:disabled) { background-color: rgba(255, 255, 255, .07); }
+.wx-nav:focus-visible { outline: 2px solid #4cc2ff; outline-offset: -2px; }
+/* Disabled rather than hidden: the row keeps its shape as you move around, and
+   a greyed Forward is information — it says there is nothing ahead of you. */
+.wx-nav:disabled { color: #6a6a6a; cursor: default; }
+
 .wx-crumb {
-  height: 34px; flex: 0 0 auto; display: flex; align-items: center; gap: 7px;
+  height: 30px; flex: 1 1 auto; min-width: 0; display: flex; align-items: center; gap: 7px;
   padding: 0 12px; font-size: 12.5px; color: #c5c5c5;
   background-color: #303030; border: 1px solid #3a3a3a;
-  border-radius: 5px; margin: 0 10px 8px;
+  border-radius: 5px; margin: 0 6px;
+  overflow: hidden; white-space: nowrap;
 }
+
+/* ---- search ------------------------------------------------------------- */
+/* It filters the folder you are in, not the whole tree, which is why the
+   placeholder names the folder rather than saying "Search". Explorer's does
+   index everything; claiming that here would be a promise we do not keep. */
+.wx-search {
+  height: 30px; flex: 0 0 auto; width: 170px; box-sizing: border-box;
+  display: flex; align-items: center; gap: 6px; padding: 0 10px;
+  background-color: #303030; border: 1px solid #3a3a3a; border-radius: 5px;
+  color: #8a8a8a;
+}
+.wx-search:focus-within { border-color: #4cc2ff; }
+.wx-q-ico { font-size: 11px; flex: 0 0 auto; }
+.wx-q {
+  flex: 1 1 auto; min-width: 0; background: none; border: 0; padding: 0;
+  color: #fff; font: inherit; font-size: 12.5px;
+}
+/* The ring belongs on the pill, not the bare input — third time in this file,
+   same reason each time: the pill is the thing that looks like the field. */
+.wx-q:focus-visible { outline: none; }
+.wx-q::placeholder { color: #8a8a8a; }
+
+/* The [hidden] trap, sixth time. .wx-row sets display:flex, and the filter
+   hides rows with .hidden — an author display beats the UA's [hidden] rule. */
+.wx-row[hidden] { display: none !important; }
+.wx-empty { padding: 26px 0; text-align: center; font-size: 12.5px; color: #8a8a8a; }
+.wx-empty[hidden] { display: none !important; }
+
 .wx-sep { color: #8a8a8a; }
 .wx-here { color: #fff; }
 
@@ -4806,6 +4855,11 @@ body.set-open .cc { bottom: calc(var(--botbar) + 52px + 12px); }
   .wx-cols { grid-template-columns: 1fr; }
   .wx-tree { display: none; }
 }
+@container wx (max-width: 470px) {
+  /* The search box is the widest thing on the address row and the only one the
+     breadcrumb can be read without. */
+  .wx-search { display: none; }
+}
 @container wx (max-width: 430px) {
   /* Type first: it is the column a file's own icon already tells you. */
   .wx-head { grid-template-columns: 1fr 130px; }
@@ -4831,7 +4885,7 @@ body.set-open .cc { bottom: calc(var(--botbar) + 52px + 12px); }
  * afford because its width and height are always set, never derived from what is
  * inside it. */
 @container wx (max-height: 270px) {
-  .wx-crumb { display: none; }
+  .wx-navbar { display: none; }
 }
 @container wx (max-height: 215px) {
   .wx-status { display: none; }
@@ -4842,6 +4896,87 @@ body.set-open .cc { bottom: calc(var(--botbar) + 52px + 12px); }
 .wx-cmd { flex-wrap: nowrap; overflow: hidden; }
 .wx-cmd-btn { white-space: nowrap; flex: 0 0 auto; }
 .wx-cmd-ico { flex: 0 0 auto; }
+
+
+/* ================= TASK VIEW ============================================= */
+/* The window switcher. It was on the list as Alt+Tab, which cannot be built —
+ * the OS takes that chord before the browser sees it — so it lives behind the
+ * Task View button, which is where Windows puts the same overlay anyway.
+ *
+ * The thumbnails are the windows themselves, cloned and scaled, so a card can
+ * never drift out of date with what it is a card of.
+ */
+.dk-tv {
+  position: absolute; inset: 0; z-index: 60;
+  display: grid; place-items: center; padding: 32px;
+  /* The blur is the whole effect: the desktop is still there, just out of
+     focus, which is what says "this is a layer over your session" rather than
+     "this is a different screen". */
+  background-color: rgba(20, 20, 20, .55);
+  backdrop-filter: blur(28px) saturate(120%);
+  -webkit-backdrop-filter: blur(28px) saturate(120%);
+  animation: dk-tv-in .16s cubic-bezier(0, 0, 0.2, 1) both;
+}
+@keyframes dk-tv-in {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+.dk-tv-grid {
+  display: flex; flex-wrap: wrap; justify-content: center; align-content: center;
+  gap: 20px; max-width: 100%; max-height: 100%; overflow: auto;
+}
+.dk-tv-card {
+  /* min-width AND overflow, because neither alone is enough: a long window title
+     with white-space:nowrap refuses to shrink below its own text, and a flex item
+     that will not shrink pushes its parent wider than the grid — which is how QA
+     found a horizontal scrollbar under two cards that fit easily. */
+  width: 240px; min-width: 0; overflow: hidden; cursor: pointer;
+  animation: dk-tv-card-in .18s cubic-bezier(0, 0, 0.2, 1) both;
+}
+@keyframes dk-tv-card-in {
+  from { opacity: 0; transform: translateY(10px) scale(.97); }
+  to   { opacity: 1; transform: none; }
+}
+/* 236/980 = the 0.2408 scale below. The shot box and the scale factor have to
+   agree or the clone sits in the corner of its own frame. */
+.dk-tv-shot {
+  /* border-box, so the 240 on the card and the 240 here are the same 240. With
+     content-box the border made every shot 4px wider than the card holding it. */
+  width: 240px; height: 144px; box-sizing: border-box;
+  overflow: hidden; border-radius: 6px;
+  background-color: #272727; position: relative;
+  border: 2px solid transparent;
+  transition: border-color .1s linear, transform .1s linear;
+}
+.dk-tv-scale {
+  position: absolute; left: 0; top: 0; width: 980px; height: 580px;
+  transform: scale(.2408); transform-origin: 0 0;
+}
+.dk-tv-scale .wx {
+  position: absolute; left: 0; top: 0; width: 980px; height: 580px;
+  box-shadow: none; animation: none;
+}
+.dk-tv-card:hover .dk-tv-shot { border-color: rgba(255, 255, 255, .35); }
+/* The current window is the one you would land on; it gets the accent, and it
+   lifts, because a border alone is hard to find across a wrapped row. */
+.dk-tv-card.is-on .dk-tv-shot { border-color: #4cc2ff; transform: translateY(-3px); }
+.dk-tv-card:focus-visible { outline: none; }
+.dk-tv-card:focus-visible .dk-tv-shot { border-color: #4cc2ff; }
+
+.dk-tv-t {
+  display: flex; align-items: center; gap: 8px; margin-top: 9px;
+  font: 400 12.5px/1.3 "Segoe UI", var(--font), sans-serif; color: #fff;
+}
+.dk-tv-name { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+/* Task View sits with the pinned apps but is not one of them, so it never takes
+   the running underline the app buttons use. */
+.dk-tv-btn.is-on::after { content: none; }
+
+@media (prefers-reduced-motion: reduce) {
+  .dk-tv, .dk-tv-card { animation: none; }
+  .dk-tv-card.is-on .dk-tv-shot { transform: none; }
+}
 
 /* ================= SNAP ================================================== */
 /* Measured before: dragging a window to x=2 left it 720px wide against the edge.

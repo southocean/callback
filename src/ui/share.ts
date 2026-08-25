@@ -600,6 +600,11 @@ const icLeaf = (): HTMLElement => svg('0 0 16 16', `
   <path d="M12.8 3.2c.7 5.4-2 8.4-6.4 8.4-1 0-1.9-.2-2.6-.6 1.5-4.9 4.6-7.3 9-7.8z" fill="currentColor"/>
   <path d="M3 13.2c1.3-2.6 3.4-4.6 6.2-5.9" stroke="currentColor" stroke-width="1.1" fill="none" stroke-linecap="round" opacity=".6"/>`);
 
+/* Task View: Windows draws it as one large pane with a smaller one behind. */
+const icTask = (): HTMLElement => svg('0 0 20 20', `
+  <rect x="2.5" y="5.5" width="10" height="9" rx="1.6" stroke="currentColor" stroke-width="1.5" fill="none"/>
+  <path d="M14.6 7.2h1.3a1.6 1.6 0 0 1 1.6 1.6v2.4a1.6 1.6 0 0 1-1.6 1.6h-1.3" stroke="currentColor" stroke-width="1.5" fill="none" stroke-linecap="round"/>`);
+
 const icPower = (): HTMLElement => svg('0 0 20 20', `
   <path d="M10 3.2v5.4" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" fill="none"/>
   <path d="M6.1 5.4a5.2 5.2 0 1 0 7.8 0" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" fill="none"/>`);
@@ -1277,15 +1282,99 @@ function explorerBody(onOpen: (id: string) => void): { body: HTMLElement; status
     input.addEventListener('blur', () => finish(true));
   }
 
+  /**
+   * Back, Forward and Up — and a history to drive them.
+   *
+   * The audit found the breadcrumb doing all the navigating on its own, which
+   * works but is not Explorer: the address row's first three controls are the
+   * ones people actually use, and all three were missing. Up is not Back, either,
+   * which is the distinction worth having — Back retraces where you have been,
+   * Up climbs the tree whether you came that way or not.
+   *
+   * One list, one cursor. Going somewhere new truncates the forward half, which
+   * is what every history in the world does and what makes Forward mean
+   * something.
+   */
+  const hist: string[] = [];
+  let hAt = -1;
+  const PARENT: Record<string, string> = { Portfolio: 'Work', 'This CV': 'Work', Hobby: 'Work' };
+
+  const navBtn = (mark: string, label: string, run: () => void): HTMLButtonElement => {
+    const b = h('button', { class: 'wx-nav', type: 'button', 'aria-label': label },
+      h('span', { 'aria-hidden': 'true' }, mark)) as HTMLButtonElement;
+    b.addEventListener('click', run);
+    return b;
+  };
+
+  const backBtn = navBtn('\u2190', 'Back', () => { if (hAt > 0) { hAt -= 1; render(hist[hAt]!); } });
+  const fwdBtn = navBtn('\u2192', 'Forward', () => { if (hAt < hist.length - 1) { hAt += 1; render(hist[hAt]!); } });
+  const upBtn = navBtn('\u2191', 'Up', () => { const up = PARENT[hist[hAt] ?? '']; if (up) go(up); });
+
+  /* Disabled, not hidden: the row keeps its shape as you move around, and a
+     greyed Forward is information — it says there is nothing ahead of you. */
+  const syncNav = (folder: string): void => {
+    backBtn.disabled = hAt <= 0;
+    fwdBtn.disabled = hAt >= hist.length - 1;
+    upBtn.disabled = !PARENT[folder];
+  };
+
+  /* The search box filters the folder you are in. It is not an index of the
+     whole tree — Explorer's is, and saying so would be a promise we do not
+     keep, which is why its placeholder names the folder. */
+  const search = h('input', {
+    class: 'wx-q', type: 'text', autocomplete: 'off', 'aria-label': 'Search this folder',
+  }) as HTMLInputElement;
+  const searchWrap = h('div', { class: 'wx-search' },
+    h('span', { class: 'wx-q-ico', 'aria-hidden': 'true' }, '\u{1F50D}'), search) as HTMLElement;
+
+  const applyFilter = (): void => {
+    const q = search.value.trim().toLowerCase();
+    let hits = 0;
+    for (const row of list.querySelectorAll('.wx-row')) {
+      const name = row.querySelector('.wx-name')?.textContent?.toLowerCase() ?? '';
+      const on = !q || name.includes(q);
+      (row as HTMLElement).hidden = !on;
+      if (on) hits += 1;
+    }
+    empty.hidden = hits > 0 || !q;
+    countNow(hits, q !== '');
+  };
+  search.addEventListener('input', applyFilter);
+
+  const empty = h('div', { class: 'wx-empty' }, 'No items match your search') as HTMLElement;
+  empty.hidden = true;
+
+  let countAll = 0;
+  const countNow = (n: number, filtered: boolean): void => {
+    const first = status.firstElementChild;
+    if (first) first.textContent = filtered
+      ? `${n} of ${countAll} item${countAll === 1 ? '' : 's'}`
+      : `${countAll} item${countAll === 1 ? '' : 's'}`;
+  };
+
   function go(folder: string): void {
+    // A new destination truncates whatever was ahead of it.
+    if (hist[hAt] !== folder) { hist.splice(hAt + 1); hist.push(folder); hAt = hist.length - 1; }
+    render(folder);
+  }
+
+  function render(folder: string): void {
     // The old selection lived in the list that is about to be replaced, so it
     // has to be released here or its highlight outlives its row.
     selected?.classList.remove('is-sel');
     selected = null;
     const items = FOLDERS[folder] ?? [];
+    countAll = items.length;
 
     clear(list);
     for (const e of items) list.appendChild(rowFor(e, false));
+    list.appendChild(empty);
+    // Moving folder clears the filter: a search box still holding the last
+    // folder's word would hide half of this one for no visible reason.
+    search.value = '';
+    empty.hidden = true;
+    search.placeholder = 'Search ' + folder;
+    syncNav(folder);
 
     // The breadcrumb navigates. Without it there is no way back out of a folder,
     // and Explorer has no Back button in this layout.
@@ -1320,7 +1409,7 @@ function explorerBody(onOpen: (id: string) => void): { body: HTMLElement; status
 
     clear(status);
     status.append(
-      h('span', {}, items.length + ' item' + (items.length === 1 ? '' : 's')),
+      h('span', {}, countAll + ' item' + (countAll === 1 ? '' : 's')),
       h('span', { class: 'wx-status-r' }, folder === 'Work' ? 'Documents › Work' : 'Documents › Work › ' + folder),
     );
   }
@@ -1354,7 +1443,7 @@ function explorerBody(onOpen: (id: string) => void): { body: HTMLElement; status
       cmdIco('✂', 'Cut'), cmdIco('⧉', 'Copy'), cmdIco('\u{1F4CB}', 'Paste'), cmdIco('↻', 'Rename'),
       h('span', { class: 'wx-cmd-sep' }),
       cmdBtn('Sort'), cmdBtn('View')),
-    crumb,
+    h('div', { class: 'wx-navbar' }, backBtn, fwdBtn, upBtn, crumb, searchWrap),
     h('div', { class: 'wx-cols' },
       treeWrap,
       h('div', { class: 'wx-files' },
@@ -1845,6 +1934,9 @@ function pageDesktop(onQuit: () => void): HTMLElement {
   const OUT_MS = 140;
 
   const closeWin = (w: Live): void => {
+    // The overlay holds clones of the live windows, so a window disappearing
+    // under it would leave a card that switches to nothing.
+    if (taskView) shutTaskView();
     say(w.title + ': closed.');
     // Let the exit animation play, then drop the node. The record leaves the
     // list immediately so the taskbar updates on the click rather than 140ms
@@ -1972,6 +2064,117 @@ function pageDesktop(onQuit: () => void): HTMLElement {
     // Focus the shell so its name is announced and Tab starts at the top.
     el.focus();
   }
+
+  /**
+   * TASK VIEW — the window switcher.
+   *
+   * This started life on the list as Alt+Tab, and Alt+Tab cannot be built. The
+   * OS takes that chord before the browser sees it; a web page never receives
+   * the keydown, and neither does Win+Tab. Writing a handler for it would have
+   * produced a feature that works only in a screenshot.
+   *
+   * So it is behind Task View instead, which is a real button on a real Windows
+   * taskbar sitting right where this one is, and which opens exactly this
+   * overlay. The switcher itself is the part that was missing; the chord was
+   * only ever the way in.
+   *
+   * The thumbnails are the windows themselves, cloned and scaled — the same
+   * trick the taskbar hover previews use, and the reason a thumbnail can never
+   * drift out of date with what it is a thumbnail of.
+   */
+  let taskView: HTMLElement | null = null;
+  let tvAt = 0;
+
+  const shutTaskView = (): void => {
+    taskView?.remove();
+    taskView = null;
+    taskBtn2?.setAttribute('aria-expanded', 'false');
+  };
+
+  const tvMark = (): void => {
+    const cards = [...(taskView?.querySelectorAll('.dk-tv-card') ?? [])] as HTMLElement[];
+    cards.forEach((c, i) => {
+      c.classList.toggle('is-on', i === tvAt);
+      c.setAttribute('aria-selected', String(i === tvAt));
+      c.setAttribute('tabindex', i === tvAt ? '0' : '-1');
+    });
+    cards[tvAt]?.focus();
+  };
+
+  const openTaskView = (): void => {
+    if (taskView) { shutTaskView(); return; }
+    if (!live.length) { say('No open windows'); return; }
+    tvAt = Math.max(0, live.indexOf(focused as Live));
+
+    const grid = h('div', { class: 'dk-tv-grid', role: 'listbox', 'aria-label': 'Open windows' }) as HTMLElement;
+    live.forEach((w, i) => {
+      const app = APPS.find((a) => a.kind === w.kind)!;
+      const mini = w.el.cloneNode(true) as HTMLElement;
+      mini.classList.remove('is-drag', 'is-min', 'is-focus');
+      mini.style.left = '0';
+      mini.style.top = '0';
+      mini.style.zIndex = '0';
+      // The clone is a picture; nothing inside it should be reachable or read.
+      mini.setAttribute('aria-hidden', 'true');
+      for (const f of mini.querySelectorAll('button,input,[tabindex]')) f.setAttribute('tabindex', '-1');
+
+      const card = h('div', {
+        class: 'dk-tv-card', role: 'option', tabindex: '-1',
+        'aria-selected': 'false', 'aria-label': w.title,
+      },
+        h('div', { class: 'dk-tv-shot' }, h('div', { class: 'dk-tv-scale' }, mini)),
+        h('div', { class: 'dk-tv-t' },
+          h('span', { class: 'dk-peek-ico' }, app.ico()),
+          h('span', { class: 'dk-tv-name' }, w.title))) as HTMLElement;
+      card.addEventListener('click', () => { shutTaskView(); focus(w); });
+      card.addEventListener('dblclick', () => { shutTaskView(); focus(w); });
+      grid.appendChild(card);
+      void i;
+    });
+
+    taskView = h('div', { class: 'dk-tv', role: 'dialog', 'aria-label': 'Task view' }, grid) as HTMLElement;
+    taskView.addEventListener('pointerdown', (e) => {
+      // A press on the empty backdrop closes, as it does in the OS.
+      if (e.target === taskView) shutTaskView();
+    });
+    taskBtn2?.setAttribute('aria-expanded', 'true');
+    surface.appendChild(taskView);
+    tvMark();
+
+    /* Tab and the arrows both cycle. Tab because that is the muscle memory this
+       overlay inherits from the chord it stands in for, and it is safe to take
+       here: the overlay is the only thing on screen while it is open. */
+    grid.addEventListener('keydown', (e) => {
+      const ev = e as KeyboardEvent;
+      const n = live.length;
+      if (ev.key === 'Tab') {
+        ev.preventDefault();
+        tvAt = (tvAt + (ev.shiftKey ? n - 1 : 1)) % n;
+        tvMark();
+        return;
+      }
+      const d = ev.key === 'ArrowRight' || ev.key === 'ArrowDown' ? 1
+        : ev.key === 'ArrowLeft' || ev.key === 'ArrowUp' ? -1 : 0;
+      if (d) {
+        ev.preventDefault();
+        tvAt = (tvAt + d + n) % n;
+        tvMark();
+        return;
+      }
+      if (ev.key === 'Enter' || ev.key === ' ') {
+        ev.preventDefault();
+        const w = live[tvAt];
+        shutTaskView();
+        if (w) focus(w);
+      }
+    });
+  };
+
+  const taskBtn2 = h('button', {
+    class: 'dk-task dk-pin dk-tv-btn', type: 'button',
+    'aria-label': 'Task view', 'aria-expanded': 'false', 'aria-haspopup': 'dialog',
+  }, icTask()) as HTMLButtonElement;
+  taskBtn2.addEventListener('click', openTaskView);
 
   // Start, and a small menu so the button is not a lie.
   const start = h('button', { class: 'dk-task dk-start', type: 'button', 'aria-label': 'Start' }, icStart()) as HTMLButtonElement;
@@ -2547,6 +2750,7 @@ function pageDesktop(onQuit: () => void): HTMLElement {
     h('div', { class: 'dk-taskbar', role: 'toolbar', 'aria-label': 'Taskbar' },
       h('div', { class: 'dk-task-wrap' },
         start,
+        taskBtn2,
         // Every app gets a button; paint() hides the unpinned ones until they run,
         // which keeps their position on the bar stable across open and close.
         ...APPS.map(taskBtn)),
@@ -2568,6 +2772,7 @@ function pageDesktop(onQuit: () => void): HTMLElement {
   page.addEventListener('keydown', (e) => {
     const ev = e as KeyboardEvent;
     if (ev.key !== 'Escape') return;
+    if (taskView) { ev.stopPropagation(); shutTaskView(); return; }
     if (ctx) { ev.stopPropagation(); shutCtx(); return; }
     if (pwr) { ev.stopPropagation(); const b = pwr.btn; shutPwr(); b.focus(); return; }
     if (menu) { ev.stopPropagation(); menu.remove(); menu = null; start.focus(); return; }
