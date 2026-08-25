@@ -1304,6 +1304,22 @@ function playerWindow(id: string): { body: HTMLElement; select: (id: string) => 
 
   syncPlay();
 
+  /*
+   * Start playing on open. Nam: "the media player should auto start the video."
+   *
+   * Muted, because that is the only kind of autoplay a browser allows without a
+   * gesture — and it is the behaviour we want anyway: the volume control is right
+   * there, and a player that starts talking at you unprompted is worse than one
+   * you have to unmute. The same reasoning the egg player already used; this one
+   * simply never called play() except from select().
+   *
+   * The rejection is swallowed on purpose. If a policy blocks it the poster stays
+   * up with a working play button, which is a fine outcome and not an error worth
+   * surfacing.
+   */
+  video.muted = true;
+  void video.play().then(syncPlay).catch(() => { /* poster + play button is fine */ });
+
   return {
     body,
     select: (next: string) => {

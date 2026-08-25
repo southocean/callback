@@ -912,7 +912,12 @@ code { font: 400 12px/1.4 ui-monospace, Consolas, monospace; color: var(--dark-b
   position: relative; border-radius: 12px; overflow: hidden; background: #000;
   aspect-ratio: 1/1; max-width: 280px; margin: 0 auto;
 }
-.reel-video { width: 100%; height: 100%; object-fit: cover; display: block; }
+/* Same rule for the reel, which had the honest version of the bug: object-fit
+   was `cover`, and on the one vertical clip in the set that threw away 44% of
+   the frame — measured, 100% of the width against 56% of the height. A square
+   stage cropping a 640x1138 video is exactly the "miss most of the actions"
+   Nam described. */
+.reel-video { width: 100%; height: 100%; object-fit: contain; display: block; }
 .reel-overlay {
   position: absolute; inset: 0; border: 0; background: rgba(0,0,0,.3); cursor: pointer;
   display: grid; place-items: center; color: #fff;
@@ -6015,8 +6020,24 @@ body.tray-open.cc-on .react-clip { bottom: calc(var(--botbar) + 268px); }
 
 /* --- 8. the media player ------------------------------------------------- */
 .mp { background-color: #101014; }
-.mp-stage { flex: 1 1 auto; min-height: 0; display: grid; place-items: center; background-color: #000; }
-.mp-video { max-width: 100%; max-height: 100%; display: block; }
+/* Nam: "some vertical videos are cropped so you miss most of the actions."
+ *
+ * They were, and object-fit was not the culprit — it was already `contain`. The
+ * video was OVERFLOWING its stage and .wx clips its children, so what reached the
+ * screen was a horizontal slice of a tall frame.
+ *
+ * Measured: a 718x337 stage containing a 480x480 video. `max-height: 100%` looks
+ * like it should have stopped that, but the stage was `display: grid` with an
+ * implicit `auto` row — so the row grew to fit the content, the percentage
+ * resolved against the grown row rather than the stage, and the constraint was
+ * self-referential. zombie.mp4 is 640x1138, so the overflow there is enormous.
+ *
+ * Absolute positioning removes the question entirely. The video is pinned to the
+ * stage's box, so it cannot overflow whatever the source's shape, and
+ * object-fit: contain letterboxes inside it — a vertical clip stays vertical and
+ * whole, which is the point. */
+.mp-stage { flex: 1 1 auto; min-height: 0; position: relative; overflow: hidden; background-color: #000; }
+.mp-video { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: contain; display: block; }
 .mp-bar {
   flex: 0 0 auto; display: flex; align-items: center; gap: 10px;
   padding: 8px 12px; background-color: #1b1b1f; color: #e8eaed;
