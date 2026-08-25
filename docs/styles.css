@@ -5422,7 +5422,19 @@ body.presenting .shot { min-width: 0; }
   stroke-dasharray: var(--c); stroke-dashoffset: 0;
   animation: end-drain var(--dur) linear both;
 }
-@keyframes end-drain { to { stroke-dashoffset: var(--c); } }
+/* IT DRAINED THE WRONG WAY. Nam: "Google's return to home screen timer runs
+ * clockwise, and ours anti clockwise."
+ *
+ * An SVG circle's path begins at 3 o'clock and runs clockwise; the -90deg
+ * rotation on the svg moves that start to 12. With dasharray = C, a POSITIVE
+ * dashoffset shifts the pattern backwards, so the visible run is [0, C - x]:
+ * the arc stays pinned at 12 and its far end retreats anti-clockwise. That is
+ * what we were animating.
+ *
+ * A NEGATIVE offset shifts it forward instead, making the visible run [x, C]:
+ * the arc now ends at 12 and its start edge advances clockwise. Same one
+ * property, opposite sweep. */
+@keyframes end-drain { to { stroke-dashoffset: calc(var(--c) * -1); } }
 .end-n {
   position: absolute; inset: 0; display: grid; place-items: center;
   font: 400 14px/20px var(--font); color: #202124;
