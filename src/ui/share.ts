@@ -27,7 +27,8 @@
 import { h, clear, icon, icons } from '../dom.js';
 import { ripple } from './gm3.js';
 import { trapFocus } from '../a11y.js';
-import { profile, pitch, roles, caseStudies, requirementMap } from '../data/cv.js';
+import { profile, pitch, roles, caseStudies, requirementMap, offstage, skills } from '../data/cv.js';
+import { eggs } from '../data/eggs.js';
 
 export type ShareKind = 'tab' | 'window' | 'screen';
 
@@ -45,6 +46,37 @@ const TABS: Source[] = [
   { id: 'work', kind: 'tab', title: 'Four things I built, and what broke', host: 'southocean.github.io' },
   { id: 'riichi', kind: 'tab', title: 'Riichi Mahjong — real-time client', host: 'localhost:5173' },
 ];
+
+/**
+ * Everything the emulated Chrome can open, keyed by the id a file carries.
+ *
+ * The picker's TABS above are the four tabs that happen to be open already. This
+ * is the wider set: Explorer can open pages that were not in the strip, and the
+ * tab is created on demand -- which is what a browser actually does, and what
+ * lets Tools and Hobby have pages of their own without inventing two more
+ * "already open" tabs in the picker.
+ *
+ * `vid:<id>` entries are the easter-egg clips. Nam: "you can put in there some
+ * videos that we have as easter eggs too". They are the real files already in
+ * docs/media, described by src/data/eggs.ts -- not stand-ins.
+ */
+interface Doc { title: string; host: string; page: () => HTMLElement }
+
+const DOCS: Record<string, Doc> = {
+  cv: { title: 'Nam Nguyen — Senior SWE, Web Development', host: 'southocean.github.io', page: () => pageCv() },
+  jobad: { title: 'Google Careers — the posting, line by line', host: 'careers.google.com', page: () => pageJobAd() },
+  work: { title: 'Four things I built, and what broke', host: 'southocean.github.io', page: () => pageWork() },
+  riichi: { title: 'Riichi Mahjong — real-time client', host: 'localhost:5173', page: () => pageRiichi() },
+  tools: { title: 'Internal tooling — a bot controller', host: 'southocean.github.io', page: () => pageTools() },
+  hobby: { title: 'Off the clock', host: 'southocean.github.io', page: () => pageHobby() },
+};
+for (const e of eggs) {
+  DOCS['vid:' + e.id] = {
+    title: e.title,
+    host: 'southocean.github.io',
+    page: () => pageVideo(e.id),
+  };
+}
 
 const WINDOWS: Source[] = [
   { id: 'files', kind: 'window', title: 'File Explorer — Work' },
@@ -239,6 +271,60 @@ function contentFor(src: Source, onOpen: (id: string) => void, onClose: () => vo
   }
 }
 
+/**
+ * The Tools page. Its one real claim is the bot controller, which the CV states
+ * twice -- once in the Mahjong Logic bullets and once as a Test automation
+ * skill note. Everything on the page comes from one of those two places.
+ */
+function pageTools(): HTMLElement {
+  const bullet = roles[0]?.bullets.find((b) => b.includes('internal tooling')) ?? '';
+  const note = skills.primary.find((k) => k.name === 'Test automation')?.note ?? '';
+  return h('div', { class: 'pg' },
+    h('h1', { class: 'pg-h' }, 'Internal tooling'),
+    h('p', { class: 'pg-sub' }, 'Mahjong Logic · a bot controller for testing live tables'),
+    h('p', { class: 'pg-lead' }, bullet),
+    h('div', { class: 'pg-cards' },
+      h('div', { class: 'pg-card' }, h('b', {}, 'Test automation'), h('span', {}, note)),
+      h('div', { class: 'pg-card' }, h('b', {}, 'Why it existed'),
+        h('span', {}, 'A real-time table needs other players before you can test it. Bots were cheaper than four colleagues.'))),
+    h('p', { class: 'pg-note' }, 'Listed here because the folder is called Tools, and this is the tool.'));
+}
+
+/** Off the clock, straight from cv.ts — the five things and why each one counts. */
+function pageHobby(): HTMLElement {
+  return h('div', { class: 'pg' },
+    h('h1', { class: 'pg-h' }, 'Off the clock'),
+    h('p', { class: 'pg-sub' }, 'Five of them, and two are the reason this page exists'),
+    h('p', { class: 'pg-lead' }, offstage.intro),
+    h('div', { class: 'pg-roles' },
+      ...offstage.items.map((it) => h('div', { class: 'pg-role' },
+        h('b', {}, it.what), h('span', {}, it.why)))),
+    h('p', { class: 'pg-note' }, 'The clips are in this folder, next to this file.'));
+}
+
+/**
+ * A clip, playing. Same files and captions the calendar easter eggs use, so
+ * finding one through the fake Explorer and finding one through the calendar
+ * land on identical content.
+ *
+ * Muted, because a shared screen that starts talking at you is worse than one
+ * you have to unmute. Controls are on, so it can be unmuted.
+ */
+function pageVideo(id: string): HTMLElement {
+  const egg = eggs.find((e) => e.id === id) ?? eggs[0]!;
+  const v = h('video', {
+    class: 'pg-vid', src: egg.clip, poster: egg.poster,
+    playsinline: 'true', loop: 'true', preload: 'metadata', controls: 'true',
+  }) as HTMLVideoElement;
+  v.muted = true;
+  void v.play().catch(() => { /* a paused poster is a fine fallback */ });
+  return h('div', { class: 'pg pg-vidwrap' },
+    h('h1', { class: 'pg-h' }, egg.title),
+    h('p', { class: 'pg-sub' }, egg.clip.replace('media/', '')),
+    v,
+    h('p', { class: 'pg-note' }, egg.blurb));
+}
+
 // --------------------------------------------------------------- the pages --
 // All of this is real content from src/data/cv.ts. Nothing here is invented for
 // the sake of filling a mockup — if it says he did something, the CV says so too.
@@ -344,14 +430,18 @@ const icPdf = (): HTMLElement => svg('0 0 20 20', `
   <rect x="2.2" y="10" width="11.6" height="6.4" rx="1" fill="#d13438"/>
   <text x="8" y="14.9" font-family="Segoe UI, sans-serif" font-size="4.6" font-weight="700" fill="#fff" text-anchor="middle">PDF</text>`);
 
-/* A .url shortcut: Windows shows these as a browser document, and every file in
-   the Explorer listing is one of these or the CV pdf -- nothing that cannot be
-   opened is listed at all. */
-const icUrl = (): HTMLElement => svg('0 0 20 20', `
-  <rect x="2.5" y="2.5" width="15" height="15" rx="2.5" fill="#1f6feb"/>
-  <path d="M8.6 9.55h2.8v.9H8.6z" fill="#fff"/>
-  <path d="M7.2 10a1.6 1.6 0 0 1 1.6-1.6h1.1v1.2H8.8a.4.4 0 0 0 0 .8h1.1v1.2H8.8A1.6 1.6 0 0 1 7.2 10Z" fill="#fff"/>
-  <path d="M12.8 10a1.6 1.6 0 0 0-1.6-1.6h-1.1v1.2h1.1a.4.4 0 0 1 0 .8h-1.1v1.2h1.1A1.6 1.6 0 0 0 12.8 10Z" fill="#fff"/>`, 'wx-g');
+/* A .html document, and a video file. Nam: "what the heck is that .url? Let's
+   have them either .pdf or .html" -- and the clips get a video glyph, since
+   every file in the listing now carries an extension a person recognises. */
+const icHtml = (): HTMLElement => svg('0 0 20 20', `
+  <path d="M4.5 2.5h7l4 4v11a1 1 0 0 1-1 1h-10a1 1 0 0 1-1-1v-14a1 1 0 0 1 1-1Z" fill="#e8eaed"/>
+  <path d="M11.5 2.5l4 4h-4v-4Z" fill="#bdc1c6"/>
+  <path d="M7.6 10.4l-1.3 1.5 1.3 1.5" stroke="#1f6feb" stroke-width="1.1" fill="none" stroke-linecap="round"/>
+  <path d="M11.0 10.4l1.3 1.5-1.3 1.5" stroke="#1f6feb" stroke-width="1.1" fill="none" stroke-linecap="round"/>`, 'wx-g');
+
+const icVideo = (): HTMLElement => svg('0 0 20 20', `
+  <rect x="2.5" y="4.5" width="15" height="11" rx="2" fill="#8e44ad"/>
+  <path d="M8.6 7.9v4.2l3.6-2.1z" fill="#fff"/>`, 'wx-g');
 
 const icStart = (): HTMLElement => svg('0 0 20 20', `
   <rect x="2.4" y="2.4" width="6.6" height="6.6" rx=".7" fill="#4cc2ff"/>
@@ -510,7 +600,11 @@ function win11(o: {
     h('span', { class: 'wx-title' }, o.title),
     h('div', { class: 'wx-btns' },
       o.full && o.onMinimise ? cap('wx-min', 'Minimize', 'min', o.onMinimise) : null,
-      o.full ? cap('wx-max', 'Maximize', 'max', toggleMax) : null,
+      // Maximize is offered in BOTH modes now. Nam asked for "the rest", and
+      // maximising a lone shared window is harmless and useful. Minimize still
+      // is not: with no taskbar in Window mode there would be nowhere to restore
+      // it from, so that one stays out.
+      cap('wx-max', 'Maximize', 'max', toggleMax),
       cap('wx-close', 'Close', 'close', o.onClose)));
 
   // Dragging. Pointer events so it works with a mouse or a pen, capture so a
@@ -549,6 +643,71 @@ function win11(o: {
   el.append(bar, o.body);
   if (o.status) el.appendChild(o.status);
   el.appendChild(h('div', { class: 'wx-grip', 'aria-hidden': 'true' }));
+
+  /**
+   * Resizing. Nam: "I also want resizing for the explorer and chrome."
+   *
+   * Eight handles, because a window you can only resize from one corner is a
+   * window that feels drawn. The north and west edges move the origin as well as
+   * the size, which is the part a naive implementation gets wrong -- drag the
+   * left edge and the right edge must stay put.
+   *
+   * Clamped to a minimum that keeps the title bar and the command row usable,
+   * and disabled while maximised, where there is nothing to resize into.
+   */
+  const MIN_W = 340;
+  const MIN_H = 200;
+  const DIRS = ['n', 's', 'e', 'w', 'ne', 'nw', 'se', 'sw'] as const;
+  for (const dir of DIRS) {
+    const grip = h('div', { class: 'wx-rz wx-rz-' + dir, 'aria-hidden': 'true' }) as HTMLElement;
+    grip.addEventListener('pointerdown', (e: PointerEvent) => {
+      if (maxed) return;
+      const host = el.parentElement?.getBoundingClientRect();
+      if (!host) return;
+      const r = el.getBoundingClientRect();
+      const x0 = e.clientX;
+      const y0 = e.clientY;
+      const left0 = r.left - host.left;
+      const top0 = r.top - host.top;
+      el.classList.add('is-rz');
+      try { grip.setPointerCapture(e.pointerId); } catch { /* not a real pointer */ }
+      e.preventDefault();
+      e.stopPropagation();
+      const move = (ev: PointerEvent): void => {
+        const dx = ev.clientX - x0;
+        const dy = ev.clientY - y0;
+        let w = r.width;
+        let hgt = r.height;
+        let left = left0;
+        let top = top0;
+        if (dir.includes('e')) w = Math.min(r.width + dx, host.width - left0);
+        if (dir.includes('s')) hgt = Math.min(r.height + dy, host.height - top0);
+        if (dir.includes('w')) {
+          w = Math.min(r.width - dx, left0 + r.width);
+          left = left0 + (r.width - Math.max(w, MIN_W));
+        }
+        if (dir.includes('n')) {
+          hgt = Math.min(r.height - dy, top0 + r.height);
+          top = top0 + (r.height - Math.max(hgt, MIN_H));
+        }
+        w = Math.max(w, MIN_W);
+        hgt = Math.max(hgt, MIN_H);
+        el.style.width = `${Math.round(w)}px`;
+        el.style.height = `${Math.round(hgt)}px`;
+        el.style.left = `${Math.round(Math.max(0, left))}px`;
+        el.style.top = `${Math.round(Math.max(0, top))}px`;
+      };
+      const up = (): void => {
+        el.classList.remove('is-rz');
+        grip.removeEventListener('pointermove', move);
+        grip.removeEventListener('pointerup', up);
+      };
+      grip.addEventListener('pointermove', move);
+      grip.addEventListener('pointerup', up);
+    });
+    el.appendChild(grip);
+  }
+
   return el;
 }
 
@@ -570,12 +729,22 @@ function explorerBody(onOpen: (id: string) => void): { body: HTMLElement; status
    * requirement-map.md and measured-spec.md are gone. They opened the work and
    * riichi tabs, which had nothing to do with either name.
    */
-  interface Entry { name: string; kind: 'folder' | 'pdf' | 'url'; tab?: string; to?: string; }
+  interface Entry { name: string; kind: 'folder' | 'pdf' | 'html' | 'video'; tab?: string; to?: string; }
 
+  /* Extensions are real ones now. Nam: "what the heck is that .url? Let's have
+     them either .pdf or .html" -- fair, .url is a Windows shortcut stub nobody
+     recognises on sight, and these behave like documents when opened. */
   const CV: Entry = { name: 'NamNguyen_CV_2026.pdf', kind: 'pdf', tab: 'cv' };
-  const POSTING: Entry = { name: 'Google Careers posting.url', kind: 'url', tab: 'jobad' };
-  const BUILT: Entry = { name: 'Four things I built.url', kind: 'url', tab: 'work' };
-  const CLIENT: Entry = { name: 'Riichi Mahjong client.url', kind: 'url', tab: 'riichi' };
+  const POSTING: Entry = { name: 'google-careers-posting.html', kind: 'html', tab: 'jobad' };
+  const BUILT: Entry = { name: 'four-things-i-built.html', kind: 'html', tab: 'work' };
+  const CLIENT: Entry = { name: 'riichi-mahjong-client.html', kind: 'html', tab: 'riichi' };
+  const TOOLING: Entry = { name: 'internal-tooling.html', kind: 'html', tab: 'tools' };
+  const OFFCLOCK: Entry = { name: 'off-the-clock.html', kind: 'html', tab: 'hobby' };
+  /* The six easter-egg clips, from src/data/eggs.ts — the real files in
+     docs/media, named exactly as they are on disk. */
+  const CLIPS: Entry[] = eggs.map((e) => ({
+    name: e.clip.replace('media/', ''), kind: 'video', tab: 'vid:' + e.id,
+  }));
 
   /* "Off the clock" is "Hobby" now, per Nam. Its one shortcut is the mahjong
      client, which is the honest link rather than a filler: the hobby is what
@@ -589,9 +758,9 @@ function explorerBody(onOpen: (id: string) => void): { body: HTMLElement; status
       CV,
     ],
     'Real-time client': [CLIENT, BUILT],
-    Tools: [BUILT],
+    Tools: [TOOLING, BUILT],
     'This CV': [CV, POSTING],
-    Hobby: [CLIENT],
+    Hobby: [OFFCLOCK, ...CLIPS],
   };
 
   const TREE = ['Real-time client', 'Tools', 'This CV', 'Hobby'];
@@ -599,7 +768,7 @@ function explorerBody(onOpen: (id: string) => void): { body: HTMLElement; status
   let selected: HTMLElement | null = null;
 
   const glyph = (k: Entry['kind']): HTMLElement =>
-    k === 'folder' ? icFolder() : k === 'pdf' ? icPdf() : icUrl();
+    k === 'folder' ? icFolder() : k === 'pdf' ? icPdf() : k === 'video' ? icVideo() : icHtml();
 
   const list = h('div', { class: 'wx-list', role: 'list' }) as HTMLElement;
   const crumb = h('div', { class: 'wx-crumb' }) as HTMLElement;
@@ -706,36 +875,80 @@ function explorerBody(onOpen: (id: string) => void): { body: HTMLElement; status
  * repaints it, and returns a select() the file list can call — which is how
  * double-clicking a file in Explorer ends up focusing the right tab.
  */
-function chromeWindow(): { body: HTMLElement; select: (id: string) => void } {
-  const page = h('div', { class: 'cb-page' });
+function chromeWindow(o: { onEmpty: () => void }): { body: HTMLElement; select: (id: string) => void } {
+  /**
+   * Tabs you can open and close, not a fixed strip.
+   *
+   * Nam asked for "tab management for chrome". Before this the strip was the
+   * picker's four sources, permanently, and each tab painted a stub paragraph
+   * rather than the page. Now:
+   *
+   *   - every tab has a close button, and closing the last one closes the window,
+   *     which is what Chrome does;
+   *   - `+` opens a new tab;
+   *   - opening a file from Explorer creates a tab if that page has none, so
+   *     Tools, Hobby and the six clips can be reached without pretending they
+   *     were already open in the picker;
+   *   - a tab renders its REAL page from DOCS. The stub was the weakest part of
+   *     the whole desktop -- clicking through to a paragraph saying "one of the
+   *     four sources the picker offers" is a dead end dressed as content.
+   */
+  const page = h('div', { class: 'cb-page' }) as HTMLElement;
   const omni = h('span', {}, '');
-  const tabs = new Map<string, HTMLElement>();
+  const strip = h('div', { class: 'cb-strip' }) as HTMLElement;
 
-  const paint = (src: Source): void => {
-    omni.textContent = (src.host ?? '') + '/';
-    tabs.forEach((el, id) => el.classList.toggle('is-on', id === src.id));
+  interface Tab { id: string; el: HTMLElement }
+  const open: Tab[] = [];
+  let active = '';
+
+  const paint = (id: string): void => {
+    const doc = DOCS[id];
+    active = id;
+    omni.textContent = doc ? doc.host + '/' : 'chrome://new-tab-page';
+    for (const t of open) t.el.classList.toggle('is-on', t.id === id);
     clear(page);
-    page.append(
-      h('h2', {}, src.title),
-      h('p', {}, 'One of the four sources the picker offers. Sharing a Chrome tab shares this page, not this window.'),
-    );
+    if (doc) page.appendChild(doc.page());
+    else page.appendChild(h('div', { class: 'pg cb-newtab' }, h('h1', { class: 'pg-h' }, 'New tab')));
   };
 
-  const strip = h('div', { class: 'cb-strip' });
-  for (const t of TABS) {
-    const fav = FAVICONS[t.id] ?? icChrome;
-    const el = h('span', {
-      class: 'cb-tab', role: 'tab', tabindex: '0', title: t.title,
-    }, h('span', { class: 'cb-tab-ico' }, fav()), h('span', { class: 'cb-tab-t' }, t.title)) as HTMLElement;
-    el.addEventListener('click', () => paint(t));
-    el.addEventListener('keydown', (e) => { if ((e as KeyboardEvent).key === 'Enter') paint(t); });
-    tabs.set(t.id, el);
-    strip.appendChild(el);
-  }
-  strip.appendChild(h('span', { class: 'cb-new' }, '+'));
+  const closeTab = (id: string): void => {
+    const i = open.findIndex((t) => t.id === id);
+    if (i < 0) return;
+    open[i]!.el.remove();
+    open.splice(i, 1);
+    // Chrome closes the window with the last tab, so this does too.
+    if (!open.length) { o.onEmpty(); return; }
+    if (active === id) paint(open[Math.min(i, open.length - 1)]!.id);
+  };
 
-  const first = TABS[0];
-  if (first) paint(first);
+  const addTab = (id: string, focus: boolean): void => {
+    const found = open.find((t) => t.id === id);
+    if (found) { if (focus) paint(id); return; }
+    const doc = DOCS[id];
+    const fav = FAVICONS[id] ?? icChrome;
+    const shut = h('button', { class: 'cb-x', type: 'button', 'aria-label': 'Close tab' }, '×') as HTMLButtonElement;
+    shut.addEventListener('click', (e) => { e.stopPropagation(); closeTab(id); });
+    const el = h('span', {
+      class: 'cb-tab', role: 'tab', tabindex: '0', title: doc ? doc.title : 'New tab',
+    }, h('span', { class: 'cb-tab-ico' }, fav()),
+       h('span', { class: 'cb-tab-t' }, doc ? doc.title : 'New tab'),
+       shut) as HTMLElement;
+    el.addEventListener('click', () => paint(id));
+    el.addEventListener('keydown', (e) => { if ((e as KeyboardEvent).key === 'Enter') paint(id); });
+    // Before the + button, so the strip keeps its shape.
+    strip.insertBefore(el, strip.querySelector('.cb-new'));
+    open.push({ id, el });
+    if (focus) paint(id);
+  };
+
+  const plus = h('button', { class: 'cb-new', type: 'button', 'aria-label': 'New tab' }, '+') as HTMLButtonElement;
+  let blanks = 0;
+  plus.addEventListener('click', () => { blanks += 1; addTab('blank:' + blanks, true); });
+  strip.appendChild(plus);
+
+  // The four the picker says are already open.
+  for (const t of TABS) addTab(t.id, false);
+  if (TABS[0]) paint(TABS[0].id);
 
   const body = h('div', { class: 'wx-body cb' },
     strip,
@@ -745,11 +958,7 @@ function chromeWindow(): { body: HTMLElement; select: (id: string) => void } {
       h('div', { class: 'cb-omni' }, omni)),
     page) as HTMLElement;
 
-  const select = (id: string): void => {
-    const src = TABS.find((t) => t.id === id);
-    if (src) paint(src);
-  };
-  return { body, select };
+  return { body, select: (id: string) => addTab(id, true) };
 }
 
 /**
@@ -830,7 +1039,8 @@ function pageDesktop(): HTMLElement {
       const made = explorerBody(gotoTab);
       bodyEl = made.body; statusEl = made.status;
     } else {
-      const made = chromeWindow();
+      // Closing the last tab closes the window, exactly as Chrome does.
+      const made = chromeWindow({ onEmpty: () => { rec.el?.remove(); task.remove(); const j = live.indexOf(rec); if (j >= 0) live.splice(j, 1); } });
       bodyEl = made.body; select = made.select;
       if (tabId) made.select(tabId);
     }

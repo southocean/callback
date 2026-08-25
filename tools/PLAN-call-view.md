@@ -1664,3 +1664,53 @@ Verified: into all four folders with correct contents, crumb, singular/plural
 count and tree highlight; back out via the crumb with the highlight clearing;
 navigation from the file list as well as the tree; the CV pdf opening the CV tab;
 a `.url` inside Hobby opening the riichi tab.
+
+## Round 21 — resizing, tab management, real pages, and the clips
+
+### Resizing
+
+Eight handles per window. The **north and west** edges move the origin as well as
+the size, which is the part a naive version gets wrong — drag the left edge and
+the right edge must stay put. Clamped to `340 × 200`; handles hidden while
+maximised.
+
+Verified: SE grows `720×406 → 820×466`; the W edge shrinks width while holding
+the right edge **exactly**; a large inward drag clamps at `340×200`.
+
+### Tab management
+
+Before this the strip was the picker's four sources permanently, and each tab
+painted a stub paragraph reading *"one of the four sources the picker offers"* —
+a dead end dressed as content, and the weakest thing on the desktop.
+
+Now: every tab closes, `+` opens one, closing the last tab closes the window as
+Chrome does, and a tab renders its **real** page. Opening a file creates a tab if
+that page has none — which is what lets Tools and Hobby have their own pages
+without inventing two more "already open" tabs in the picker. A `DOCS` registry
+holds everything openable, keyed by the id a file carries; `TABS` stays the four
+that are already open.
+
+### Extensions and clips
+
+Nam: "what the heck is that .url?" Fair — a Windows shortcut stub nobody
+recognises on sight. Now `.pdf` and `.html`, plus the six easter-egg clips as
+`.mp4` in Hobby: the real files in `docs/media` described by `src/data/eggs.ts`,
+with their real posters and captions, muted with controls on. Finding a clip
+through the fake Explorer and through the calendar now land on identical content.
+
+### Window mode
+
+Gets **Maximize**. Minimize still does not — with no taskbar there is nowhere to
+restore from.
+
+### The bug I introduced and fixed
+
+Window mode routes file clicks to the host app's `openDoc`, which knew only two
+legacy ids — so every new id (`tools`, `hobby`, `vid:*`) fell through to the
+Engineering panel's **network** tab. A file click that opened a graph of packet
+loss. Mapped explicitly now, defaulting to the plain document view.
+
+Honest limitation recorded beside it: sharing a single window and opening a file
+is a case where a real viewer would see nothing at all, because the browser is
+not the window being captured. Routing to the host app is the useful lie; the
+alternative is a dead row.

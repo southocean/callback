@@ -6077,3 +6077,53 @@ body.tray-open.cc-on .react-clip { bottom: calc(var(--botbar) + 268px); }
 
 /* Folders in the file list get the pointer too: they are the other way in. */
 .wx-list .wx-row { cursor: pointer; }
+
+/* ====== ROUND 21: RESIZING, TAB MANAGEMENT, AND THE CLIPS ================ */
+
+/* --- resize handles ------------------------------------------------------ */
+/* Nam: "I also want resizing for the explorer and chrome." Eight of them,
+   because a window that only resizes from one corner still feels drawn. Sized
+   generously enough to hit (6px edges, 12px corners) without eating the window's
+   own padding. */
+.wx-rz { position: absolute; z-index: 6; }
+.wx-rz-n { top: -3px; left: 12px; right: 12px; height: 6px; cursor: ns-resize; }
+.wx-rz-s { bottom: -3px; left: 12px; right: 12px; height: 6px; cursor: ns-resize; }
+.wx-rz-w { left: -3px; top: 12px; bottom: 12px; width: 6px; cursor: ew-resize; }
+.wx-rz-e { right: -3px; top: 12px; bottom: 12px; width: 6px; cursor: ew-resize; }
+.wx-rz-nw { top: -3px; left: -3px; width: 14px; height: 14px; cursor: nwse-resize; }
+.wx-rz-se { bottom: -3px; right: -3px; width: 14px; height: 14px; cursor: nwse-resize; }
+.wx-rz-ne { top: -3px; right: -3px; width: 14px; height: 14px; cursor: nesw-resize; }
+.wx-rz-sw { bottom: -3px; left: -3px; width: 14px; height: 14px; cursor: nesw-resize; }
+/* A maximised window has nothing to resize into. */
+.wx.is-max .wx-rz { display: none; }
+/* While dragging a handle the contents must not swallow the pointer. */
+.wx.is-rz .wx-body, .wx.is-rz .wx-status { pointer-events: none; }
+
+/* --- tab management ------------------------------------------------------ */
+/* Every tab closes, and `+` opens one. Before this the strip was the picker's
+   four sources, permanently. */
+.cb-tab { position: relative; padding-right: 22px; }
+.cb-x {
+  position: absolute; right: 4px; top: 50%; transform: translateY(-50%);
+  width: 16px; height: 16px; border: 0; border-radius: 50%;
+  background: transparent; color: #9aa0a6; cursor: pointer;
+  font: 400 13px/1 var(--font); display: grid; place-items: center; padding: 0;
+}
+.cb-x:hover { background-color: rgba(255, 255, 255, .16); color: #fff; }
+.cb-tab.is-on .cb-x { color: #e8eaed; }
+.cb-new {
+  border: 0; background: transparent; color: #9aa0a6; cursor: pointer;
+  width: 24px; height: 24px; border-radius: 50%; align-self: center;
+  font: 400 15px/1 var(--font); display: grid; place-items: center; padding: 0;
+}
+.cb-new:hover { background-color: rgba(255, 255, 255, .12); color: #fff; }
+.cb-newtab { display: grid; place-items: center; min-height: 160px; }
+
+/* --- a clip, playing in a tab -------------------------------------------- */
+/* The real files already in docs/media, described by src/data/eggs.ts — the same
+   ones the calendar easter eggs use, so both routes land on identical content. */
+.pg-vidwrap { display: flex; flex-direction: column; }
+.pg-vid {
+  width: 100%; max-height: 320px; margin: 4px 0 10px;
+  background-color: #000; border-radius: 8px; object-fit: contain;
+}

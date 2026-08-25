@@ -1536,8 +1536,28 @@ export function renderCall(store: Store, quests: Quests, deps: CallDeps): HTMLEl
    * actually live on this site.
    */
   function openDoc(id: string): void {
-    if (id === 'plain') { store.dispatch({ t: 'plain', on: true }); return; }
-    store.dispatch({ t: 'engTab', tab: id === 'spec' ? 'fx' : 'net' });
+    /**
+     * Only Window mode reaches this. On the desktop a file opens in the emulated
+     * Chrome, which is a closed machine; Window mode has one Explorer and no
+     * browser, so a file has to land somewhere in the host app instead.
+     *
+     * The ids come from the Explorer listing and are now cv / jobad / work /
+     * riichi / tools / hobby / vid:*. Before this every one of them except two
+     * legacy names fell through to the Engineering panel's NETWORK tab, which
+     * had nothing to do with any of them -- a file click that opened a graph of
+     * packet loss. The default is the plain document view now, which is the one
+     * genuine "opened a document" surface this app has.
+     *
+     * Known limitation, stated rather than papered over: sharing a single window
+     * and opening a file is a case where a real viewer would see nothing at all,
+     * because the browser is not the window being captured. Routing to the host
+     * app is the useful lie; the alternative is a dead row.
+     */
+    if (id === 'plain' || id === 'cv') { store.dispatch({ t: 'plain', on: true }); return; }
+    if (id === 'spec') { store.dispatch({ t: 'engTab', tab: 'fx' }); return; }
+    if (id === 'hobby' || id.startsWith('vid:')) { store.dispatch({ t: 'panel', panel: 'offclock' }); return; }
+    if (id === 'jobad') { store.dispatch({ t: 'panel', panel: 'about' }); return; }
+    store.dispatch({ t: 'plain', on: true });
   }
 
   const shareHost = h('div', {});
