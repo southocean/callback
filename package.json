@@ -6,8 +6,9 @@
     "typecheck": "tsc --noEmit",
     "test": "esbuild src/test/cli.ts --bundle --platform=node --format=esm --outfile=.tmp/test.mjs --log-level=warning && node .tmp/test.mjs",
     "build": "node build.mjs",
-    "verify": "npm run typecheck && npm test && npm run build",
-    "serve": "node serve.mjs"
+    "verify": "npm run typecheck && npm test && npm run deadcss && npm run build",
+    "serve": "node serve.mjs",
+    "deadcss": "node tools/css-deadcheck.mjs"
   },
   "type": "module",
   "devDependencies": {
