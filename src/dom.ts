@@ -99,8 +99,8 @@ export const icons = {
   //
   // effects: a picture frame with a sparkle off its corner, which is what
   // visual_effects draws — an image plus the suggestion of alteration.
-  effects: 'M5 5h9a1 1 0 0 1 1 1v5.2l-2.6-2.6a1 1 0 0 0-1.4 0L8.2 12 6.6 10.4a1 1 0 0 0-1.4 0L4 11.6V6a1 1 0 0 1 1-1Zm-1 9.4 1.9-1.9 1.6 1.6a1 1 0 0 0 1.4 0l2.8-2.8 3.3 3.3V18a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1v-3.6ZM18.6 3l.9 2.1 2.1.9-2.1.9-.9 2.1-.9-2.1-2.1-.9 2.1-.9.9-2.1Z',
+  effects: 'M4 6a2 2 0 0 1 2-2h7v2H6v12h12v-7h2v7a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6Zm3.2 10.8 3.1-4 2.2 2.7 1.9-2.4 2.4 3.7H7.2Zm11-14.3 1 2.3 2.3 1-2.3 1-1 2.3-1-2.3-2.3-1 2.3-1 1-2.3Z',
   // show-in-tile: a tile outline crossed through, the "take me out of / put me
   // back in the grid" control.
-  tileOff: 'M4 5.5h16a1 1 0 0 1 1 1v11a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1v-11a1 1 0 0 1 1-1Zm1 2v9h14v-9H5Zm-.3-4.8 16.6 16.6-1.4 1.4L2.9 4.1l1.8-1.4Z',
+  tileOff: 'M3 6a2 2 0 0 1 2-2h11.2l2 2H5v12h9.2l2 2H5a2 2 0 0 1-2-2V6Zm16 1.8L21 9.8V18a2 2 0 0 1-.3 1l-1.7-1.7V7.8ZM3.6 2.2 21.8 20.4l-1.4 1.4L2.2 3.6l1.4-1.4Z',
 };

@@ -3147,18 +3147,36 @@ body.has-panel .grid-wrap.is-solo { inset: 72px 375px 80px 16px; }
 .solo {
   position: relative; width: 100%; height: 100%;
   border-radius: 24px; overflow: hidden;
-  /* Layer 1: the participant colour. Meet assigns one per person; this is the
-     one it gave Nam. */
-  background-color: #c4b3dc;
+  /* Layer 1, re-measured 2026-08-25. This was #c4b3dc — the participant colour
+     Meet assigns Nam — painted opaque, and that is why ours read brighter and
+     more purple than the original.
+   *
+   * The original's stack, read off a live tile:
+   *   base    #131314                          <- near-black
+   *   middle  background-image: url(blob:...)   <- the blurred avatar, a blob
+   *   top     rgba(0, 46, 105, .5)              <- the scrim
+   *
+   * The participant colour DOES exist in Meet's tree, on its own layer, at
+   * opacity 0. So it is a real token that simply is not painted here. #131314
+   * is already in our spec as the call canvas.
+   *
+   * This is also why the control pill read harsh: at .9 opacity over a bright
+   * lavender it fights the background, and over near-black it settles into it. */
+  background-color: #131314;
   display: grid; place-items: center;
 }
-/* Layer 2. Meet fills the tile with the avatar again, blown up and blurred. We
-   have initials rather than a photo, so this is a soft radial in the avatar's
-   own colour — the structure and the scrim are Meet's, the blur source is not.
-   Flagged rather than pretended. */
+/* Layer 2. Meet blows the avatar up and blurs it, delivered as a blob image. We
+   have initials rather than a photo, so ours is drawn — the structure and the
+   scrim are Meet's, the blur source is not, and that stays flagged rather than
+   pretended.
+ *
+ * What changed: this used to be a purple wash (#6f5f8a -> #241f33), which made
+ * sense over the old lavender base and does not over #131314. A blurred
+ * greyscale photo lifts the base's LUMINANCE rather than tinting it, so this is
+ * now a near-neutral lift and the hue comes from the measured scrim above. */
 .solo-blur {
   position: absolute; inset: 0;
-  background-image: radial-gradient(60% 50% at 50% 45%, #6f5f8a 0%, #3d3652 55%, #241f33 100%);
+  background-image: radial-gradient(62% 52% at 50% 45%, #2c2d33 0%, #1c1d21 58%, #131314 100%);
 }
 /* Layer 3: the scrim, and this is the exact value — it is what turns a purple
    tile into the dark blue everyone reads as "Meet". */
