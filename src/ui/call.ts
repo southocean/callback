@@ -14,6 +14,7 @@
 // four panels; everything technical lives behind Meeting tools.
 
 import { h, clear, icon, icons } from '../dom.js';
+import { openDev } from './devopen.js';
 import { sym } from './icons.js';
 import { ripple, attachMenu, micMeter, menu as gmMenu, warnBadge, noticeCard, dropCaret } from './gm3.js';
 import { tipAll, tip } from './tooltip.js';
@@ -1743,7 +1744,10 @@ export function renderCall(store: Store, quests: Quests, deps: CallDeps): HTMLEl
       { icon: 'feedback', label: 'Report a problem', ruleBefore: true },
       { icon: 'shield', label: 'Report abuse' },
       { icon: 'troubleshoot', label: 'Troubleshooting & help' },
-      { icon: 'settings', label: 'Settings' },
+      // Meet's own label, opening our Project specs -- the same panel the home
+      // screen's Settings button opens. Faithful chrome, honest destination, and
+      // it makes the build notes reachable from inside the call.
+      { icon: 'settings', label: 'Settings', onPick: () => { void openDev(store); } },
     ];
     // Picking a row closes the menu. gmMenu has always accepted an onPicked and
     // this call site never passed one, so the rows did nothing and the menu just

@@ -8,6 +8,7 @@ import { h, clear, icon, icons } from '../dom.js';
 import { sym } from './icons.js';
 import { ripple } from './gm3.js';
 import { layoutTimeline, overlaps } from '../state.js';
+import { currentPitch } from '../data/companies.js';
 import type { Store } from '../state.js';
 import { chat, roles, caseStudies, transcript, profile } from '../data/cv.js';
 
@@ -33,6 +34,20 @@ export const NOW = 2026.63;
  * layout picked to look tidy.
  */
 export function renderChat(): HTMLElement {
+  /*
+   * The cover letter's opening line is company-specific. cv.ts holds the neutral
+   * version; a ?c= code swaps in one that names the employer. Substituted here by
+   * position rather than by matching the text, so editing the neutral copy in
+   * cv.ts cannot silently break the swap.
+   */
+  const opener = currentPitch().opener;
+  let swapped = false;
+  const textFor = (m: { from: string; text: string }): string => {
+    if (m.from !== 'nam' || swapped) return m.text;
+    swapped = true;
+    return opener;
+  };
+
   const list = h('div', { class: 'msg-list' },
     h('div', { class: 'msg-card' }, 'The cover letter. It is a chat panel because a chat panel is where people actually read things.'),
     ...chat.map((m) =>
@@ -40,7 +55,7 @@ export function renderChat(): HTMLElement {
         'div',
         { class: m.from === 'system' ? 'msg msg-sys' : 'msg msg-own' },
         m.from === 'nam' ? h('div', { class: 'msg-from' }, `Nam Nguyen  ${m.at}`) : null,
-        h('div', { class: 'msg-body' }, m.text),
+        h('div', { class: 'msg-body' }, textFor(m)),
       ),
     ),
     h('div', { class: 'shead' }, 'Transcript'),

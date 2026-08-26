@@ -4,7 +4,11 @@
 // The screen list mirrors Meet's actual flow — home, lobby, call, ended — so the
 // clone covers the whole journey rather than one screenshot of it (review V1).
 
-export type Screen = 'home' | 'calls' | 'lobby' | 'call' | 'ended';
+/**
+ * 'company' is the unlisted index of per-company codes. Reachable only by
+ * typing #company; nothing in the CV links to it.
+ */
+export type Screen = 'home' | 'calls' | 'lobby' | 'call' | 'ended' | 'company';
 // 'about' is the CV material that used to squat inside the People panel.
 // Nam: "This is a panel for the people in the meeting." Right — so the career
 // timeline moved out to its own, reached from the participant-count popup.
@@ -56,7 +60,11 @@ export interface State {
    * panel: `engTab` sets panel: 'tools' and leaves `screen` alone, so from home
    * the button changed state and painted nothing at all.
    */
-  built: boolean;
+  /**
+   * The company code from ?c=, or null. Decides whether the employer is named
+   * anywhere. See src/data/companies.ts for why it is a query parameter.
+   */
+  company: string | null;
   plain: boolean;
 }
 
@@ -79,7 +87,6 @@ export type Action =
   | { t: 'net'; profile: NetProfile }
   | { t: 'chaos'; on: boolean }
   | { t: 'reducedMotion'; on: boolean }
-  | { t: 'built'; on: boolean }
   | { t: 'plain'; on: boolean };
 
 export const initial: State = {
@@ -102,7 +109,7 @@ export const initial: State = {
   net: 'good',
   chaos: false,
   reducedMotion: false,
-  built: false,
+  company: null,
   plain: false,
 };
 
@@ -172,9 +179,6 @@ export function reduce(s: State, a: Action): State {
     case 'chaos':
       return { ...s, chaos: a.on };
 
-    case 'built':
-      return { ...s, built: a.on };
-
     case 'reducedMotion':
       // Reduced motion is not a suggestion. It kills the effects outright.
       return { ...s, reducedMotion: a.on, fx: a.on ? 'off' : s.fx };
@@ -228,7 +232,6 @@ export interface Route {
   engTab?: EngTab;
   spotlight?: string | null;
   plain?: boolean;
-  built?: boolean;
 }
 
 const panels: Panel[] = ['chat', 'people', 'present', 'offclock', 'tools', 'host', 'about'];
@@ -239,7 +242,7 @@ export function parseRoute(hash: string): Route {
   const [head = '', tail = ''] = raw.split('/');
 
   if (head === 'plain') return { screen: 'call', panel: 'none', plain: true };
-  if (head === 'built') return { screen: 'home', panel: 'none', built: true };
+  if (head === 'company') return { screen: 'company', panel: 'none' };
   if (head === 'ended') return { screen: 'ended', panel: 'none' };
   if (head === 'calls') return { screen: 'calls', panel: 'none' };
   if (head === 'lobby') return { screen: 'lobby', panel: 'none' };
@@ -261,7 +264,6 @@ export function parseRoute(hash: string): Route {
 }
 
 export function routeToHash(s: State): string {
-  if (s.built) return '#built';
   if (s.plain) return '#plain';
   if (s.screen === 'home') return '#home';
   if (s.screen === 'calls') return '#calls';

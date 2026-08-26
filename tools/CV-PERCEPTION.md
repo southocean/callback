@@ -575,3 +575,31 @@ touching a pixel of the thing that makes it worth sending.
 | 2026-08-26 | Doc created. Nothing actioned yet. | — |
 | 2026-08-26 | Merged the non-technical-reader pass in: R11–R16, M16–M23, section 4b. Nam authorises fixes himself; nothing actioned. | — |
 | 2026-08-26 | Revised the "`#plain` is excellent" line — it has never had an editorial pass and omits work authorisation. | — |
+| 2026-08-26 | Onboarding pass shipped. Status changes below. | Nam |
+
+### Status after the onboarding pass
+
+Shipped, and what it moves:
+
+- **R2** — improved, not closed. The banner now leads with *"Short on time? Here's
+  my CV."* and a second line carrying the role, the years and a hook, so the
+  category and the seniority are both above the fold. A location still is not.
+- **R3** — improved. `#plain` opens as an **overlay over the app** instead of a
+  route away from it, so reading the CV no longer leaves the site. Same mechanism
+  the mock Chrome uses, so there is one path rather than two.
+- **R4 / R1** — materially reduced **for every send that is not Google**. The
+  build now names no employer by default; the company-specific lines resolve from
+  a `?c=` code (`src/data/companies.ts`, index at `#company`). The document
+  title, the scheduled meeting, the CV header and the cover letter's opening line
+  all gate on it.
+- **R14** — partly addressed. The CV header no longer hard-codes an employer.
+  **Work authorisation is still missing from the document** (M18), the footer is
+  still engineer-facing (M21), and there is still no date.
+- **New, and out of scope for that pass:** the "Against this job ad" section
+  renders Google's posting requirements under a generic heading even with no
+  code. For a non-Google send that section is either mislabelled or should be
+  hidden. **[open]** — needs Nam's call.
+
+Still outstanding and unchanged: **M2** (the static shell's "Google Meet"),
+**M3** ("since March"), **M17** (the false disclaimer). Those three are twenty-five
+minutes and remain the top of the ranking in section 4b.

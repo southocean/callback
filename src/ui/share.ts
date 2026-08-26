@@ -29,6 +29,7 @@ import { ripple } from './gm3.js';
 import { trapFocus } from '../a11y.js';
 import { profile, pitch, roles, caseStudies, requirementMap, offstage, skills } from '../data/cv.js';
 import { eggs } from '../data/eggs.js';
+import { currentPitch } from '../data/companies.js';
 import { buildDoc } from './built.js';
 
 export type ShareKind = 'tab' | 'window' | 'screen';
@@ -323,7 +324,7 @@ function contentFor(src: Source, onOpen: (id: string) => void, onClose: () => vo
   switch (src.id) {
     // The real thing, framed. #plain is a standalone document view — it has no
     // call chrome, so framing it cannot nest the app inside itself.
-    case 'cv': return frameOf('#plain', 'Nam Nguyen — the CV as a document', pageCv);
+    case 'cv': return frameOf(`${location.search}#plain`, 'Nam Nguyen — the CV as a document', pageCv);
     // 'work' used to frame '#tools/tests' and Nam caught what that does: 'tools'
     // is a PANEL, so the hash resolves to { screen: 'call', panel: 'tools' } and
     // the iframe loaded the entire Meet clone — a call inside the call inside
@@ -446,7 +447,7 @@ function pageCv(): HTMLElement {
 function pageJobAd(): HTMLElement {
   return h('div', { class: 'pg' },
     h('h1', { class: 'pg-h' }, 'The posting, line by line'),
-    h('p', { class: 'pg-sub' }, profile.target),
+    h('p', { class: 'pg-sub' }, currentPitch().target),
     h('ul', { class: 'pg-reqs' },
       ...requirementMap.map((r) => h('li', { class: `pg-req is-${r.strength}` },
         h('span', { class: 'pg-tick', 'aria-hidden': 'true' }, r.strength === 'honest' ? '–' : '✓'),

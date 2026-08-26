@@ -11,6 +11,8 @@
 import { h, clear } from '../dom.js';
 import { sym, lockup, spinner, focusRing, playLockup, settleLockup } from './icons.js';
 import { openDev } from './devopen.js';
+import { currentPitch } from '../data/companies.js';
+import { openPlain } from './plainoverlay.js';
 import { tip, tipAll, tipAllAbove, hideTip, rearm } from './tooltip.js';
 import { eggMap, key as dayKey, type Egg } from '../data/eggs.js';
 import type { Store } from '../state.js';
@@ -492,7 +494,9 @@ export function renderHome(store: Store, reducedMotion = false, body?: HTMLEleme
         h('span', { class: 'now-chip' }, 'Now'),
         h('span', { class: 'sched-time' }, s.label),
       ),
-      h('div', { class: 'sched-title' }, "Nam's interview"),
+      // Says what the meeting IS. With a company code it names the role and the
+      // city; without one it stays true for any application. companies.ts.
+      h('div', { class: 'sched-title' }, currentPitch().meeting),
     ),
     h('span', { class: 'sched-join' }, 'Join'),
   );
@@ -637,12 +641,17 @@ export function renderHome(store: Store, reducedMotion = false, body?: HTMLEleme
       h(
         'div',
         {},
-        h('div', { class: 'banner-t' }, 'Short of time? Read this as a plain document instead'),
-        h('div', { class: 'banner-s' }, 'Same content, one page, prints cleanly. No call required.'),
+        // Nam: say what it is immediately, and use the second line for a reason
+        // to keep reading rather than for mechanics the reader can already see.
+        h('div', { class: 'banner-t' }, "Short on time? Here's my CV."),
+        h('div', { class: 'banner-s' }, 'Lead front-end developer, 7 years \u00b7 PhD in everything but Computer Science'),
       ),
+      // Opens over the app rather than navigating to it -- Meet never leaves
+      // itself. The href stays so the link is still a real link for anyone who
+      // middle-clicks or has JS off. See ui/plainoverlay.ts.
       h(
         'a',
-        { href: '#plain', onclick: (e: Event) => { e.preventDefault(); store.dispatch({ t: 'plain', on: true }); } },
+        { href: '#plain', onclick: (e: Event) => { e.preventDefault(); openPlain(); } },
         'Open document',
       ),
     ),
@@ -664,9 +673,12 @@ export function renderHome(store: Store, reducedMotion = false, body?: HTMLEleme
         {
           class: 'm-btn m-text',
           type: 'button',
-          // Was engTab, which sets panel: 'tools' and never touches `screen` --
-          // so from the home screen this button changed state and painted nothing.
-          onclick: () => store.dispatch({ t: 'built', on: true }),
+          // Opens Project specs -- the same panel the Settings button opens, so
+          // there is one place the build is documented and it is reachable from
+          // inside the call as well as from here. It used to dispatch engTab,
+          // whose reducer sets panel: 'tools' without touching `screen`, so from
+          // the home screen it changed state and painted nothing.
+          onclick: () => { void openDev(store); },
         },
         'How this was built',
       ),

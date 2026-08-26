@@ -8,10 +8,10 @@
 // `screen`. From the home screen there is no panel to open, so the click
 // changed state and painted nothing.
 //
-// One document, two consumers. `buildDoc()` is the content; `renderBuilt()`
-// wraps it for the standalone route, and the emulated Chrome in the screen share
-// renders the same `buildDoc()` for how-this-is-built.html. Neither can drift
-// from the other, which is the same rule the CV itself follows.
+// One document, two consumers: the Overview tab of Project specs, and
+// how-this-is-built.html in the mock Chrome. The standalone #built route is gone
+// -- a separate page was a second answer to the same question, and Nam wanted the
+// specs reachable from inside the call rather than only from the home screen.
 //
 // Everything factual here comes from src/data/devlog.ts, src/data/story.ts or
 // the build config. Nothing is invented to fill a section.
@@ -108,17 +108,3 @@ export function buildDoc(): HTMLElement {
   );
 }
 
-/** The standalone route, with a way back. */
-export function renderBuilt(onBack: () => void, embedded = false): HTMLElement {
-  return h(
-    'main',
-    { class: 'doc', id: 'main' },
-    !embedded && h('div', { class: 'doc-back no-print' },
-      h('button', { class: 'btn btn-sm btn-primary', type: 'button', onclick: onBack }, 'Back')),
-    h('header', { class: 'doc-top' },
-      h('div', {},
-        h('h1', {}, 'How this was built'),
-        h('div', { class: 'doc-target' }, 'Scope, timeline, specifications and method'))),
-    buildDoc(),
-  );
-}

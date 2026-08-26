@@ -1,8 +1,15 @@
-// The dev portal.
+// Project specs.
 //
-// Not part of the CV, and not linked from anywhere. It opens on the Konami code
-// and nothing else, which is the only appropriate front door for a page written
-// by a game developer.
+// Was the dev portal: Konami-only, framed as "nothing here is part of the CV".
+// Nam has promoted it. It is now the one place the build is documented, opened by
+// the Settings button on the home screen, by the Settings row in the call's
+// overflow menu, and still by the Konami code -- so it is reachable at any point
+// in the CV rather than only from the front door.
+//
+// That promotion is why the Overview tab exists: the standalone #built route was
+// a second answer to the same question, and two documents that can disagree are
+// worse than one. buildDoc() now renders here and in the mock Chrome, and
+// nowhere else.
 //
 // It holds the working notes: how the interface was planned, the adversarial
 // design reviews it went through, what QA found after it was built, and the
@@ -17,10 +24,12 @@ import { sym } from './icons.js';
 import { findings, phases, roleNames, actionItems, qa, stats } from '../data/devlog.js';
 import { original, pros, cons, shipped, alternative, verdict } from '../data/story.js';
 import { method } from '../data/spec.js';
+import { buildDoc } from './built.js';
 
-type Tab = 'process' | 'reviews' | 'qa' | 'story' | 'open';
+type Tab = 'overview' | 'process' | 'reviews' | 'qa' | 'story' | 'open';
 
 const TABS: { id: Tab; label: string }[] = [
+  { id: 'overview', label: 'Overview' },
   { id: 'process', label: 'Process' },
   { id: 'reviews', label: 'Design reviews' },
   { id: 'qa', label: 'QA findings' },
@@ -31,12 +40,12 @@ const TABS: { id: Tab; label: string }[] = [
 export function openDevPortal(reducedMotion: boolean): void {
   if (document.getElementById('devportal')) return;
 
-  let tab: Tab = 'process';
+  let tab: Tab = 'overview';
   const body = h('div', { class: 'dp-body' });
 
   const tabs = h(
     'div',
-    { class: 'dp-tabs', role: 'tablist', 'aria-label': 'Build notes' },
+    { class: 'dp-tabs', role: 'tablist', 'aria-label': 'Project specs' },
     ...TABS.map((t) =>
       h(
         'button',
@@ -60,7 +69,7 @@ export function openDevPortal(reducedMotion: boolean): void {
 
   const portal = h(
     'div',
-    { class: `dp ${reducedMotion ? '' : 'dp-in'}`, id: 'devportal', role: 'dialog', 'aria-modal': 'true', 'aria-label': 'Build notes' },
+    { class: `dp ${reducedMotion ? '' : 'dp-in'}`, id: 'devportal', role: 'dialog', 'aria-modal': 'true', 'aria-label': 'Project specs' },
     h(
       'div',
       { class: 'dp-head' },
@@ -71,15 +80,15 @@ export function openDevPortal(reducedMotion: boolean): void {
       h(
         'div',
         { class: 'dp-title' },
-        h('h1', {}, 'Build notes'),
+        h('h1', {}, 'Project specs'),
         h(
           'p',
           {},
-          'You found the Konami code. Seven years of game development and some habits do not leave. ',
-          'Below is the working record for this build — nothing here is part of the CV.',
+          'How this site was built: what it copies and what it invents, the phases it went through, ',
+          'the design reviews it survived, and what QA found afterwards. The working record, not a summary of it.',
         ),
       ),
-      h('button', { class: 'dp-close', type: 'button', 'aria-label': 'Close build notes', onclick: close }, sym('close', 24)),
+      h('button', { class: 'dp-close', type: 'button', 'aria-label': 'Close project specs', onclick: close }, sym('close', 24)),
     ),
     tabs,
     body,
@@ -91,7 +100,8 @@ export function openDevPortal(reducedMotion: boolean): void {
     }
     clear(body);
     body.appendChild(
-      tab === 'process' ? processView()
+      tab === 'overview' ? buildDoc()
+      : tab === 'process' ? processView()
       : tab === 'reviews' ? reviewsView()
       : tab === 'qa' ? qaView()
       : tab === 'story' ? storyView()

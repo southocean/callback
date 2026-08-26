@@ -8,6 +8,8 @@
 // Nothing here is a summary. It is the whole thing.
 
 import { h } from '../dom.js';
+import { currentPitch } from '../data/companies.js';
+import { sym } from './icons.js';
 import {
   profile, pitch, roles, education, teaching, honours, skills, offstage, requirementMap, meta,
 } from '../data/cv.js';
@@ -41,10 +43,19 @@ export function renderPlain(onBack: () => void, embedded = false): HTMLElement {
   return h(
     'main',
     { class: 'doc', id: 'main' },
+    /*
+     * The standard icon button, not a bordered one. tools/DESIGN-PRINCIPLES.md
+     * section 7: there is no bordered grey button in this design language, and
+     * "Back to the call" was the only one in the build. In-app this document is
+     * an overlay with its own close control, so this only ever shows for someone
+     * who opened #plain directly.
+     */
     !embedded && h(
       'div',
       { class: 'doc-back no-print' },
-      h('button', { class: 'btn btn-sm btn-primary', type: 'button', onclick: onBack }, 'Back to the call'),
+      h('button', {
+        class: 'icon-btn doc-close', type: 'button', 'aria-label': 'Back to the call', onclick: onBack,
+      }, sym('close', 22)),
     ),
 
     h(
@@ -54,7 +65,7 @@ export function renderPlain(onBack: () => void, embedded = false): HTMLElement {
         'div',
         {},
         h('h1', {}, profile.name),
-        h('div', { class: 'doc-target' }, `${profile.headline} · applying for ${profile.target}`),
+        h('div', { class: 'doc-target' }, `${profile.headline} · applying for ${currentPitch().target}`),
       ),
       h(
         'div',

@@ -54,8 +54,13 @@ export interface TranscriptLine {
 export const profile = {
   name: 'Nam Nguyen',
   headline: 'Lead front-end developer',
-  target: 'Senior Software Engineer, Web Development — Google Meet, Stockholm',
-  targetAlt: 'Software Engineer III, Google Meet Web Experiences',
+  /**
+   * NEUTRAL by default. Naming the employer is company-specific copy and it
+   * now lives in src/data/companies.ts, resolved from a ?c= code. This string
+   * is what a reader sees with no code, and it has to be true for any send.
+   */
+  target: 'Senior Software Engineer, Web Development',
+  targetAlt: 'Senior Front-End Engineer, Web',
   place: 'Uppsala, Sweden',
   commute: '38 minutes from the Stockholm office. No relocation, no visa sponsorship needed.',
   // Assembled in script rather than sitting in the markup, so a public repo
@@ -246,7 +251,9 @@ export const chat: ChatMessage[] = [
   {
     from: 'nam',
     at: '09:00',
-    text: "Hi. I'm Nam, I live in Uppsala, and I want the Web Development role on Google Meet in Stockholm.",
+    // Neutral. The company-specific opener is companies.ts -> pitch.opener,
+    // substituted in panels.ts when a code is present.
+    text: "Hi. I'm Nam, I live in Uppsala, and I am applying for a senior web development role.",
   },
   {
     from: 'nam',

@@ -8,6 +8,7 @@ import { spinner } from './ui/icons.js';
 import { prefersReducedMotion } from './a11y.js';
 import { Quests, konami } from './achievements.js';
 import { openDev } from './ui/devopen.js';
+import { codeFromUrl, pitchFor } from './data/companies.js';
 import { loadReadyGate, readyCardOpens } from './prefs.js';
 
 const root = must('#app');
@@ -27,10 +28,24 @@ const boot: State = {
   ...(route.engTab ? { engTab: route.engTab } : {}),
   ...(route.spotlight ? { spotlight: route.spotlight } : {}),
   ...(route.plain ? { plain: true } : {}),
-  ...(route.built ? { built: true } : {}),
+  // From ?c=, not the hash: the hash is the router and a code has to survive
+  // moving between screens. See src/data/companies.ts.
+  company: codeFromUrl(location.search),
 };
 
 const store = new Store(boot);
+
+/*
+ * The tab title and the link preview name the employer only when a code does.
+ * index.html ships the Google version as its static default, which is right for
+ * the send it was built for and wrong for every other one.
+ */
+{
+  const p = pitchFor(boot.company);
+  document.title = p.named
+    ? `Meet Nam Nguyen — ${p.role}, ${p.employer} ${p.place ? '· ' + p.place : ''}`.trim()
+    : `Nam Nguyen — ${p.role}`;
+}
 
 window.matchMedia('(prefers-reduced-motion: reduce)').addEventListener('change', (e) => {
   store.dispatch({ t: 'reducedMotion', on: e.matches });
@@ -109,7 +124,7 @@ const EMBEDDED = ((): boolean => { try { return window.self !== window.top; } ca
 
 function render(): void {
   const s = store.get();
-  let key = s.built ? 'built' : s.plain ? 'plain' : s.screen;
+  let key = s.plain ? 'plain' : s.screen;
   if (EMBEDDED && (key === 'call' || key === 'lobby' || key === 'calls')) key = 'plain';
 
   // The call view owns the GL context, the caption timer and the panel state, so
@@ -165,9 +180,9 @@ function render(): void {
     return;
   }
 
-  if (key === 'built') {
-    mount(key, () => import('./ui/built.js')
-      .then((m) => m.renderBuilt(() => store.dispatch({ t: 'built', on: false }), EMBEDDED)));
+  if (key === 'company') {
+    mount(key, () => import('./ui/company.js')
+      .then((m) => m.renderCompany(() => store.dispatch({ t: 'screen', screen: 'home' }))));
     return;
   }
 
