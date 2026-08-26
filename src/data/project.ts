@@ -281,6 +281,8 @@ export const tasks: Task[] = [
 
   { id: 'T25', col: 'review', size: 'S', tag: 'call', title: 'BUG: speed menu was white on white', note: 'Fixed. color:#fff for the closed control inherited into the <option> elements, and the platform draws the popup on its own surface \u2014 which this document forces light. color-scheme:dark plus explicit option colours.' },
 
+  { id: 'T26', col: 'review', size: 'S', tag: 'call', title: 'BUG: the call auto-ended and dumped you home', note: 'Fixed. The ended screen\u2019s 60s auto-return kept ticking after you left it, then dispatched screen: home from under you mid-call. Its guard listened for hashchange, and main.ts navigates with pushState \u2014 which never fires it, so the guard had never once run. Each visit armed another one. The tick now checks it is still the ended screen.' },
+
   /* Flagged rather than done. Still true as of this build. */
   { id: 'T24', col: 'backlog', size: 'M', tag: 'specs', title: 'Initial payload is halfway to the ceiling', note: '24.7 kB of a 50 kB gate, up from 18.2. Still green, and the growth is real, but two deferred chunks are 17 kB and 19 kB and deserve a splitting pass before it becomes urgent.' },
 ];

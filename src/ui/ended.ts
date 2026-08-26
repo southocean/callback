@@ -121,8 +121,43 @@ export function renderEnded(store: Store, quests: Quests): HTMLElement {
       svg.appendChild(c);
     }
     ring.insertBefore(svg as unknown as Node, ring.firstChild);
+    /**
+     * THE COUNTDOWN MUST NOT OUTLIVE THE SCREEN.
+     *
+     * Nam: "sometimes the call auto ends on me and im back on home screen."
+     * This was it, and the cause was a guard that had never once run:
+     *
+     *     const stop = () => window.clearInterval(tick);
+     *     window.addEventListener('hashchange', stop, { once: true });
+     *
+     * The store subscriber in main.ts writes the URL with history.pushState, and
+     * pushState DOES NOT fire hashchange. So nothing ever cleared the interval.
+     * Leave a call, press Rejoin, and sixty seconds later the orphaned countdown
+     * reached zero and dispatched screen: 'home' from underneath you -- while you
+     * were in the middle of the call. "Sometimes" because it only happened when
+     * you had passed through the ended screen in the last minute.
+     *
+     * Worse, each visit armed another independent timer, so a QA session that
+     * ended and rejoined a few times had several of them queued up, firing at
+     * what felt like random moments.
+     *
+     * Reproduced by overriding window.setInterval to run at 20ms instead of
+     * 1000ms -- same code path, faster clock -- which turned a sixty-second wait
+     * into a second and a half:
+     *   on #ended [ended] -> Rejoin -> #call [call] -> (countdown) -> #home [home]
+     *
+     * The fix is to stop relying on an event and let the tick check whether it is
+     * still wanted. Two questions, because either alone leaves a gap: the node is
+     * detached once main.ts swaps the screen, and the state has moved on even in
+     * the window before that. A tick that is no longer the ended screen clears
+     * itself and dispatches nothing.
+     */
     let left = SECONDS;
     const tick = window.setInterval(() => {
+      if (!timer.isConnected || store.get().screen !== 'ended') {
+        window.clearInterval(tick);
+        return;
+      }
       left -= 1;
       numEl.textContent = String(Math.max(0, left));
       if (left <= 0) {
@@ -130,9 +165,6 @@ export function renderEnded(store: Store, quests: Quests): HTMLElement {
         store.dispatch({ t: 'screen', screen: 'home' });
       }
     }, 1000);
-    // If the screen goes away for any other reason, the timer goes with it.
-    const stop = (): void => window.clearInterval(tick);
-    window.addEventListener('hashchange', stop, { once: true });
   }
 
   return h(
