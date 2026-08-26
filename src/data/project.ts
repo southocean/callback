@@ -283,6 +283,9 @@ export const tasks: Task[] = [
 
   { id: 'T26', col: 'review', size: 'S', tag: 'call', title: 'BUG: the call auto-ended and dumped you home', note: 'Fixed. The ended screen\u2019s 60s auto-return kept ticking after you left it, then dispatched screen: home from under you mid-call. Its guard listened for hashchange, and main.ts navigates with pushState \u2014 which never fires it, so the guard had never once run. Each visit armed another one. The tick now checks it is still the ended screen.' },
 
+  { id: 'T27', col: 'review', size: 'S', tag: 'specs', title: 'BUG: Meeting tools was wider than every other panel', note: 'Fixed. It forced 460px against the 360 every other drawer uses, so it sat over the video tile and the right edge moved depending on which drawer you opened. The width existed because eight tabs would not fit; they wrap to two rows now and there are five, so the cause went with it.' },
+  { id: 'T28', col: 'review', size: 'S', tag: 'specs', title: 'Meeting tools: two tabs removed, five reordered', note: 'Removed. The requirement map is already in About and the mock Chrome opens the real posting — three copies is how they start disagreeing. Design went on Nam’s call: not relevant here, and some mystery is worth keeping.' },
+
   /* Flagged rather than done. Still true as of this build. */
   { id: 'T24', col: 'backlog', size: 'M', tag: 'specs', title: 'Initial payload is halfway to the ceiling', note: '24.7 kB of a 50 kB gate, up from 18.2. Still green, and the growth is real, but two deferred chunks are 17 kB and 19 kB and deserve a splitting pass before it becomes urgent.' },
 ];

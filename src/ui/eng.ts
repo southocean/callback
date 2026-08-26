@@ -8,11 +8,8 @@
 // One door, so the story in the tiles stays a story (review U7).
 
 import { h, clear } from '../dom.js';
-import { sym } from './icons.js';
 import type { Store, EngTab, FxPreset, NetProfile } from '../state.js';
-import { requirementMap } from '../data/cv.js';
 import { surfaces, geometry, barLayout, flow, method, stats } from '../data/spec.js';
-import { sections as designSections, gaps } from '../data/design.js';
 import type { Group } from '../data/spec.js';
 import { audit } from '../a11y.js';
 import { run, total } from '../test/suite.js';
@@ -37,15 +34,27 @@ export function buildMeta(): Build {
   }
 }
 
+/**
+ * Five tabs, in Nam's order.
+ *
+ * Two are gone because they were answering questions asked better elsewhere:
+ *
+ *   The job ad  -- the requirement map already has a home in the About panel,
+ *                  and the mock Chrome opens the posting itself. Three copies of
+ *                  one thing is how they start disagreeing.
+ *   Design      -- Nam: "its not super relevant to this and I also want to keep
+ *                  some mystery." His call; the measurements it published are
+ *                  still in data/design.ts for anyone who goes looking.
+ *
+ * Effects is still here and probably should not be -- see the note on fxView.
+ */
 const TABS: { id: EngTab; label: string }[] = [
   { id: 'spec', label: 'Spec' },
-  { id: 'design', label: 'Design' },
-  { id: 'tests', label: 'Tests' },
-  { id: 'a11y', label: 'Accessibility' },
   { id: 'perf', label: 'Size & perf' },
-  { id: 'fx', label: 'Effects' },
+  { id: 'a11y', label: 'Accessibility' },
   { id: 'net', label: 'Network' },
-  { id: 'reqs', label: 'The job ad' },
+  { id: 'tests', label: 'Tests' },
+  { id: 'fx', label: 'Effects' },
 ];
 
 export function renderEng(
@@ -91,13 +100,11 @@ function view(
 ): HTMLElement {
   switch (tab) {
     case 'spec': return specView(quests);
-    case 'design': return designView();
     case 'tests': return testsView(store);
     case 'a11y': return a11yView();
     case 'perf': return perfView(fxStats);
     case 'fx': return fxView(store);
     case 'net': return netView(store);
-    case 'reqs': return reqsView();
   }
 }
 
@@ -469,64 +476,4 @@ function netView(store: Store): HTMLElement {
     ),
   );
   return out;
-}
-
-// ---------------------------------------------------------------- the ad -----
-
-function reqsView(): HTMLElement {
-  return h(
-    'div',
-    {},
-    h(
-      'p',
-      { class: 'pnote' },
-      'The Stockholm senior posting, requirement by requirement, with what answers it. One row is amber, because ' +
-        'claiming it would have been the easiest thing on the page to fake.',
-    ),
-    ...requirementMap.map((r) =>
-      h(
-        'div',
-        { class: 'req' },
-        h('span', { class: `req-mark ${r.strength === 'honest' ? 'honest' : ''}` }, r.strength === 'honest' ? '~' : '✓'),
-        h('span', { class: 'req-req' }, r.req),
-        h('span', { class: 'req-ev' }, r.evidence),
-      ),
-    ),
-    h('p', { class: 'pnote', style: 'margin-top:16px' }, sym('info', 16), ' Nothing here is a metric that could not be sourced from the CV itself.'),
-  );
-}
-
-// ----------------------------------------------------------------- design ----
-//
-// The contract for adding anything new to this page. If a future element follows
-// these rules it sits inside the clone; if it does not, it sticks out — which is
-// the only reason to write them down.
-
-function designView(): HTMLElement {
-  return h(
-    'div',
-    {},
-    h(
-      'p',
-      { class: 'pnote' },
-      'Compiled from the crawl: the rules that make a new element look like it belongs. Motion curves, state-layer ' +
-        'opacities, the type scale, radius-by-role, the breakpoints, and the accessibility floor — all read off the ' +
-        'live product rather than inferred from a screenshot.',
-    ),
-    ...designSections.flatMap((sec) => [
-      h('div', { class: 'shead' }, sec.title),
-      h('p', { class: 'pnote' }, sec.lead),
-      ...sec.rules.map((r) =>
-        h(
-          'div',
-          { class: 'rule' },
-          h('div', { class: 'rule-top' }, h('b', {}, r.name), h('code', {}, r.value)),
-          h('div', { class: 'rule-note' }, r.note),
-        ),
-      ),
-    ]),
-    h('div', { class: 'shead' }, gaps.title),
-    h('p', { class: 'pnote' }, gaps.lead),
-    h('ol', { class: 'actions-list' }, ...gaps.items.map((g) => h('li', {}, g))),
-  );
 }

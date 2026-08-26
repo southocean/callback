@@ -585,7 +585,10 @@ export function renderCall(store: Store, quests: Quests, deps: CallDeps): HTMLEl
     const panel = h(
       'aside',
       {
-        class: `side ${s.panel === 'tools' ? 'wide' : ''}`,
+        // is-tools, not wide. Nam: "All right panels should have the same size,
+        // only different in content." The class is a styling hook for the tabbed
+        // body, and it no longer says anything about width.
+        class: `side ${s.panel === 'tools' ? 'is-tools' : ''}`,
         role: 'region',
         'aria-label': title,
         tabindex: '-1',
@@ -628,7 +631,7 @@ export function renderCall(store: Store, quests: Quests, deps: CallDeps): HTMLEl
     // Already open? Keep the element and swap its contents, so nothing animates.
     if (mounted) {
       mounted.kind = s.panel;
-      mounted.el.className = `side ${s.panel === 'tools' ? 'wide' : ''}`;
+      mounted.el.className = `side ${s.panel === 'tools' ? 'is-tools' : ''}`;
       mounted.el.setAttribute('aria-label', title);
       const h2 = mounted.head.querySelector('h2');
       if (h2) h2.textContent = title;
