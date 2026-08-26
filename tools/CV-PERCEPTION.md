@@ -7,7 +7,11 @@ Same tagging discipline as the other docs in this folder: **[measured]** means
 read off the running build, **[inference]** is reasoning that has not been
 verified, **[open]** is a question only Nam can answer. Keep them separate.
 
-Status: first pass, 2026-08-26. Nothing here has been actioned yet.
+Status: first pass 2026-08-26; non-technical-reader pass merged in the same day.
+Nothing here has been actioned yet — Nam authorises the fixes himself.
+
+Section 4b ranks the subset that matters for a **non-technical first reader**,
+which is a different order from the main list.
 
 ---
 
@@ -193,6 +197,120 @@ built".
 "Meet Nam Nguyen" **[measured]**, which in a link preview reinforces "this is a
 meeting invitation" rather than "this is a CV".
 
+### R11 — The browser asks for the camera · **severity: highest for a non-technical reader** · **[measured]**
+
+`src/main.ts:60` calls `navigator.mediaDevices.getUserMedia`. To the build's
+credit this is genuinely opt-in — `src/state.ts:165` records that it is only ever
+reached from an explicit click, and `devlog.ts` logs the decision that every word
+of content stays reachable with zero permissions granted.
+
+That is the right architecture and it does not solve the perception problem,
+because what frightens a non-technical reader is not the code. It is **Chrome's
+own permission bar appearing on a page dressed as Google Meet**. That is the
+exact shape of the scam they have been warned about: a page imitating a known
+brand, asking for the camera.
+
+An engineer reads that prompt as "it wants to show me my own webcam in the mock".
+A recruiter reads it as the moment the trap closes. This is the single fastest
+route from *confused* to *reporting the link*.
+
+### R12 — The emulated browser is a phishing pattern · **severity: high** · **[measured]**
+
+New since this register was first written. The screen-share surface now contains
+an emulated Windows desktop holding an emulated Chrome: tab strip, back, forward,
+reload, and an address bar that accepts a typed URL and loads the real site in an
+iframe. `frame-src` was widened to `'self' https:` to allow it.
+
+A browser drawn inside a web page, with a working URL bar, is one of the
+canonical phishing patterns — the picture-in-picture attack. It is also the most
+technically impressive thing in the build. Both are true at once.
+
+**[inference]** For a non-technical reader the risk is not that they are fooled
+into typing a password. It is simpler and worse: they lose track of which browser
+is real, so they stop trusting the surface they are standing on.
+
+### R13 — The disclaimer says something the build contradicts · **severity: high** · **[measured]**
+
+`src/data/cv.ts`, `meta.disclaimer`, rendered in the `#plain` footer:
+
+> "Not affiliated with, endorsed by, or built at Google. **No Google marks are
+> used.** This is an homage to a product I like…"
+
+The build uses `meet-mark.png` and renders the literal words "Google" and "Meet"
+in the static shell (`src/index.html:129-131`), which is R4's own measurement.
+The disclaimer is therefore false on its face.
+
+A disclaimer that is itself untrue is worse than no disclaimer. It is read at
+exactly the moment a cautious reader is deciding whether to trust the page, and a
+reader who notices the contradiction has been handed a reason to distrust
+everything else on it. The fix is one clause, not a redesign: drop the sentence,
+or replace it with something true — *"Google marks are used to identify the
+product this imitates."*
+
+### R14 — The plain CV has never had a pass of its own · **severity: high** · **[measured]**
+
+Nam: "we've never worked on that resume." Confirmed on reading it. It is
+structurally sound and the content is real, but for the audience that will
+actually be sent it, four things are wrong:
+
+- **Work authorisation is missing from the document entirely.** `profile.commute`
+  holds *"38 minutes from the Stockholm office. No relocation, no visa
+  sponsorship needed"* — the single most decisive fact for a recruiter screening
+  an international applicant — and `src/ui/plain.ts` never renders it. It is in
+  the data and nowhere on the page.
+- **The footer is written for engineers.** The last thing a reader sees is
+  *"Build {commit} · 17.3 kB of JavaScript, gzipped · no dependencies · no
+  third-party requests"*. On a CV that is noise, and it is the closing
+  impression. It is also `no-print`, so the printed PDF loses the disclaimer with
+  it.
+- **No date anywhere.** A CV with no "updated August 2026" invites the reader to
+  guess — and the landing page currently guesses for them, wrongly, at March
+  (R5).
+- **`skills.volume` measures lines of code.** *"Over 10,000 lines: C, C++, C#,
+  Dart, Java, JavaScript"* reads as padding to a non-technical reader and as a
+  weak proxy to a technical one. **[inference]** Years or shipped systems would
+  carry the same claim with more weight.
+
+Two smaller ones: the "Against this job ad" section marks partial matches with a
+bare `~` that is never explained, and there is no line telling a reader who
+landed on `#plain` directly what the interactive version is or why it exists.
+
+### R15 — The mock OS has outgrown self-explanation · **severity: medium** · **[measured]**
+
+The recent run added Task View, desktop icons, marquee selection, a context menu,
+window snapping, a system tray, quick settings, a calendar, Start search and a
+power menu, on top of the file explorer, the browser and the media player.
+
+For an engineer this is the payoff. For a non-technical reader it is a Windows
+desktop that has appeared inside a video call inside a CV, with no statement of
+why. **[inference]** The reaction is probably not suspicion but *"I have gone
+somewhere I was not meant to go"* — and the instinct that follows is Back, which
+leaves the artefact entirely. There is currently no route from inside the share
+back to the CV except stopping the share.
+
+### R16 — Jargon, and controls that look broken · **severity: medium** · **[measured]**
+
+Two small things with the same effect: the reader concludes this is not for them,
+or that it is faulty.
+
+The visible labels, and what they cost:
+
+| Visible now | Reads as | Plain version |
+|---|---|---|
+| `Side quests 8/17` | a score the reader is being graded on | *Things to find: 8 of 17* |
+| `Spec` | a filing category | *What it copies* |
+| `Size & perf` | two abbreviations | *Speed & size* |
+| `Network` | a settings screen | *Bad-connection demo* |
+| `Meeting tools` | Meet's own label, but it holds the engineering panel | mismatch worth renaming |
+| `Presentation audio`, `Enter a code or link` | Meet's own chrome | **leave** — fidelity wins, no trust gained by changing |
+
+And the dead controls: the build's rule is that a control which cannot act is not
+rendered as one, and disabled rows take no hover. Correct rule, correctly
+followed. The gap is that a non-technical reader does not read *absence of hover*
+as *deliberately inert* — they read a greyed row as a click that failed.
+**[inference]** Two or three of those and the conclusion is "this is broken",
+which is the worst available reading of a project whose entire argument is rigour.
+
 ---
 
 ## 3. What is working — do not dilute any of this
@@ -203,10 +321,12 @@ Listed because the mitigations below must not cost any of it.
   PDF and a portfolio site. This is neither, and it is memorable. The friend
   incident is evidence it clears the "is this actually good" bar, not just the
   "is this different" bar.
-- **The `#plain` document is excellent** **[measured]** — a real CV: name,
-  headline, contact, a summary that connects real-time multiplayer to video
-  calling, dated roles with substantive bullets. It just needs to be easier to
-  reach.
+- **The `#plain` document is structurally sound** **[measured]** — a real CV:
+  name, headline, contact, a summary that connects real-time multiplayer to video
+  calling, dated roles with substantive bullets. *Revised 2026-08-26: the earlier
+  "excellent" was too generous. It has never had an editorial pass of its own and
+  it omits work authorisation entirely — see R14. The bones are right; the
+  content needs a read.*
 - **"How this was built" is the artefact an interviewer wants.** Scope,
   timeline, method, stack, sourced from the build log.
 - **The engineering receipts are real and rare**: zero runtime dependencies,
@@ -296,6 +416,50 @@ explaining it? Does it survive an ATS text extraction? (R8)
 `og:title` → "Nam Nguyen — Senior Front-End Engineer"; description leads with CV,
 not with the call. The link preview is often seen *before* the click. (R10)
 
+### Tier 1b — the non-technical reader (added 2026-08-26)
+
+**M16 · Our sentence before the browser's permission prompt** · ~30m
+The click that triggers `getUserMedia` shows our own copy first, with **Skip** as
+a visually equal option:
+
+> Your camera stays on your device. Nothing is uploaded, recorded or sent — this
+> page has no server. You can skip this and see everything anyway.
+
+Converts the scariest moment in the funnel into the most reassuring one, because
+it is the only place the page can prove it knows what the reader is afraid of.
+(R11)
+
+**M17 · Fix the disclaimer** · ~5m
+Drop "No Google marks are used" or replace it with something true. A false
+disclaimer is worse than none. (R13, R4)
+
+**M18 · Put work authorisation on the CV** · ~10m
+Render `profile.commute` in the `#plain` header block. It is already in the data.
+For an international applicant it is the most decisive line on the page. (R14)
+
+**M19 · Label the imitation surfaces** · ~20m
+A small permanent tag in the emulated Chrome's own chrome — *"Not a real browser ·
+part of this CV"* — and the same on the emulated desktop. Keeps the trick,
+removes the ambiguity. Anything that convincingly copies a **trust boundary**
+needs to say so on its face. (R12, R15)
+
+**M20 · A caption and a way out on the share surface** · ~45m
+One line saying what the desktop is and that nothing is installed, plus a visible
+route back to the CV from inside it. (R15)
+
+**M21 · Rewrite the `#plain` footer for a human** · ~20m
+Move the build receipts behind a link; keep a date, the disclaimer and one line
+explaining the interactive version. Make the disclaimer printable. (R14)
+
+**M22 · Tooltips on the disabled rows** · ~30m
+*"Not part of this CV — the real Meet does this."* Converts three apparent bugs
+into three demonstrations of fidelity. (R16)
+
+**M23 · Rename the four worst labels** · ~30m
+`Side quests` → *Things to find*, `Spec` → *What it copies*, `Size & perf` →
+*Speed & size*, `Network` → *Bad-connection demo*. Leave Meet's own chrome
+untouched. (R16)
+
 ### Tier 3 — if there is time
 
 **M13 · A 20-second screen recording** to paste into the email itself. Solves
@@ -309,6 +473,48 @@ is a differentiator and currently nobody can see it.
 **M15 · Make the scare discoverable rather than front-loaded** — move it off the
 raise-hand control onto something a curious second-pass visitor finds. Keeps the
 personality, removes the ambush. (R6)
+
+---
+
+## 4b. Ranked for the non-technical first reader
+
+The whole list above is ordered by leverage for *getting an interview*. This one
+is ordered by a narrower question: **how fast does each item push a
+non-technical reader toward thinking this is a scam, or toward giving up?**
+Awaiting Nam's authorisation; nothing here is actioned.
+
+| # | Fix | What it stops | Effort | Status |
+|---|-----|---------------|--------|--------|
+| 1 | **M2** — static shell stops saying "Google Meet" | the first paint claiming to *be* Google | 15m | **[measured]** still live at `src/index.html:129-131` |
+| 2 | **M17** — fix the false disclaimer | a reader catching the page in a lie | 5m | new |
+| 3 | **M3** — delete "since March" | a false, damaging staleness claim | 5m | **[measured]** still live in two files |
+| 4 | **M16** — our sentence before the camera prompt | the single scariest moment in the funnel | 30m | new |
+| 5 | **M18** — work authorisation on the CV | a recruiter screening out an international applicant | 10m | new |
+| 6 | **M1** — framing strip on first visit | *what am I even looking at* | 1h | from Tier 1 |
+| 7 | **M19** — label the emulated browser and desktop | a live phishing pattern | 20m | new |
+| 8 | **M7** — send recruiters `#plain` directly | the decision, entirely | free | from Tier 2 |
+| 9 | **M21** — rewrite the `#plain` footer | build receipts as the closing impression | 20m | new |
+| 10 | **M20** — caption and a way out of the share | the reader feeling lost and pressing Back | 45m | new |
+| 11 | **M22** — tooltips on disabled rows | three apparent bugs | 30m | new |
+| 12 | **M23** — rename the four worst labels | the panel reading as internal tooling | 30m | new |
+
+Rows 1–5 are seventy minutes of work between them and remove every item on this
+list that can produce a *negative* outcome rather than a neutral one.
+
+### The tension, stated
+
+Four of these — M16, M19, M20 and M1 — put text between the reader and the
+illusion, and each makes the trick slightly less startling.
+
+**[inference]** That trade is worth taking, and not for politeness. The
+illusion's value is entirely in the reader *realising* it was an illusion. Someone
+who never works out what they were looking at has not been impressed — they have
+been confused, and confusion converts to nothing. The label is not a tax on the
+trick; it is what lets the trick land.
+
+The line to hold: labels belong on surfaces that imitate a **trust boundary** — a
+browser, an operating system, a permission prompt. Meet's own chrome keeps its
+own words. Changing `Presentation audio` costs fidelity and buys no trust.
 
 ---
 
@@ -367,3 +573,5 @@ touching a pixel of the thing that makes it worth sending.
 | Date | Decision | By |
 |------|----------|-----|
 | 2026-08-26 | Doc created. Nothing actioned yet. | — |
+| 2026-08-26 | Merged the non-technical-reader pass in: R11–R16, M16–M23, section 4b. Nam authorises fixes himself; nothing actioned. | — |
+| 2026-08-26 | Revised the "`#plain` is excellent" line — it has never had an editorial pass and omits work authorisation. | — |
