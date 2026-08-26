@@ -6660,25 +6660,51 @@ body.tray-open.cc-on .react-clip { bottom: calc(var(--botbar) + 268px); }
 .mp-bar.is-muted .mp-vol::-moz-range-thumb { border-color: #6b6f76; background-color: #d0d3d7; }
 .mp-bar.is-muted .mp-mute { color: #ffb4a9; }
 
+/* Nam: "Speed selector is light theme so I cant read them at all!"
+ *
+ * Exactly what it looks like, and it was mine: the closed control needs white
+ * text on a dark bar, `color: #fff` inherits into the <option> elements, and the
+ * OPTIONS are drawn by the platform on its own popup surface -- which this
+ * document forces light with <meta name="color-scheme" content="only light">.
+ * White on white.
+ *
+ * Two fixes, because either alone can be defeated. color-scheme: dark asks the
+ * platform to draw the popup dark, which Chrome honours per element even under a
+ * document-level "only light"; the explicit option colours mean that if a
+ * platform ignores that, the text is still legible against whatever it draws. */
 .mp-speed {
   flex: 0 0 auto; height: 24px; padding: 0 4px; border-radius: 4px;
   background-color: rgba(255, 255, 255, .14); border: 0; color: #fff;
   font: 400 11.5px/1 var(--font); cursor: pointer;
+  color-scheme: dark;
 }
+.mp-speed option { background-color: #2b2b2b; color: #fff; }
 .mp-speed:focus-visible { outline: 2px solid #4cc2ff; outline-offset: 2px; }
 .mp-time { flex: 0 0 auto; font: 400 11.5px/1 var(--font); color: #b9bcc0; font-variant-numeric: tabular-nums; }
 
-/* --- the hover overlay --------------------------------------------------- */
+/* --- the overlay -------------------------------------------------------- */
+/* Nam: "we need to pull back on the media control, cause its obstructing the
+ * actual video content. what I want: no controller while the video is playing,
+ * and the play button while the video is paused."
+ *
+ * So there is no :hover rule here at all. Hover-revealed chrome is right for a
+ * player you sit in front of for an hour; over an eight-second clip it means the
+ * picture is covered for most of the time anyone is looking at it, because the
+ * pointer is already there -- they just clicked to get in.
+ *
+ * Two states show it: paused, and the one second after a press.
+ */
 .mp-center {
   position: absolute; inset: 0; z-index: 3;
-  display: flex; align-items: center; justify-content: center; gap: 20px;
-  opacity: 0; pointer-events: none; transition: opacity .2s ease;
+  display: flex; align-items: center; justify-content: center;
+  opacity: 0; pointer-events: none;
+  /* Out is slower than in. Appearing has to be immediate to feel like a
+     response; leaving is the picture being handed back, and a hard cut there
+     reads as a glitch. */
+  transition: opacity .32s ease;
 }
-/* Paused shows it whatever the pointer is doing: a paused player with no visible
-   play button is the one state where hover-only chrome genuinely looks broken. */
-.mp-stage:hover .mp-center,
-.mp-stage:focus-visible .mp-center,
-.mp-stage.is-paused .mp-center { opacity: 1; }
+.mp-stage.is-paused .mp-center,
+.mp-stage.is-linger .mp-center { opacity: 1; transition-duration: .08s; }
 
 .mp-c {
   position: relative; pointer-events: none;
@@ -6691,19 +6717,17 @@ body.tray-open.cc-on .react-clip { bottom: calc(var(--botbar) + 268px); }
   transform: scale(.82);
   transition: transform .2s cubic-bezier(.2, .9, .3, 1.3), background-color .15s linear;
 }
-.mp-stage:hover .mp-c,
-.mp-stage:focus-visible .mp-c,
-.mp-stage.is-paused .mp-c { pointer-events: auto; transform: none; }
+.mp-stage.is-paused .mp-c,
+.mp-stage.is-linger .mp-c { pointer-events: auto; transform: none; }
 .mp-c:hover { background-color: rgba(48, 48, 58, .7); transform: scale(1.12); }
 .mp-c:active { transform: scale(.92); }
 .mp-c:focus-visible { outline: 2px solid #4cc2ff; outline-offset: 2px; }
 .mp-c-big { width: 62px; height: 62px; }
 .mp-cg { width: 27px; height: 27px; display: block; }
-.mp-c-n { font-size: 9px; font-weight: 700; opacity: .92; }
-.mp-c-i { display: inline-block; font-size: 17px; }
 
-/* The skip discs answer when pressed: a ring leaves the edge and the arrow turns
-   a full circle. Restartable from script -- see anim() in share.ts. */
+/* The press answers: a ring leaves the edge. Restartable from script -- see
+   anim() in share.ts. This is the "click effect" the linger exists to protect;
+   removing the overlay on the press frame cancelled it halfway. */
 .mp-c.is-ring::after {
   content: ''; position: absolute; inset: 0; border-radius: 50%;
   animation: mp-ring .45s ease-out;
@@ -6712,9 +6736,6 @@ body.tray-open.cc-on .react-clip { bottom: calc(var(--botbar) + 268px); }
   from { box-shadow: 0 0 0 0 rgba(255, 255, 255, .5); }
   to   { box-shadow: 0 0 0 13px rgba(255, 255, 255, 0); }
 }
-.mp-c-fwd.is-spin .mp-c-i { animation: mp-spin .5s cubic-bezier(.3, .1, .2, 1); }
-.mp-c-back.is-spin .mp-c-i { animation: mp-spin .5s cubic-bezier(.3, .1, .2, 1) reverse; }
-@keyframes mp-spin { from { transform: rotate(0); } to { transform: rotate(360deg); } }
 
 /* --- keyboard feedback --------------------------------------------------- */
 /* A seek by key changes a number in the corner and nothing else, so the glyph
@@ -6735,7 +6756,7 @@ body.tray-open.cc-on .react-clip { bottom: calc(var(--botbar) + 268px); }
 
 @media (prefers-reduced-motion: reduce) {
   .mp-center, .mp-c { transition: none; }
-  .mp-c.is-ring::after, .mp-c-fwd.is-spin .mp-c-i, .mp-c-back.is-spin .mp-c-i { animation: none; }
+  .mp-c.is-ring::after { animation: none; }
   /* The flash still has to appear and go away, or a keyboard seek says nothing
      at all. It stops travelling; it does not stop existing. */
   .mp-flash.is-on { animation: mp-flash-still .6s linear; }

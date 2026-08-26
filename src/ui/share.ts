@@ -1863,24 +1863,30 @@ function playerWindow(id: string): { body: HTMLElement; select: (id: string) => 
   const fsMark = svg('0 0 24 24', '<path d="M4 9V4h5v2H6v3zm11-5h5v5h-2V6h-3zM4 15h2v3h3v2H4zm14 3v-3h2v5h-5v-2z" fill="currentColor"/>', 'mp-g');
   const fsBtn = h('button', { class: 'mp-btn', type: 'button', 'aria-label': 'Full screen' }, fsMark) as HTMLButtonElement;
 
-  /* --- the hover overlay ------------------------------------------------- */
-  /* MENVAULT's .fl-center: three glass discs, hidden until the pointer is over
-     the picture, scaled up on arrival so they feel like they landed. */
-  const skipBack = h('button', {
-    class: 'mp-c mp-c-back', type: 'button', 'aria-label': 'Back 10 seconds',
-  }, h('span', { class: 'mp-c-i', 'aria-hidden': 'true' }, '\u27f2'),
-     h('span', { class: 'mp-c-n', 'aria-hidden': 'true' }, '10')) as HTMLButtonElement;
-
+  /* --- the overlay -------------------------------------------------------- */
+  /**
+   * ONE BUTTON, AND ONLY WHEN IT IS WANTED.
+   *
+   * The first version was MENVAULT's three-disc set on hover, and Nam was right
+   * to cut it: "we need to pull back on the media control, cause its obstructing
+   * the actual video content ... The fastforward and backward are not needed
+   * since these vids are so short."
+   *
+   * They are 8 to 30 seconds. A ten-second skip on an eight-second clip is a
+   * control whose two options are "the start" and "the end", and MENVAULT's
+   * library is feature films. Ported behaviour has to survive the change of
+   * subject, and this did not.
+   *
+   * What is left: nothing at all while it plays, a play button while it is
+   * paused, and a one-second linger after you press play so the press has time
+   * to be seen before the picture goes clean. Keyboard seeking stays -- it costs
+   * no pixels.
+   */
   const bigMark = svg('0 0 24 24', '<path d="M8 5v14l11-7z" fill="currentColor"/>', 'mp-cg');
   const bigPause = svg('0 0 24 24', '<path d="M6 5h4v14H6zm8 0h4v14h-4z" fill="currentColor"/>', 'mp-cg');
   const bigBtn = h('button', {
     class: 'mp-c mp-c-big', type: 'button', 'aria-label': 'Play',
   }, bigMark) as HTMLButtonElement;
-
-  const skipFwd = h('button', {
-    class: 'mp-c mp-c-fwd', type: 'button', 'aria-label': 'Forward 10 seconds',
-  }, h('span', { class: 'mp-c-n', 'aria-hidden': 'true' }, '10'),
-     h('span', { class: 'mp-c-i', 'aria-hidden': 'true' }, '\u27f3')) as HTMLButtonElement;
 
   /* Keyboard feedback. A seek by key changes a number in the corner and nothing
      else, so MENVAULT flashed a glyph in the middle; without it the key feels
@@ -1918,10 +1924,32 @@ function playerWindow(id: string): { body: HTMLElement; select: (id: string) => 
     clear(bigBtn);
     bigBtn.appendChild(video.paused ? bigMark : bigPause);
     bigBtn.setAttribute('aria-label', video.paused ? 'Play' : 'Pause');
-    // Paused shows the overlay whatever the pointer is doing: a paused player
-    // with no visible play button is the one state where hover-only chrome
-    // genuinely looks broken.
     stage.classList.toggle('is-paused', video.paused);
+  };
+
+  /**
+   * The linger. Nam: "When the video is paused and we click play button, the
+   * button lingers for about 1s, so we get all the click effect and so on, then
+   * it disappears, for a clean video view."
+   *
+   * Without it the overlay is removed on the same frame as the press, which
+   * cancels the ring mid-animation and makes the button look like it flickered
+   * rather than like it was pressed. So the press keeps the overlay alive for a
+   * second, and the class going away is what starts the fade.
+   *
+   * Pausing clears the timer: the paused state shows the overlay on its own, and
+   * a stale timer would then remove a class the paused rule needs, which is the
+   * kind of race that shows up once in fifty presses and never in QA.
+   */
+  let lingerTimer = 0;
+  const linger = (): void => {
+    window.clearTimeout(lingerTimer);
+    stage.classList.add('is-linger');
+    lingerTimer = window.setTimeout(() => stage.classList.remove('is-linger'), 1000);
+  };
+  const clearLinger = (): void => {
+    window.clearTimeout(lingerTimer);
+    stage.classList.remove('is-linger');
   };
 
   /**
@@ -1964,11 +1992,9 @@ function playerWindow(id: string): { body: HTMLElement; select: (id: string) => 
 
   playBtn.addEventListener('click', toggle);
   bigBtn.addEventListener('click', () => { toggle(); anim(bigBtn, 'is-ring'); });
-  skipBack.addEventListener('click', () => { nudge(-10); anim(skipBack, 'is-ring'); anim(skipBack, 'is-spin'); });
-  skipFwd.addEventListener('click', () => { nudge(10); anim(skipFwd, 'is-ring'); anim(skipFwd, 'is-spin'); });
 
-  video.addEventListener('play', syncPlay);
-  video.addEventListener('pause', syncPlay);
+  video.addEventListener('play', () => { syncPlay(); linger(); });
+  video.addEventListener('pause', () => { syncPlay(); clearLinger(); });
   video.addEventListener('timeupdate', syncTime);
   video.addEventListener('loadedmetadata', syncTime);
   video.addEventListener('ended', syncPlay);
@@ -2015,7 +2041,7 @@ function playerWindow(id: string): { body: HTMLElement; select: (id: string) => 
   const stage = h('div', {
     class: 'mp-stage', role: 'button', tabindex: '0',
     'aria-label': 'Play or pause. Arrow keys seek.',
-  }, video, h('div', { class: 'mp-center' }, skipBack, bigBtn, skipFwd), flash) as HTMLElement;
+  }, video, h('div', { class: 'mp-center' }, bigBtn), flash) as HTMLElement;
 
   stage.addEventListener('click', (e) => {
     // A press on a disc is that disc's, not the stage's.

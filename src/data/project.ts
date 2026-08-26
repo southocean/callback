@@ -270,7 +270,7 @@ export const tasks: Task[] = [
 
   /* From Nam's egg QA, 26 August. Five requests and three bugs, all shipped and
      measured in a browser; sitting in review because he has not seen them yet. */
-  { id: 'T16', col: 'review', size: 'L', tag: 'call', title: 'Real video controls on the shared player', note: 'Shipped. Clicking the picture pauses it, which it did not. Skip \u00b110s on a hover overlay, speed, fullscreen, and the keyboard set \u2014 ported from MENVAULT rather than re-derived.' },
+  { id: 'T16', col: 'review', size: 'L', tag: 'call', title: 'Real video controls on the shared player', note: 'Shipped, then cut back on Nam\u2019s note that it obstructed the picture. Clicking the video pauses it; the overlay is now one play button, shown only while paused and for a second after a press. Skip \u00b110s is gone \u2014 the clips are 8 to 30 seconds, so it only ever meant the start or the end.' },
   { id: 'T17', col: 'review', size: 'M', tag: 'call', title: 'The player stops lying about sound', note: 'Shipped. It autoplayed muted while showing an unmuted speaker at full volume. The UI now reads off the video, and the visitor\u2019s choice is remembered \u2014 a mute the browser imposed is not saved as one they chose.' },
   { id: 'T18', col: 'review', size: 'S', tag: 'call', title: 'No share sheet over an easter egg', note: 'Shipped. The meeting\u2019s-ready card exists to say the link is copyable; parked over a 30-second clip it is just clutter. Suppressed in the reducer, so a future route into an egg cannot forget.' },
   { id: 'T19', col: 'review', size: 'S', tag: 'call', title: 'Egg player opens centred', note: 'Shipped. It was inheriting the cascade meant for windows you opened yourself and landing in the corner behind Explorer.' },
@@ -278,6 +278,8 @@ export const tasks: Task[] = [
   { id: 'T21', col: 'review', size: 'S', tag: 'call', title: 'BUG: countdown ring animated in two frames', note: 'Fixed. A unitless custom property inside calc() stays a <number>, so the keyframe never resolved to a length and Chrome fell back to DISCRETE animation \u2014 full arc for 30s, then none. Nam: "either fully blue or fully white".' },
   { id: 'T22', col: 'review', size: 'S', tag: 'specs', title: 'BUG: three CSS rules had lost their selectors', note: 'Fixed. A prune deleted the selector lines and left the declarations, which a browser silently discards. deadcss cannot see it \u2014 with the selector gone there is no name left to report \u2014 so css-structure.mjs now gates on it.' },
   { id: 'T23', col: 'review', size: 'S', tag: 'specs', title: 'BUG: local video could not seek', note: 'Fixed. serve.mjs answered Range with a plain chunked 200, so Chrome reported the media unseekable and every skip snapped to zero. Production was never affected, which is exactly why it wasted a QA pass.' },
+
+  { id: 'T25', col: 'review', size: 'S', tag: 'call', title: 'BUG: speed menu was white on white', note: 'Fixed. color:#fff for the closed control inherited into the <option> elements, and the platform draws the popup on its own surface \u2014 which this document forces light. color-scheme:dark plus explicit option colours.' },
 
   /* Flagged rather than done. Still true as of this build. */
   { id: 'T24', col: 'backlog', size: 'M', tag: 'specs', title: 'Initial payload is halfway to the ceiling', note: '24.7 kB of a 50 kB gate, up from 18.2. Still green, and the growth is real, but two deferred chunks are 17 kB and 19 kB and deserve a splitting pass before it becomes urgent.' },
