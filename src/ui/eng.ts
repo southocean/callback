@@ -8,13 +8,12 @@
 // One door, so the story in the tiles stays a story (review U7).
 
 import { h, clear } from '../dom.js';
-import type { Store, EngTab, FxPreset, NetProfile } from '../state.js';
+import type { Store, EngTab, NetProfile } from '../state.js';
 import { surfaces, geometry, barLayout, flow, method, stats } from '../data/spec.js';
 import type { Group } from '../data/spec.js';
 import { audit } from '../a11y.js';
 import { run, total } from '../test/suite.js';
 import type { Result } from '../test/suite.js';
-import { presetInfo } from '../fx/pipeline.js';
 import { sample, policy, profiles } from '../net/degrade.js';
 import type { Profile } from '../net/degrade.js';
 import type { Quests } from '../achievements.js';
@@ -54,12 +53,10 @@ const TABS: { id: EngTab; label: string }[] = [
   { id: 'a11y', label: 'Accessibility' },
   { id: 'net', label: 'Network' },
   { id: 'tests', label: 'Tests' },
-  { id: 'fx', label: 'Effects' },
 ];
 
 export function renderEng(
   store: Store,
-  fxStats: () => { fps: number; ms: number; backend: string },
   quests: Quests,
 ): HTMLElement {
   const body = h('div', {});
@@ -84,7 +81,7 @@ export function renderEng(
       b.setAttribute('aria-selected', b.getAttribute('data-tab') === tab ? 'true' : 'false');
     }
     clear(body);
-    body.appendChild(view(tab, store, fxStats, quests));
+    body.appendChild(view(tab, store, quests));
   };
 
   draw();
@@ -95,15 +92,13 @@ export function renderEng(
 function view(
   tab: EngTab,
   store: Store,
-  fxStats: () => { fps: number; ms: number; backend: string },
   quests: Quests,
 ): HTMLElement {
   switch (tab) {
     case 'spec': return specView(quests);
     case 'tests': return testsView(store);
     case 'a11y': return a11yView();
-    case 'perf': return perfView(fxStats);
-    case 'fx': return fxView(store);
+    case 'perf': return perfView();
     case 'net': return netView(store);
   }
 }
@@ -309,10 +304,9 @@ function stat(k: string, v: string, cls: string): HTMLElement {
   return h('div', { class: 'stat' }, h('div', { class: 'stat-k' }, k), h('div', { class: `stat-v ${cls}` }, v));
 }
 
-function perfView(fxStats: () => { fps: number; ms: number; backend: string }): HTMLElement {
+function perfView(): HTMLElement {
   const b = buildMeta();
   const pct = b.budget ? ((b.jsGzip / b.budget) * 100).toFixed(1) : '0';
-  const fx = fxStats();
   return h(
     'div',
     {},
@@ -339,8 +333,6 @@ function perfView(fxStats: () => { fps: number; ms: number; backend: string }): 
       h('dt', {}, 'View layer'), h('dd', {}, 'a 20-line h() helper'),
       h('dt', {}, 'Icons'), h('dd', {}, `${stats.icons} inline SVG paths`),
       h('dt', {}, 'Build'), h('dd', {}, b.commit),
-      h('dt', {}, 'Effects backend'), h('dd', {}, fx.backend),
-      h('dt', {}, 'Effects frame rate'), h('dd', {}, fx.fps ? `${fx.fps} fps · ${fx.ms} ms/frame` : 'idle'),
     ),
     h(
       'p',
@@ -353,66 +345,6 @@ function perfView(fxStats: () => { fps: number; ms: number; backend: string }): 
     ),
   );
 }
-
-// ---------------------------------------------------------------- effects ----
-
-function fxView(store: Store): HTMLElement {
-  const info = h('div', {});
-  const presets: FxPreset[] = ['off', 'soften', 'normalise', 'edges', 'kaleido'];
-  const grid = h(
-    'div',
-    { class: 'fx-grid' },
-    ...presets.map((p) =>
-      h('button', {
-        class: 'fx-btn', type: 'button', 'aria-pressed': 'false', 'data-fx': p,
-        onclick: () => store.dispatch({ t: 'fx', preset: p }),
-      }, presetInfo[p].name),
-    ),
-  );
-
-  const draw = (): void => {
-    const s = store.get();
-    for (const b of grid.querySelectorAll('button')) {
-      b.setAttribute('aria-pressed', b.getAttribute('data-fx') === s.fx ? 'true' : 'false');
-    }
-    const meta = presetInfo[s.fx];
-    clear(info);
-    info.append(
-      h('p', { class: 'fx-blurb' }, meta.blurb),
-      meta.warn ? h('p', { class: 'fx-warn' }, meta.warn) : h('span', {}),
-      s.fx !== 'off' && !s.cameraOn
-        ? h('p', { class: 'fx-warn' }, 'This needs a video source, so it will ask for your camera. Nothing is uploaded — there is no server to upload to.')
-        : h('span', {}),
-    );
-  };
-  draw();
-  store.subscribe(draw);
-
-  return h(
-    'div',
-    {},
-    h(
-      'p',
-      { class: 'pnote' },
-      'A real-time WebGL filter chain over live video — the same class of feature this product ships under ' +
-        '"Backgrounds and effects". Applied to ',
-      h('b', {}, 'your'),
-      ' camera, not mine.',
-    ),
-    grid,
-    info,
-    h(
-      'p',
-      { class: 'pnote', style: 'margin-top:16px' },
-      'Constraints, because the constraints are the interesting part: capped at 30 fps, low-power GL context, ' +
-        'suspends the instant the tab is hidden, falls back to CSS filters where WebGL is missing, and switches off ' +
-        'with ',
-      h('kbd', {}, 'E'),
-      '. Under reduced-motion the kaleidoscope is unavailable rather than merely slower.',
-    ),
-  );
-}
-
 // ---------------------------------------------------------------- network ----
 
 function netView(store: Store): HTMLElement {

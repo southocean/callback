@@ -18,8 +18,9 @@ import type { Store } from '../state.js';
 import { profile } from '../data/cv.js';
 
 export interface Media {
-  video: HTMLVideoElement;
-  toggleCamera: () => Promise<void>;
+  // No longer a promise: nothing asynchronous happens behind it. The camera
+  // control is cosmetic and this page never calls getUserMedia.
+  toggleCamera: () => void;
   cameraOn: () => boolean;
 }
 
@@ -232,7 +233,7 @@ export function renderLobby(store: Store, media: Media): HTMLElement {
     { class: 'preview' },
     h('span', { class: 'preview-name' }, profile.name),
     moreBtn,
-    media.video,
+    // No video element: there is no stream to put in one.
     avatar,
     unavail,
     notice,
@@ -260,7 +261,11 @@ export function renderLobby(store: Store, media: Media): HTMLElement {
     avatar.style.display = preCam ? 'none' : '';
     stage.classList.toggle('cam-on', preCam);
     promoteChips(preCam);
-    if (preCam) showNotice('Camera unavailable', 'Close other apps that might be using your camera', 0);
+    // Was "Camera unavailable / Close other apps that might be using your
+    // camera", which was true while a real getUserMedia was being attempted and
+    // failing. Nothing is attempted now, so that would be a page inventing a
+    // problem with your machine. It says what is actually true instead.
+    if (preCam) showNotice('Preview only', 'This page never asks for your camera', 0);
     else hideNotice();
   };
   camCtl.btn.addEventListener('click', () => {
@@ -268,7 +273,7 @@ export function renderLobby(store: Store, media: Media): HTMLElement {
     paintCam();
     // Best effort, and genuinely optional: if a real camera turns up, the tile
     // shows it. If not, the unavailable state we already painted is the truth.
-    void Promise.resolve(media.toggleCamera()).catch(() => undefined);
+    media.toggleCamera();
   });
 
 

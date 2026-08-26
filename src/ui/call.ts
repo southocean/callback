@@ -26,8 +26,6 @@ import { profile, pitch, roles, transcript, referralBlurb, SITE } from '../data/
 import { renderChat, renderPeople, renderPresent, renderAbout } from './panels.js';
 import { renderOffClock } from './offclock.js';
 import { renderEng } from './eng.js';
-import { Pipeline } from '../fx/pipeline.js';
-import type { FxStats } from '../fx/pipeline.js';
 import { rovingGrid, trapFocus, announcer } from '../a11y.js';
 import { sample } from '../net/degrade.js';
 import type { Profile } from '../net/degrade.js';
@@ -47,15 +45,13 @@ const TITLES: Record<Exclude<Panel, 'none'>, string> = {
 const CODE = 'nam-cv-2026';
 
 export interface CallDeps {
-  video: HTMLVideoElement;
-  canvas: HTMLCanvasElement;
-  toggleCamera: () => Promise<void>;
+  // No video and no canvas. The camera control is cosmetic and there is no
+  // stream or effects pipeline left to hand a surface to.
+  toggleCamera: () => void;
 }
 
 export function renderCall(store: Store, quests: Quests, deps: CallDeps): HTMLElement {
-  let fxStats: FxStats = { fps: 0, ms: 0, backend: 'none' };
   let releaseTrap: (() => void) | null = null;
-  const pipeline = new Pipeline(deps.video, deps.canvas, (s) => { fxStats = s; });
 
   // ------------------------------------------------------------- host tile --
 
@@ -63,8 +59,6 @@ export function renderCall(store: Store, quests: Quests, deps: CallDeps): HTMLEl
   const hostTile = h(
     'div',
     { class: 'vtile host' },
-    deps.video,
-    deps.canvas,
     h(
       'div',
       { class: 'vtile-pitch' },
@@ -73,14 +67,11 @@ export function renderCall(store: Store, quests: Quests, deps: CallDeps): HTMLEl
       pitch,
     ),
     h('span', { class: 'vtile-label' }, profile.name, h('span', { style: 'color:var(--on-dark2);font-weight:400' }, '· presenting')),
+    // Backgrounds and effects is gone with the pipeline it opened. Reframe
+    // stays: it goes to People, which still exists.
     h(
       'div',
       { class: 'vtile-fx' },
-      h(
-        'button',
-        { type: 'button', 'aria-label': 'Backgrounds and effects', onclick: () => store.dispatch({ t: 'engTab', tab: 'fx' }) },
-        sym('auto_awesome', 22),
-      ),
       h(
         'button',
         { type: 'button', 'aria-label': 'Reframe', onclick: () => store.dispatch({ t: 'panel', panel: 'people' }) },
@@ -580,7 +571,7 @@ export function renderCall(store: Store, quests: Quests, deps: CallDeps): HTMLEl
       : s.panel === 'present' ? h('div', { class: 'side-body' }, renderPresent(store))
       : s.panel === 'offclock' ? h('div', { class: 'side-body' }, renderOffClock())
       : s.panel === 'host' ? h('div', { class: 'side-body' }, hostControls(store))
-      : renderEng(store, () => fxStats, quests);
+      : renderEng(store, quests);
 
     const panel = h(
       'aside',
@@ -735,7 +726,7 @@ export function renderCall(store: Store, quests: Quests, deps: CallDeps): HTMLEl
     return { on, icon: on ? 'mic' : 'mic_off', label: on ? 'Turn off microphone' : 'Turn on microphone' };
   });
 
-  const camBtn = cbtn('Turn on camera', 'videocam_off', 'w48', () => { void deps.toggleCamera(); }, () => {
+  const camBtn = cbtn('Turn on camera', 'videocam_off', 'w48', () => { deps.toggleCamera(); }, () => {
     const on = store.get().cameraOn;
     return { on, icon: on ? 'videocam' : 'videocam_off', label: on ? 'Turn off camera' : 'Turn on camera' };
   });
@@ -1567,7 +1558,9 @@ export function renderCall(store: Store, quests: Quests, deps: CallDeps): HTMLEl
      * app is the useful lie; the alternative is a dead row.
      */
     if (id === 'plain' || id === 'cv') { store.dispatch({ t: 'plain', on: true }); return; }
-    if (id === 'spec') { store.dispatch({ t: 'engTab', tab: 'fx' }); return; }
+    // Was routing to the effects tab, which no longer exists -- and 'spec' was
+    // always the honest destination for a file called spec anyway.
+    if (id === 'spec') { store.dispatch({ t: 'engTab', tab: 'spec' }); return; }
     if (id === 'hobby' || id.startsWith('vid:')) { store.dispatch({ t: 'panel', panel: 'offclock' }); return; }
     if (id === 'jobad') { store.dispatch({ t: 'panel', panel: 'about' }); return; }
     store.dispatch({ t: 'plain', on: true });
@@ -1846,8 +1839,9 @@ export function renderCall(store: Store, quests: Quests, deps: CallDeps): HTMLEl
     ccBtn.classList.toggle('active', s.captionsOn);
     presentBtn.classList.toggle('active', s.panel === 'present');
 
-    deps.video.style.display = s.cameraOn ? 'block' : 'none';
-    (hostTile.querySelector('.vtile-pitch') as HTMLElement).style.opacity = s.cameraOn ? '0' : '1';
+    /* The camera is cosmetic, so the tile does not change. There is no stream to
+       show and fading the name plate out would leave an empty box -- the button
+       un-crossing IS the whole of the state. */
     hostTile.classList.toggle('speaking-ring', s.captionsOn);
 
     cc.style.display = s.captionsOn ? '' : 'none';
@@ -1855,8 +1849,6 @@ export function renderCall(store: Store, quests: Quests, deps: CallDeps): HTMLEl
     document.body.classList.toggle('cc-on', s.captionsOn);
     if (s.captionsOn) startCC(); else stopCC();
 
-    pipeline.set(s.fx, s.reducedMotion);
-    if (s.fx !== 'off') quests.unlock('fx');
     if (s.chaos) quests.unlock('chaos');
     drawReady();
   };

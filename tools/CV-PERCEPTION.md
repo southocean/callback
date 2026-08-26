@@ -197,7 +197,29 @@ built".
 "Meet Nam Nguyen" **[measured]**, which in a link preview reinforces "this is a
 meeting invitation" rather than "this is a CV".
 
-### R11 — The browser asks for the camera · **severity: highest for a non-technical reader** · **[measured]**
+### R11 — The browser asks for the camera · **CLOSED 2026-08-26** · ~~highest for a non-technical reader~~
+
+> **Resolved, and more completely than M16 proposed.** `getUserMedia` is gone from
+> the build. The camera control is cosmetic: it flips its own state and its own
+> icon, and there is no device, no stream and no prompt behind it. Verified by
+> wrapping `navigator.mediaDevices.getUserMedia` and toggling the control both
+> ways — never called.
+>
+> M16 was going to put our sentence *in front of* the browser's bar. Nam went
+> further and removed the bar: "enabling camera should be just cosmetic, not
+> triggering the browser permission for camera." Better answer. A sentence
+> arriving before an alarm still leaves the reader with an alarm; no alarm leaves
+> them with nothing to talk themselves out of.
+>
+> It cost the WebGL effects pipeline, which had nothing left to run on —
+> `src/fx/pipeline.ts` is deleted, along with the Effects tab, the fx side quest
+> and the `e` shortcut. That was a real loss and a deliberate one: the pipeline
+> was the most technically substantial thing in the build, and it was also
+> invisible to almost everyone, because it only ever appeared for a reader who
+> granted the permission this risk exists to avoid. Recoverable from git if it
+> ever wants a home that does not need a camera.
+
+The original finding, kept for the record:
 
 `src/main.ts:60` calls `navigator.mediaDevices.getUserMedia`. To the build's
 credit this is genuinely opt-in — `src/state.ts:165` records that it is only ever
@@ -418,7 +440,7 @@ not with the call. The link preview is often seen *before* the click. (R10)
 
 ### Tier 1b — the non-technical reader (added 2026-08-26)
 
-**M16 · Our sentence before the browser's permission prompt** · ~30m
+**M16 · ~~Our sentence before the browser's permission prompt~~ · SUPERSEDED** — there is no prompt any more. See R11.
 The click that triggers `getUserMedia` shows our own copy first, with **Skip** as
 a visually equal option:
 
@@ -488,7 +510,7 @@ Awaiting Nam's authorisation; nothing here is actioned.
 | 1 | **M2** — static shell stops saying "Google Meet" | the first paint claiming to *be* Google | 15m | **[measured]** still live at `src/index.html:129-131` |
 | 2 | **M17** — fix the false disclaimer | a reader catching the page in a lie | 5m | new |
 | 3 | **M3** — delete "since March" | a false, damaging staleness claim | 5m | **[measured]** still live in two files |
-| 4 | **M16** — our sentence before the camera prompt | the single scariest moment in the funnel | 30m | new |
+| 4 | ~~**M16** — our sentence before the camera prompt~~ | ~~the single scariest moment in the funnel~~ | — | **DONE** — went further, the prompt is gone (R11) |
 | 5 | **M18** — work authorisation on the CV | a recruiter screening out an international applicant | 10m | new |
 | 6 | **M1** — framing strip on first visit | *what am I even looking at* | 1h | from Tier 1 |
 | 7 | **M19** — label the emulated browser and desktop | a live phishing pattern | 20m | new |
@@ -503,7 +525,7 @@ list that can produce a *negative* outcome rather than a neutral one.
 
 ### The tension, stated
 
-Four of these — M16, M19, M20 and M1 — put text between the reader and the
+Three of these — M19, M20 and M1 — put text between the reader and the
 illusion, and each makes the trick slightly less startling.
 
 **[inference]** That trade is worth taking, and not for politeness. The
@@ -574,6 +596,7 @@ touching a pixel of the thing that makes it worth sending.
 |------|----------|-----|
 | 2026-08-26 | Doc created. Nothing actioned yet. | — |
 | 2026-08-26 | Merged the non-technical-reader pass in: R11–R16, M16–M23, section 4b. Nam authorises fixes himself; nothing actioned. | — |
+| 2026-08-26 | **R11 closed.** getUserMedia removed; the camera control is cosmetic and the page never asks. Cost the WebGL effects pipeline, which had nothing left to run on. Nam's call, and the right one. | Nam |
 | 2026-08-26 | Revised the "`#plain` is excellent" line — it has never had an editorial pass and omits work authorisation. | — |
 | 2026-08-26 | Onboarding pass shipped. Status changes below. | Nam |
 

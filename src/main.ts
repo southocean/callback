@@ -52,37 +52,32 @@ window.matchMedia('(prefers-reduced-motion: reduce)').addEventListener('change',
 });
 
 // ---------------------------------------------------------------- media -----
-// One video element and one GL canvas, shared between the lobby preview and the
-// call tile, so a camera granted in the green room is still live after you join
-// — which is how the real product behaves.
 
-const video = h('video', { muted: true, playsinline: true, autoplay: true }) as HTMLVideoElement;
-video.muted = true;
-const canvas = h('canvas', { 'aria-hidden': 'true' }) as HTMLCanvasElement;
-canvas.hidden = true;
-let stream: MediaStream | null = null;
-
-async function toggleCamera(): Promise<void> {
-  if (store.get().cameraOn) {
-    stream?.getTracks().forEach((t) => t.stop());
-    stream = null;
-    video.srcObject = null;
-    store.dispatch({ t: 'camera', on: false });
-    return;
-  }
-  try {
-    // Only ever called from an explicit click (reviews T8, R3).
-    stream = await navigator.mediaDevices.getUserMedia({ video: { width: 960 }, audio: false });
-    video.srcObject = stream;
-    await video.play().catch(() => undefined);
-    store.dispatch({ t: 'camera', on: true });
-    quests.unlock('camera');
-  } catch {
-    store.dispatch({ t: 'camera', on: false });
-  }
+/**
+ * THIS PAGE NEVER ASKS FOR YOUR CAMERA.
+ *
+ * It used to. getUserMedia was called from an explicit click and nothing was
+ * ever uploaded, and both of those are true and neither is the point. Nam:
+ * "I think we had a criticism earlier regarding triggering the camera, I think
+ * we should not do that, enabling camera should be just cosmetic."
+ *
+ * The criticism is R11 in tools/CV-PERCEPTION.md. What frightens a
+ * non-technical reader is not what we do with the stream, it is Chrome's own
+ * permission bar appearing on a page dressed as Google Meet -- which is the
+ * exact shape of the scam they were warned about. Our reassurance arrives after
+ * the browser's alarm, and by then it reads as the alarm being talked out of.
+ *
+ * So the control is now a control over its own appearance. The state flips, the
+ * button un-crosses, and there is no device, no stream and no prompt anywhere
+ * behind it. That also removed the effects pipeline, which had nothing left to
+ * run on -- see the deletion of src/fx/.
+ */
+function toggleCamera(): void {
+  store.dispatch({ t: 'camera', on: !store.get().cameraOn });
+  quests.unlock('camera');
 }
 
-const media = { video, toggleCamera, cameraOn: () => store.get().cameraOn };
+const media = { toggleCamera, cameraOn: () => store.get().cameraOn };
 
 // ---------------------------------------------------------------- render ----
 
@@ -220,7 +215,7 @@ function render(): void {
     mount(key, () => import('./ui/ended.js').then((m) => m.renderEnded(store, quests)));
   } else {
     mount(key, () => import('./ui/call.js')
-      .then((m) => m.renderCall(store, quests, { video, canvas, toggleCamera })));
+      .then((m) => m.renderCall(store, quests, { toggleCamera })));
   }
 }
 
@@ -315,7 +310,6 @@ window.addEventListener('keydown', (e) => {
 
   switch (e.key.toLowerCase()) {
     case 'c': store.dispatch({ t: 'captions', on: !s.captionsOn }); break;
-    case 'e': store.dispatch({ t: 'fx', preset: 'off' }); break;
     case 'm': store.dispatch({ t: 'panel', panel: 'chat' }); break;
     case 'p': store.dispatch({ t: 'panel', panel: 'people' }); break;
     case 's': store.dispatch({ t: 'panel', panel: 'present' }); break;

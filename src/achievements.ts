@@ -30,9 +30,10 @@ export const quests: Quest[] = [
   { id: 'spec', name: 'Read the spec', hint: 'See what this interface was measured from.' },
   { id: 'tests', name: 'Trust but verify', hint: 'Run the test suite.' },
   { id: 'chaos', name: 'Break it on purpose', hint: 'Make the tests fail.' },
-  { id: 'fx', name: 'Hall of mirrors', hint: 'Turn on an effect.' },
   { id: 'collapse', name: 'Hotel wifi', hint: 'Push the network until it gives up.' },
-  { id: 'camera', name: 'Show your face', hint: 'Turn your camera on. It never leaves your machine.' },
+  // Was "It never leaves your machine", which was true of a real stream. There
+  // is no stream now: the control is cosmetic and the page never asks.
+  { id: 'camera', name: 'Show your face', hint: 'Press the camera button. Nothing is captured — it never asks.' },
   { id: 'hand', name: 'Raise your hand', hint: 'You know the button.' },
   { id: 'react', name: 'React to something', hint: 'Send a reaction.' },
   { id: 'a11y', name: 'No mouse required', hint: 'Move through the tiles with the arrow keys.' },

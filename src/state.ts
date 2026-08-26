@@ -13,8 +13,7 @@ export type Screen = 'home' | 'calls' | 'lobby' | 'call' | 'ended' | 'company';
 // Nam: "This is a panel for the people in the meeting." Right — so the career
 // timeline moved out to its own, reached from the participant-count popup.
 export type Panel = 'none' | 'chat' | 'people' | 'present' | 'offclock' | 'tools' | 'host' | 'about';
-export type EngTab = 'spec' | 'tests' | 'a11y' | 'perf' | 'fx' | 'net';
-export type FxPreset = 'off' | 'soften' | 'normalise' | 'edges' | 'kaleido';
+export type EngTab = 'spec' | 'tests' | 'a11y' | 'perf' | 'net';
 export type NetProfile = 'good' | 'shaky' | 'hotel' | 'collapse';
 
 export interface State {
@@ -48,7 +47,6 @@ export interface State {
   minimized: boolean;
   /** Meet's "Your meeting's ready" card, dismissible. */
   readyCard: boolean;
-  fx: FxPreset;
   net: NetProfile;
   /** Injects a deliberate fault so the test suite can be seen failing. */
   chaos: boolean;
@@ -92,7 +90,6 @@ export type Action =
   | { t: 'presAudio'; on: boolean }
   | { t: 'minimize'; on: boolean }
   | { t: 'readyCard'; on: boolean }
-  | { t: 'fx'; preset: FxPreset }
   | { t: 'net'; profile: NetProfile }
   | { t: 'chaos'; on: boolean }
   | { t: 'reducedMotion'; on: boolean }
@@ -114,7 +111,6 @@ export const initial: State = {
   presAudio: true,
   minimized: false,
   readyCard: true,
-  fx: 'off',
   net: 'good',
   chaos: false,
   reducedMotion: false,
@@ -129,14 +125,14 @@ export function reduce(s: State, a: Action): State {
       // Leaving the call must release hardware wherever you go next.
       return a.screen === 'call'
         ? { ...s, screen: 'call' }
-        : { ...s, screen: a.screen, panel: 'none', cameraOn: false, micOn: false, fx: 'off' };
+        : { ...s, screen: a.screen, panel: 'none', cameraOn: false, micOn: false };
 
     case 'join':
       return { ...s, screen: 'call' };
 
     case 'leave': {
       // A CV has no business keeping a webcam warm after you walk away from it.
-      const off = { panel: 'none' as const, cameraOn: false, micOn: false, fx: 'off' as const, handRaised: false, pinned: false, minimized: false, eggPlay: null };
+      const off = { panel: 'none' as const, cameraOn: false, micOn: false, handRaised: false, pinned: false, minimized: false, eggPlay: null };
       /*
        * Leaving an EGG call goes straight home, skipping the ended screen.
        *
@@ -171,7 +167,18 @@ export function reduce(s: State, a: Action): State {
     case 'camera':
       // Effects need pixels. Turning the camera off turns them off too, rather
       // than leaving a GL loop running over a dead texture (review T5).
-      return { ...s, cameraOn: a.on, fx: a.on ? s.fx : 'off' };
+      /*
+       * COSMETIC. Nam: "enabling camera should be just cosmetic, not triggering
+       * the browser permission for camera."
+       *
+       * So this flag now changes one button's appearance and nothing else. No
+       * getUserMedia, no stream, no effects pipeline hanging off it -- see
+       * main.ts. The reason is the one in tools/CV-PERCEPTION.md as R11: a Chrome
+       * permission bar appearing on a page dressed as Google Meet is the exact
+       * shape of the scam a non-technical reader was warned about, and it is the
+       * scariest moment in the whole funnel.
+       */
+      return { ...s, cameraOn: a.on };
 
     case 'mic':
       return { ...s, micOn: a.on };
@@ -212,13 +219,6 @@ export function reduce(s: State, a: Action): State {
     case 'readyCard':
       return { ...s, readyCard: a.on };
 
-    case 'fx':
-      // Effects are meaningless without a video source, so asking for one
-      // implies asking for the camera. Nothing is enabled behind your back:
-      // getUserMedia is only ever called from an explicit click.
-      if (a.preset !== 'off' && !s.cameraOn) return { ...s, fx: a.preset, cameraOn: true };
-      return { ...s, fx: a.preset };
-
     case 'net':
       return { ...s, net: a.profile };
 
@@ -226,8 +226,7 @@ export function reduce(s: State, a: Action): State {
       return { ...s, chaos: a.on };
 
     case 'reducedMotion':
-      // Reduced motion is not a suggestion. It kills the effects outright.
-      return { ...s, reducedMotion: a.on, fx: a.on ? 'off' : s.fx };
+      return { ...s, reducedMotion: a.on };
 
     case 'plain':
       return { ...s, plain: a.on };
@@ -284,7 +283,7 @@ const panels: Panel[] = ['chat', 'people', 'present', 'offclock', 'tools', 'host
 // Also the set of #tools/<tab> hashes that resolve. A removed tab's hash now
 // falls through to the panel's default rather than selecting a tab that is not
 // in the strip.
-const engTabs: EngTab[] = ['spec', 'tests', 'a11y', 'perf', 'fx', 'net'];
+const engTabs: EngTab[] = ['spec', 'tests', 'a11y', 'perf', 'net'];
 
 export function parseRoute(hash: string): Route {
   const raw = hash.replace(/^#\/?/, '');

@@ -877,13 +877,11 @@ code { font: 400 12px/1.4 ui-monospace, Consolas, monospace; color: var(--dark-b
 .stat-v.warn { color: #f8d99a; }
 .stat-v.bad { color: #f2b8b5; }
 
-.fx-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); gap: 8px; margin-bottom: 14px; }
 .fx-btn {
   font: 500 13px/1 var(--font); text-align: left; border: 1px solid var(--dark-line);
   background: transparent; color: var(--on-dark3); border-radius: 8px; padding: 11px 12px; cursor: pointer;
 }
 .fx-btn[aria-pressed="true"] { border-color: var(--dark-blue); background: rgba(168,199,250,.16); color: #fff; }
-.fx-blurb { font: 400 12.5px/18px var(--font); color: var(--on-dark2); margin-top: 12px; }
 .fx-warn {
   font: 400 12.5px/18px var(--font); color: #f8d99a; border-left: 3px solid #f8d99a;
   padding-left: 11px; margin-top: 12px;

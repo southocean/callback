@@ -12,7 +12,6 @@
 import { reduce, initial, parseRoute, routeToHash, layoutTimeline, overlaps, captionAt, clamp01, clock } from '../state.js';
 import type { State } from '../state.js';
 import { sample, policy, rng, profiles } from '../net/degrade.js';
-import { cssFallback } from '../fx/pipeline.js';
 import {
   readyCardOpens, afterReadyShown, afterReadyClosed, READY_MUTE_MS, READY_MAX_SHOWS,
 } from '../prefs.js';
@@ -74,26 +73,6 @@ suite('state / reducer', () => {
   test('switching panels does not close the drawer', () => {
     const chat = reduce(initial, { t: 'panel', panel: 'chat' });
     eq(reduce(chat, { t: 'panel', panel: 'people' }).panel, 'people');
-  });
-
-  test('turning the camera off turns the effects off', () => {
-    // No GL loop left running over a dead texture (review T5).
-    let s: State = reduce(initial, { t: 'camera', on: true });
-    s = reduce(s, { t: 'fx', preset: 'kaleido' });
-    eq(s.fx, 'kaleido');
-    s = reduce(s, { t: 'camera', on: false });
-    eq(s.fx, 'off', 'effects survived the camera being switched off');
-  });
-
-  test('asking for an effect implies asking for the camera', () => {
-    const s = reduce(initial, { t: 'fx', preset: 'soften' });
-    ok(s.cameraOn, 'effects were enabled with no video source');
-  });
-
-  test('reduced motion kills effects outright', () => {
-    let s: State = reduce(initial, { t: 'fx', preset: 'kaleido' });
-    s = reduce(s, { t: 'reducedMotion', on: true });
-    eq(s.fx, 'off', 'reduced motion did not stop the effects');
   });
 
   test('leaving the call releases camera and mic', () => {
@@ -304,12 +283,6 @@ suite('effects', () => {
     eq(clamp01(Infinity), 1);
   });
 
-  test('every preset has a CSS fallback for machines without WebGL', () => {
-    for (const p of ['soften', 'normalise', 'edges', 'kaleido'] as const) {
-      ok(cssFallback(p).length > 0, `${p} has no fallback`);
-    }
-    eq(cssFallback('off'), '');
-  });
 });
 
 suite("the meeting's ready card", () => {
