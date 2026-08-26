@@ -1,43 +1,44 @@
-// Project specs.
+// Project specifications.
 //
-// Was the dev portal: Konami-only, framed as "nothing here is part of the CV".
-// Nam has promoted it. It is now the one place the build is documented, opened by
-// the Settings button on the home screen, by the Settings row in the call's
-// overflow menu, and still by the Konami code -- so it is reachable at any point
-// in the CV rather than only from the front door.
+// Was the dev portal: Konami-only, dark, full-bleed, framed as "nothing here is
+// part of the CV". Nam has promoted it to a real destination, so it now behaves
+// like one:
 //
-// That promotion is why the Overview tab exists: the standalone #built route was
-// a second answer to the same question, and two documents that can disagree are
-// worse than one. buildDoc() now renders here and in the mock Chrome, and
-// nowhere else.
+//   - It opens as a CARD over the client, the same shape as the CV overlay, so
+//     the two read as one family rather than as two unrelated screens.
+//   - Its palette follows the surface that opened it. Light from the home
+//     screen, dark from inside the call, decided by the caller and applied once
+//     on the root so every tab inherits it. Previously each tab carried its own
+//     dark colours and only the ones I had touched flipped.
+//   - The tabs are the project's own record: what it is, when it was made, how
+//     the work ran, who has reviewed it, and what is still open.
 //
-// It holds the working notes: how the interface was planned, the adversarial
-// design reviews it went through, what QA found after it was built, and the
-// argument about how the story should be told. All of it is framed as a review
-// of *the artifact*, because that is what it is.
-//
-// Loaded as a separate chunk via dynamic import, so it costs nothing at all
-// unless somebody finds it.
+// Reachable from the Settings button on the home screen, the Settings row in the
+// call's overflow menu, and the Konami code.
 
 import { h, clear } from '../dom.js';
 import { sym } from './icons.js';
-import { findings, phases, roleNames, actionItems, qa, stats } from '../data/devlog.js';
-import { original, pros, cons, shipped, alternative, verdict } from '../data/story.js';
-import { method } from '../data/spec.js';
+import { trapFocus } from '../a11y.js';
 import { buildDoc } from './built.js';
+import {
+  commitsPerDay, milestones, phasesOfWork, personas, reviews,
+  columns, tasks, type Task, type Column,
+} from '../data/project.js';
+import { START } from '../data/cv.js';
 
-type Tab = 'overview' | 'process' | 'reviews' | 'qa' | 'story' | 'open';
+type Tab = 'overview' | 'timeline' | 'process' | 'reviews' | 'board';
 
 const TABS: { id: Tab; label: string }[] = [
   { id: 'overview', label: 'Overview' },
+  { id: 'timeline', label: 'Timeline' },
   { id: 'process', label: 'Process' },
   { id: 'reviews', label: 'Design reviews' },
-  { id: 'qa', label: 'QA findings' },
-  { id: 'story', label: 'Storyline' },
-  { id: 'open', label: 'Left open' },
+  { id: 'board', label: 'Kanban board' },
 ];
 
-export function openDevPortal(reducedMotion: boolean): void {
+export type PortalMode = 'light' | 'dark';
+
+export function openDevPortal(reducedMotion: boolean, mode: PortalMode = 'light'): void {
   if (document.getElementById('devportal')) return;
 
   let tab: Tab = 'overview';
@@ -45,54 +46,44 @@ export function openDevPortal(reducedMotion: boolean): void {
 
   const tabs = h(
     'div',
-    { class: 'dp-tabs', role: 'tablist', 'aria-label': 'Project specs' },
+    { class: 'dp-tabs', role: 'tablist', 'aria-label': 'Project specifications' },
     ...TABS.map((t) =>
-      h(
-        'button',
-        {
-          class: 'dp-tab', type: 'button', role: 'tab', 'aria-selected': 'false', 'data-t': t.id,
-          onclick: () => { tab = t.id; draw(); },
-        },
-        t.label,
-      ),
+      h('button', {
+        class: 'dp-tab', type: 'button', role: 'tab', 'aria-selected': 'false', 'data-t': t.id,
+        onclick: () => { tab = t.id; draw(); },
+      }, t.label),
     ),
   );
 
+  let release: (() => void) | null = null;
   const close = (): void => {
-    document.removeEventListener('keydown', onKey);
+    release?.();
     portal.remove();
   };
 
-  const onKey = (e: KeyboardEvent): void => {
-    if (e.key === 'Escape') { e.stopPropagation(); close(); }
-  };
-
+  /*
+   * The mode is one class on the root and every rule below it reads custom
+   * properties, so a tab cannot be in the wrong palette. That was the bug: the
+   * colours lived on the individual tab views.
+   */
   const portal = h(
     'div',
-    { class: `dp ${reducedMotion ? '' : 'dp-in'}`, id: 'devportal', role: 'dialog', 'aria-modal': 'true', 'aria-label': 'Project specs' },
-    h(
-      'div',
-      { class: 'dp-head' },
-      // Drawn rather than typed: the Unicode mahjong tiles render as tofu on
-      // most Windows machines, which is a poor first impression for an easter egg.
-      h('div', { class: 'dp-tiles', 'aria-hidden': 'true' }, ...[0, 1, 2].map((i) =>
-        h('span', { style: reducedMotion ? '' : `animation-delay:${i * 70}ms` }, tileSvg(i)))),
-      h(
-        'div',
-        { class: 'dp-title' },
-        h('h1', {}, 'Project specs'),
-        h(
-          'p',
-          {},
-          'How this site was built: what it copies and what it invents, the phases it went through, ',
-          'the design reviews it survived, and what QA found afterwards. The working record, not a summary of it.',
-        ),
-      ),
-      h('button', { class: 'dp-close', type: 'button', 'aria-label': 'Close project specs', onclick: close }, sym('close', 24)),
-    ),
-    tabs,
-    body,
-  );
+    {
+      class: `dp dp-${mode}${reducedMotion ? '' : ' dp-in'}`,
+      id: 'devportal', role: 'dialog', 'aria-modal': 'true', 'aria-label': 'Project specifications',
+    },
+    h('div', { class: 'dp-card' },
+      h('div', { class: 'dp-head' },
+        h('span', { class: 'dp-head-ico', 'aria-hidden': 'true' }, sym('science', 22)),
+        h('div', { class: 'dp-title' },
+          h('h1', {}, 'Project specifications'),
+          h('p', {}, 'How this site was made, when, and what is still open.')),
+        h('button', {
+          class: 'icon-btn dp-close', type: 'button', 'aria-label': 'Close project specifications', onclick: close,
+        }, sym('close', 22))),
+      tabs,
+      body),
+  ) as HTMLElement;
 
   function draw(): void {
     for (const b of tabs.querySelectorAll('button')) {
@@ -101,225 +92,201 @@ export function openDevPortal(reducedMotion: boolean): void {
     clear(body);
     body.appendChild(
       tab === 'overview' ? buildDoc()
+      : tab === 'timeline' ? timelineView()
       : tab === 'process' ? processView()
       : tab === 'reviews' ? reviewsView()
-      : tab === 'qa' ? qaView()
-      : tab === 'story' ? storyView()
-      : openView(),
+      : boardView(),
     );
     body.scrollTop = 0;
   }
 
   draw();
   document.body.appendChild(portal);
-  document.addEventListener('keydown', onKey);
-  (portal.querySelector('.dp-close') as HTMLElement | null)?.focus();
+  release = trapFocus(portal, close);
+  portal.querySelector<HTMLElement>('.dp-close')?.focus();
 }
 
-// ---------------------------------------------------------------- process ----
+// ------------------------------------------------------------------ views --
 
-function processView(): HTMLElement {
-  return h(
-    'div',
-    { class: 'dp-col' },
-    h(
-      'p',
-      { class: 'dp-lead' },
-      'Planned first, then reviewed three times before any product code existed, in the voices of the people who ' +
-        'would actually open it. A fourth round covered the game layer and the narrative once those existed, a fifth ' +
-        'covered the decision to rebuild the interface as a faithful clone, and a QA pass went through the finished ' +
-        'thing looking for ways to break it.',
-    ),
-    h(
-      'div',
-      { class: 'dp-stats' },
-      stat(String(stats.findings), 'review findings'),
-      stat(String(stats.rounds + 2), 'rounds'),
-      stat(String(stats.qa), 'found by QA'),
-      stat(String(stats.architectureChanges), 'changed the architecture'),
-    ),
-    ...phases.map((p) => h('div', { class: 'phase' }, h('h4', {}, p.name), h('p', {}, p.body))),
-    h('div', { class: 'dp-head2' }, 'How the interface spec was taken'),
-    h('ol', { class: 'actions-list' }, ...method.steps.map((s) => h('li', {}, s))),
-    h('p', { class: 'fx-warn' }, method.honest),
+const fmt = (iso: string): string => {
+  const [, m, d] = iso.split('-');
+  const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+  return `${Number(d)} ${months[Number(m) - 1]}`;
+};
+
+/**
+ * The timeline, drawn rather than bulleted.
+ *
+ * Nam: "Present it in like a literal timeline graph, not bullet point text. This
+ * is to show off the progress we could make with agentic programming."
+ *
+ * So the bars carry the argument: 126 commits across seven days, with the shape
+ * of the work visible — two very heavy days, one where nothing happened, and a
+ * long tail of correction. The numbers are read off `git log`, not estimated.
+ */
+function timelineView(): HTMLElement {
+  const total = commitsPerDay.reduce((a, b) => a + b.n, 0);
+  const peak = Math.max(...commitsPerDay.map((d) => d.n));
+
+  return h('div', { class: 'dp-col' },
+    h('p', { class: 'dp-lead' },
+      `Started ${fmt(START)} 2026. ${total} commits in ${commitsPerDay.length} days, one person and an agent. ` +
+      'The shape matters more than the count: two very heavy days, one with nothing at all, and a long tail ' +
+      'of correction after the interface existed.'),
+
+    h('div', { class: 'tl-chart', role: 'img', 'aria-label': `${total} commits across ${commitsPerDay.length} days` },
+      ...commitsPerDay.map((d) => h('div', { class: 'tl-bar-wrap' },
+        h('div', { class: 'tl-bar-n' }, String(d.n)),
+        h('div', { class: 'tl-bar-track' },
+          h('div', {
+            class: 'tl-bar' + (d.n === 0 ? ' is-zero' : ''),
+            style: `height:${d.n === 0 ? 2 : Math.round((d.n / peak) * 100)}%`,
+          })),
+        h('div', { class: 'tl-bar-d' }, fmt(d.day))))),
+
+    h('h2', { class: 'dp-head2' }, 'Milestones'),
+    h('ol', { class: 'tl-list' },
+      ...milestones.map((m) => h('li', { class: 'tl-item' },
+        h('div', { class: 'tl-dot', 'aria-hidden': 'true' }),
+        h('div', { class: 'tl-when' }, `${fmt(m.day)} · commit ${m.n}`),
+        h('div', { class: 'tl-what' },
+          h('b', {}, m.title),
+          h('span', {}, m.note))))),
   );
 }
 
-function stat(v: string, k: string): HTMLElement {
-  return h('div', { class: 'dp-stat' }, h('b', {}, v), h('span', {}, k));
+/** How the work actually ran: three phases per task, and a fourth per batch. */
+function processView(): HTMLElement {
+  return h('div', { class: 'dp-col' },
+    h('p', { class: 'dp-lead' },
+      'Every task ran through the same three phases, in the same order. The fourth happens at the end of a ' +
+      'batch rather than per task, and it has caught the most expensive problems.'),
+    h('div', { class: 'ph-grid' },
+      ...phasesOfWork.map((p) => h('div', { class: 'ph-card' + (p.n === 4 ? ' is-extra' : '') },
+        h('div', { class: 'ph-n' }, `Phase ${p.n}`),
+        h('h3', {}, p.name),
+        h('p', {}, p.body),
+        h('ul', { class: 'ph-out' }, ...p.outputs.map((o) => h('li', {}, o)))))),
+    h('p', { class: 'dp-note' },
+      'The order is the point. Measuring before building is what makes a correction cheap; reviewing before ' +
+      'coding is why three findings changed the architecture instead of the paint.'),
+  );
 }
 
-// ---------------------------------------------------------------- reviews ----
-
+/** The three readers, and a current read of the CV in each of their voices. */
 function reviewsView(): HTMLElement {
-  const rounds = [1, 2, 3, 4] as const;
-  const titles: Record<number, string> = {
-    1: 'Round one — against the first concept',
-    2: 'Round two — against the revised plan',
-    3: 'Round three — final pass on the plan',
-    4: 'Round four — the game layer and the narrative',
-  };
-  return h(
-    'div',
-    { class: 'dp-col' },
-    h(
-      'p',
-      { class: 'dp-lead' },
-      'Each round is run in the voice of somebody who will actually see this and has a reason to be sceptical: a ' +
-        'recruiter, a tech lead on the team, a product designer, the friend whose name goes on the referral, a ' +
-        'privacy reviewer, an accessibility specialist. A round closes only when every objection has a resolution ' +
-        'that changed the repo.',
-    ),
-    ...rounds.flatMap((r) => [
-      h('div', { class: 'dp-head2' }, titles[r] ?? `Round ${r}`),
-      ...findings.filter((f) => f.round === r).map((f) =>
-        h(
-          'div',
-          { class: 'finding' },
-          h(
-            'div',
-            { class: 'finding-head' },
-            h('span', { class: 'finding-id' }, f.id),
-            h('span', { class: 'finding-role' }, roleNames[f.role]),
-          ),
-          h(
-            'div',
-            { class: 'finding-body' },
-            h('div', { class: 'finding-obj' }, `“${f.objection}”`),
-            h('div', { class: 'finding-res' }, f.resolution),
-            h('div', { class: 'finding-changed' }, h('b', {}, 'Changed: '), f.changed),
-          ),
-        ),
-      ),
+  const byPersona = (id: string): HTMLElement[] =>
+    reviews.filter((r) => r.persona === id).map((r) => h('div', { class: `rv rv-${r.verdict}` },
+      h('div', { class: 'rv-tag' }, r.verdict === 'strong' ? 'Working' : r.verdict === 'mixed' ? 'Mixed' : 'Risk'),
+      h('div', {},
+        h('b', {}, r.heading),
+        h('span', {}, r.body))));
+
+  return h('div', { class: 'dp-col' },
+    h('p', { class: 'dp-lead' },
+      'Three people decide whether this works, and they want different things in different amounts of time. ' +
+      'Below is a current read of the site in each of their voices — not the reviews of the original plan, ' +
+      'which were about a build that no longer exists.'),
+
+    h('div', { class: 'pr-grid' },
+      ...personas.map((p) => h('div', { class: 'pr-card' },
+        h('h3', {}, p.name),
+        h('div', { class: 'pr-role' }, p.role),
+        h('div', { class: 'pr-time' }, p.time),
+        h('p', {}, p.wants)))),
+
+    ...personas.flatMap((p) => [
+      h('h2', { class: 'dp-head2' }, p.name),
+      ...byPersona(p.id),
     ]),
   );
 }
 
-// --------------------------------------------------------------------- qa ----
+/**
+ * A board, with cards that move.
+ *
+ * Nam: "This is what we should have done in the very beginning, has a task pool
+ * and slowly take up tasks to solve. But we can do it now."
+ *
+ * Native drag and drop rather than pointer maths, because the browser already
+ * handles the hard parts — the drag image, the drop targets, the cancel. Cards
+ * are also focusable and move with the arrow keys, since a board that only works
+ * with a mouse is a board half this project's own accessibility notes would fail.
+ */
+function boardView(): HTMLElement {
+  const live: Task[] = tasks.map((t) => ({ ...t }));
+  const wrap = h('div', { class: 'kb-wrap' }) as HTMLElement;
+  const counts = new Map<Column, HTMLElement>();
 
-function qaView(): HTMLElement {
-  return h(
-    'div',
-    { class: 'dp-col' },
-    h(
-      'p',
-      { class: 'dp-lead' },
-      'Reviewing a plan catches different things than opening the result. These only appeared once there was ' +
-        'something to click on — and two of them were found by the page auditing itself rather than by anyone ' +
-        'looking.',
-    ),
-    ...qa.map((f) =>
-      h(
-        'div',
-        { class: 'finding' },
-        h(
-          'div',
-          { class: 'finding-head' },
-          h('span', { class: 'finding-id' }, f.id),
-          h('span', { class: 'finding-role' }, roleNames[f.role]),
-          h('span', { class: 'finding-round' }, 'QA'),
-        ),
-        h(
-          'div',
-          { class: 'finding-body' },
-          h('div', { class: 'finding-obj', style: 'font-style:normal' }, f.found),
-          h('div', { class: 'finding-res' }, f.fix),
-        ),
-      ),
-    ),
-  );
-}
+  const move = (id: string, to: Column): void => {
+    const t = live.find((x) => x.id === id);
+    if (!t || t.col === to) return;
+    t.col = to;
+    paint();
+    wrap.querySelector<HTMLElement>(`[data-id="${id}"]`)?.focus();
+  };
 
-// ------------------------------------------------------------------ story ----
+  const card = (t: Task): HTMLElement => {
+    const el = h('div', {
+      class: 'kb-card', draggable: 'true', tabindex: '0', 'data-id': t.id,
+      role: 'listitem',
+      'aria-label': `${t.title}. Column ${t.col}. Arrow keys move it.`,
+    },
+      h('div', { class: 'kb-card-t' }, t.title),
+      h('div', { class: 'kb-card-n' }, t.note),
+      h('div', { class: 'kb-card-f' },
+        h('span', { class: `kb-tag kb-${t.tag}` }, t.tag),
+        h('span', { class: 'kb-size' }, t.size),
+        h('span', { class: 'kb-id' }, t.id))) as HTMLElement;
 
-function storyView(): HTMLElement {
-  return h(
-    'div',
-    { class: 'dp-col' },
-    h(
-      'p',
-      { class: 'dp-lead' },
-      'Nam proposed a framing for the whole thing, asked for the case against it, and asked for an alternative. All ' +
-        'three are here, along with what actually shipped and why — the reasoning rather than the verdict, because ' +
-        'it is his CV.',
-    ),
+    el.addEventListener('dragstart', (e) => {
+      (e as DragEvent).dataTransfer?.setData('text/plain', t.id);
+      el.classList.add('is-drag');
+    });
+    el.addEventListener('dragend', () => el.classList.remove('is-drag'));
+    el.addEventListener('keydown', (e) => {
+      const k = (e as KeyboardEvent).key;
+      if (k !== 'ArrowLeft' && k !== 'ArrowRight') return;
+      e.preventDefault();
+      const i = columns.findIndex((c) => c.id === t.col);
+      const j = k === 'ArrowLeft' ? i - 1 : i + 1;
+      if (j < 0 || j >= columns.length) return;
+      move(t.id, columns[j]!.id);
+    });
+    return el;
+  };
 
-    h('div', { class: 'dp-head2' }, original.label),
-    h('p', { class: 'finding-obj' }, `“${original.quote}”`),
-    h('p', { class: 'pnote' }, original.note),
+  function paint(): void {
+    clear(wrap);
+    for (const c of columns) {
+      const mine = live.filter((t) => t.col === c.id);
+      const list = h('div', { class: 'kb-list', role: 'list' }, ...mine.map(card)) as HTMLElement;
+      const n = h('span', { class: 'kb-count' }, String(mine.length)) as HTMLElement;
+      counts.set(c.id, n);
 
-    h('div', { class: 'dp-head2' }, 'The case for it'),
-    ...pros.map((p) => h('div', { class: 'phase' }, h('h4', {}, p.heading), h('p', {}, p.body))),
+      const col = h('section', { class: 'kb-col', 'aria-label': c.label },
+        h('div', { class: 'kb-col-h' }, h('h3', {}, c.label), n),
+        list) as HTMLElement;
 
-    h('div', { class: 'dp-head2' }, 'The case against it'),
-    ...cons.map((c) =>
-      h('div', { class: 'finding' }, h('div', { class: 'finding-body', style: 'padding-top:12px' },
-        h('h4', { style: 'font-size:15px;margin-bottom:6px;color:#fff' }, c.heading),
-        h('p', { class: 'finding-obj', style: 'font-style:normal;margin-bottom:0' }, c.body),
-      )),
-    ),
-
-    h('div', { class: 'dp-head2' }, shipped.label),
-    h('p', { class: 'finding-res' }, shipped.body),
-    h('div', { class: 'slide-label' }, 'Kept'),
-    h('ul', { class: 'dp-list' }, ...shipped.keeps.map((k) => h('li', {}, k))),
-    h('div', { class: 'slide-label' }, 'Cut'),
-    h('ul', { class: 'dp-list' }, ...shipped.drops.map((d) => h('li', {}, d))),
-
-    h('div', { class: 'dp-head2' }, alternative.label),
-    h('h4', { style: 'font-size:16px;margin-bottom:6px;color:#fff' }, alternative.name),
-    h('p', { class: 'pnote' }, alternative.body),
-    h('p', { class: 'fx-warn' }, h('b', {}, 'What it costs: '), alternative.cost),
-
-    h('div', { class: 'dp-head2' }, 'Verdict'),
-    h('p', { class: 'relevance' }, verdict),
-  );
-}
-
-// ------------------------------------------------------------------- open ----
-
-function openView(): HTMLElement {
-  return h(
-    'div',
-    { class: 'dp-col' },
-    h(
-      'p',
-      { class: 'dp-lead' },
-      'The build refused to invent anything it could not source. A fabricated number does not survive an interview, ' +
-        'so where a magnitude would have helped it was left out and written down here instead.',
-    ),
-    h('ol', { class: 'actions-list' }, ...actionItems.map((a) => h('li', {}, a))),
-    h(
-      'p',
-      { class: 'pnote', style: 'margin-top:20px' },
-      'There are no fabricated metrics anywhere in the shipped page. That was the one rule with no exceptions.',
-    ),
-  );
-}
-
-/** A mahjong tile, drawn. Three of them deal in above the title. */
-function tileSvg(n: number): SVGSVGElement {
-  const ns = 'http://www.w3.org/2000/svg';
-  const svg = document.createElementNS(ns, 'svg');
-  svg.setAttribute('viewBox', '0 0 24 34');
-  svg.setAttribute('width', '26');
-  svg.setAttribute('height', '37');
-  svg.setAttribute('aria-hidden', 'true');
-  const body = document.createElementNS(ns, 'rect');
-  body.setAttribute('x', '1'); body.setAttribute('y', '1');
-  body.setAttribute('width', '22'); body.setAttribute('height', '32');
-  body.setAttribute('rx', '4');
-  body.setAttribute('fill', '#f1f3f4');
-  body.setAttribute('stroke', '#c4c7c5');
-  svg.appendChild(body);
-  // n+1 pips, in the bamboo-suit arrangement.
-  for (let i = 0; i <= n; i++) {
-    const pip = document.createElementNS(ns, 'circle');
-    pip.setAttribute('cx', '12');
-    pip.setAttribute('cy', String(17 - n * 5 + i * 10));
-    pip.setAttribute('r', '3.2');
-    pip.setAttribute('fill', '#1a73e8');
-    svg.appendChild(pip);
+      col.addEventListener('dragover', (e) => { e.preventDefault(); col.classList.add('is-over'); });
+      col.addEventListener('dragleave', () => col.classList.remove('is-over'));
+      col.addEventListener('drop', (e) => {
+        e.preventDefault();
+        col.classList.remove('is-over');
+        const id = (e as DragEvent).dataTransfer?.getData('text/plain');
+        if (id) move(id, c.id);
+      });
+      wrap.appendChild(col);
+    }
   }
-  return svg;
+
+  paint();
+
+  return h('div', { class: 'dp-col dp-col-wide' },
+    h('p', { class: 'dp-lead' },
+      'The work, as a board. Drag a card between columns, or focus one and use the arrow keys. ' +
+      'Several cards are uncomfortable to read, which is the point — a board holding only finished things is ' +
+      'a trophy cabinet rather than a plan.'),
+    wrap,
+  );
 }

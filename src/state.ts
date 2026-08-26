@@ -65,6 +65,14 @@ export interface State {
    * anywhere. See src/data/companies.ts for why it is a query parameter.
    */
   company: string | null;
+  /**
+   * An easter-egg clip to present on the shared screen as soon as the call
+   * mounts. Nam wanted the eggs to happen INSIDE the call rather than on their
+   * own screen: join, and the call is already sharing, with the clip playing in
+   * the media player and the file explorer open behind it at the folder it came
+   * from.
+   */
+  eggPlay: string | null;
   plain: boolean;
 }
 
@@ -80,6 +88,7 @@ export type Action =
   | { t: 'captions'; on: boolean }
   | { t: 'hand'; on: boolean }
   | { t: 'pin'; on: boolean }
+  | { t: 'eggPlay'; id: string | null }
   | { t: 'presAudio'; on: boolean }
   | { t: 'minimize'; on: boolean }
   | { t: 'readyCard'; on: boolean }
@@ -110,6 +119,7 @@ export const initial: State = {
   chaos: false,
   reducedMotion: false,
   company: null,
+  eggPlay: null,
   plain: false,
 };
 
@@ -126,7 +136,7 @@ export function reduce(s: State, a: Action): State {
 
     case 'leave':
       // A CV has no business keeping a webcam warm after you walk away from it.
-      return { ...s, screen: 'ended', panel: 'none', cameraOn: false, micOn: false, fx: 'off', handRaised: false, pinned: false, minimized: false };
+      return { ...s, screen: 'ended', panel: 'none', cameraOn: false, micOn: false, fx: 'off', handRaised: false, pinned: false, minimized: false, eggPlay: null };
 
     case 'panel':
       // Clicking the open panel's own button closes it, the way a real call does.
@@ -151,6 +161,11 @@ export function reduce(s: State, a: Action): State {
 
     case 'hand':
       return { ...s, handRaised: a.on };
+
+    case 'eggPlay':
+      // Joining the egg goes straight to the call -- no lobby. The clip is the
+      // whole point of that meeting, so a green room in front of it is a wall.
+      return { ...s, screen: 'call', eggPlay: a.id };
 
     case 'pin':
       // Pinning gives the tile the whole right column, so a collapsed bar makes

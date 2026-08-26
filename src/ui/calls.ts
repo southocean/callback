@@ -69,7 +69,8 @@ import { sym } from './icons.js';
 import { ripple, attachMenu } from './gm3.js';
 import { trapFocus } from '../a11y.js';
 import { tip } from './tooltip.js';
-import { CONTACTS, CALLING_AS, type Contact } from '../data/contacts.js';
+import { referrableContacts, CALLING_AS, type Contact } from '../data/contacts.js';
+import { currentPitch } from '../data/companies.js';
 
 export interface CallsOpts {
   /** Referral note lives in one place so it can be edited without hunting. */
@@ -117,7 +118,7 @@ export function renderCalls(o: CallsOpts): HTMLElement {
   }, h('span', {}, 'Continue'), sym('chevron_right', 20)) as HTMLButtonElement;
   ripple(cont);
   cont.addEventListener('click', () => {
-    const first = CONTACTS.find((c) => chosen.has(c.id));
+    const first = referrableContacts(currentPitch().named).find((c) => chosen.has(c.id));
     if (!first) return;
     // Measured: pressing Continue collapses the band and drops focus. The chip
     // stays, the pill takes its white fill back, and the illustration behind is
@@ -137,8 +138,8 @@ export function renderCalls(o: CallsOpts): HTMLElement {
   /** Filter on name and address, which is what Meet's field matches. */
   const matches = (): Contact[] => {
     const q = input.value.trim().toLowerCase();
-    if (!q) return CONTACTS;
-    return CONTACTS.filter(
+    if (!q) return referrableContacts(currentPitch().named);
+    return referrableContacts(currentPitch().named).filter(
       (c) => c.name.toLowerCase().includes(q) || c.email.toLowerCase().includes(q),
     );
   };
@@ -197,7 +198,7 @@ export function renderCalls(o: CallsOpts): HTMLElement {
    */
   function paintChrome(): void {
     clear(chips);
-    for (const c of CONTACTS) {
+    for (const c of referrableContacts(currentPitch().named)) {
       if (!chosen.has(c.id)) continue;
       const x = h('button', {
         class: 'calls-chip-x', type: 'button', 'aria-label': `Remove ${c.name}`,

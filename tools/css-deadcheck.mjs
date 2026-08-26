@@ -45,6 +45,11 @@ const DYNAMIC = [
   /^wx-rz-(n|s|e|w|ne|nw|se|sw)$/,
   // ```dk-icons is-${iconSize}``` in share.ts -- the desktop icon size.
   /^is-(lg|md|sm)$/,
+  // ```dp-${mode}``` in devportal.ts -- the panel follows the surface that opened it.
+  /^dp-(light|dark)$/,
+  // ```kb-${t.tag}``` and ```rv-${r.verdict}``` in devportal.ts.
+  /^kb-(onboarding|specs|call|trust|content)$/,
+  /^rv-(strong|mixed|risk)$/,
 ];
 
 const walk = (dir) => readdirSync(dir, { withFileTypes: true })

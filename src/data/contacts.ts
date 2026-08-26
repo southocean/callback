@@ -47,6 +47,11 @@ export interface Contact {
   voice?: string;
   /** True once the person has agreed to appear here. Gates the real address. */
   confirmed: boolean;
+  /**
+   * A referral into a specific employer. Shown only when a company code is set,
+   * because naming a referral for a company you are not applying to is untrue.
+   */
+  referral?: boolean;
 }
 
 /**
@@ -55,6 +60,33 @@ export interface Contact {
  * real entries and set confirmed: true.
  */
 export const CONTACTS: Contact[] = [
+  {
+    /*
+     * A real person, and the only confirmed entry. Nam: "I have the contact of my
+     * referral here: https://diepbp.github.io/. Guard this against the company
+     * param, add him into the list as my referral."
+     *
+     * Guarded because a referral is specific to the company being applied to --
+     * naming someone as your route into an employer you are not applying to is
+     * both untrue and unfair to them. It appears only when a ?c= code is present;
+     * see referrableContacts() below.
+     *
+     * No address published: the link is his own public page, which he controls
+     * and can take down. That keeps the privacy rule at the top of this file
+     * intact while still making the referral real.
+     */
+    id: 'ref-diep',
+    name: 'Diep — referral',
+    email: 'diepbp.github.io',
+    initials: 'D',
+    tint: '#c4eed0',
+    ink: '#072711',
+    relation: 'Can refer me internally, and has worked with me directly. His own page is the introduction.',
+    href: 'https://diepbp.github.io/',
+    voice: 'https://diepbp.github.io/',
+    confirmed: true,
+    referral: true,
+  },
   {
     id: 'ref-lead',
     name: 'Reference — engineering lead',
@@ -80,6 +112,14 @@ export const CONTACTS: Contact[] = [
     confirmed: false,
   },
 ];
+
+/**
+ * The contacts to show for this send. Referrals are employer-specific, so they
+ * appear only when a ?c= code names one.
+ */
+export function referrableContacts(named: boolean): Contact[] {
+  return CONTACTS.filter((c) => !c.referral || named);
+}
 
 /** The account the call goes out as. Meet prints the signed-in address here. */
 export const CALLING_AS = 'nam@wasabiproductions.com';

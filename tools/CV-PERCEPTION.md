@@ -600,6 +600,8 @@ Shipped, and what it moves:
   code. For a non-Google send that section is either mislabelled or should be
   hidden. **[open]** — needs Nam's call.
 
-Still outstanding and unchanged: **M2** (the static shell's "Google Meet"),
-**M3** ("since March"), **M17** (the false disclaimer). Those three are twenty-five
-minutes and remain the top of the ranking in section 4b.
+**M3 is done** — the home note now reads "waiting since 20 August, when this CV
+was first built", with the date derived from the git history. Still outstanding:
+**M2** (the static shell's "Google Meet") and **M17** (the false disclaimer). Those two are twenty
+minutes and remain the top of the ranking in section 4b. The live state of all of
+this is now the Kanban board inside Project specifications.

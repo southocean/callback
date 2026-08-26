@@ -83,6 +83,13 @@ export const profile = {
  * location.href is localhost:4173. GitHub Pages serves docs/ from the repo
  * root, so this is the whole of it.
  */
+/**
+ * First commit, from `git log --reverse`. Lives here rather than in project.ts
+ * because the home screen quotes it, and importing it from there dragged the
+ * whole project record -- personas, reviews, the board -- into the initial chunk.
+ */
+export const START = '2026-08-20';
+
 export const SITE = 'https://southocean.github.io/callback/';
 
 /** The one-liner. Five seconds to land (review U5). */

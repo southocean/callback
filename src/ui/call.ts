@@ -1891,6 +1891,29 @@ export function renderCall(store: Store, quests: Quests, deps: CallDeps): HTMLEl
   sync();
   drawPanel();
   quests.unlock('join');
+
+  /*
+   * The egg boot.
+   *
+   * Joining an easter-egg meeting lands here already sharing: the desktop is up,
+   * the clip is playing in the media player and Explorer is open behind it at the
+   * folder the file lives in. Nam: "the call interface is full on here, my video
+   * tile on the bottom right, everything where they should be cause we are
+   * opening the video inside #call."
+   *
+   * Read once, at mount. The call view mounts on entry and is kept alive by
+   * sync() afterwards, so this cannot re-fire on a state change; and 'leave'
+   * clears the id so a later ordinary join does not start presenting on its own.
+   */
+  const eggId = store.get().eggPlay;
+  if (eggId) {
+    void (async () => {
+      const m = await import('./share.js');
+      const src = { id: 'desktop', kind: 'screen' as const, title: 'Screen 1' };
+      startShare(m.renderShared(src, openDoc, () => stopShare(), { egg: eggId }), src.title);
+    })();
+  }
+
   return shell;
 }
 

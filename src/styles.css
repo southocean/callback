@@ -810,24 +810,16 @@ code { font: 400 12px/1.4 ui-monospace, Consolas, monospace; color: var(--dark-b
 .tab[aria-selected="true"] { background: rgba(168,199,250,.2); color: var(--dark-blue); }
 
 .finding { border: 1px solid var(--dark-line); border-radius: 8px; margin-bottom: 10px; overflow: hidden; }
-.finding-head { display: flex; align-items: center; gap: 8px; padding: 10px 12px; font-size: 11px; }
-.finding-id { font: 500 11px/1 ui-monospace, Consolas, monospace; color: var(--on-dark2); }
-.finding-role {
   background-color: var(--dark-surface); border-radius: 8px; padding: 3px 9px;
   color: var(--on-dark3); font: 500 11px/1 var(--font);
 }
-.finding-round { margin-left: auto; color: var(--on-dark2); }
 .finding-body { padding: 0 12px 12px; }
-.finding-obj {
   font: 400 13px/19px var(--font); color: var(--on-dark3); font-style: italic;
   border-left: 3px solid #f2b8b5; padding-left: 11px; margin-bottom: 10px;
 }
-.finding-res {
   font: 400 13px/19px var(--font); color: var(--on-dark); border-left: 3px solid #6dd58c;
   padding-left: 11px; margin-bottom: 8px;
 }
-.finding-changed { font: 400 12px/17px var(--font); color: var(--on-dark2); padding-left: 14px; }
-.finding-changed b { color: var(--on-dark3); }
 
 .phase { border-left: 2px solid var(--dark-line); padding: 0 0 16px 16px; position: relative; margin-left: 4px; }
 .phase::before {
@@ -1128,8 +1120,6 @@ body.plain { background: #fff; color: #16181c; }
   display: flex; align-items: flex-start; gap: 20px; padding: 26px 32px 20px;
   border-bottom: 1px solid var(--dark-line); flex: 0 0 auto;
 }
-.dp-tiles { display: flex; gap: 5px; flex: 0 0 auto; }
-.dp-tiles span { display: inline-block; animation: deal .4s ease-out both; }
 .dp-title h1 { font: 500 26px/32px var(--font); color: #fff; letter-spacing: -.4px; }
 .dp-title p { font: 400 13.5px/20px var(--font); color: var(--on-dark2); margin: 6px 0 0; max-width: 78ch; }
 .dp-close { margin-left: auto; width: 48px; height: 48px; border-radius: 50%; border: 0; cursor: pointer;
@@ -1151,19 +1141,12 @@ body.plain { background: #fff; color: #16181c; }
   color: var(--dark-blue); margin: 30px 0 12px; padding-bottom: 6px;
   border-bottom: 1px solid var(--dark-line);
 }
-.dp-stats { display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 26px; }
-.dp-stat { background-color: var(--dark-surface); border-radius: 10px; padding: 12px 18px; min-width: 120px; }
-.dp-stat b { display: block; font: 500 24px/30px var(--font); color: #fff; font-variant-numeric: tabular-nums; }
-.dp-stat span { font: 400 11.5px/16px var(--font); color: var(--on-dark2); }
-.dp-list { margin: 0 0 14px; padding-left: 20px; font: 400 13.5px/21px var(--font); color: var(--on-dark); }
-.dp-list li { margin-bottom: 6px; }
 .dp .finding { max-width: 860px; }
 .dp .phase h4 { font-size: 15px; }
 .dp .phase p { font-size: 13.5px; line-height: 20px; }
 
 @media (max-width: 720px) {
   .dp-head { padding: 18px 16px 14px; gap: 12px; }
-  .dp-tiles { font-size: 24px; }
   .dp-title h1 { font-size: 20px; line-height: 26px; }
   .dp-tabs { padding: 10px 12px; }
   .dp-body { padding: 18px 16px 60px; }
@@ -6657,20 +6640,13 @@ body.tray-open.cc-on .react-clip { bottom: calc(var(--botbar) + 268px); }
 .bd h2 { font: 400 20px/1.3 var(--font-title); margin: 26px 0 8px; color: #1f2328; }
 .bd p { margin: 0 0 10px; }
 .bd-note { color: #5f6368; font-size: 12.5px; }
-.bd-cards { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin: 10px 0 0; }
-.bd-card { background-color: #f1f3f4; border-radius: 8px; padding: 12px; }
-.bd-card b { display: block; margin-bottom: 4px; font: 500 13px/18px var(--font); }
-.bd-card span { color: #5f6368; font-size: 12.5px; }
-.bd-phases { margin: 10px 0 0; padding-left: 20px; display: grid; gap: 10px; }
-.bd-phases b { display: block; font: 500 13.5px/19px var(--font); }
-.bd-phases span { color: #40454c; font-size: 13px; }
 .bd-rows { display: grid; grid-template-columns: auto 1fr; gap: 6px 16px; margin: 10px 0 0; }
 .bd-rows dt { font: 500 13px/19px var(--font); color: #1f2328; }
 .bd-rows dd { margin: 0; color: #40454c; font-size: 13px; }
 .bd-stack { margin: 10px 0 0; padding-left: 20px; display: grid; gap: 5px; }
 .bd-stack b { font: 500 13px/19px var(--font); }
 .bd-stack span { color: #5f6368; font-size: 12.5px; }
-@media (max-width: 620px) { .bd-cards, .bd-rows { grid-template-columns: 1fr; } }
+@media (max-width: 620px) { .bd-rows { grid-template-columns: 1fr; } }
 
 /* ================= THE ACHIEVEMENT STRIP ================================= */
 /* Nam: "achievement toasts are taking a big portion of the screen... we are
@@ -6899,47 +6875,6 @@ body.tray-open.cc-on .react-clip { bottom: calc(var(--botbar) + 268px); }
 
 @media (prefers-reduced-motion: reduce) { .wx.is-kbd-move, .wx.is-kbd-size { outline-style: solid; } }
 
-/* ====== ROUND 25: PROJECT SPECS IN THE LIGHT SHELL ======================= */
-/* Nam: "this screen is in dark mode though, very stark contrast to the CV in
-   light mode. Change it to light mode."
- *
- * Right, and it is a palette error rather than a taste one. Every surface that
- * opens this panel — the home top bar, the CV document — is the LIGHT shell, and
- * DESIGN-PRINCIPLES.md section 1 is explicit that the two palettes barely
- * overlap and nothing borrows across them. The panel was built when it was a
- * Konami-only easter egg living outside the CV; now that Settings opens it from
- * the home screen it belongs to the light column.
- *
- * Redefined rather than rewritten in place: these selectors repeat the originals
- * so source order wins, which keeps the dark version legible in the diff. */
-.dp {
-  background-color: #ffffff;
-  color: var(--ink, #1f1f1f);
-}
-.dp-head { border-bottom: 1px solid #c4c7c5; }
-.dp-title h1 { color: #1f1f1f; }
-.dp-title p { color: #444746; }
-.dp-close { background: transparent; color: #444746; }
-/* State layer values from section 2: .12 for a 40px-plus icon button, tinted
-   with the surface's own on-colour rather than a neutral black. */
-.dp-close:hover { background-color: rgba(31, 31, 31, .12); }
-.dp-tabs { border-bottom: 1px solid #c4c7c5; }
-.dp-tab { color: #444746; }
-.dp-tab:hover { color: #1f1f1f; background: rgba(31, 31, 31, .08); }
-/* The selected pill is the measured nav pair: #c2e7ff behind #00639b ink. */
-.dp-tab[aria-selected="true"] { background: #c2e7ff; color: #00639b; }
-.dp-lead { color: #444746; }
-.dp-head2 { color: #1f1f1f; }
-.dp-stat { background-color: #f0f4f9; }
-.dp-stat b { color: #1f1f1f; }
-.dp-stat span { color: #444746; }
-.dp-list { color: #1f1f1f; }
-.dp .finding, .dp .phase { color: #1f1f1f; }
-.dp .bd-lead { color: #2b2f36; }
-/* The migrated document caps itself at 62ch for a standalone page; inside the
-   panel it should match the 860px the other tabs use. */
-.dp .bd { max-width: 860px; }
-
 /* --- the CV as an overlay ------------------------------------------------ */
 /* Nam: "#plain should be shown as an iframe with a close button that closes the
    iframe, so we don't leave the CV site. I dont like when we leave the main
@@ -7000,3 +6935,220 @@ body.tray-open.cc-on .react-clip { bottom: calc(var(--botbar) + 268px); }
 .co-home:hover { background-color: #0a4fbc; }
 .co-home:focus-visible { box-shadow: 0 0 0 3px #00639b; outline: none; }
 @media (max-width: 620px) { .co-card { grid-template-columns: 1fr; } }
+
+/* ====== ROUND 26: PROJECT SPECIFICATIONS ================================= */
+/* A card over the client, in the palette of whatever opened it.
+ *
+ * Nam: "the project specs is not opening the same way as the one page cv. I like
+ * the one page cv more, it doesnt extend full screen, you can see its a card on
+ * top of the existing client... copy the style of the CV one page to the project
+ * specs." And: light from the home screen, dark from inside the call.
+ *
+ * Both problems had the same cause — this panel was built as a standalone
+ * easter-egg screen, so it owned the whole viewport and hard-coded dark colours
+ * on every individual tab. Which is why only the tabs I had touched went light.
+ *
+ * The fix is two tokens sets on the ROOT. Every rule below reads them, so a tab
+ * cannot be in the wrong palette; adding a tab cannot get it wrong either. */
+.dp {
+  /* scrim + centring, matching the CV overlay exactly (see .po) */
+  position: fixed; inset: 0; z-index: 300;
+  display: flex; flex-direction: column;
+  background-color: rgba(32, 33, 36, .55);
+  padding: 24px; overflow: hidden;
+  color: var(--dp-ink);
+}
+.dp-light {
+  --dp-bg: #ffffff;
+  --dp-ink: #1f1f1f;
+  --dp-ink2: #444746;
+  --dp-ink3: #5f6368;
+  --dp-surface: #f0f4f9;
+  --dp-line: #c4c7c5;
+  --dp-pill: #c2e7ff;
+  --dp-pill-ink: #00639b;
+  --dp-accent: #0b57d0;
+  --dp-layer: rgba(31, 31, 31, .08);
+  --dp-layer-strong: rgba(31, 31, 31, .12);
+}
+.dp-dark {
+  --dp-bg: #202124;
+  --dp-ink: #e3e3e3;
+  --dp-ink2: #9aa0a6;
+  --dp-ink3: #8e918f;
+  --dp-surface: #282a2c;
+  --dp-line: #3c4043;
+  --dp-pill: rgba(168, 199, 250, .22);
+  --dp-pill-ink: #a8c7fa;
+  --dp-accent: #a8c7fa;
+  --dp-layer: rgba(255, 255, 255, .08);
+  --dp-layer-strong: rgba(255, 255, 255, .12);
+}
+/* The card. Radius 8, per DESIGN-PRINCIPLES section 4: dialogs are a Material 2
+   holdover and stay at 8 while everything else moved on. */
+.dp-card {
+  flex: 1 1 auto; min-height: 0; max-width: 1180px; width: 100%;
+  margin: 0 auto; display: flex; flex-direction: column; overflow: hidden;
+  background-color: var(--dp-bg); border-radius: 8px;
+  box-shadow: 0 12px 40px rgba(0, 0, 0, .4);
+}
+.dp-in { animation: dpin .28s cubic-bezier(.2, .7, .3, 1) both; }
+
+/* Head: no mahjong tiles. Nam: "The image(s) next to the project specs are quite
+   ugly, I dont like that... Otherwise omit it." One glyph in the accent, which is
+   the same shape the CV overlay's header uses. */
+.dp-head {
+  flex: 0 0 auto; display: flex; align-items: flex-start; gap: 14px;
+  padding: 18px 24px 14px; border-bottom: 1px solid var(--dp-line);
+}
+.dp-head-ico { flex: 0 0 auto; display: grid; place-items: center; color: var(--dp-accent); margin-top: 2px; }
+.dp-title { min-width: 0; }
+.dp-title h1 { font: 400 22px/28px var(--font-title); color: var(--dp-ink); letter-spacing: -.2px; }
+.dp-title p { font: 400 13px/19px var(--font); color: var(--dp-ink2); margin: 3px 0 0; max-width: 70ch; }
+.dp-close {
+  margin-left: auto; flex: 0 0 auto;
+  background: transparent; border: 0; color: var(--dp-ink2);
+  width: 40px; height: 40px; border-radius: 50%;
+  display: grid; place-items: center; cursor: pointer;
+  transition: background-color .075s linear;
+}
+.dp-close:hover { background-color: var(--dp-layer-strong); }
+
+.dp-tabs {
+  flex: 0 0 auto; display: flex; gap: 4px; padding: 10px 24px; overflow-x: auto;
+  border-bottom: 1px solid var(--dp-line);
+}
+.dp-tab {
+  font: 500 14px/1 var(--font); border: 0; background: none; color: var(--dp-ink2);
+  padding: 9px 14px; border-radius: 18px; cursor: pointer; white-space: nowrap;
+  transition: background-color .075s linear, color .075s linear;
+}
+.dp-tab:hover { color: var(--dp-ink); background-color: var(--dp-layer); }
+.dp-tab[aria-selected="true"] { background-color: var(--dp-pill); color: var(--dp-pill-ink); }
+
+.dp-body { flex: 1 1 auto; min-height: 0; overflow-y: auto; padding: 22px 24px 60px; }
+/* Centred, not hugging the left edge. Nam: "the content is lopsided on the left
+   hand side. That's why I think we should maintain consistency between this and
+   the one page cv." */
+.dp-col { max-width: 780px; margin: 0 auto; }
+.dp-col-wide { max-width: 1100px; margin: 0 auto; }
+.dp-lead { font: 400 15px/23px var(--font); color: var(--dp-ink2); margin-bottom: 22px; }
+.dp-note { font: 400 13px/20px var(--font); color: var(--dp-ink3); margin-top: 18px; }
+.dp-head2 { font: 400 19px/26px var(--font-title); color: var(--dp-ink); margin: 30px 0 10px; }
+
+/* The shared document, in whichever palette the panel is wearing. */
+.dp .bd { max-width: 780px; }
+.dp .bd-lead { color: var(--dp-ink); }
+.dp .bd h2 { color: var(--dp-ink); }
+.dp .bd p { color: var(--dp-ink2); }
+.dp .bd-note { color: var(--dp-ink3); }
+.dp .bd-rows dd, .dp .bd-stack span { color: var(--dp-ink2); }
+.dp .bd-rows dt, .dp .bd-stack b { color: var(--dp-ink); }
+
+/* --- the timeline, as a chart -------------------------------------------- */
+.tl-chart {
+  display: flex; align-items: flex-end; gap: 10px;
+  height: 170px; padding: 8px 0 0; margin-bottom: 8px;
+}
+.tl-bar-wrap { flex: 1 1 0; min-width: 0; display: flex; flex-direction: column; align-items: center; height: 100%; }
+.tl-bar-n { font: 500 12px/1 var(--font); color: var(--dp-ink2); margin-bottom: 5px; font-variant-numeric: tabular-nums; }
+.tl-bar-track { flex: 1 1 auto; width: 100%; display: flex; align-items: flex-end; }
+.tl-bar {
+  width: 100%; border-radius: 4px 4px 0 0;
+  background: linear-gradient(180deg, var(--dp-accent), color-mix(in srgb, var(--dp-accent) 55%, transparent));
+}
+/* A day with no commits is a fact worth drawing, not a gap to hide. */
+.tl-bar.is-zero { background: var(--dp-line); }
+.tl-bar-d { font: 400 11px/1 var(--font); color: var(--dp-ink3); margin-top: 7px; white-space: nowrap; }
+
+.tl-list { list-style: none; margin: 0; padding: 0; }
+.tl-item {
+  position: relative; padding: 0 0 20px 22px;
+  border-left: 2px solid var(--dp-line);
+}
+.tl-item:last-child { border-left-color: transparent; padding-bottom: 0; }
+.tl-dot {
+  position: absolute; left: -6px; top: 3px; width: 10px; height: 10px;
+  border-radius: 50%; background-color: var(--dp-accent);
+}
+.tl-when { font: 500 11.5px/16px var(--font); color: var(--dp-ink3); letter-spacing: .3px; text-transform: uppercase; }
+.tl-what b { display: block; font: 500 14px/20px var(--font); color: var(--dp-ink); margin: 2px 0 3px; }
+.tl-what span { font: 400 13px/19px var(--font); color: var(--dp-ink2); }
+
+/* --- the phases ---------------------------------------------------------- */
+.ph-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.ph-card { background-color: var(--dp-surface); border-radius: 8px; padding: 16px; }
+.ph-card.is-extra { border: 1px dashed var(--dp-line); background-color: transparent; }
+.ph-n { font: 500 11.5px/16px var(--font); color: var(--dp-accent); letter-spacing: .4px; text-transform: uppercase; }
+.ph-card h3 { font: 500 15px/22px var(--font); color: var(--dp-ink); margin: 3px 0 6px; }
+.ph-card p { font: 400 13px/19px var(--font); color: var(--dp-ink2); margin: 0 0 8px; }
+.ph-out { list-style: none; margin: 0; padding: 0; display: grid; gap: 3px; }
+.ph-out li { font: 400 12px/17px var(--font); color: var(--dp-ink3); padding-left: 12px; position: relative; }
+.ph-out li::before { content: '→'; position: absolute; left: 0; color: var(--dp-accent); }
+
+/* --- personas and reviews ------------------------------------------------ */
+.pr-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-bottom: 6px; }
+.pr-card { background-color: var(--dp-surface); border-radius: 8px; padding: 14px; }
+.pr-card h3 { font: 500 14px/20px var(--font); color: var(--dp-ink); }
+.pr-role { font: 400 12px/17px var(--font); color: var(--dp-ink2); margin-top: 2px; }
+.pr-time { font: 500 11.5px/16px var(--font); color: var(--dp-accent); margin: 6px 0 6px; }
+.pr-card p { font: 400 12.5px/18px var(--font); color: var(--dp-ink2); margin: 0; }
+
+.rv { display: flex; gap: 12px; padding: 12px 0; border-bottom: 1px solid var(--dp-line); }
+.rv:last-of-type { border-bottom: 0; }
+.rv-tag {
+  flex: 0 0 66px; align-self: flex-start; text-align: center;
+  font: 500 11px/18px var(--font); border-radius: 9px; letter-spacing: .3px;
+}
+.rv-strong .rv-tag { background-color: #c4eed0; color: #072711; }
+.rv-mixed .rv-tag { background-color: #fef7cd; color: #4a3b00; }
+.rv-risk .rv-tag { background-color: #fdd9d7; color: #5c1512; }
+.rv b { display: block; font: 500 14px/20px var(--font); color: var(--dp-ink); margin-bottom: 3px; }
+.rv span { font: 400 13px/19px var(--font); color: var(--dp-ink2); }
+
+/* --- the kanban board --------------------------------------------------- */
+.kb-wrap { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; align-items: start; }
+.kb-col {
+  background-color: var(--dp-surface); border-radius: 8px; padding: 10px;
+  min-height: 140px; transition: background-color .075s linear, box-shadow .075s linear;
+}
+.kb-col.is-over { box-shadow: inset 0 0 0 2px var(--dp-accent); }
+.kb-col-h { display: flex; align-items: center; gap: 8px; padding: 2px 4px 10px; }
+.kb-col-h h3 { font: 500 12.5px/18px var(--font); color: var(--dp-ink2); letter-spacing: .3px; text-transform: uppercase; }
+.kb-count {
+  margin-left: auto; font: 500 11px/18px var(--font); min-width: 18px; text-align: center;
+  background-color: var(--dp-layer); color: var(--dp-ink2); border-radius: 9px;
+}
+.kb-list { display: grid; gap: 8px; }
+.kb-card {
+  background-color: var(--dp-bg); border: 1px solid var(--dp-line); border-radius: 6px;
+  padding: 10px; cursor: grab; transition: box-shadow .075s linear, opacity .075s linear;
+}
+.kb-card:hover { box-shadow: 0 2px 8px rgba(0, 0, 0, .18); }
+.kb-card:focus-visible { outline: none; box-shadow: 0 0 0 3px var(--dp-pill-ink); }
+.kb-card.is-drag { opacity: .45; cursor: grabbing; }
+.kb-card-t { font: 500 13px/18px var(--font); color: var(--dp-ink); }
+.kb-card-n { font: 400 11.5px/16px var(--font); color: var(--dp-ink3); margin: 4px 0 8px; }
+.kb-card-f { display: flex; align-items: center; gap: 6px; }
+.kb-tag { font: 500 10px/15px var(--font); padding: 0 6px; border-radius: 8px; letter-spacing: .3px; }
+.kb-onboarding { background-color: #d3e3fd; color: #041e49; }
+.kb-specs { background-color: #e9e0ff; color: #29104f; }
+.kb-call { background-color: #c4eed0; color: #072711; }
+.kb-trust { background-color: #fdd9d7; color: #5c1512; }
+.kb-content { background-color: #fef7cd; color: #4a3b00; }
+.kb-size {
+  font: 500 10px/15px var(--font); min-width: 15px; text-align: center;
+  background-color: var(--dp-layer); color: var(--dp-ink2); border-radius: 4px;
+}
+.kb-id { margin-left: auto; font: 400 10px/15px ui-monospace, monospace; color: var(--dp-ink3); }
+
+@media (max-width: 900px) {
+  .dp { padding: 0; }
+  .dp-card { border-radius: 0; max-width: none; }
+  .ph-grid, .pr-grid { grid-template-columns: 1fr; }
+  .kb-wrap { grid-template-columns: 1fr 1fr; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .dp-in { animation: none; }
+  .dp-tab, .kb-col, .kb-card { transition: none; }
+}

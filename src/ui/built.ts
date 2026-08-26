@@ -17,7 +17,6 @@
 // the build config. Nothing is invented to fill a section.
 
 import { h } from '../dom.js';
-import { phases } from '../data/devlog.js';
 import { shipped } from '../data/story.js';
 import { skills } from '../data/cv.js';
 
@@ -61,31 +60,21 @@ export function buildDoc(): HTMLElement {
   return h(
     'div',
     { class: 'bd' },
+    /*
+     * Nam: sterilise the Google nod, and be open that this is heavily agentic
+     * programming. Both are true and neither needs dressing up: the point of the
+     * artefact is that it is a conversation rather than a page, and the point of
+     * the method is that a person and an agent built it in a week.
+     */
     h('p', { class: 'bd-lead' },
-      'A CV that behaves like the product it is applying to. The site is a video call, and every control in ' +
-      'the bar opens a real section of the application — not a screenshot of one.'),
-
-    h('h2', {}, 'Scope'),
+      'A CV you can talk to rather than read. It opens as a video call because a call is a conversation, and ' +
+      'a conversation is a better way to meet someone than a page of bullet points — the panels hold the ' +
+      'cover letter, the captions carry a voice-over, and the shared screen holds the work itself.'),
     h('p', {},
-      'Rebuild the product from measurement rather than memory, and put the CV inside it.'),
-    h('div', { class: 'bd-cards' },
-      h('div', { class: 'bd-card' },
-        h('b', {}, 'What is rebuilt'),
-        h('span', {}, 'The home screen, the pre-join lobby, the in-call view with its panels, reactions, ' +
-          'captions, screen share and the end screen.')),
-      h('div', { class: 'bd-card' },
-        h('b', {}, 'What is authored'),
-        h('span', {}, 'The screen-share picker and the presenting layout. Both were unreachable to ' +
-          'measurement, so both are ours and labelled as ours.'))),
-
-    h('h2', {}, 'Timeline'),
-    h('p', { class: 'bd-note' },
-      'Four phases, in this order. The review phase came before any product code, which is why three ' +
-      'findings changed the architecture instead of the paint.'),
-    h('ol', { class: 'bd-phases' },
-      ...phases.map((p) => h('li', {},
-        h('b', {}, p.name),
-        h('span', {}, p.body)))),
+      'It is also, openly, a demonstration of agentic programming. One person and an agent built it in a week: ' +
+      'the interface was measured off the real product rather than eyeballed, every task ran through the same ' +
+      'three phases, and the corrections are in the commit log along with the retractions. The Timeline tab ' +
+      'shows the shape of that; the Process tab shows the method.'),
 
     h('h2', {}, 'Specifications'),
     h('dl', { class: 'bd-rows' },
@@ -98,13 +87,13 @@ export function buildDoc(): HTMLElement {
     h('h2', {}, 'Stack'),
     h('ul', { class: 'bd-stack' },
       ...skills.primary.slice(0, 5).map((s) => h('li', {},
-        h('b', {}, s.name), h('span', {}, s.note)))),
+        h('b', {}, s.name), ' — ', h('span', {}, s.note)))),
 
     h('h2', {}, 'What shipped'),
     h('p', {}, shipped.body),
     h('p', { class: 'bd-note' },
-      'The whole build log — every review finding, who raised it and what changed — is in the Engineering ' +
-      'panel inside the call.'),
+      'The reviews, the board of what is still open, and the day-by-day history are the other tabs of this ' +
+      'panel.'),
   );
 }
 

@@ -273,8 +273,9 @@ export function renderShared(
   src: Source,
   onOpen: (id: string) => void = () => {},
   onClose: () => void = () => {},
+  boot?: { egg?: string },
 ): HTMLElement {
-  const body = contentFor(src, onOpen, onClose);
+  const body = contentFor(src, onOpen, onClose, boot);
   if (src.kind === 'tab') {
     return h('div', { class: 'shot shot-tab' },
       h('div', { class: 'shot-chrome' },
@@ -320,7 +321,7 @@ function frameOf(hash: string, title: string, fallback: () => HTMLElement): HTML
   window.setTimeout(() => { if (!wrap.classList.contains('is-live')) f.remove(); }, 4000);
   return wrap;
 }
-function contentFor(src: Source, onOpen: (id: string) => void, onClose: () => void): HTMLElement {
+function contentFor(src: Source, onOpen: (id: string) => void, onClose: () => void, boot?: { egg?: string }): HTMLElement {
   switch (src.id) {
     // The real thing, framed. #plain is a standalone document view — it has no
     // call chrome, so framing it cannot nest the app inside itself.
@@ -337,7 +338,7 @@ function contentFor(src: Source, onOpen: (id: string) => void, onClose: () => vo
     case 'files': return pageWindow(onOpen, onClose);
     // onClose is "the share ends" — Window mode already uses it for the single
     // window's close button. Start > Shut down means the same thing here.
-    default: return pageDesktop(onClose);
+    default: return pageDesktop(onClose, boot);
   }
 }
 
@@ -1174,7 +1175,7 @@ function win11(o: {
 }
 
 /** The Explorer window's insides: command bar, breadcrumb, tree, list, status. */
-function explorerBody(onOpen: (id: string) => void): { body: HTMLElement; status: HTMLElement } {
+function explorerBody(onOpen: (id: string) => void, onFolder?: (f: string) => void): { body: HTMLElement; status: HTMLElement; go: (f: string) => void } {
   /**
    * A folder tree you can actually walk, and every file opens.
    *
@@ -1455,6 +1456,10 @@ function explorerBody(onOpen: (id: string) => void): { body: HTMLElement; status
   function go(folder: string): void {
     // A new destination truncates whatever was ahead of it.
     if (hist[hAt] !== folder) { hist.splice(hAt + 1); hist.push(folder); hAt = hist.length - 1; }
+    // Real Explorer puts the current folder in its title bar; ours kept saying
+    // "Work" wherever you were, which is most visible on the egg boot where the
+    // window opens straight into Hobby.
+    onFolder?.(folder);
     render(folder);
   }
 
@@ -1563,7 +1568,7 @@ function explorerBody(onOpen: (id: string) => void): { body: HTMLElement; status
 
   go('Work');
 
-  return { body, status };
+  return { body, status, go };
 }
 
 /**
@@ -1919,7 +1924,7 @@ function playerWindow(id: string): { body: HTMLElement; select: (id: string) => 
  */
 type AppKind = 'explorer' | 'chrome' | 'player';
 
-function pageDesktop(onQuit: () => void): HTMLElement {
+function pageDesktop(onQuit: () => void, boot?: { egg?: string }): HTMLElement {
   const surface = h('div', { class: 'dk-surface' }) as HTMLElement;
 
   /**
@@ -1948,6 +1953,8 @@ function pageDesktop(onQuit: () => void): HTMLElement {
     title: string;
     select?: (id: string) => void;
     setTitle?: (t: string) => void;
+    /** Explorer only: navigate its file pane. */
+    go?: (folder: string) => void;
   }
   const live: Live[] = [];
   let focused: Live | null = null;
@@ -2136,9 +2143,14 @@ function pageDesktop(onQuit: () => void): HTMLElement {
     const rec: Live = { el: null as unknown as HTMLElement, kind, min: false, title, select };
 
     if (kind === 'explorer') {
-      const made = explorerBody(openFile);
+      const made = explorerBody(openFile, (f) => {
+        rec.title = f;
+        const t = rec.el?.querySelector('.wx-title');
+        if (t) t.textContent = f;
+      });
       bodyEl = made.body;
       statusEl = made.status;
+      rec.go = made.go;
     } else if (kind === 'chrome') {
       const made = chromeWindow({ onEmpty: () => closeWin(rec) });
       bodyEl = made.body;
@@ -2891,6 +2903,17 @@ function pageDesktop(onQuit: () => void): HTMLElement {
   });
 
   openWindow('explorer');
+
+  /*
+   * The egg boot. Explorer is placed at the folder the clip lives in and the
+   * player opens on top of it, so the desktop tells the story rather than just
+   * playing a video: this is a file on his machine, in a folder of them.
+   */
+  if (boot?.egg) {
+    live.find((w) => w.kind === 'explorer')?.go?.('Hobby');
+    route('player', 'vid:' + boot.egg);
+  }
+
   paint();
   return page;
 }

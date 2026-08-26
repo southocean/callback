@@ -12,6 +12,8 @@ import { h, clear } from '../dom.js';
 import { sym, lockup, spinner, focusRing, playLockup, settleLockup } from './icons.js';
 import { openDev } from './devopen.js';
 import { currentPitch } from '../data/companies.js';
+import { START } from '../data/cv.js';
+
 import { openPlain } from './plainoverlay.js';
 import { tip, tipAll, tipAllAbove, hideTip, rearm } from './tooltip.js';
 import { eggMap, key as dayKey, type Egg } from '../data/eggs.js';
@@ -161,6 +163,14 @@ function slot(on: Date): { day: string; date: number; label: string; week: { n: 
  * would asynchronously clear main and overwrite whatever the caller put there,
  * which is exactly what happened the first time.
  */
+/** "20 August" from the project's first-commit date. */
+function startLabel(): string {
+  const [, m, d] = START.split('-');
+  const months = ['January', 'February', 'March', 'April', 'May', 'June',
+    'July', 'August', 'September', 'October', 'November', 'December'];
+  return `${Number(d)} ${months[Number(m) - 1]}`;
+}
+
 export function renderHome(store: Store, reducedMotion = false, body?: HTMLElement): HTMLElement {
   let s = slot(viewing);
   const marks = eggMap(TODAY);
@@ -507,7 +517,9 @@ export function renderHome(store: Store, reducedMotion = false, body?: HTMLEleme
       class: 'sched-card ring-host',
       type: 'button',
       'aria-label': egg.title,
-      onclick: () => { location.hash = '#egg/' + egg.id; joining(() => store.dispatch({ t: 'screen', screen: 'lobby' })); },
+      // Straight into the call, already sharing. The lobby asked the visitor to
+      // get ready for a thirty-second clip, which is a wall in front of a joke.
+      onclick: () => { joining(() => store.dispatch({ t: 'eggPlay', id: egg.id })); },
     },
     focusRing(),
     h(
@@ -550,7 +562,10 @@ export function renderHome(store: Store, reducedMotion = false, body?: HTMLEleme
       dayBody.appendChild(h(
         'p',
         { class: 'sched-note' },
-        'One participant. He has been waiting since March, when the CV was last updated.',
+        // Was "waiting since March, when the CV was last updated" -- a joke whose
+        // takeaway was a false staleness claim. The date now comes from the git
+        // history via data/project.ts, so it cannot drift again.
+        `Talk to him more personally with this interactive CV. He has been waiting since ${startLabel()}, when this CV was first built.`,
       ));
       dayBody.appendChild(hint);
     } else if (egg) {
