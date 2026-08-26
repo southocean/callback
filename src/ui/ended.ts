@@ -81,7 +81,31 @@ export function renderEnded(store: Store, quests: Quests): HTMLElement {
   ) as HTMLElement;
   {
     const ring = timer.querySelector('.end-ring') as HTMLElement;
-    ring.style.setProperty('--c', String(CIRC));
+    /*
+     * IN PIXELS, and the unit is the whole fix.
+     *
+     * Nam: "this weird bug with the count down timer ... it either fully blue or
+     * fully white, I dont see the timer ticking off over time. That must be a
+     * recent bug cause in some earlier QA everything was fine." Both halves of
+     * that are right, including which change broke it.
+     *
+     * --c used to be a bare number, which is legal for stroke-dasharray -- an SVG
+     * geometry property accepts a <number> and Chrome reads 113.097 as 113.097px.
+     * Then the clockwise fix introduced `calc(var(--c) * -1)` in the keyframe,
+     * and calc() is STRICTLY TYPED: a unitless number stays a <number>, so the
+     * "to" value never resolved to a length. Chrome cannot interpolate a length
+     * against that, so it fell back to DISCRETE animation -- the arc holds at
+     * full for the first thirty seconds and then vanishes for the rest. Not a
+     * frozen animation; a two-frame one.
+     *
+     * Measured, both ways, by driving Animation.currentTime on a 1s duration:
+     *   unitless  100ms 0px   400ms 0px   600ms calc(-113.097px)  900ms same
+     *   with px   100ms -11.3 400ms -45.2 600ms -67.9             900ms -101.8
+     *
+     * So --c carries its unit from here on. That also makes it safe for the next
+     * person to put it inside a calc, which is the trap that caught this one.
+     */
+    ring.style.setProperty('--c', CIRC + 'px');
     ring.style.setProperty('--dur', SECONDS + 's');
     const ns = 'http://www.w3.org/2000/svg';
     const svg = document.createElementNS(ns, 'svg');

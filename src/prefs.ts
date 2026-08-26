@@ -22,6 +22,8 @@
 // the same promise the card itself makes in its last line.
 
 const KEY = 'callback.ready';
+/** The sound choice, which is a different lifetime from the card's mute. */
+const SOUND_KEY = 'callback.sound';
 
 /** One hour, measured from whichever event muted the card. */
 export const READY_MUTE_MS = 60 * 60 * 1000;
@@ -105,4 +107,63 @@ export function noteReadyShown(now = Date.now()): void {
 }
 export function noteReadyClosed(now = Date.now()): void {
   saveReadyGate(afterReadyClosed(loadReadyGate(), now));
+}
+
+// ---------------------------------------------------------------- sound ----
+//
+// A browser will not autoplay audio without a gesture, so the first clip is
+// always muted whatever we do. That part is not ours to fix. What WAS ours, and
+// wrong, is that the player then showed an unmuted speaker and a volume slider
+// at maximum while playing silently — Nam: "the video doesnt start with sound,
+// even though volume is max and so on ... we shouldnt show the volume being max
+// and volume on."
+//
+// So the UI now reads off the video rather than off its own defaults, and the
+// visitor's answer is remembered: unmute once and every later clip in the
+// session opens with sound, because by then the page has the gesture the policy
+// wanted.
+//
+// The distinction that matters: a mute the VISITOR chose is saved, and a mute
+// the BROWSER imposed is not. Saving the second would teach the player that
+// someone who never touched the control prefers silence.
+
+export interface SoundPref {
+  muted: boolean;
+  /** 0–1, kept even while muted so unmuting returns to the same loudness. */
+  volume: number;
+}
+
+/** Muted by default: a CV that starts talking at you unprompted is worse. */
+export const SOUND_DEFAULT: SoundPref = { muted: true, volume: 1 };
+
+/** Anything unparseable or out of range reads as a first visit. */
+export function readSound(raw: string | null): SoundPref {
+  if (!raw) return SOUND_DEFAULT;
+  try {
+    const v = JSON.parse(raw) as Partial<SoundPref>;
+    if (typeof v !== 'object' || v === null) return SOUND_DEFAULT;
+    if (typeof v.muted !== 'boolean') return SOUND_DEFAULT;
+    if (typeof v.volume !== 'number' || !Number.isFinite(v.volume)) return SOUND_DEFAULT;
+    // Clamp rather than reject: a hand-edited 5 is a silly value, not a corrupt
+    // record, and the visitor's mute flag is still worth honouring.
+    return { muted: v.muted, volume: Math.min(1, Math.max(0, v.volume)) };
+  } catch {
+    return SOUND_DEFAULT;
+  }
+}
+
+export function loadSound(): SoundPref {
+  try {
+    return readSound(localStorage.getItem(SOUND_KEY));
+  } catch {
+    return SOUND_DEFAULT;
+  }
+}
+
+export function saveSound(p: SoundPref): void {
+  try {
+    localStorage.setItem(SOUND_KEY, JSON.stringify(p));
+  } catch {
+    /* ignore — the next clip simply opens muted again. */
+  }
 }

@@ -25,6 +25,7 @@
 // language of the rest of the call rather than copied from a screen nobody read.
 
 import { h, clear, icon, icons } from '../dom.js';
+import { loadSound, saveSound } from '../prefs.js';
 import { ripple } from './gm3.js';
 import { trapFocus } from '../a11y.js';
 import { profile, pitch, roles, caseStudies, requirementMap, offstage, skills } from '../data/cv.js';
@@ -1807,6 +1808,33 @@ function pageWindow(onOpen: (id: string) => void, onClose: () => void): HTMLElem
 function playerWindow(id: string): { body: HTMLElement; select: (id: string) => void; title: () => string } {
   let egg = eggs.find((e) => e.id === id) ?? eggs[0]!;
 
+  /**
+   * THE PLAYER, REBUILT AGAINST THE ONE I ALREADY WROTE.
+   *
+   * Nam, QAing the eggs: "Clicking on the video here doesnt do anything. Should
+   * have pause the video. I would like to add all the essential video controller
+   * here too. Check the menvault project ... we did a lot of extensive work on
+   * media player control, both UI and function, like control of hover,
+   * fastforwarding and so on."
+   *
+   * So this is MENVAULT's floater player (`wireFloaterVideo`) ported rather than
+   * re-derived: the click target IS the video, a hover overlay carries skip-back
+   * / play / skip-forward, the skip buttons ring and spin so a ten-second jump
+   * has a visible result, and the keyboard gets the shortcuts anyone who watches
+   * video already knows.
+   *
+   * Two deliberate departures from MENVAULT, both because this is a WINDOW in a
+   * mock OS rather than a floating picture-in-picture:
+   *
+   *   · the bottom bar does not auto-hide. In MENVAULT the chrome hid because the
+   *     floater was a small overlay on top of a page; here the bar is part of the
+   *     window, sitting above a caption that is also part of it, and a bar that
+   *     vanished would read as a rendering fault rather than as polish. The
+   *     centre overlay is the thing that appears on hover.
+   *   · fullscreen takes the whole body, not the stage, so the controls and the
+   *     caption come with it. Fullscreening the video alone hands the viewer a
+   *     player with no controls, which is how you lose the ability to get out.
+   */
   const video = h('video', {
     class: 'mp-video', src: egg.clip, poster: egg.poster,
     playsinline: 'true', preload: 'metadata',
@@ -1821,9 +1849,51 @@ function playerWindow(id: string): { body: HTMLElement; select: (id: string) => 
 
   const muteOn = svg('0 0 24 24', '<path d="M4 9h3l4-4v14l-4-4H4zm11.5 3a4 4 0 0 0-2-3.46v6.92A4 4 0 0 0 15.5 12z" fill="currentColor"/>', 'mp-g');
   const muteOff = svg('0 0 24 24', '<path d="M4 9h3l4-4v14l-4-4H4zm12.7 6.3-1.4-1.4 1.6-1.6-1.6-1.6 1.4-1.4 1.6 1.6 1.6-1.6 1.4 1.4-1.6 1.6 1.6 1.6-1.4 1.4-1.6-1.6z" fill="currentColor"/>', 'mp-g');
-  const muteBtn = h('button', { class: 'mp-btn', type: 'button', 'aria-label': 'Mute' }, muteOn) as HTMLButtonElement;
+  const muteBtn = h('button', { class: 'mp-btn mp-mute', type: 'button', 'aria-label': 'Mute' }, muteOn) as HTMLButtonElement;
 
   const vol = h('input', { class: 'mp-vol', type: 'range', min: '0', max: '100', value: '100', 'aria-label': 'Volume' }) as HTMLInputElement;
+
+  /* Speed, straight from MENVAULT's set. A <select> rather than a menu because
+     it is a five-value choice and the platform control already does that well. */
+  const speed = h('select', { class: 'mp-speed', 'aria-label': 'Playback speed' },
+    ...['0.5', '1', '1.25', '1.5', '2'].map((v) => h('option', {
+      value: v, ...(v === '1' ? { selected: 'selected' } : {}),
+    }, v + '\u00d7'))) as HTMLSelectElement;
+
+  const fsMark = svg('0 0 24 24', '<path d="M4 9V4h5v2H6v3zm11-5h5v5h-2V6h-3zM4 15h2v3h3v2H4zm14 3v-3h2v5h-5v-2z" fill="currentColor"/>', 'mp-g');
+  const fsBtn = h('button', { class: 'mp-btn', type: 'button', 'aria-label': 'Full screen' }, fsMark) as HTMLButtonElement;
+
+  /* --- the hover overlay ------------------------------------------------- */
+  /* MENVAULT's .fl-center: three glass discs, hidden until the pointer is over
+     the picture, scaled up on arrival so they feel like they landed. */
+  const skipBack = h('button', {
+    class: 'mp-c mp-c-back', type: 'button', 'aria-label': 'Back 10 seconds',
+  }, h('span', { class: 'mp-c-i', 'aria-hidden': 'true' }, '\u27f2'),
+     h('span', { class: 'mp-c-n', 'aria-hidden': 'true' }, '10')) as HTMLButtonElement;
+
+  const bigMark = svg('0 0 24 24', '<path d="M8 5v14l11-7z" fill="currentColor"/>', 'mp-cg');
+  const bigPause = svg('0 0 24 24', '<path d="M6 5h4v14H6zm8 0h4v14h-4z" fill="currentColor"/>', 'mp-cg');
+  const bigBtn = h('button', {
+    class: 'mp-c mp-c-big', type: 'button', 'aria-label': 'Play',
+  }, bigMark) as HTMLButtonElement;
+
+  const skipFwd = h('button', {
+    class: 'mp-c mp-c-fwd', type: 'button', 'aria-label': 'Forward 10 seconds',
+  }, h('span', { class: 'mp-c-n', 'aria-hidden': 'true' }, '10'),
+     h('span', { class: 'mp-c-i', 'aria-hidden': 'true' }, '\u27f3')) as HTMLButtonElement;
+
+  /* Keyboard feedback. A seek by key changes a number in the corner and nothing
+     else, so MENVAULT flashed a glyph in the middle; without it the key feels
+     dead even though it worked. */
+  const flash = h('div', { class: 'mp-flash', 'aria-hidden': 'true' }) as HTMLElement;
+
+  /** Restartable animation: drop the class, force reflow, add it back. */
+  const anim = (el: HTMLElement, cls: string): void => {
+    el.classList.remove(cls);
+    void el.offsetWidth;
+    el.classList.add(cls);
+  };
+  const flashGlyph = (g: string): void => { flash.textContent = g; anim(flash, 'is-on'); };
 
   const clock = (n: number): string => {
     if (!Number.isFinite(n)) return '0:00';
@@ -1833,60 +1903,213 @@ function playerWindow(id: string): { body: HTMLElement; select: (id: string) => 
   const syncTime = (): void => {
     const d = video.duration;
     time.textContent = clock(video.currentTime) + ' / ' + clock(d);
-    if (Number.isFinite(d) && d > 0 && !scrubbing) seek.value = String(Math.round((video.currentTime / d) * 1000));
+    if (Number.isFinite(d) && d > 0 && !scrubbing) {
+      const pct = (video.currentTime / d) * 1000;
+      seek.value = String(Math.round(pct));
+      // The filled part of the track, so the bar reads as progress rather than
+      // as a slider that happens to have moved.
+      seek.style.setProperty('--at', (pct / 10).toFixed(2) + '%');
+    }
   };
   const syncPlay = (): void => {
     clear(playBtn);
     playBtn.appendChild(video.paused ? playMark : pauseMark);
     playBtn.setAttribute('aria-label', video.paused ? 'Play' : 'Pause');
+    clear(bigBtn);
+    bigBtn.appendChild(video.paused ? bigMark : bigPause);
+    bigBtn.setAttribute('aria-label', video.paused ? 'Play' : 'Pause');
+    // Paused shows the overlay whatever the pointer is doing: a paused player
+    // with no visible play button is the one state where hover-only chrome
+    // genuinely looks broken.
+    stage.classList.toggle('is-paused', video.paused);
   };
 
+  /**
+   * The sound state, told honestly.
+   *
+   * This is the bug Nam reported. The old player set `video.muted = true` for
+   * autoplay and then never told the controls, so the speaker icon said "sound
+   * on" and the slider sat at maximum over a silent video.
+   *
+   * Now one function reads the video and writes the UI, and it is called after
+   * every event that can change either.
+   */
+  const syncSound = (): void => {
+    clear(muteBtn);
+    muteBtn.appendChild(video.muted ? muteOff : muteOn);
+    muteBtn.setAttribute('aria-label', video.muted ? 'Unmute' : 'Mute');
+    // The slider keeps showing the volume while muted, because muted-at-full is
+    // a real state and unmuting should land back on the same loudness. The class
+    // is what says it is not currently doing anything.
+    vol.value = String(Math.round(video.volume * 100));
+    vol.style.setProperty('--at', (video.volume * 100).toFixed(1) + '%');
+    bar.classList.toggle('is-muted', video.muted);
+  };
+
+  /* The visitor's own choice, saved. A mute the BROWSER imposed is not saved --
+     see prefs.ts. */
+  const rememberSound = (): void => saveSound({ muted: video.muted, volume: video.volume });
+
   let scrubbing = false;
-  playBtn.addEventListener('click', () => { if (video.paused) void video.play().catch(() => {}); else video.pause(); });
+
+  const toggle = (): void => {
+    if (video.paused) void video.play().catch(() => {});
+    else video.pause();
+  };
+  const nudge = (by: number): void => {
+    const d = Number.isFinite(video.duration) ? video.duration : 0;
+    video.currentTime = Math.max(0, Math.min(d || video.currentTime + by, video.currentTime + by));
+    syncTime();
+  };
+
+  playBtn.addEventListener('click', toggle);
+  bigBtn.addEventListener('click', () => { toggle(); anim(bigBtn, 'is-ring'); });
+  skipBack.addEventListener('click', () => { nudge(-10); anim(skipBack, 'is-ring'); anim(skipBack, 'is-spin'); });
+  skipFwd.addEventListener('click', () => { nudge(10); anim(skipFwd, 'is-ring'); anim(skipFwd, 'is-spin'); });
+
   video.addEventListener('play', syncPlay);
   video.addEventListener('pause', syncPlay);
   video.addEventListener('timeupdate', syncTime);
   video.addEventListener('loadedmetadata', syncTime);
   video.addEventListener('ended', syncPlay);
+  // The video is the authority on its own sound: a policy-forced mute arrives as
+  // a volumechange with no code of ours in the stack, and the UI has to follow.
+  video.addEventListener('volumechange', syncSound);
+
   seek.addEventListener('pointerdown', () => { scrubbing = true; });
   seek.addEventListener('pointerup', () => { scrubbing = false; });
   seek.addEventListener('input', () => {
     const d = video.duration;
+    seek.style.setProperty('--at', (Number(seek.value) / 10).toFixed(2) + '%');
     if (Number.isFinite(d) && d > 0) video.currentTime = (Number(seek.value) / 1000) * d;
   });
+
   muteBtn.addEventListener('click', () => {
     video.muted = !video.muted;
-    clear(muteBtn);
-    muteBtn.appendChild(video.muted ? muteOff : muteOn);
-    muteBtn.setAttribute('aria-label', video.muted ? 'Unmute' : 'Mute');
+    // Unmuting at zero volume would be a control that does nothing, so it comes
+    // back at a usable level -- the same guard MENVAULT's volume input has.
+    if (!video.muted && video.volume === 0) video.volume = 1;
+    syncSound();
+    rememberSound();
   });
-  vol.addEventListener('input', () => { video.volume = Number(vol.value) / 100; if (video.muted && Number(vol.value) > 0) muteBtn.click(); });
+  vol.addEventListener('input', () => {
+    video.volume = Number(vol.value) / 100;
+    // Dragging the volume up is an unmute. Anything else makes the slider look
+    // broken while muted.
+    if (video.volume > 0) video.muted = false;
+    syncSound();
+    rememberSound();
+  });
+  speed.addEventListener('change', () => { video.playbackRate = Number(speed.value); });
+
+  const fullscreen = (): void => {
+    const d = document as Document & { webkitFullscreenElement?: Element };
+    if (d.fullscreenElement || d.webkitFullscreenElement) { void document.exitFullscreen?.(); return; }
+    void body.requestFullscreen?.().catch(() => { /* denied in an iframe; not an error */ });
+  };
+  fsBtn.addEventListener('click', fullscreen);
+
+  /* --- the stage is the control ------------------------------------------ */
+  /* Nam's actual report: clicking the picture did nothing. It is the largest
+     target in the window and on every video player ever made it toggles play. */
+  const stage = h('div', {
+    class: 'mp-stage', role: 'button', tabindex: '0',
+    'aria-label': 'Play or pause. Arrow keys seek.',
+  }, video, h('div', { class: 'mp-center' }, skipBack, bigBtn, skipFwd), flash) as HTMLElement;
+
+  stage.addEventListener('click', (e) => {
+    // A press on a disc is that disc's, not the stage's.
+    if ((e.target as HTMLElement).closest('.mp-c')) return;
+    // Clicking the picture also hands it the keyboard, which is what makes the
+    // shortcuts below reachable without hunting for a Tab stop.
+    stage.focus();
+    toggle();
+  });
+  stage.addEventListener('dblclick', (e) => {
+    if ((e.target as HTMLElement).closest('.mp-c')) return;
+    fullscreen();
+  });
+
+  /**
+   * Keys, on the player body so they only fire while focus is inside it.
+   *
+   * Skipped when the target is a slider or the speed select: ArrowLeft on the
+   * seek bar already moves the seek bar, and handling it twice would jump the
+   * video two different distances at once.
+   */
+  const keys = (e: Event): void => {
+    const ev = e as KeyboardEvent;
+    if ((ev.target as HTMLElement).closest('input, select')) return;
+    const step = (n: number, g: string): void => { ev.preventDefault(); nudge(n); flashGlyph(g); };
+    switch (ev.key) {
+      case ' ':
+      case 'k':
+        ev.preventDefault();
+        toggle();
+        flashGlyph(video.paused ? '\u25b6' : '\u2016');
+        return;
+      case 'ArrowLeft': step(-5, '\u23ea'); return;
+      case 'ArrowRight': step(5, '\u23e9'); return;
+      case 'j': step(-10, '\u23ea'); return;
+      case 'l': step(10, '\u23e9'); return;
+      case 'ArrowUp':
+        ev.preventDefault();
+        video.volume = Math.min(1, video.volume + 0.1);
+        video.muted = false;
+        syncSound();
+        rememberSound();
+        return;
+      case 'ArrowDown':
+        ev.preventDefault();
+        video.volume = Math.max(0, video.volume - 0.1);
+        syncSound();
+        rememberSound();
+        return;
+      case 'm':
+        muteBtn.click();
+        flashGlyph(video.muted ? '\ud83d\udd07' : '\ud83d\udd08');
+        return;
+      case 'f':
+        fullscreen();
+        return;
+      default:
+    }
+  };
 
   const caption = h('div', { class: 'mp-cap' }, egg.blurb) as HTMLElement;
 
-  const body = h('div', { class: 'wx-body mp' },
-    h('div', { class: 'mp-stage' }, video),
-    h('div', { class: 'mp-bar' },
-      playBtn, seek, time, muteBtn, vol),
-    caption) as HTMLElement;
+  const bar = h('div', { class: 'mp-bar' },
+    playBtn, seek, time, muteBtn, vol, speed, fsBtn) as HTMLElement;
+
+  const body = h('div', { class: 'wx-body mp' }, stage, bar, caption) as HTMLElement;
+  body.addEventListener('keydown', keys);
 
   syncPlay();
 
-  /*
-   * Start playing on open. Nam: "the media player should auto start the video."
+  /**
+   * Start playing, with sound if the visitor has ever asked for it.
    *
-   * Muted, because that is the only kind of autoplay a browser allows without a
-   * gesture — and it is the behaviour we want anyway: the volume control is right
-   * there, and a player that starts talking at you unprompted is worse than one
-   * you have to unmute. The same reasoning the egg player already used; this one
-   * simply never called play() except from select().
-   *
-   * The rejection is swallowed on purpose. If a policy blocks it the poster stays
-   * up with a working play button, which is a fine outcome and not an error worth
-   * surfacing.
+   * Nam: "Maybe its a browser policy to not play audio without cues - I could
+   * see where the sudden sound would startle users." Both true, and the answer
+   * is not to fight the policy but to stop lying about it. So: try the remembered
+   * state, and if the policy refuses, mute, try again, and let syncSound show
+   * what actually happened. The refused attempt is NOT saved as a preference.
    */
-  video.muted = true;
-  void video.play().then(syncPlay).catch(() => { /* poster + play button is fine */ });
+  const startPlayback = (): void => {
+    const pref = loadSound();
+    video.volume = pref.volume;
+    video.muted = pref.muted;
+    syncSound();
+    void video.play().then(syncSound).catch(() => {
+      video.muted = true;
+      syncSound();
+      // Second attempt, muted, which the policy always allows. If even this is
+      // refused the poster stays up with a working play button -- a fine outcome
+      // and not an error worth surfacing.
+      void video.play().catch(() => {});
+    });
+  };
+  startPlayback();
 
   return {
     body,
@@ -1897,7 +2120,9 @@ function playerWindow(id: string): { body: HTMLElement; select: (id: string) => 
       video.src = egg.clip;
       video.poster = egg.poster;
       caption.textContent = egg.blurb;
-      void video.play().catch(() => {});
+      // Same path as the first clip, so a second video honours the sound choice
+      // made during the first one.
+      startPlayback();
     },
     title: () => egg.title,
   };
@@ -2133,6 +2358,24 @@ function pageDesktop(onQuit: () => void, boot?: { egg?: string }): HTMLElement {
     route('chrome', id);
   };
 
+  /**
+   * Put a window in the middle of the desktop, clamped inside it.
+   *
+   * offsetWidth rather than getBoundingClientRect().width: a window opens under
+   * wx-in, which scales from .96, and a rect read mid-animation is 4% short.
+   * offset* ignores transforms.
+   */
+  const centreWin = (el: HTMLElement): void => {
+    const host = surface.getBoundingClientRect();
+    // Nothing sensible to centre against yet -- try again next frame rather than
+    // pinning the window to the top-left corner.
+    if (host.width < 1 || host.height < 1) { requestAnimationFrame(() => centreWin(el)); return; }
+    const w = el.offsetWidth;
+    const hgt = el.offsetHeight;
+    el.style.left = `${Math.max(0, Math.round((host.width - w) / 2))}px`;
+    el.style.top = `${Math.max(0, Math.round((host.height - hgt) / 2))}px`;
+  };
+
   function openWindow(kind: AppKind, tabId?: string): void {
     const app = APPS.find((a) => a.kind === kind)!;
     let bodyEl: HTMLElement;
@@ -2176,6 +2419,7 @@ function pageDesktop(onQuit: () => void, boot?: { egg?: string }): HTMLElement {
     rec.el = el;
 
     // Cascade, so a second window does not land exactly on the first.
+    // (centreWin overrides this for the egg boot — see the boot block.)
     const n = live.length;
     el.style.left = `${60 + n * 28}px`;
     el.style.top = `${40 + n * 26}px`;
@@ -2912,6 +3156,26 @@ function pageDesktop(onQuit: () => void, boot?: { egg?: string }): HTMLElement {
   if (boot?.egg) {
     live.find((w) => w.kind === 'explorer')?.go?.('Hobby');
     route('player', 'vid:' + boot.egg);
+    /*
+     * Centre it. Nam: "when you just got inside the meeting from the easter egg,
+     * I want the video to be center on the screen."
+     *
+     * openWindow cascades every new window down and right so a second one does
+     * not land exactly on the first, which is correct for windows you opened
+     * yourself and wrong for this one: the clip is the entire reason the call
+     * exists, and it was arriving tucked into the top-left corner overlapping
+     * Explorer.
+     *
+     * offsetWidth, not getBoundingClientRect: the window opens under wx-in,
+     * which scales from .96, and a rect read mid-animation is 4% short — that
+     * has already cost this project one wrong measurement.
+     */
+    const mine = live.find((w) => w.kind === 'player');
+    // After a frame, not now. pageDesktop BUILDS the page and returns it -- at
+    // this point nothing here is in the document yet, so the surface measures
+    // 0x0 and centring resolves to (0,0), which is exactly where QA found the
+    // window. One frame later the desktop is mounted and laid out.
+    if (mine) requestAnimationFrame(() => centreWin(mine.el));
   }
 
   paint();

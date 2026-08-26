@@ -810,16 +810,7 @@ code { font: 400 12px/1.4 ui-monospace, Consolas, monospace; color: var(--dark-b
 .tab[aria-selected="true"] { background: rgba(168,199,250,.2); color: var(--dark-blue); }
 
 .finding { border: 1px solid var(--dark-line); border-radius: 8px; margin-bottom: 10px; overflow: hidden; }
-  background-color: var(--dark-surface); border-radius: 8px; padding: 3px 9px;
-  color: var(--on-dark3); font: 500 11px/1 var(--font);
-}
 .finding-body { padding: 0 12px 12px; }
-  font: 400 13px/19px var(--font); color: var(--on-dark3); font-style: italic;
-  border-left: 3px solid #f2b8b5; padding-left: 11px; margin-bottom: 10px;
-}
-  font: 400 13px/19px var(--font); color: var(--on-dark); border-left: 3px solid #6dd58c;
-  padding-left: 11px; margin-bottom: 8px;
-}
 
 .phase { border-left: 2px solid var(--dark-line); padding: 0 0 16px 16px; position: relative; margin-left: 4px; }
 .phase::before {
@@ -6608,7 +6599,27 @@ body.tray-open.cc-on .react-clip { bottom: calc(var(--botbar) + 268px); }
  * stage's box, so it cannot overflow whatever the source's shape, and
  * object-fit: contain letterboxes inside it — a vertical clip stays vertical and
  * whole, which is the point. */
-.mp-stage { flex: 1 1 auto; min-height: 0; position: relative; overflow: hidden; background-color: #000; }
+/* ================= THE MEDIA PLAYER, PORTED FROM MENVAULT ================ */
+/* Nam, QAing the eggs: "Clicking on the video here doesnt do anything. Should
+ * have pause the video ... Check the menvault project ... control of hover,
+ * fastforwarding and so on."
+ *
+ * So this is MENVAULT's floater chrome (.fl-center / .flc-c / flRing / flSpin)
+ * brought over: a hover overlay of three glass discs, each of which reacts when
+ * pressed, because a ten-second skip otherwise changes one number in the corner
+ * and reads as a dead button.
+ *
+ * The bottom bar does NOT auto-hide the way MENVAULT's did. There it was a small
+ * floating overlay on top of a page; here it is part of a window, above a caption
+ * that is also part of it, and a bar that vanished would read as a rendering
+ * fault rather than as polish.
+ */
+.mp-stage {
+  flex: 1 1 auto; min-height: 0; position: relative; overflow: hidden;
+  background-color: #000; cursor: pointer;
+}
+.mp-stage:focus { outline: none; }
+.mp-stage:focus-visible { outline: 2px solid #4cc2ff; outline-offset: -2px; }
 .mp-video { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: contain; display: block; }
 .mp-bar {
   flex: 0 0 auto; display: flex; align-items: center; gap: 10px;
@@ -6621,9 +6632,116 @@ body.tray-open.cc-on .react-clip { bottom: calc(var(--botbar) + 268px); }
 }
 .mp-btn:hover { background-color: rgba(255, 255, 255, .12); }
 .mp-g { width: 18px; height: 18px; display: block; }
-.mp-seek { flex: 1 1 auto; min-width: 0; accent-color: #4cc2ff; }
-.mp-vol { width: 76px; flex: 0 0 auto; accent-color: #4cc2ff; }
+/* A filled track, so the bar reads as progress rather than as a slider that
+   happens to have moved. --at is written by syncTime/syncSound. */
+.mp-seek, .mp-vol {
+  -webkit-appearance: none; appearance: none; height: 4px; margin: 0;
+  border-radius: 2px; cursor: pointer; accent-color: #4cc2ff;
+  background-image: linear-gradient(to right, #4cc2ff var(--at, 0%), rgba(255, 255, 255, .26) var(--at, 0%));
+}
+.mp-seek { flex: 1 1 auto; min-width: 0; }
+.mp-vol { width: 76px; flex: 0 0 auto; }
+.mp-seek::-webkit-slider-thumb, .mp-vol::-webkit-slider-thumb {
+  -webkit-appearance: none; appearance: none;
+  width: 12px; height: 12px; border-radius: 50%; background-color: #fff;
+  border: 3px solid #4cc2ff; box-sizing: border-box;
+}
+.mp-seek::-moz-range-thumb, .mp-vol::-moz-range-thumb {
+  width: 12px; height: 12px; border-radius: 50%; background-color: #fff;
+  border: 3px solid #4cc2ff; box-sizing: border-box;
+}
+/* Muted is the one state the old player got wrong -- it showed an unmuted
+   speaker over a silent video. The icon carries it; this greys the slider so the
+   volume it still shows does not read as "currently this loud". */
+.mp-bar.is-muted .mp-vol {
+  background-image: linear-gradient(to right, #6b6f76 var(--at, 0%), rgba(255, 255, 255, .18) var(--at, 0%));
+}
+.mp-bar.is-muted .mp-vol::-webkit-slider-thumb { border-color: #6b6f76; background-color: #d0d3d7; }
+.mp-bar.is-muted .mp-vol::-moz-range-thumb { border-color: #6b6f76; background-color: #d0d3d7; }
+.mp-bar.is-muted .mp-mute { color: #ffb4a9; }
+
+.mp-speed {
+  flex: 0 0 auto; height: 24px; padding: 0 4px; border-radius: 4px;
+  background-color: rgba(255, 255, 255, .14); border: 0; color: #fff;
+  font: 400 11.5px/1 var(--font); cursor: pointer;
+}
+.mp-speed:focus-visible { outline: 2px solid #4cc2ff; outline-offset: 2px; }
 .mp-time { flex: 0 0 auto; font: 400 11.5px/1 var(--font); color: #b9bcc0; font-variant-numeric: tabular-nums; }
+
+/* --- the hover overlay --------------------------------------------------- */
+.mp-center {
+  position: absolute; inset: 0; z-index: 3;
+  display: flex; align-items: center; justify-content: center; gap: 20px;
+  opacity: 0; pointer-events: none; transition: opacity .2s ease;
+}
+/* Paused shows it whatever the pointer is doing: a paused player with no visible
+   play button is the one state where hover-only chrome genuinely looks broken. */
+.mp-stage:hover .mp-center,
+.mp-stage:focus-visible .mp-center,
+.mp-stage.is-paused .mp-center { opacity: 1; }
+
+.mp-c {
+  position: relative; pointer-events: none;
+  display: flex; align-items: center; justify-content: center; gap: 1px;
+  width: 46px; height: 46px; border-radius: 50%; border: 0; padding: 0;
+  cursor: pointer; color: #fff; font: 400 18px/1 var(--font);
+  background-color: rgba(18, 18, 24, .42);
+  backdrop-filter: blur(9px); -webkit-backdrop-filter: blur(9px);
+  box-shadow: 0 2px 12px rgba(0, 0, 0, .4);
+  transform: scale(.82);
+  transition: transform .2s cubic-bezier(.2, .9, .3, 1.3), background-color .15s linear;
+}
+.mp-stage:hover .mp-c,
+.mp-stage:focus-visible .mp-c,
+.mp-stage.is-paused .mp-c { pointer-events: auto; transform: none; }
+.mp-c:hover { background-color: rgba(48, 48, 58, .7); transform: scale(1.12); }
+.mp-c:active { transform: scale(.92); }
+.mp-c:focus-visible { outline: 2px solid #4cc2ff; outline-offset: 2px; }
+.mp-c-big { width: 62px; height: 62px; }
+.mp-cg { width: 27px; height: 27px; display: block; }
+.mp-c-n { font-size: 9px; font-weight: 700; opacity: .92; }
+.mp-c-i { display: inline-block; font-size: 17px; }
+
+/* The skip discs answer when pressed: a ring leaves the edge and the arrow turns
+   a full circle. Restartable from script -- see anim() in share.ts. */
+.mp-c.is-ring::after {
+  content: ''; position: absolute; inset: 0; border-radius: 50%;
+  animation: mp-ring .45s ease-out;
+}
+@keyframes mp-ring {
+  from { box-shadow: 0 0 0 0 rgba(255, 255, 255, .5); }
+  to   { box-shadow: 0 0 0 13px rgba(255, 255, 255, 0); }
+}
+.mp-c-fwd.is-spin .mp-c-i { animation: mp-spin .5s cubic-bezier(.3, .1, .2, 1); }
+.mp-c-back.is-spin .mp-c-i { animation: mp-spin .5s cubic-bezier(.3, .1, .2, 1) reverse; }
+@keyframes mp-spin { from { transform: rotate(0); } to { transform: rotate(360deg); } }
+
+/* --- keyboard feedback --------------------------------------------------- */
+/* A seek by key changes a number in the corner and nothing else, so the glyph
+   flashes in the middle. Without it the key feels dead even though it worked. */
+.mp-flash {
+  position: absolute; top: 50%; left: 50%; z-index: 4;
+  width: 84px; height: 84px; margin: -42px 0 0 -42px; border-radius: 50%;
+  display: grid; place-items: center; pointer-events: none;
+  background-color: rgba(18, 18, 24, .55);
+  color: #fff; font: 400 30px/1 var(--font);
+  opacity: 0;
+}
+.mp-flash.is-on { animation: mp-flash .6s ease-out; }
+@keyframes mp-flash {
+  from { opacity: 1; transform: scale(.82); }
+  to   { opacity: 0; transform: scale(1.25); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .mp-center, .mp-c { transition: none; }
+  .mp-c.is-ring::after, .mp-c-fwd.is-spin .mp-c-i, .mp-c-back.is-spin .mp-c-i { animation: none; }
+  /* The flash still has to appear and go away, or a keyboard seek says nothing
+     at all. It stops travelling; it does not stop existing. */
+  .mp-flash.is-on { animation: mp-flash-still .6s linear; }
+  @keyframes mp-flash-still { from { opacity: 1; } to { opacity: 0; } }
+}
+
 .mp-cap { flex: 0 0 auto; padding: 8px 12px 10px; font: 400 12px/17px var(--font); color: #9aa0a6; background-color: #1b1b1f; }
 
 /* --- 12. the side-projects page ----------------------------------------- */

@@ -134,9 +134,29 @@ export function reduce(s: State, a: Action): State {
     case 'join':
       return { ...s, screen: 'call' };
 
-    case 'leave':
+    case 'leave': {
       // A CV has no business keeping a webcam warm after you walk away from it.
-      return { ...s, screen: 'ended', panel: 'none', cameraOn: false, micOn: false, fx: 'off', handRaised: false, pinned: false, minimized: false, eggPlay: null };
+      const off = { panel: 'none' as const, cameraOn: false, micOn: false, fx: 'off' as const, handRaised: false, pinned: false, minimized: false, eggPlay: null };
+      /*
+       * Leaving an EGG call goes straight home, skipping the ended screen.
+       *
+       * Nam: "when you click end call, you should be back immediately to home
+       * screen without seeing the you left the meeting screen. This is to
+       * streamline the flow when user is hunting for easter eggs."
+       *
+       * The ended screen earns its place after a real visit -- it holds the
+       * referral note and the copyable link, which is the one thing a reader
+       * might want on the way out. After a thirty-second clip it is a speed bump
+       * between the visitor and the next clip, and someone hunting eggs will hit
+       * it once per egg.
+       *
+       * Branching on the egg id rather than on a flag from the button: the state
+       * already knows what kind of call this was, and a caller cannot forget to
+       * pass something it does not have to pass.
+       */
+      if (s.eggPlay) return { ...s, ...off, screen: 'home' };
+      return { ...s, ...off, screen: 'ended' };
+    }
 
     case 'panel':
       // Clicking the open panel's own button closes it, the way a real call does.
@@ -165,7 +185,18 @@ export function reduce(s: State, a: Action): State {
     case 'eggPlay':
       // Joining the egg goes straight to the call -- no lobby. The clip is the
       // whole point of that meeting, so a green room in front of it is a wall.
-      return { ...s, screen: 'call', eggPlay: a.id };
+      //
+      // And no "Your meeting's ready" card over the top of it. That card exists
+      // to tell a first-time visitor the link is copyable; an egg is a
+      // thirty-second clip someone clicked on purpose, and a share sheet parked
+      // over the video is exactly the clutter Nam reported. Suppressed HERE
+      // rather than at the call site so a future way into an egg cannot forget:
+      // the rule is a property of the state, not of one button.
+      //
+      // It also means the egg does not burn one of the card's two automatic
+      // shows, because call.ts only counts a show when the card is armed. The
+      // visitor was not shown it, so it was not shown.
+      return { ...s, screen: 'call', eggPlay: a.id, readyCard: a.id ? false : s.readyCard };
 
     case 'pin':
       // Pinning gives the tile the whole right column, so a collapsed bar makes

@@ -262,9 +262,23 @@ export const tasks: Task[] = [
   { id: 'T8', col: 'review', size: 'M', tag: 'onboarding', title: 'CV opens as an overlay, not a route', note: 'Shipped. Meet never navigates away from itself and neither should this.' },
   { id: 'T9', col: 'review', size: 'M', tag: 'onboarding', title: 'Per-company copy behind a code', note: 'Shipped. No employer named by default; ?c= swaps in the specific lines.' },
   { id: 'T10', col: 'review', size: 'L', tag: 'specs', title: 'Project specifications panel', note: 'Shipped. One place the build is documented, reachable from the home screen and from inside the call.' },
-  { id: 'T11', col: 'doing', size: 'M', tag: 'call', title: 'Easter eggs open inside the call', note: 'Join goes straight to the call with the clip playing on the shared screen, instead of a separate player screen.' },
+  { id: 'T11', col: 'review', size: 'M', tag: 'call', title: 'Easter eggs open inside the call', note: 'Shipped, then QA\u2019d by Nam \u2014 which is where T16 to T20 came from. Join goes straight to the call with the clip playing on the shared screen.' },
   { id: 'T12', col: 'done', size: 'L', tag: 'call', title: 'The shared desktop', note: 'Windows that drag, resize, snap and minimise, a file explorer, a browser and a media player.' },
   { id: 'T13', col: 'done', size: 'M', tag: 'call', title: 'Pinned and presenting layouts', note: 'Read off the live product while a share was running — the only way those states were reachable.' },
   { id: 'T14', col: 'done', size: 'M', tag: 'trust', title: 'Perception pass', note: 'How this reads to a stranger, ranked by how fast it pushes them toward closing the tab.' },
   { id: 'T15', col: 'done', size: 'S', tag: 'onboarding', title: 'Banner says it is a CV', note: 'The first line now answers the category question instead of describing the format.' },
+
+  /* From Nam's egg QA, 26 August. Five requests and three bugs, all shipped and
+     measured in a browser; sitting in review because he has not seen them yet. */
+  { id: 'T16', col: 'review', size: 'L', tag: 'call', title: 'Real video controls on the shared player', note: 'Shipped. Clicking the picture pauses it, which it did not. Skip \u00b110s on a hover overlay, speed, fullscreen, and the keyboard set \u2014 ported from MENVAULT rather than re-derived.' },
+  { id: 'T17', col: 'review', size: 'M', tag: 'call', title: 'The player stops lying about sound', note: 'Shipped. It autoplayed muted while showing an unmuted speaker at full volume. The UI now reads off the video, and the visitor\u2019s choice is remembered \u2014 a mute the browser imposed is not saved as one they chose.' },
+  { id: 'T18', col: 'review', size: 'S', tag: 'call', title: 'No share sheet over an easter egg', note: 'Shipped. The meeting\u2019s-ready card exists to say the link is copyable; parked over a 30-second clip it is just clutter. Suppressed in the reducer, so a future route into an egg cannot forget.' },
+  { id: 'T19', col: 'review', size: 'S', tag: 'call', title: 'Egg player opens centred', note: 'Shipped. It was inheriting the cascade meant for windows you opened yourself and landing in the corner behind Explorer.' },
+  { id: 'T20', col: 'review', size: 'S', tag: 'call', title: 'Leaving an egg goes straight home', note: 'Shipped. The ended screen earns its place after a real visit; after a clip it is a speed bump, once per egg, for someone hunting them.' },
+  { id: 'T21', col: 'review', size: 'S', tag: 'call', title: 'BUG: countdown ring animated in two frames', note: 'Fixed. A unitless custom property inside calc() stays a <number>, so the keyframe never resolved to a length and Chrome fell back to DISCRETE animation \u2014 full arc for 30s, then none. Nam: "either fully blue or fully white".' },
+  { id: 'T22', col: 'review', size: 'S', tag: 'specs', title: 'BUG: three CSS rules had lost their selectors', note: 'Fixed. A prune deleted the selector lines and left the declarations, which a browser silently discards. deadcss cannot see it \u2014 with the selector gone there is no name left to report \u2014 so css-structure.mjs now gates on it.' },
+  { id: 'T23', col: 'review', size: 'S', tag: 'specs', title: 'BUG: local video could not seek', note: 'Fixed. serve.mjs answered Range with a plain chunked 200, so Chrome reported the media unseekable and every skip snapped to zero. Production was never affected, which is exactly why it wasted a QA pass.' },
+
+  /* Flagged rather than done. Still true as of this build. */
+  { id: 'T24', col: 'backlog', size: 'M', tag: 'specs', title: 'Initial payload is halfway to the ceiling', note: '24.7 kB of a 50 kB gate, up from 18.2. Still green, and the growth is real, but two deferred chunks are 17 kB and 19 kB and deserve a splitting pass before it becomes urgent.' },
 ];
