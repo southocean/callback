@@ -289,6 +289,8 @@ export const tasks: Task[] = [
   { id: 'T29', col: 'review', size: 'M', tag: 'trust', title: 'The page never asks for your camera', note: 'Shipped. getUserMedia is gone \u2014 the control flips its own icon and nothing else, verified by wrapping mediaDevices.getUserMedia and toggling both ways. Closes R11 in the perception doc, which called the browser\u2019s permission bar on a page dressed as Meet the scariest moment in the funnel.' },
   { id: 'T30', col: 'review', size: 'M', tag: 'specs', title: 'WebGL effects pipeline deleted', note: 'Removed with the camera it ran on: the Effects tab, src/fx/pipeline.ts, the fx side quest, the \u2018e\u2019 shortcut and the Backgrounds button. A real loss \u2014 it was the most technically substantial thing here \u2014 but it was only ever visible to a reader who granted the permission we just removed. Recoverable from git.' },
 
+  { id: 'T31', col: 'review', size: 'S', tag: 'trust', title: 'BUG: the lobby named a camera it never asked about', note: 'Fixed. The lobby promoted a chip to "Integrated Camera" — a hardcoded device name, in a file whose own comment forbids exactly that. It only looked right because Windows calls most built-in webcams that. Now reads "No camera requested" beside "Effects unavailable", matching the mic and speaker chips, and the promote mechanism is gone because nothing can be granted.' },
+
   /* Flagged rather than done. Still true as of this build. */
   { id: 'T24', col: 'backlog', size: 'M', tag: 'specs', title: 'Initial payload is halfway to the ceiling', note: '24.7 kB of a 50 kB gate, up from 18.2. Still green, and the growth is real, but two deferred chunks are 17 kB and 19 kB and deserve a splitting pass before it becomes urgent.' },
 ];

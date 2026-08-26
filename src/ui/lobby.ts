@@ -260,7 +260,8 @@ export function renderLobby(store: Store, media: Media): HTMLElement {
     if (g) camCtl.btn.replaceChild(sym(preCam ? 'videocam' : 'videocam_off', 24), g);
     avatar.style.display = preCam ? 'none' : '';
     stage.classList.toggle('cam-on', preCam);
-    promoteChips(preCam);
+    // The device chips no longer change: nothing can be granted. See below.
+    requestAnimationFrame(tipClipped);
     // Was "Camera unavailable / Close other apps that might be using your
     // camera", which was true while a real getUserMedia was being attempted and
     // failing. Nothing is attempted now, so that would be a page inventing a
@@ -349,15 +350,19 @@ export function renderLobby(store: Store, media: Media): HTMLElement {
    *
    * Every row here is inert by design — same reasoning as the overflow menu.
    */
+  /*
+   * "Integrated Camera" was the fiction this comment warned against.
+   *
+   * The rule above is right and I broke it: a hardcoded device name is exactly
+   * "a real device name [that] would be a fiction". It only ever LOOKED correct
+   * because Integrated Camera is what Windows calls most built-in webcams, so on
+   * a laptop it reads as though the page enumerated your hardware. It never did,
+   * and now it never asks either — so it says so, the way the mic and speaker
+   * chips already do.
+   */
   const camMenu = (): MenuItem[] => [
-    { label: 'Integrated Camera', checked: true },
-    { icon: 'photo_camera', label: 'Make a test recording' },
-    { icon: 'error', label: 'Camera unavailable', sub: 'Show more info', warn: true, ruleBefore: true },
-  ];
-  const fxMenu = (): MenuItem[] => [
-    { label: 'Touch-up appearance' },
-    { label: 'Generate an AI background' },
-    { label: 'Choose backgrounds and effects' },
+    { label: 'No camera requested', checked: true },
+    { icon: 'info', label: 'This page never asks for your camera', sub: 'Show more info', ruleBefore: true },
   ];
 
   const chipMic = chip('mic_none', 'Mic not found', true, () => [
@@ -366,30 +371,21 @@ export function renderLobby(store: Store, media: Media): HTMLElement {
   const chipSpk = chip('volume_up', 'Speaker not found', true, () => [
     { icon: 'error', label: 'Speaker not found', sub: 'Show more info', warn: true },
   ]);
-  const chipCam = chip('videocam', 'Permission needed', false);
-  const chipFx = chip('blur_on', 'Permission needed', false);
+  /*
+   * Both were "Permission needed", disabled until the camera was allowed. There
+   * is no permission to need any more: the camera control is cosmetic and the
+   * effects it gated are deleted. "Permission needed" would now be inviting the
+   * reader to look for a grant that does not exist.
+   *
+   * So they read like the mic and speaker chips beside them -- permanently
+   * inactive, saying what is true. Which is also still faithful to Meet: this is
+   * the state Meet shows before you allow anything, and we never do.
+   */
+  const chipCam = chip('videocam', 'No camera requested', false, camMenu);
+  const chipFx = chip('blur_on', 'Effects unavailable', false);
 
   const chips = h('div', { class: 'devices' }, chipMic, chipSpk, chipCam, chipFx);
 
-  /**
-   * Allowing the camera promotes the last two chips, which is what Meet does:
-   * they stop saying "Permission needed", take the device name and the effects
-   * label, and become real dropdowns.
-   */
-  const promoteChips = (on: boolean): void => {
-    for (const [c, offLabel, onLabel, items] of [
-      [chipCam, 'Permission needed', 'Integrated Camera', camMenu],
-      [chipFx, 'Permission needed', 'Backgrounds…', fxMenu],
-    ] as [HTMLButtonElement, string, string, () => MenuItem[]][]) {
-      c.classList.toggle('is-off', !on);
-      if (on) c.removeAttribute('aria-disabled'); else c.setAttribute('aria-disabled', 'true');
-      const l = c.querySelector('.chip-label');
-      if (l) l.textContent = on ? onLabel : offLabel;
-      c.setAttribute('aria-label', on ? onLabel : offLabel);
-      if (on && !c.dataset.menu) { c.dataset.menu = '1'; attachMenu(c, items, { align: 'left' }); }
-    }
-    requestAnimationFrame(tipClipped);
-  };
 
   // Tip only the ones whose label actually clips, which is Meet's rule. This has
   // to run after the row is IN the document, not just built: off-document,
@@ -595,7 +591,7 @@ export function renderLobby(store: Store, media: Media): HTMLElement {
     window.setTimeout(() => { if (stageWrap.isConnected) settle(); }, READY_MS);
   }
 
-  // Last, not where it reads most naturally. paintCam() reaches promoteChips(),
+  // Last, not where it reads most naturally. paintCam() reaches tipClipped(),
   // which is a const declared further down, so calling it beside the camera
   // listener threw "cannot access before initialization" — and because
   // renderLobby runs inside the lazy router's promise, that rejection surfaced
