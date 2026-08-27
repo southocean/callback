@@ -46,7 +46,7 @@ export const games: Game[] = [
     title: 'Rhythm Shoot',
     url: 'https://southocean.itch.io/rhythm-shoot',
     tagline: 'Rhythm-based top down shooter done in 10 minutes',
-    why: 'Ten minutes, start to playable. Listed next to its own sequel on purpose — the pair is the point.',
+    why: 'Ten minutes, start to playable. Listed next to its own sequel on purpose: the pair is the point.',
     playable: true,
   },
   {

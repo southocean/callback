@@ -135,7 +135,7 @@ export function renderOffClock(): HTMLElement {
       'p',
       { class: 'pnote' },
       'Not filler. Two of these are the reason the page you are looking at exists. Roughly forty seconds in total, ' +
-        'cut to the highlight — nobody has time for the uncut version, including me.',
+        'cut to the highlight: nobody has time for the uncut version, including me.',
     ),
 
     h(

@@ -341,7 +341,7 @@ function reviewsView(): HTMLElement {
   return h('div', { class: 'dp-col' },
     h('p', { class: 'dp-lead' },
       'Three people decide whether this works, and they want different things in different amounts of time. ' +
-      'Below is a current read of the site in each of their voices — not the reviews of the original plan, ' +
+      'Below is a current read of the site in each of their voices, not the reviews of the original plan, ' +
       'which were about a build that no longer exists.'),
 
     h('div', { class: 'pr-grid' },
@@ -507,7 +507,7 @@ function boardView(): HTMLElement {
   return h('div', { class: 'dp-col dp-col-wide' },
     h('p', { class: 'dp-lead' },
       'The work, as a board. Drag a card between columns, or focus one and use the arrow keys. ' +
-      'Several cards are uncomfortable to read, which is the point — a board holding only finished things is ' +
+      'Several cards are uncomfortable to read, which is the point, a board holding only finished things is ' +
       'a trophy cabinet rather than a plan.'),
     wrap,
   );

@@ -35,7 +35,7 @@ export const quests: Quest[] = [
   { id: 'collapse', name: 'Hotel wifi', hint: 'Push the network until it gives up.' },
   // Was "It never leaves your machine", which was true of a real stream. There
   // is no stream now: the control is cosmetic and the page never asks.
-  { id: 'camera', name: 'Show your face', hint: 'Press the camera button. Nothing is captured — it never asks.' },
+  { id: 'camera', name: 'Show your face', hint: 'Press the camera button. Nothing is captured. It never asks.' },
   { id: 'hand', name: 'Raise your hand', hint: 'You know the button.' },
   { id: 'react', name: 'React to something', hint: 'Send a reaction.' },
   { id: 'a11y', name: 'No mouse required', hint: 'Move through the tiles with the arrow keys.' },

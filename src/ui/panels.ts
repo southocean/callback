@@ -272,7 +272,7 @@ export function renderAbout(): HTMLElement {
           'div',
           { class: 'role-head' },
           h('h3', { class: 'role-org' }, r.org),
-          h('span', { class: 'role-when' }, `${r.fromLabel} — ${r.toLabel}`),
+          h('span', { class: 'role-when' }, `${r.fromLabel}, ${r.toLabel}`),
         ),
         h('div', { class: 'role-title' }, `${r.title} · ${r.place}`),
         h('ul', {}, ...r.bullets.map((b) => h('li', {}, b))),
@@ -356,7 +356,7 @@ export function renderTranscript(): HTMLElement {
     h(
       'p',
       { class: 'pnote' },
-      'Transcript. Scripted, not recognised — there is no audio track here, and pretending otherwise would be a lie ' +
+      'Transcript. Scripted, not recognised: there is no audio track here, and pretending otherwise would be a lie ' +
         'told in a job application. Live recognition is a separate, optional thing: turn on your microphone and it ' +
         'transcribes you. The timestamps are where each line falls if nobody interrupts; you almost certainly did.',
     ),

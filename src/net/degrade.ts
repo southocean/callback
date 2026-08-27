@@ -110,5 +110,5 @@ export function policy(c: Conditions): { action: string; severity: 'ok' | 'warn'
   if (c.loss > 0.03 || c.rtt > 160) {
     return { action: 'Step resolution down, raise the jitter buffer, protect audio first.', severity: 'warn' };
   }
-  return { action: 'Hold the current layer. Do not chase small variance — churn looks worse than the loss.', severity: 'ok' };
+  return { action: 'Hold the current layer. Do not chase small variance: churn looks worse than the loss.', severity: 'ok' };
 }

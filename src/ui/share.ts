@@ -46,10 +46,10 @@ export interface Source {
 }
 
 const TABS: Source[] = [
-  { id: 'cv', kind: 'tab', title: 'Nam Nguyen — Senior SWE, Web Development', host: 'southocean.github.io' },
-  { id: 'jobad', kind: 'tab', title: 'Google Careers — the posting, line by line', host: 'careers.google.com' },
+  { id: 'cv', kind: 'tab', title: 'Nam Nguyen. Senior SWE, Web Development', host: 'southocean.github.io' },
+  { id: 'jobad', kind: 'tab', title: 'Google Careers, the posting, line by line', host: 'careers.google.com' },
   { id: 'work', kind: 'tab', title: 'Things I built', host: 'southocean.github.io' },
-  { id: 'riichi', kind: 'tab', title: 'Mahjong Stars — the live client', host: 'preview.mahjongstars.com' },
+  { id: 'riichi', kind: 'tab', title: 'Mahjong Stars, the live client', host: 'preview.mahjongstars.com' },
   /*
    * N36. Nam: "We actually have a how this was built page that we show in home
    * screen. We need to show that here in the mock browser." It was reachable —
@@ -94,15 +94,15 @@ const DOCS: Record<string, Doc> = {
    * header while the call showed the named one.
    */
   cv: {
-    title: 'Nam Nguyen — Senior SWE, Web Development',
+    title: 'Nam Nguyen. Senior SWE, Web Development',
     host: 'southocean.github.io',
-    page: () => frameOf(`${location.search}#plain`, 'Nam Nguyen — the CV as a document', pageCv),
+    page: () => frameOf(`${location.search}#plain`, 'Nam Nguyen, the CV as a document', pageCv),
   },
-  jobad: { title: 'Google Careers — the posting, line by line', host: 'careers.google.com', page: () => pageJobAd() },
+  jobad: { title: 'Google Careers, the posting, line by line', host: 'careers.google.com', page: () => pageJobAd() },
   /* N3: one list, and it is not "four" any more. */
   work: { title: 'Things I built', host: 'southocean.github.io', page: () => pageWork() },
-  riichi: { title: 'Mahjong Stars — the live client', host: 'preview.mahjongstars.com', page: () => pageRiichi() },
-  tools: { title: 'Internal tooling — a bot controller', host: 'southocean.github.io', page: () => pageTools() },
+  riichi: { title: 'Mahjong Stars, the live client', host: 'preview.mahjongstars.com', page: () => pageRiichi() },
+  tools: { title: 'Internal tooling, a bot controller', host: 'southocean.github.io', page: () => pageTools() },
   hobby: { title: 'Off the clock', host: 'southocean.github.io', page: () => pageHobby() },
 };
 /*
@@ -203,7 +203,7 @@ function pageExternal(url: string): HTMLElement {
       h('p', {}, 'Most sites send X-Frame-Options or a frame-ancestors policy that forbids embedding, and a ' +
         'page cannot detect that from the outside -- no error is exposed. So this is a timeout, honestly ' +
         'labelled, rather than a blank rectangle.'),
-      h('p', {}, 'Sites without that policy do load here — example.com frames in about 13ms. Most large ' +
+      h('p', {}, 'Sites without that policy do load here, example.com frames in about 13ms. Most large ' +
         'sites set it, so most large sites will land on this page.'),
       h('p', { class: 'pg-note' }, 'Open it in a real tab to see it.')));
   }, 3500);
@@ -221,7 +221,7 @@ function pageExternal(url: string): HTMLElement {
  * the actual documents, and its strip already holds all of them.
  */
 const WINDOWS: Source[] = [
-  { id: 'browser', kind: 'window', title: 'Google Chrome — Nam Nguyen' },
+  { id: 'browser', kind: 'window', title: 'Google Chrome. Nam Nguyen' },
 ];
 
 const SCREENS: Source[] = [
@@ -410,7 +410,7 @@ function contentFor(src: Source, onOpen: (id: string) => void, onClose: () => vo
   switch (src.id) {
     // The real thing, framed. #plain is a standalone document view — it has no
     // call chrome, so framing it cannot nest the app inside itself.
-    case 'cv': return frameOf(`${location.search}#plain`, 'Nam Nguyen — the CV as a document', pageCv);
+    case 'cv': return frameOf(`${location.search}#plain`, 'Nam Nguyen, the CV as a document', pageCv);
     // 'work' used to frame '#tools/tests' and Nam caught what that does: 'tools'
     // is a PANEL, so the hash resolves to { screen: 'call', panel: 'tools' } and
     // the iframe loaded the entire Meet clone — a call inside the call inside
@@ -545,14 +545,18 @@ function pageJobAd(): HTMLElement {
     h('h1', { class: 'pg-h' }, 'The posting, line by line'),
     h('p', { class: 'pg-sub' }, pitch.named
       ? pitch.target
-      : 'Senior Software Engineer, Web Development — the posting this CV was written against'),
+      : 'Senior Software Engineer, Web Development, the posting this CV was written against'),
     h('ul', { class: 'pg-reqs' },
       ...requirementMap.map((r) => h('li', { class: `pg-req is-${r.strength}` },
-        h('span', { class: 'pg-tick', 'aria-hidden': 'true' }, r.strength === 'honest' ? '–' : '✓'),
+        // A tilde rather than an en dash for the admitted-gap marker. It is a
+        // glyph rather than prose, so the site-wide dash rule is arguably not
+        // about it -- but a tilde reads as "partly" next to a tick, where a dash
+        // reads as "no", and the honest rows are not nos.
+        h('span', { class: 'pg-tick', 'aria-hidden': 'true' }, r.strength === 'honest' ? '~' : '✓'),
         h('span', {}, h('b', {}, r.req), h('span', {}, r.evidence))))),
     pitch.named ? h('span', {}) : h('p', { class: 'pg-note' },
       'Every line above is measured against that one posting. If you are reading this from somewhere else, '
-      + 'the requirements will not be yours — but the evidence beside them still is.'),
+      + 'the requirements will not be yours, but the evidence beside them still is.'),
   );
 }
 
@@ -589,7 +593,7 @@ function pageWork(): HTMLElement {
 
     h('h2', { class: 'pg-h2' }, 'Tooling'),
     h('div', { class: 'pg-roles' },
-      ext('Mahjong Stars — the live client', 'https://preview.mahjongstars.com/',
+      ext('Mahjong Stars, the live client', 'https://preview.mahjongstars.com/',
         'The production client itself, seven years and three platform generations of it. Public preview.'),
       ext('Bot controller', 'https://game.mstardev.com/bot.html',
         'Drives bots onto live tables so a real-time client can be tested without four colleagues. The test-automation line on the CV is this.')),
@@ -1953,7 +1957,7 @@ function pageWindow(_onOpen: (id: string) => void, onClose: () => void): HTMLEle
   made.select('cv');
   return h('div', { class: 'pg pg-win' },
     win11({
-      title: 'Nam Nguyen — Senior SWE, Web Development',
+      title: 'Nam Nguyen. Senior SWE, Web Development',
       icon: icChrome, body: made.body, full: false, onClose,
     }));
 }
@@ -2435,7 +2439,7 @@ function pageDesktop(onQuit: () => void, boot?: { egg?: string; cv?: boolean }):
       b.classList.toggle('is-running', mine.length > 0);
       b.classList.toggle('is-on', isActive);
       b.classList.toggle('is-multi', mine.length > 1);
-      b.setAttribute('aria-label', mine.length > 1 ? `${app.label} — ${mine.length} windows` : app.label);
+      b.setAttribute('aria-label', mine.length > 1 ? `${app.label}, ${mine.length} windows` : app.label);
       // "Running" and "active" were visual only — an underline and a tint. Now
       // they are states AT can read: pressed for running, current for active.
       b.setAttribute('aria-pressed', String(mine.length > 0));
@@ -2596,7 +2600,7 @@ function pageDesktop(onQuit: () => void, boot?: { egg?: string; cv?: boolean }):
       const made = chromeWindow({ onEmpty: () => closeWin(rec) });
       bodyEl = made.body;
       select = made.select;
-      title = 'Nam Nguyen — Senior SWE, Web Development';
+      title = 'Nam Nguyen. Senior SWE, Web Development';
       if (tabId) made.select(tabId);
     } else {
       const made = playerWindow((tabId ?? '').replace(/^vid:/, ''));

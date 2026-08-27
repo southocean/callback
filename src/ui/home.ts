@@ -151,7 +151,7 @@ function slot(on: Date): { day: string; date: number; label: string; week: { n: 
   return {
     day: now.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' }),
     date: now.getDate(),
-    label: `${fmt(start)} – ${fmt(end)}`,
+    label: `${fmt(start)}, ${fmt(end)}`,
     week,
   };
 }
@@ -188,7 +188,7 @@ export function renderHome(store: Store, reducedMotion = false, body?: HTMLEleme
       return;
     }
     if (code === 'up-up-down-down' || code === 'konami') {
-      hint.textContent = 'Warmer. That one is a keyboard shortcut, not a code — try it inside the call.';
+      hint.textContent = 'Warmer. That one is a keyboard shortcut, not a code, try it inside the call.';
       return;
     }
     hint.textContent = `Couldn't find the meeting "${code}". The one you want is nam-cv-2026, or just press Join on the meeting below.`;

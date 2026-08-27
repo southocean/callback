@@ -75,7 +75,7 @@ export const barLayout = {
     { label: 'Reaction', w: '56', note: 'mood' },
     { label: 'Captions', w: '56', note: 'closed_caption' },
     { label: 'Raise hand', w: '56', note: 'back_hand' },
-    { label: 'More', w: '36', note: 'more_vert — narrower than the rest' },
+    { label: 'More', w: '36', note: 'more_vert, narrower than the rest' },
     { label: 'Leave', w: '72', note: '#dc362e, call_end' },
   ],
   right: 'Chat, Meeting tools and Host controls sit apart at the right edge: 48px, transparent, white glyphs.',
@@ -95,7 +95,7 @@ export const flow = {
       what: 'People are chapters',
       body:
         'Every participant tile is a role from the CV rather than a person. Clicking one opens the People panel, ' +
-        'which draws the career as a real timeline — including the two roles that genuinely overlap.',
+        'which draws the career as a real timeline, including the two roles that genuinely overlap.',
     },
     {
       what: 'Present is a portfolio',
@@ -131,7 +131,7 @@ export const flow = {
 export const method = {
   title: 'How the spec was taken',
   steps: [
-    'Drove meet.google.com through the full flow — home, an instant meeting, the in-call screen, the leave dialog, the ended screen and the green room.',
+    'Drove meet.google.com through the full flow, home, an instant meeting, the in-call screen, the leave dialog, the ended screen and the green room.',
     'Read computed styles and bounding boxes straight off the live DOM at each stop, rather than sampling pixels from a screenshot.',
     'Recorded the Material Symbol names off the rendered glyphs, so the icon mapping is checkable rather than approximate.',
     'Rebuilt every glyph as an inline SVG path. The real icon font would be a third-party request, and this project makes none.',
@@ -139,7 +139,7 @@ export const method = {
   ],
   honest:
     'Two things are deliberately not faithful: there is no Google wordmark or logo anywhere, and the typeface is a ' +
-    'substitute. Both are choices, not gaps — an homage should not ship someone else’s trademark.',
+    'substitute. Both are choices, not gaps, an homage should not ship someone else’s trademark.',
 };
 
 export const stats = {

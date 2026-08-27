@@ -32,10 +32,10 @@ export function renderCompany(onHome: () => void): HTMLElement {
 
     h('p', { class: 'co-lead' },
       'The CV names no employer by default. A code in the query string swaps in the ' +
-      'company-specific lines — the header, the scheduled meeting and the opening message of the ' +
+      'company-specific lines, the header, the scheduled meeting and the opening message of the ' +
       'cover letter. Everything else is identical, so there is one artefact rather than one per application.'),
 
-    h('h2', {}, 'Default — no code'),
+    h('h2', {}, 'Default, no code'),
     h('p', { class: 'co-note' },
       'What every reader sees without a code. Every line is true regardless of who opens the link.'),
     h('dl', { class: 'co-card' },
@@ -62,13 +62,13 @@ export function renderCompany(onHome: () => void): HTMLElement {
     h('p', {},
       'Append an entry to ', h('code', {}, 'src/data/companies.ts'),
       '. Give it the next code, the employer, the role as they advertise it, and the three lines. ' +
-      'Nothing else needs touching — every surface that names an employer reads through ',
+      'Nothing else needs touching, every surface that names an employer reads through ',
       h('code', {}, 'pitchFor()'), '.'),
     h('p', { class: 'co-note' },
       'Keep the codes boring. A parameter that looks like a campaign tag survives being pasted into ' +
       'an email; one that looks like a switch invites someone to try changing it.'),
 
     h('footer', { class: 'doc-foot no-print' },
-      h('p', {}, `${profile.name} — internal page, not part of the CV.`)),
+      h('p', {}, `${profile.name}, internal page, not part of the CV.`)),
   );
 }

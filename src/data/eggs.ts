@@ -41,7 +41,7 @@ export const eggs: Egg[] = [
     blurb: 'Tandem jump. The face at second four is the honest one.',
     clip: 'media/skydive.mp4',
     poster: 'media/skydive.jpg',
-    caption: 'Sharing screen — skydive.mp4',
+    caption: 'Sharing screen, skydive.mp4',
   },
   {
     id: 'halloween',
@@ -50,7 +50,7 @@ export const eggs: Egg[] = [
     blurb: 'Halloween. Silicone, latex and an unreasonable amount of patience.',
     clip: 'media/sfx.mp4',
     poster: 'media/sfx.jpg',
-    caption: 'Sharing screen — sfx.mp4',
+    caption: 'Sharing screen, sfx.mp4',
   },
   {
     id: 'robinson',
@@ -59,7 +59,7 @@ export const eggs: Egg[] = [
     blurb: 'Filmed on this day. The main story, still unfinished.',
     clip: 'media/robinson.mp4',
     poster: 'media/robinson.jpg',
-    caption: 'Sharing screen — robinson.mp4',
+    caption: 'Sharing screen, robinson.mp4',
   },
   {
     id: 'standup',
@@ -68,7 +68,7 @@ export const eggs: Egg[] = [
     blurb: 'Standup. Two of the jokes land, which is a respectable ratio.',
     clip: 'media/standup.mp4',
     poster: 'media/standup.jpg',
-    caption: 'Sharing screen — standup.mp4',
+    caption: 'Sharing screen, standup.mp4',
   },
   {
     // Was pointing at the living-room self-tape as a stand-in. This is the film
@@ -80,7 +80,7 @@ export const eggs: Egg[] = [
     blurb: 'Tomma Händer, on a real screen. Thirty seconds of the loudest part.',
     clip: 'media/premiere.mp4',
     poster: 'media/premiere.jpg',
-    caption: 'Sharing screen — premiere.mp4',
+    caption: 'Sharing screen, premiere.mp4',
   },
   {
     // Early October, which is when a Halloween park casts its monsters — and far
@@ -91,7 +91,7 @@ export const eggs: Egg[] = [
     blurb: 'Audition tape. The brief was “scariest”, and there is no dignified way to go for it.',
     clip: 'media/zombie.mp4',
     poster: 'media/zombie.jpg',
-    caption: 'Sharing screen — zombie.mp4',
+    caption: 'Sharing screen, zombie.mp4',
   },
 ];
 

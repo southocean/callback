@@ -134,8 +134,8 @@ function specView(quests: Quests): HTMLElement {
       { class: 'pnote' },
       'This interface is a rebuild of Google Meet, measured rather than eyeballed. ',
       h('b', {}, `${stats.tokens} tokens`),
-      ' and every layout number below were read off the live product — computed styles and bounding boxes from the ' +
-        'real DOM, across all four screens — then implemented from scratch. No Google stylesheet, font or asset is ' +
+      ' and every layout number below were read off the live product, computed styles and bounding boxes from the ' +
+        'real DOM, across all four screens, then implemented from scratch. No Google stylesheet, font or asset is ' +
         'used or shipped.',
     ),
 
@@ -225,7 +225,7 @@ function testsView(store: Store): HTMLElement {
     h(
       'p',
       { class: 'pnote' },
-      'The project’s unit tests, executed here, in your browser, right now — the same file CI runs on every push. ' +
+      'The project’s unit tests, executed here, in your browser, right now, the same file CI runs on every push. ' +
         'They cover the state reducer, the router, timeline geometry, the caption scheduler, the network model and ' +
         'shader parameter clamping.',
     ),
@@ -240,7 +240,7 @@ function testsView(store: Store): HTMLElement {
       'p',
       { class: 'pnote' },
       'Chaos mode injects a real fault. A runner that cannot be made to fail is a screenshot of green ticks, so ' +
-        'here is the switch — turn it on and watch one go red with the assertion it actually threw.',
+        'here is the switch, turn it on and watch one go red with the assertion it actually threw.',
     ),
     results,
   );
@@ -281,7 +281,7 @@ function a11yView(): HTMLElement {
       { class: 'pnote' },
       'Assertions against the document as it exists on your screen this second, not a list of intentions. Some ' +
         'depend on what is open, so re-run it with a panel showing and watch the numbers move. It is allowed to ' +
-        'fail — a panel that always says PASS is a picture.',
+        'fail, a panel that always says PASS is a picture.',
     ),
     h(
       'p',
@@ -339,8 +339,8 @@ function perfView(): HTMLElement {
       { class: 'pnote' },
       h('b', {}, 'Verify it yourself: '),
       'open DevTools, Network tab, reload. Everything leaving this origin goes to Google’s own font CDN and nothing ' +
-        'else. Google Sans, Google Sans Text and Product Sans are not open source — the licence says so in as many ' +
-        'words — so they are linked from the Fonts API rather than copied, which is the licensed way to use them. ' +
+        'else. Google Sans, Google Sans Text and Product Sans are not open source, the licence says so in as many ' +
+        'words, so they are linked from the Fonts API rather than copied, which is the licensed way to use them. ' +
         'No analytics, no tracking, no backend. Which is why the camera stream has nowhere to go even if it wanted one.',
     ),
   );
@@ -394,8 +394,8 @@ function netView(store: Store): HTMLElement {
     h(
       'p',
       { class: 'pnote' },
-      'A video client’s hard problems are not on the happy path. This models the one from the case study — four ' +
-        'players on four networks, one of them in a hotel — with a seeded generator, so the same seed always gives ' +
+      'A video client’s hard problems are not on the happy path. This models the one from the case study, four ' +
+        'players on four networks, one of them in a hotel, with a seeded generator, so the same seed always gives ' +
         'the same conditions and the distribution can be asserted in a test.',
     ),
     grid,
@@ -404,7 +404,7 @@ function netView(store: Store): HTMLElement {
       'p',
       { class: 'pnote', style: 'margin-top:14px' },
       'The readout is the toy. The policy line under it is the engineering: protect audio first, step video down ' +
-        'before you step it up, and do not chase small variance — churn looks worse to a user than the loss did.',
+        'before you step it up, and do not chase small variance, churn looks worse to a user than the loss did.',
     ),
   );
   return out;

@@ -334,7 +334,7 @@ export function renderCalls(_o: CallsOpts): HTMLElement {
        * where the suffix is noise beside one entry, and the card is where you find
        * out what this person is FOR.
        */
-      h('h2', { class: 'cd-name' }, c.referral ? c.name + ' — referral' : c.name),
+      h('h2', { class: 'cd-name' }, c.referral ? c.name + ' · referral' : c.name),
       h('p', { class: 'cd-mail' }, shown(c)),
       h('p', { class: 'cd-rel' }, c.relation),
       h('div', { class: 'cd-btns' }, voice, video),

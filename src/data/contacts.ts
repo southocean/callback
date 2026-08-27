@@ -81,7 +81,7 @@ export const CONTACTS: Contact[] = [
     initials: 'DB',
     tint: '#c4eed0',
     ink: '#072711',
-    relation: 'Has worked with me directly, and can refer me internally — which is the short way of saying he knows what he would be vouching for. His own page does the introducing.',
+    relation: 'Has worked with me directly, and can refer me internally, which is the short way of saying he knows what he would be vouching for. His own page does the introducing.',
     href: 'https://diepbp.github.io/',
     voice: 'https://diepbp.github.io/',
     confirmed: true,

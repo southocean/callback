@@ -35,7 +35,7 @@ export function openPlain(): void {
     // inside the overlay showed the neutral header while the page around it
     // showed the named one.
     src: `.${location.search}#plain`,
-    title: 'Nam Nguyen — CV as a document',
+    title: 'Nam Nguyen. CV as a document',
     loading: 'lazy',
   }) as HTMLIFrameElement;
 
@@ -57,7 +57,7 @@ export function openPlain(): void {
     { class: 'po', id: ID, role: 'dialog', 'aria-modal': 'true', 'aria-label': 'CV as a document' },
     h('div', { class: 'po-head' },
       h('span', { class: 'po-ico', 'aria-hidden': 'true' }, sym('description', 22)),
-      h('h2', { class: 'po-title' }, 'CV — one page'),
+      h('h2', { class: 'po-title' }, 'CV, one page'),
       h('button', {
         class: 'icon-btn po-close', type: 'button', 'aria-label': 'Close document', onclick: close,
       }, sym('close', 22))),

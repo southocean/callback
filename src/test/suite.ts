@@ -400,7 +400,7 @@ suite('content integrity', () => {
       ok(!blob.includes(bad), `content still contains ${bad}`);
     }
     // Chaos hooks in here: a real assertion, made to fail on demand.
-    ok(!chaos, 'chaos mode is on — this failure is deliberate, and proves the runner is live');
+    ok(!chaos, 'chaos mode is on: this failure is deliberate, and proves the runner is live');
   });
 
   test('the phone number is nowhere in the web build', async () => {
@@ -1081,7 +1081,7 @@ suite('the caption speaks', () => {
   });
 
   test('tokenising is stable', () => {
-    const text = 'And the tests are real — they run in your browser, and you can break them.';
+    const text = 'And the tests are real, they run in your browser, and you can break them.';
     const shape = (v: string): string => tokenise(v).map((x) => `${x.text}:${x.restMs}`).join(' ');
     eq(shape(text), shape(text), 'the same line tokenised two different ways');
   });

@@ -88,7 +88,7 @@ export function buildDoc(): HTMLElement {
      */
     h('h2', {}, 'What it is built with'),
     h('ul', { class: 'bd-stack' },
-      ...THIS_BUILD.map((s) => h('li', {}, h('b', {}, s.k), ' — ', h('span', {}, s.v)))),
+      ...THIS_BUILD.map((s) => h('li', {}, h('b', {}, s.k), ', ', h('span', {}, s.v)))),
 
     h('h2', {}, 'What shipped'),
     h('p', {}, shipped.body),

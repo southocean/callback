@@ -6,10 +6,11 @@
     "typecheck": "tsc --noEmit",
     "test": "esbuild src/test/cli.ts --bundle --platform=node --format=esm --outfile=.tmp/test.mjs --log-level=warning && node .tmp/test.mjs",
     "build": "node build.mjs",
-    "verify": "npm run typecheck && npm test && npm run cssstruct && npm run deadcss && npm run build",
+    "verify": "npm run typecheck && npm test && npm run cssstruct && npm run deadcss && npm run dashes && npm run build",
     "serve": "node serve.mjs",
     "deadcss": "node tools/css-deadcheck.mjs",
     "cssstruct": "node tools/css-structure.mjs",
+    "dashes": "node tools/no-em-dash.mjs",
     "pdf": "node tools/print-cv.mjs"
   },
   "type": "module",

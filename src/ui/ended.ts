@@ -198,7 +198,7 @@ export function renderEnded(store: Store, quests: Quests): HTMLElement {
         h(
           'button',
           { class: 'm-btn m-text', type: 'button', onclick: () => store.dispatch({ t: 'plain', on: true }) },
-          'Submit feedback — or just read the CV as a document',
+          'Submit feedback, or just read the CV as a document',
         ),
       ),
 
@@ -214,7 +214,7 @@ export function renderEnded(store: Store, quests: Quests): HTMLElement {
             'p',
             {},
             'A recruiter screens a file in an applicant tracking system, not a web app. The site was always the ' +
-              'amplifier — this is the artifact.',
+              'amplifier. This is the artifact.',
           ),
           h(
             'div',
@@ -253,7 +253,7 @@ export function renderEnded(store: Store, quests: Quests): HTMLElement {
               run.lastMs <= run.bestMs
                 ? `That is your best of ${run.runs} ${run.runs === 1 ? 'run' : 'runs'}. `
                 : `Your best is ${clockMs(run.bestMs)}, over ${run.runs} runs. `,
-              `Unhurried, it runs ${clockMs(runtimeMs())} — every line can be skipped with a click, so `
+              `Unhurried, it runs ${clockMs(runtimeMs())}. Every line can be skipped with a click, so `
               + 'faster than that is a choice rather than a glitch.',
             ),
           ),

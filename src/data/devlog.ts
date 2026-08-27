@@ -31,14 +31,14 @@ export const phases = [
     name: 'Plan',
     body:
       'One metaphor: the site is a call, and every control in the bar is a section of the CV. Nothing ' +
-      'decorative. Constraints fixed up front — vanilla TypeScript, zero runtime dependencies, a size budget ' +
+      'decorative. Constraints fixed up front, vanilla TypeScript, zero runtime dependencies, a size budget ' +
       'enforced by CI, full content with zero permissions granted, and no Google marks anywhere.',
   },
   {
     name: 'Review',
     body:
       'Three adversarial rounds against the plan before any product code was written, in the voices of the ' +
-      'people who will actually open this and have reason to be sceptical — plus a fourth round against the game ' +
+      'people who will actually open this and have reason to be sceptical, plus a fourth round against the game ' +
       'layer and the narrative, once those existed. Every finding changed something in the repo; three of them ' +
       'changed the architecture.',
   },
@@ -66,7 +66,7 @@ export const findings: Finding[] = [
       'A website is not in my workflow. I screen a PDF in an applicant tracking system, 30 to 90 seconds per ' +
       'candidate. If the only artifact is a web app I cannot process the application at all.',
     resolution:
-      'The PDF stays the primary artifact and the site is the amplifier — never the other way round. Download ' +
+      'The PDF stays the primary artifact and the site is the amplifier, never the other way round. Download ' +
       'is one click from the very first screen, not a reward for finishing.',
     changed: 'PDF link on the pre-join screen, the end screen and the plain document. Plain mode is print-styled.',
   },
@@ -163,7 +163,7 @@ export const findings: Finding[] = [
     round: 1,
     objection: 'An in-browser test runner is usually three fake tests and a green tick. Why would I believe this one?',
     resolution:
-      'Test real logic — the state reducer, timeline overlap maths, the caption scheduler, the network model, ' +
+      'Test real logic, the state reducer, timeline overlap maths, the caption scheduler, the network model, ' +
       'shader parameter clamping. Then add a chaos switch that injects a fault so you can watch it go red.',
     changed: 'src/test/*, run both in CI and in the browser. Chaos toggle in the Tests tab.',
   },
@@ -183,7 +183,7 @@ export const findings: Finding[] = [
     round: 1,
     objection:
       'The mahjong client is the most relevant thing on this CV and it is compressed into three bullets. ' +
-      'Real-time shared state, reconnection, a desktop-to-web migration, an embedded renderer, five people — ' +
+      'Real-time shared state, reconnection, a desktop-to-web migration, an embedded renderer, five people, ' +
       'that is the story that maps onto a video client. Lead with it.',
     resolution: 'Promote it to the headline case study and write the parallels to conferencing out explicitly.',
     changed: 'First slide in Present, and the pitch line on the host tile.',
@@ -240,7 +240,7 @@ export const findings: Finding[] = [
     id: 'U4',
     role: 'UX',
     round: 1,
-    objection: 'Trippy effects plus autoplaying motion is an accessibility hazard — motion sickness at best, seizure risk at worst.',
+    objection: 'Trippy effects plus autoplaying motion is an accessibility hazard, motion sickness at best, seizure risk at worst.',
     resolution:
       'Reduced-motion honoured globally, effects default to off, nothing flashes above 3Hz per WCAG 2.3.1, ' +
       'and the strongest preset says what it does before it engages.',
@@ -258,8 +258,8 @@ export const findings: Finding[] = [
     id: 'U6',
     role: 'UX',
     round: 1,
-    objection: 'Cohesion means honouring the metaphor everywhere — copy, icons, empty states, error states. Most people drop it at the edges.',
-    resolution: 'Empty and error states stay in character. Denied camera reads "Your camera is off. So is mine — let’s talk anyway."',
+    objection: 'Cohesion means honouring the metaphor everywhere, copy, icons, empty states, error states. Most people drop it at the edges.',
+    resolution: 'Empty and error states stay in character. Denied camera reads "Your camera is off. So is mine, let’s talk anyway."',
     changed: 'All empty and error strings rewritten in voice.',
   },
   {
@@ -277,7 +277,7 @@ export const findings: Finding[] = [
     objection: 'If this prompts for camera access on a corporate machine, that is an awkward conversation I have to have.',
     resolution:
       'Never auto-prompted. Explicit click, with a plain statement that processing is local and nothing is ' +
-      'uploaded — which is verifiable, because there is no backend to upload to.',
+      'uploaded, which is verifiable, because there is no backend to upload to.',
     changed: 'Camera is click-to-enable with the privacy note adjacent, not in a footer.',
   },
   {
@@ -324,7 +324,7 @@ export const findings: Finding[] = [
       'This panel hands me the objection. A recruiter who opens it and reads "his current role is sales, which ' +
       'looks bad" has just been given the reason to pass on you. You are doing my job for me, badly.',
     resolution:
-      'Reframe the whole feature. It is a design review of the artifact — because that is what it is. ' +
+      'Reframe the whole feature. It is a design review of the artifact, because that is what it is. ' +
       'Findings are constraints on the build, never weaknesses of the candidate, and no objection appears ' +
       'without its resolution attached. Running an adversarial review on your own work is a strength. ' +
       'Publishing a list of your flaws is not.',
@@ -437,7 +437,7 @@ export const findings: Finding[] = [
       'call wearing an achievement system. Two costumes read as no costume.',
     resolution:
       'The call is the container; the game is the subtext, never a competing layer. There is no scoreboard, no ' +
-      'HUD, no progress bar across the top — one quiet toast and one list, inside the Storyline tab. And every ' +
+      'HUD, no progress bar across the top, one quiet toast and one list, inside the Storyline tab. And every ' +
       'quest is named after something you do in a call: answer it, read the letter, meet the participants. The ' +
       'game describes the call instead of replacing it.',
     changed: 'Quest names rewritten in call language. Single toast tray, no persistent scoreboard.',
@@ -451,7 +451,7 @@ export const findings: Finding[] = [
       'in my way I will resent it by the second toast.',
     resolution:
       'Nothing is gated behind a quest, and the counter is one small line in the corner of the control bar. ' +
-      'Plain mode carries no game layer at all — so the version you print, file, or skim is entirely straight.',
+      'Plain mode carries no game layer at all, so the version you print, file, or skim is entirely straight.',
     changed: 'Zero game UI in plain mode. Quests never block content or interrupt a control.',
   },
   {
@@ -463,8 +463,8 @@ export const findings: Finding[] = [
       'inbox, always from the least prepared candidates, and it tells me nothing about whether you can do the ' +
       'work. It also implies your last seven years were a warm-up.',
     resolution:
-      'The game framing stayed; the prestige framing went. The main quest is now the problem — four people on ' +
-      'four networks who must see the same thing at the same instant — not the company. Same energy, and it ' +
+      'The game framing stayed; the prestige framing went. The main quest is now the problem, four people on ' +
+      'four networks who must see the same thing at the same instant, not the company. Same energy, and it ' +
       'points at the job instead of the logo.',
     changed: 'src/data/story.ts, with the full argument published in the Storyline tab rather than quietly applied.',
   },
@@ -476,7 +476,7 @@ export const findings: Finding[] = [
       'Forty seconds of video on a page whose whole pitch is a 50 KB budget. Pick one.',
     resolution:
       'The budget is a JavaScript budget and it still holds at around 38 KB gzipped. The reel is roughly 1.5 MB ' +
-      'in total, which is one stock photo on a normal careers page, and it loads metadata only — no clip is ' +
+      'in total, which is one stock photo on a normal careers page, and it loads metadata only, no clip is ' +
       'fetched until you ask for it. Said out loud on the page rather than hidden.',
     changed: 'preload="metadata", lazy clip loading, and the payload stated in the panel.',
   },
@@ -510,7 +510,7 @@ export const findings: Finding[] = [
 /** What the build refused to invent (T7). */
 export const actionItems = [
   'Replace the attached PDF with a print of plain mode. The old file omits TypeScript and test automation, which are hard requirements.',
-  'Supply real magnitudes for Wasabi Productions — players, concurrent tables, release cadence, platform split. Every one was left out rather than guessed.',
+  'Supply real magnitudes for Wasabi Productions, players, concurrent tables, release cadence, platform split. Every one was left out rather than guessed.',
   'Record a 20-second pitch clip for the host tile. The page works without it and is better with it.',
   'Confirm the target role. The copy is written for the senior posting.',
 ];
@@ -529,7 +529,7 @@ export const qa: QaFinding[] = [
     role: 'UX',
     found:
       'The first screen was gone. The static pre-join markup painted correctly, and then the bundle booted, ' +
-      'decided it owned the screen, and replaced it with a plain fallback — so the one screen that was ' +
+      'decided it owned the screen, and replaced it with a plain fallback, so the one screen that was ' +
       'engineered to arrive instantly was the one screen nobody ever saw.',
     fix: 'Boot now leaves the static pre-join in place instead of re-rendering over it. Found by opening the page.',
   },
@@ -540,7 +540,7 @@ export const qa: QaFinding[] = [
       'The accessibility audit failed its own check: zero <main> landmarks in the call view. The stage was a div ' +
       'with id="main", which the skip link pointed at but no screen reader treats as a landmark.',
     fix:
-      'The stage is a real <main>, and so is the document view. Worth noting the audit caught this unprompted — ' +
+      'The stage is a real <main>, and so is the document view. Worth noting the audit caught this unprompted, ' +
       'which is the argument for having built it in the first place.',
   },
   {
@@ -557,7 +557,7 @@ export const qa: QaFinding[] = [
     id: 'Q4',
     role: 'TL',
     found:
-      'clamp01(Infinity) returned 0. Infinity is out of range, not invalid — clamping it to the floor rather ' +
+      'clamp01(Infinity) returned 0. Infinity is out of range, not invalid, clamping it to the floor rather ' +
       'than the ceiling is silently wrong in the direction nobody checks.',
     fix: 'Only NaN is refused now; everything else clamps to the nearer bound. Caught by a unit test.',
   },
@@ -565,7 +565,7 @@ export const qa: QaFinding[] = [
     id: 'Q5',
     role: 'HR',
     found:
-      'The no-superlatives test failed on the referral blurb — because of the phrase "best-paper award", which ' +
+      'The no-superlatives test failed on the referral blurb, because of the phrase "best-paper award", which ' +
       'is the name of an award rather than a boast.',
     fix:
       'The rule is about self-description, so the award name is exempt. A test that flags a true statement is a ' +

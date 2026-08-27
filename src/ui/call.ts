@@ -489,7 +489,7 @@ export function renderCall(store: Store, quests: Quests, deps: CallDeps): HTMLEl
     { class: 'grid', role: 'list', 'aria-label': 'People in this call' },
     hostTile,
     ...roles.map((r) =>
-      tile(r.kind, r.org, r.title, `${r.fromLabel} — ${r.toLabel}`, r.gist, () =>
+      tile(r.kind, r.org, r.title, `${r.fromLabel}, ${r.toLabel}`, r.gist, () =>
         store.dispatch({ t: 'panel', panel: 'people' }),
       ),
     ),
@@ -839,7 +839,7 @@ export function renderCall(store: Store, quests: Quests, deps: CallDeps): HTMLEl
     questLine.append(
       h('span', {}, `Side quests ${got}/${total}`),
       h('button', { type: 'button', onclick: () => store.dispatch({ t: 'engTab', tab: 'spec' }) },
-        got === total ? 'all done — see the main quest' : 'see the list'),
+        got === total ? 'all done, see the main quest' : 'see the list'),
     );
   };
   drawQuests();
@@ -2152,7 +2152,7 @@ function hostControls(store: Store): HTMLElement {
       onclick: () => {
         void navigator.clipboard?.writeText(text).then(
           () => (copy.textContent = 'Copied'),
-          () => (copy.textContent = 'Select it by hand — clipboard blocked'),
+          () => (copy.textContent = 'Select it by hand, clipboard blocked'),
         );
       },
     },
@@ -2167,7 +2167,7 @@ function hostControls(store: Store): HTMLElement {
     h(
       'p',
       { class: 'pnote' },
-      'A friend on the Meet team offered to refer me, which is generous and is the reason this exists at all — the ' +
+      'A friend on the Meet team offered to refer me, which is generous and is the reason this exists at all, the ' +
         'work is still mine to defend. Referral forms want a paragraph at an awkward hour, so here is one already ' +
         'written: fact-only, no superlatives, every sentence checkable against the CV.',
     ),

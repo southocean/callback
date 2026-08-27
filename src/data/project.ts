@@ -110,7 +110,7 @@ export const phasesOfWork: Phase[] = [
     name: 'QA and bug fixes',
     body:
       'Drive the built thing the way a person would, in a real browser, with real clicks. This phase has ' +
-      'caught more than review did — including a bug where every click inside a window was silently discarded, ' +
+      'caught more than review did, including a bug where every click inside a window was silently discarded, ' +
       'which three rounds of synthetic tests had passed.',
     outputs: ['Findings, verified before they are called fixed', 'Retractions when a diagnosis was wrong'],
   },
@@ -287,7 +287,7 @@ export const tasks: Task[] = [
   { id: 'T10', col: 'review', size: 'L', tag: 'specs', title: 'Project specifications panel', note: 'Shipped. One place the build is documented, reachable from the home screen and from inside the call.' },
   { id: 'T11', col: 'review', size: 'M', tag: 'call', title: 'Easter eggs open inside the call', note: 'Shipped, then QA\u2019d by Nam \u2014 which is where T16 to T20 came from. Join goes straight to the call with the clip playing on the shared screen.' },
   { id: 'T12', col: 'done', size: 'L', tag: 'call', title: 'The shared desktop', note: 'Windows that drag, resize, snap and minimise, a file explorer, a browser and a media player.' },
-  { id: 'T13', col: 'done', size: 'M', tag: 'call', title: 'Pinned and presenting layouts', note: 'Read off the live product while a share was running — the only way those states were reachable.' },
+  { id: 'T13', col: 'done', size: 'M', tag: 'call', title: 'Pinned and presenting layouts', note: 'Read off the live product while a share was running, the only way those states were reachable.' },
   { id: 'T14', col: 'done', size: 'M', tag: 'trust', title: 'Perception pass', note: 'How this reads to a stranger, ranked by how fast it pushes them toward closing the tab.' },
   { id: 'T15', col: 'done', size: 'S', tag: 'onboarding', title: 'Banner says it is a CV', note: 'The first line now answers the category question instead of describing the format.' },
 
@@ -307,12 +307,12 @@ export const tasks: Task[] = [
   { id: 'T26', col: 'review', size: 'S', tag: 'call', title: 'BUG: the call auto-ended and dumped you home', note: 'Fixed. The ended screen\u2019s 60s auto-return kept ticking after you left it, then dispatched screen: home from under you mid-call. Its guard listened for hashchange, and main.ts navigates with pushState \u2014 which never fires it, so the guard had never once run. Each visit armed another one. The tick now checks it is still the ended screen.' },
 
   { id: 'T27', col: 'review', size: 'S', tag: 'specs', title: 'BUG: Meeting tools was wider than every other panel', note: 'Fixed. It forced 460px against the 360 every other drawer uses, so it sat over the video tile and the right edge moved depending on which drawer you opened. The width existed because eight tabs would not fit; they wrap to two rows now and there are five, so the cause went with it.' },
-  { id: 'T28', col: 'review', size: 'S', tag: 'specs', title: 'Meeting tools: two tabs removed, five reordered', note: 'Removed. The requirement map is already in About and the mock Chrome opens the real posting — three copies is how they start disagreeing. Design went on Nam’s call: not relevant here, and some mystery is worth keeping.' },
+  { id: 'T28', col: 'review', size: 'S', tag: 'specs', title: 'Meeting tools: two tabs removed, five reordered', note: 'Removed. The requirement map is already in About and the mock Chrome opens the real posting, three copies is how they start disagreeing. Design went on Nam’s call: not relevant here, and some mystery is worth keeping.' },
 
   { id: 'T29', col: 'review', size: 'M', tag: 'trust', title: 'The page never asks for your camera', note: 'Shipped. getUserMedia is gone \u2014 the control flips its own icon and nothing else, verified by wrapping mediaDevices.getUserMedia and toggling both ways. Closes R11 in the perception doc, which called the browser\u2019s permission bar on a page dressed as Meet the scariest moment in the funnel.' },
   { id: 'T30', col: 'review', size: 'M', tag: 'specs', title: 'WebGL effects pipeline deleted', note: 'Removed with the camera it ran on: the Effects tab, src/fx/pipeline.ts, the fx side quest, the \u2018e\u2019 shortcut and the Backgrounds button. A real loss \u2014 it was the most technically substantial thing here \u2014 but it was only ever visible to a reader who granted the permission we just removed. Recoverable from git.' },
 
-  { id: 'T31', col: 'review', size: 'S', tag: 'trust', title: 'BUG: the lobby named a camera it never asked about', note: 'Fixed. The lobby promoted a chip to "Integrated Camera" — a hardcoded device name, in a file whose own comment forbids exactly that. It only looked right because Windows calls most built-in webcams that. Now reads "No camera requested" beside "Effects unavailable", matching the mic and speaker chips, and the promote mechanism is gone because nothing can be granted.' },
+  { id: 'T31', col: 'review', size: 'S', tag: 'trust', title: 'BUG: the lobby named a camera it never asked about', note: 'Fixed. The lobby promoted a chip to "Integrated Camera", a hardcoded device name, in a file whose own comment forbids exactly that. It only looked right because Windows calls most built-in webcams that. Now reads "No camera requested" beside "Effects unavailable", matching the mic and speaker chips, and the promote mechanism is gone because nothing can be granted.' },
 
   /* ------------------------------------------------------------------------
    * Nam's QA pass of 27 August: twenty-six numbered points, in his order, so a
@@ -372,7 +372,7 @@ export const tasks: Task[] = [
                 "The hand-drawn board is gone"
           ],
           "raised": "Nam, QA 27 Aug, point 4",
-          "notes": "https://preview.mahjongstars.com/ — public, so disclosing it is fine."
+          "notes": "https://preview.mahjongstars.com/, public, so disclosing it is fine."
     },
   },
   {
@@ -393,7 +393,7 @@ export const tasks: Task[] = [
     note: "Trim the referral picker to the one real contact.",
     detail: {
           "done": [
-                "\"Diep — referral\" becomes \"Diep Bui\"",
+                "\"Diep, referral\" becomes \"Diep Bui\"",
                 "Both Reference rows deleted",
                 "Search placeholder becomes \"Search my referral\""
           ],
@@ -407,7 +407,7 @@ export const tasks: Task[] = [
     detail: {
           "why": "The work email is Nam’s current employer address and has no business on a job application.",
           "done": [
-                "Card title: \"Diep Bui — referral\"",
+                "Card title: \"Diep Bui, referral\"",
                 "The \"Calling as\" line replaced with something playful",
                 "The description line is less stiff",
                 "The work address appears nowhere in src/ or docs/ \u2014 asserted by a test"
@@ -418,7 +418,7 @@ export const tasks: Task[] = [
   {
     id: 'N8', col: 'done', size: 'S', tag: 'content',
     title: "Loosen the Calls page copy, and drop the referral note",
-    note: "One of the two lines should be playful, and the referral note goes — here and on the ended screen.",
+    note: "One of the two lines should be playful, and the referral note goes, here and on the ended screen.",
     detail: {
           "why": "Nam: \"In general Idk if a referral note is really needed at all.\"",
           "done": [
@@ -553,8 +553,8 @@ export const tasks: Task[] = [
     detail: {
           "done": [
                 "One entry, \"D&A Research\"",
-                "Graph mining, part of the Multinet library — InfoLab, Uppsala University, 2018",
-                "Sensor network optimisation: two publications, one book chapter, one best-paper award — MSO Lab, HUST, 2014–2017"
+                "Graph mining, part of the Multinet library. InfoLab, Uppsala University, 2018",
+                "Sensor network optimisation: two publications, one book chapter, one best-paper award. MSO Lab, HUST, 2014–2017"
           ],
           "raised": "Nam, QA 27 Aug, point 18"
     },
@@ -580,7 +580,7 @@ export const tasks: Task[] = [
     title: "Restructure the skills block",
     note: "Two columns, no duplicates, and a stronger test-automation line.",
     detail: {
-          "why": "Languages were being listed twice — once by name and again under \"over 10,000 lines\" — and the bot-controller line undersells the testing work.",
+          "why": "Languages were being listed twice, once by name and again under \"over 10,000 lines\", and the bot-controller line undersells the testing work.",
           "done": [
                 "Left column: skills and frameworks. Right column: languages",
                 "Frameworks: React, Unity, Flutter",
@@ -626,7 +626,7 @@ export const tasks: Task[] = [
     title: "The guided tour: captions, an on-screen cursor, and an adaptive script",
     note: "The big one. A scripted walkthrough that narrates itself, moves a cursor in sync, and adapts when the visitor takes over.",
     detail: {
-          "why": "Everything else on this board makes the CV better to read. This makes it a demo that runs itself — which is the difference between a page a recruiter skims and one they watch to the end.",
+          "why": "Everything else on this board makes the CV better to read. This makes it a demo that runs itself, which is the difference between a page a recruiter skims and one they watch to the end.",
           "done": [
                 "Captions on by default in the green room",
                 "The share sheet auto-closes after 8s, with a visible countdown that pauses on hover",
@@ -668,7 +668,7 @@ export const tasks: Task[] = [
                 "Safe jump points are marked"
           ],
           "raised": "Nam, QA 27 Aug, point 26",
-          "notes": "Depends on N24 landing first — there is no script tree to draw until there is a script tree."
+          "notes": "Depends on N24 landing first: there is no script tree to draw until there is a script tree."
     },
   },
 
@@ -685,14 +685,14 @@ export const tasks: Task[] = [
     title: "Do not join already sharing",
     note: "N1 is reverted. The share is something the tour performs, not the state it starts in.",
     detail: {
-      why: "Nam: \"when joining the call, we shouldnt start in screen sharing. Screensharing should be triggered by caption script, so we can feature full feature of the CV.\" Landing mid-share skips the part that makes the demo land — watching someone share a screen is the familiar bit that earns the strange bits.",
+      why: "Nam: \"when joining the call, we shouldnt start in screen sharing. Screensharing should be triggered by caption script, so we can feature full feature of the CV.\" Landing mid-share skips the part that makes the demo land, watching someone share a screen is the familiar bit that earns the strange bits.",
       done: [
         'An ordinary join opens on the call, not on a share',
         'The easter-egg boot still opens already sharing, because that clip is the whole meeting',
         "The tour's first act performs the share itself",
       ],
       raised: 'Nam, QA 27 Aug, point 1',
-      notes: 'N1 shipped the opposite of this and was right at the time — the reader landed on the work instead of an avatar. What changed is that there is now a tour to do the landing for them. QA in a browser: an ordinary join opens on the call, and the first act performs the share.',
+      notes: 'N1 shipped the opposite of this and was right at the time, the reader landed on the work instead of an avatar. What changed is that there is now a tour to do the landing for them. QA in a browser: an ordinary join opens on the call, and the first act performs the share.',
     },
   },
   {
@@ -727,7 +727,7 @@ export const tasks: Task[] = [
         'Every step is a real click on a real control, not a shortcut into state',
       ],
       raised: 'Nam, QA 27 Aug, points 1 and 2',
-      notes: 'QA in a browser: captions, picker, Entire Screen, Screen 1, Share, launch Chrome, maximise — every step a real press on a real control.',
+      notes: 'QA in a browser: captions, picker, Entire Screen, Screen 1, Share, launch Chrome, maximise, every step a real press on a real control.',
     },
   },
   {
@@ -735,7 +735,7 @@ export const tasks: Task[] = [
     title: 'Rewrite the opening',
     note: 'Shorter, warmer, and it hands the visitor a goal before it starts talking.',
     detail: {
-      why: 'The old opening explained the format — "a working rebuild of the Meet web client" — which is the least interesting true thing about it. Nam’s version says hello, offers a game, and moves.',
+      why: 'The old opening explained the format. "a working rebuild of the Meet web client", which is the least interesting true thing about it. Nam’s version says hello, offers a game, and moves.',
       done: [
         '"Hi, I’m Nam. Thank you for joining me here."',
         '"Let me walk you through my world."',
@@ -783,18 +783,18 @@ export const tasks: Task[] = [
   },
   {
     id: 'N33', col: 'done', size: 'L', tag: 'specs',
-    title: 'The visitor profile — a know-your-user model',
+    title: 'The visitor profile, a know-your-user model',
     note: 'One pure module that watches what the visitor does and says what they seem to want.',
     detail: {
       why: "Nam: \"Feels like we are essentially building a know your user system, like user profiling. Let me know what else we can add to this system to get a clear image of user intention and interest, so we tailor our script to their interest and in their own pace.\"",
       done: [
         'Signals: idle time, click rate, scroll speed, dwell per section, bail rate, backtracking, revisits, depth of navigation, input modality',
         'Derived: reading speed, restlessness, engagement, and an interest ranking over the parts',
-        'Pure and unit-tested — no DOM, no timers',
+        'Pure and unit-tested, no DOM, no timers',
         'The director asks it for pace and register rather than guessing',
       ],
       raised: 'Nam, QA 27 Aug, point 4',
-      notes: 'Kept pure for the same reason the tour director is: adaptivity is the part most likely to be subtly wrong and least likely to be noticed. Nineteen unit tests over the model. The two strongest signals turned out to be scroll speed and revisiting — dwell cannot tell reading from having walked away, and a revisit is the only signal that costs the visitor effort.',
+      notes: 'Kept pure for the same reason the tour director is: adaptivity is the part most likely to be subtly wrong and least likely to be noticed. Nineteen unit tests over the model. The two strongest signals turned out to be scroll speed and revisiting, dwell cannot tell reading from having walked away, and a revisit is the only signal that costs the visitor effort.',
     },
   },
   {
@@ -827,7 +827,7 @@ export const tasks: Task[] = [
         'It fires at most once',
       ],
       raised: 'Nam, QA 27 Aug, point 6',
-      notes: 'QA caught it firing at the tour itself: a programmatic scrollTop dispatches a scroll event indistinguishable from a wheel, and isTrusted does not separate them — the browser marks scroll events trusted whoever caused them. The hand rolled to the Wasabi years and then accused the visitor of skipping them.',
+      notes: 'QA caught it firing at the tour itself: a programmatic scrollTop dispatches a scroll event indistinguishable from a wheel, and isTrusted does not separate them, the browser marks scroll events trusted whoever caused them. The hand rolled to the Wasabi years and then accused the visitor of skipping them.',
     },
   },
   {
@@ -881,14 +881,14 @@ export const tasks: Task[] = [
     title: 'BUG: "The posting, line by line" renders empty',
     note: 'The tab in the shared browser shows a heading and a note and nothing else.',
     detail: {
-      why: 'The requirement map is gated on a company code, and the deployed link carries none — so a tab titled Google Careers opened onto an apology. Nam: "this page is empty? It was fine before."',
+      why: 'The requirement map is gated on a company code, and the deployed link carries none, so a tab titled Google Careers opened onto an apology. Nam: "this page is empty? It was fine before."',
       done: [
         'The mapping renders without a company code',
         'The heading names which posting it is measured against',
         'The gate stays where it is genuinely needed',
       ],
       raised: 'Nam, QA 27 Aug, point 8',
-      notes: 'T7 put the gate there for a real reason — measuring a reader against a posting their company never advertised. The tab is Google-branded either way, so the honest fix is to name the posting rather than hide the answer. QA in a browser: the mapping renders with no company code, under a heading that names which posting it is measured against.',
+      notes: 'T7 put the gate there for a real reason, measuring a reader against a posting their company never advertised. The tab is Google-branded either way, so the honest fix is to name the posting rather than hide the answer. QA in a browser: the mapping renders with no company code, under a heading that names which posting it is measured against.',
     },
   },
   {
@@ -920,7 +920,7 @@ export const tasks: Task[] = [
         'It closes on the corny line, and calls itself corny',
       ],
       raised: 'Nam, QA 27 Aug, point 9',
-      notes: 'QA in a browser: three unseen clips played, and a second run said "…which you have already found. All of them." — so the record survives a reload.',
+      notes: 'QA in a browser: three unseen clips played, and a second run said "…which you have already found. All of them.", so the record survives a reload.',
     },
   },
   {
@@ -970,7 +970,7 @@ export const tasks: Task[] = [
     title: 'It is a conversation, not a tour',
     note: 'Rename it everywhere the visitor can see, because the word was shaping the writing.',
     detail: {
-      why: 'Nam: "I actually dont like that it was a tour, no this is a real attempt at talking to the user." The word was not only in the labels — it was in the prose, and a script that thinks of itself as a tour writes lines that introduce sections instead of lines that talk to somebody.',
+      why: 'Nam: "I actually dont like that it was a tour, no this is a real attempt at talking to the user." The word was not only in the labels. It was in the prose, and a script that thinks of itself as a tour writes lines that introduce sections instead of lines that talk to somebody.',
       done: [
         'No visitor-facing string says "tour"',
         'The Stop control says what it actually stops',
@@ -1030,7 +1030,7 @@ export const tasks: Task[] = [
         'A press on the bubble, or on the empty stage, completes the line',
       ],
       raised: 'Nam, QA 27 Aug, second pass',
-      notes: 'The hesitations Nam also asked for shipped with this and were then removed — see N53. The reveal itself was never the problem.',
+      notes: 'The hesitations Nam also asked for shipped with this and were then removed, see N53. The reveal itself was never the problem.',
     },
   },
   {
@@ -1055,7 +1055,7 @@ export const tasks: Task[] = [
     title: 'Post-conversation banter, and then real silence',
     note: 'Why are you still here. Spacing out, under two minutes, with an achievement for sitting through it.',
     detail: {
-      why: 'Nam: "There is nothing more to see here. I swear ... some more stuff like this, spacing out more and more, but no longer than 2min." The goodbye is the correct place to stop talking, so anything after it has to earn the attention — which is exactly what a joke that keeps getting further apart does.',
+      why: 'Nam: "There is nothing more to see here. I swear ... some more stuff like this, spacing out more and more, but no longer than 2min." The goodbye is the correct place to stop talking, so anything after it has to earn the attention, which is exactly what a joke that keeps getting further apart does.',
       done: [
         'The gaps grow, and the whole outro fits inside two minutes',
         'Sitting through all of it unlocks a secret achievement',
@@ -1072,7 +1072,7 @@ export const tasks: Task[] = [
     title: 'BUG: "How this was built" was a second copy of the spec',
     note: 'The browser tab now opens the Project spec itself, tabs and all.',
     detail: {
-      why: 'Nam: "how this was built was still the wrong page, it should open the project spec that we are already showing in home screen." The tab rendered buildDoc() alone, which is one section of the spec’s Overview — so the shared screen showed a document that looked like the spec, was missing four of its five tabs, and could drift from it.',
+      why: 'Nam: "how this was built was still the wrong page, it should open the project spec that we are already showing in home screen." The tab rendered buildDoc() alone, which is one section of the spec’s Overview, so the shared screen showed a document that looked like the spec, was missing four of its five tabs, and could drift from it.',
       done: [
         'The tab renders the same tabbed spec the home screen opens',
         'One component, two hosts: a dialog from the chrome, a page inside the share',
@@ -1111,7 +1111,7 @@ export const tasks: Task[] = [
         'If it ships: the four places that promise no backend are corrected in the same commit',
       ],
       raised: 'Nam, QA 27 Aug, second pass',
-      notes: 'Blockers, in order of how hard they are to argue with. (1) The page states "no analytics, no third-party requests and no backend" on the ended screen, in the meeting-ready card, in the Project spec and in the README — a leaderboard makes all four false, and for a CV about trustworthy engineering that is a worse trade than the feature is worth. (2) The CSP is connect-src ‘self’ with no exceptions, so any host would have to be named in the policy, which is exactly where a reader looks to check claim (1). (3) A public leaderboard on a job application collects timings from named hiring managers, which is a data question rather than a feature question. (4) The bot-manager server is on the React client: a different origin with a different lifetime, and if it stops the CV becomes a site with a broken widget on it. If it ships at all it wants a separate endpoint the CV can lose without noticing — and the honest version is a local personal best, which is what N51 shipped.',
+      notes: 'Blockers, in order of how hard they are to argue with. (1) The page states "no analytics, no third-party requests and no backend" on the ended screen, in the meeting-ready card, in the Project spec and in the README, a leaderboard makes all four false, and for a CV about trustworthy engineering that is a worse trade than the feature is worth. (2) The CSP is connect-src ‘self’ with no exceptions, so any host would have to be named in the policy, which is exactly where a reader looks to check claim (1). (3) A public leaderboard on a job application collects timings from named hiring managers, which is a data question rather than a feature question. (4) The bot-manager server is on the React client: a different origin with a different lifetime, and if it stops the CV becomes a site with a broken widget on it. If it ships at all it wants a separate endpoint the CV can lose without noticing, and the honest version is a local personal best, which is what N51 shipped.',
     },
   },
 
@@ -1120,7 +1120,7 @@ export const tasks: Task[] = [
     title: 'REVERTED: the hesitations placed themselves before the punchlines',
     note: 'Automatic placement is out. Where an "uh" goes is a writing decision, and it is waiting on Nam.',
     detail: {
-      why: 'Nam asked for "a little uh, ah, and stuff that would be in a normal casual speech", and the first attempt derived the placement from the text: clause boundaries, a rarity gate tuned by counting against the real script, three separate hashes so nothing correlated. It produced exactly two hesitations in thirty-four lines, always in the same place, costing the line no time — and both of them landed immediately before a punchline. Nam: "they are pausing right before the punch line!?! How the heck is that good?"',
+      why: 'Nam asked for "a little uh, ah, and stuff that would be in a normal casual speech", and the first attempt derived the placement from the text: clause boundaries, a rarity gate tuned by counting against the real script, three separate hashes so nothing correlated. It produced exactly two hesitations in thirty-four lines, always in the same place, costing the line no time, and both of them landed immediately before a punchline. Nam: "they are pausing right before the punch line!?! How the heck is that good?"',
       done: [
         'The automatic insertion is gone, and the dimmer style with it',
         'The seven tests that measured its rate, determinism and variety are gone',
@@ -1129,7 +1129,7 @@ export const tasks: Task[] = [
         'And it stays a rendering concern: no "uh" in data/tour.ts',
       ],
       raised: 'Nam, QA 28 Aug',
-      notes: 'The lesson is not that the rate was wrong — the rate was right, and a test asserted it. A clause boundary near the end of a sentence is exactly where the setup hands over to the joke, so the better the gate got at finding natural pauses, the more reliably it found the one place a stumble must never go. Punctuation is all an algorithm can see; where the joke is lives in the meaning, and the writer is the only one holding that. A counting test cannot catch this: it will green-light every instance of a thing happening in the worst possible place.',
+      notes: 'The lesson is not that the rate was wrong, the rate was right, and a test asserted it. A clause boundary near the end of a sentence is exactly where the setup hands over to the joke, so the better the gate got at finding natural pauses, the more reliably it found the one place a stumble must never go. Punctuation is all an algorithm can see; where the joke is lives in the meaning, and the writer is the only one holding that. A counting test cannot catch this: it will green-light every instance of a thing happening in the worst possible place.',
     },
   },
 

@@ -54,12 +54,12 @@ export const NEUTRAL = {
 export const companies: Company[] = [
   {
     code: '1',
-    label: 'Google — Meet, Stockholm',
+    label: 'Google Meet, Stockholm',
     employer: 'Google',
     role: 'Senior Software Engineer, Web Development',
     place: 'Stockholm',
-    target: 'Senior Software Engineer, Web Development — Google Meet, Stockholm',
-    meeting: 'Interview for Senior Software Engineer — Google Meet, Stockholm',
+    target: 'Senior Software Engineer, Web Development at Google Meet, Stockholm',
+    meeting: 'Interview for Senior Software Engineer at Google Meet, Stockholm',
     opener: "Hi. I'm Nam, I live in Uppsala, and I want the Web Development role on Google Meet in Stockholm.",
     notes:
       'The original target, and the reason the whole site is a rebuild of Meet. This is the only code where ' +

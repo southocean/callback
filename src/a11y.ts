@@ -150,7 +150,7 @@ export function audit(): Check[] {
   const grid = document.querySelector('[role="list"], .tiles');
   const roving = grid ? Array.from(grid.querySelectorAll('[tabindex]')) : [];
   const stops = roving.filter((el) => el.getAttribute('tabindex') === '0').length;
-  add('Grid is one tab stop', grid ? `${roving.length} tiles, ${stops} tab stop — arrow keys move inside.` : 'No grid on screen right now.', !grid || stops <= 1);
+  add('Grid is one tab stop', grid ? `${roving.length} tiles, ${stops} tab stop. Arrow keys move inside.` : 'No grid on screen right now.', !grid || stops <= 1);
 
   const live = Array.from(document.querySelectorAll('[aria-live]'));
   const polite = live.every((el) => el.getAttribute('aria-live') === 'polite');

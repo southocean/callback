@@ -24,13 +24,13 @@ export const motion: Section = {
   title: 'Motion',
   lead:
     'Three curves do all the work, and two of them overshoot. That springiness is the single most recognisable ' +
-    'thing about the product in motion — a linear or plain ease-out reads as "not Meet" instantly.',
+    'thing about the product in motion, a linear or plain ease-out reads as "not Meet" instantly.',
   rules: [
-    { name: 'When keyframes are the wrong tool', value: 'simulate, do not choreograph', note: 'The wordmark impact was keyframed three times and read wrong every time. CSS animations are independent timelines — nothing can be triggered by the state of another element — so "this gives way once that has taken the blow" has to be faked as a guessed delay, and each element eases into its own end state, which is why nothing could transmit an impulse it had already spent. It is now one simulation with one clock: constant-velocity approach, then momentum spent displacing what is in front of it, then a damped spring. ui/impact.ts.' },
+    { name: 'When keyframes are the wrong tool', value: 'simulate, do not choreograph', note: 'The wordmark impact was keyframed three times and read wrong every time. CSS animations are independent timelines, nothing can be triggered by the state of another element, so "this gives way once that has taken the blow" has to be faked as a guessed delay, and each element eases into its own end state, which is why nothing could transmit an impulse it had already spent. It is now one simulation with one clock: constant-velocity approach, then momentum spent displacing what is in front of it, then a damped spring. ui/impact.ts.' },
     { name: 'Order the events, not the elements', value: 'Google out at 456ms, spring peaks at 505ms', note: 'The two overlapped in an earlier version, so the name was pushed right by the spring and then yanked left again as the last of Google died. Sequencing them dropped that jerk from 9px to under 2px. The trigger is computed from the spring, not typed in: the word must be gone by (pi/2)/omega, the moment the spring crosses zero.' },
-    { name: 'Match type with type', value: 'text plus 0.32px of stroke', note: 'The wordmark was a bitmap cropped from Google’s own lockup for a while, because nothing else matched a flat-ink bitmap for weight. Wrong trade: an image cannot share a baseline with the text beside it without hacks, and a clipping box’s baseline is its bottom margin edge, so the word floated above the line. The metrics were never the issue — Product Sans at 23.5px measures 75.8px against the bitmap’s 76 — only ink weight was, and text-stroke supplies that without moving a metric.' },
-    { name: 'Two constraints leave no freedom', value: 's = k, tx = 0', note: 'The departing word is not clipped — clipping is what moved its baseline — so it has to be kept out of both neighbours by arithmetic. It must not reach into “Meet” on its right, so s <= k; and it must not reach the mark on its left, so it cannot travel at all. That fixes s = k: it compresses at exactly the rate its box closes, pinned where it started. Measured: 11px of clearance from the mark and 4px from “Meet” on every visible frame.' },
-    { name: 'Leave before the space closes', value: 'gone at 35% width', note: 'The fade is expressed in remaining width rather than in time, so it stays locked to the geometry however the deceleration is retuned. The word is gone at 339ms with “Meet” still 26px short of home — the space it is moving into is already empty, which is what stops the two reading as a crossfade.' },
+    { name: 'Match type with type', value: 'text plus 0.32px of stroke', note: 'The wordmark was a bitmap cropped from Google’s own lockup for a while, because nothing else matched a flat-ink bitmap for weight. Wrong trade: an image cannot share a baseline with the text beside it without hacks, and a clipping box’s baseline is its bottom margin edge, so the word floated above the line. The metrics were never the issue. Product Sans at 23.5px measures 75.8px against the bitmap’s 76, only ink weight was, and text-stroke supplies that without moving a metric.' },
+    { name: 'Two constraints leave no freedom', value: 's = k, tx = 0', note: 'The departing word is not clipped, clipping is what moved its baseline, so it has to be kept out of both neighbours by arithmetic. It must not reach into “Meet” on its right, so s <= k; and it must not reach the mark on its left, so it cannot travel at all. That fixes s = k: it compresses at exactly the rate its box closes, pinned where it started. Measured: 11px of clearance from the mark and 4px from “Meet” on every visible frame.' },
+    { name: 'Leave before the space closes', value: 'gone at 35% width', note: 'The fade is expressed in remaining width rather than in time, so it stays locked to the geometry however the deceleration is retuned. The word is gone at 339ms with “Meet” still 26px short of home, the space it is moving into is already empty, which is what stops the two reading as a crossfade.' },
     {
       name: 'Shape morph',
       value: '.35s cubic-bezier(0.4, 0.1, 0.5, 1.4)',
@@ -57,14 +57,14 @@ export const motion: Section = {
       note: 'The meeting list arrives after the shell, not with it. The shell must never wait for the content.',
     },
     { name: 'Cold load order', value: 'spinner, then the list, then the promo', note: 'The shell paints at once; a wavy circular indicator holds the content area alone for about a second; the meeting list fades in over 500ms; then the promo banner arrives above it and pushes the list down. Meet ships that layout shift rather than reserving space for it.' },
-    { name: 'The loader is wavy', value: 'one ring, R 22 about (32,32)', note: 'Taken from Google’s own path data: a circle of radius exactly 22.0000, sampled one point per degree, sweeping 0 to 339 degrees — a 21 degree gap. That is the plain track. The wave rides the same radius, crest out and trough in, and the track is only the arc the wave does not occupy.' },
+    { name: 'The loader is wavy', value: 'one ring, R 22 about (32,32)', note: 'Taken from Google’s own path data: a circle of radius exactly 22.0000, sampled one point per degree, sweeping 0 to 339 degrees, a 21 degree gap. That is the plain track. The wave rides the same radius, crest out and trough in, and the track is only the arc the wave does not occupy.' },
     { name: 'Amplitude falls out of it', value: '2.5', note: 'The one number Google’s path did not give. At R 22 with a 4px stroke an amplitude of 2.5 paints a 53.0px extent, which is what a frame of a real cold load measures. Nine crests per turn so the wave closes on itself.' },
     { name: 'Two periods, not one', value: 'ring 2.2s, arc 1.5s', note: 'The ring turns steadily while the lit arc breathes on a slower eased cycle. Matching the two periods is what makes a spinner look mechanical.' },
     { name: 'Sweep signals the load', value: 'short arc for light work', note: 'Meet gives a cold start a long wavy arc and a day switch a short one, so the indicator says how much is actually happening. Reproduced by one parameter.' },
     {
       name: 'Reduced motion',
       value: 'all of the above collapses to ~0s',
-      note: 'Non-negotiable, and it must also disable auto-advancing content — not merely shorten it.',
+      note: 'Non-negotiable, and it must also disable auto-advancing content, not merely shorten it.',
     },
   ],
 };
@@ -73,8 +73,8 @@ export const feedback: Section = {
   title: 'Interaction feedback',
   lead:
     'Every interactive control reacts to the pointer, and they all do it the same way: a ::before at inset 0 ' +
-    'whose opacity ramps from 0 to .08 over 75ms. An earlier pass on this screen concluded the opposite — that ' +
-    'Meet barely responds — because it read background-color on the :hover chain, and the layer is a pseudo-element ' +
+    'whose opacity ramps from 0 to .08 over 75ms. An earlier pass on this screen concluded the opposite, that ' +
+    'Meet barely responds, because it read background-color on the :hover chain, and the layer is a pseudo-element ' +
     'on an inner span whose opacity, not colour, is what moves. Worth stating plainly: the probe was confidently ' +
     'wrong, and the fix was to stop choosing which properties to look at.',
   rules: [
@@ -85,21 +85,21 @@ export const feedback: Section = {
     { name: 'State layers do not nest', value: 'the child wins, the parent stays put', note: 'Hovering the Join inside a meeting card lights Join and leaves the card completely inert, so the button reads as sitting outside the row it is inside. Same for the Join inside the code field, which also dismisses the field’s tooltip.' },
     { name: 'Fill changes, separately', value: '#e9eef6 → #dde3ea', note: 'The code field is the one control that also changes its actual fill, on top of having no state layer of its own.' },
     { name: 'Tooltip placement', value: '4px, and the side is not uniform', note: 'Top-bar controls place the tooltip below; the date row places it above, because below would land on the meeting list. Both centred on the anchor.' },
-    { name: 'Which controls get one', value: 'fewer than you would think', note: 'In the date row: the two week arrows, the calendar button, and today — whose tooltip reads “Selected” rather than the date. The other six day columns get nothing, measured cold and primed. And the Join buttons get none at all: touching the one inside the code field actively dismisses the field’s own tooltip.' },
+    { name: 'Which controls get one', value: 'fewer than you would think', note: 'In the date row: the two week arrows, the calendar button, and today, whose tooltip reads “Selected” rather than the date. The other six day columns get nothing, measured cold and primed. And the Join buttons get none at all: touching the one inside the code field actively dismisses the field’s own tooltip.' },
     { name: 'Focus (visible)', value: 'the ring, and nothing else', note: 'A 12% layer on top of the ring was the reason our selected card looked older and greyer than Meet’s when both used the same #d3e3fd. The ring is the whole feedback; darkening the fill as well just ages the colour.' },
     { name: 'Pressed', value: '10% layer + radius morph', note: 'The shape change is the press feedback; the colour barely moves.' },
-    { name: 'Focus ring', value: 'box-shadow 0 0 0 3px #00639b, inset -2px', note: 'Not an outline — outlines cannot animate. Google ships it as a span inset -2px around the control, so its radius is the host’s plus 2, carrying a box-shadow spread. The colour is the secondary token #00639b, not the blue you would guess.' },
+    { name: 'Focus ring', value: 'box-shadow 0 0 0 3px #00639b, inset -2px', note: 'Not an outline, outlines cannot animate. Google ships it as a span inset -2px around the control, so its radius is the host’s plus 2, carrying a box-shadow spread. The colour is the secondary token #00639b, not the blue you would guess.' },
     { name: 'Focus ring entrance', value: 'grows to 8px in 150ms, settles to 3px over 450ms', note: 'Google’s own keyframes, gm3-focus-ring-outward-grows and -shrinks, both on cubic-bezier(0.2, 0, 0, 1). The overshoot is the pulse you see on load and again every time you return to the tab.' },
-    { name: 'Selection is :focus-visible', value: 'not a class we manage', note: 'The most relevant meeting is focused on load, and the ring rides on :focus-visible. That is why alt-tabbing hides it, returning replays the pulse, and clicking empty space clears it — three behaviours inherited from the browser rather than implemented.' },
+    { name: 'Selection is :focus-visible', value: 'not a class we manage', note: 'The most relevant meeting is focused on load, and the ring rides on :focus-visible. That is why alt-tabbing hides it, returning replays the pulse, and clicking empty space clears it, three behaviours inherited from the browser rather than implemented.' },
     { name: 'Selected', value: 'secondary container #c2e7ff', note: 'A filled pill, plus the icon switches to FILL 1. Not a colour change on an outline.' },
     { name: 'Disabled', value: 'bg rgba(31,31,31,.12), text rgba(16,16,16,.3)', note: 'A real filled surface, not ghosted text. Measured off the inactive Join button.' },
     { name: 'Hit area', value: '40px minimum, 48px for primary', note: 'Icon buttons are 40×40 even when the glyph is 24. Never shrink the target to fit the art.' },
-    { name: 'Tooltip surface', value: '#303030 on #f2f2f2, radius 4, padding 4px 8px', note: '400 12px/16px in Google Sans Flex, no shadow. Which side it takes is not fixed — see placement above.' },
+    { name: 'Tooltip surface', value: '#303030 on #f2f2f2, radius 4, padding 4px 8px', note: '400 12px/16px in Google Sans Flex, no shadow. Which side it takes is not fixed, see placement above.' },
     { name: 'Tooltip entrance', value: 'opacity + translateY, .15s cubic-bezier(0, 0, 0.2, 1)', note: 'The decelerate curve, not the spring. Tooltips arrive; they do not bounce.' },
     { name: 'Tooltip delay, cold', value: '~540ms', note: 'Measured three times on the live product: 541, 543, 567.' },
-    { name: 'Tooltip delay, primed', value: '~0ms', note: 'Showing one arms the next — move to any other target and its tooltip appears at once. Measured at 38ms.' },
+    { name: 'Tooltip delay, primed', value: '~0ms', note: 'Showing one arms the next, move to any other target and its tooltip appears at once. Measured at 38ms.' },
     { name: 'Tooltip cooldown', value: '600ms touching nothing', note: 'Then it forgets and the next one waits again. Ours: Google publishes no figure, and 1.6s idle was enough to reset it.' },
-    { name: 'Where tooltips go', value: 'icon-only controls, the logo, the code field', note: 'NOT the rail items — they carry a visible label already, so a tooltip would only repeat it. Meet leaves them alone.' },
+    { name: 'Where tooltips go', value: 'icon-only controls, the logo, the code field', note: 'NOT the rail items: they carry a visible label already, so a tooltip would only repeat it. Meet leaves them alone.' },
   ],
 };
 
@@ -107,7 +107,7 @@ export const type: Section = {
   title: 'Type',
   lead:
     'Meet renders in Google Sans, Google Sans Text and Google Sans Flex, with Product Sans for the wordmark. None ' +
-    'of those are open source, so none are copied into this repo — they are linked from the Google Fonts API, ' +
+    'of those are open source, so none are copied into this repo. They are linked from the Google Fonts API, ' +
     'which is the route Google provides for exactly this. Google Sans Flex, which Meet names first on tooltips, ' +
     'is not served there; Google Sans Text is the next family Meet itself names. Sizes, weights and tracking are ' +
     'Meet\'s own.',
@@ -128,7 +128,7 @@ export const shape: Section = {
   title: 'Shape and colour',
   lead:
     'Radius encodes size and role: the bigger and more interactive a thing is, the rounder. Two palettes that ' +
-    'barely overlap — a light Material 3 shell, and a near-black call canvas.',
+    'barely overlap, a light Material 3 shell, and a near-black call canvas.',
   rules: [
     { name: 'Pill', value: '999px', note: 'Composer, nav pill. Anything that reads as a field or a chip.' },
     { name: 'Button', value: '20px @40px tall, 24px @48px', note: 'Exactly half the height. Then it morphs to ~10px on press.' },
@@ -147,7 +147,7 @@ export const shape: Section = {
 export const layout: Section = {
   title: 'Layout and responsiveness',
   lead:
-    'A fixed rail, a centred content column, and a top bar that is a three-column grid rather than a flex row — ' +
+    'A fixed rail, a centred content column, and a top bar that is a three-column grid rather than a flex row, ' +
     'so the composer is centred against the viewport, not against whatever the logo leaves over.',
   rules: [
     { name: 'Home top bar', value: '64px', note: 'The in-call bar is 56px. They are not the same, which is easy to get wrong.' },
@@ -168,7 +168,7 @@ export const a11y: Section = {
     'audit in Meeting tools → Accessibility, which runs against the live DOM and is allowed to fail.',
   rules: [
     { name: 'Every control is named', value: 'aria-label on icon-only buttons', note: 'The glyph is decorative; the name carries the meaning.' },
-    { name: 'Icons are hidden', value: 'aria-hidden="true"', note: 'Otherwise a screen reader reads the ligature text — "videocam".' },
+    { name: 'Icons are hidden', value: 'aria-hidden="true"', note: 'Otherwise a screen reader reads the ligature text. "videocam".' },
     { name: 'Toggle state', value: 'aria-pressed, not colour', note: 'Mic, camera, captions, hand, and every panel button.' },
     { name: 'Grids are one tab stop', value: 'roving tabindex + arrow keys', note: 'Tiles and day columns. A pile of tab stops is not a grid.' },
     { name: 'Panels', value: 'role="region" + label; focus trapped only when modal', note: 'On desktop the panel sits beside the content, so trapping there would be wrong.' },
@@ -190,7 +190,7 @@ export const gaps = {
     'than measurement, and should be marked as such until it is measured.',
   items: [
     'Pressed and focus state layers are still Material\'s documented opacities rather than values read off the product. Hover itself is now measured: the code field goes #e9eef6 to #dde3ea, and the logo has no hover surface at all.',
-    'The Gemini notes panel, the avatar hover card and the People panel are still not captured — including the two status pills that animate from full-width to icon-only once notes start.',
+    'The Gemini notes panel, the avatar hover card and the People panel are still not captured, including the two status pills that animate from full-width to icon-only once notes start.',
     'Ripple geometry and origin on click.',
     'Panel open/close transitions in call, and the tile-grid reflow when someone joins.',
     'Focus-ring colour and offset in the dark call surface specifically.',

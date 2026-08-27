@@ -43,8 +43,8 @@ const store = new Store(boot);
 {
   const p = pitchFor(boot.company);
   document.title = p.named
-    ? `Meet Nam Nguyen — ${p.role}, ${p.employer} ${p.place ? '· ' + p.place : ''}`.trim()
-    : `Nam Nguyen — ${p.role}`;
+    ? `Meet Nam Nguyen, ${p.role}, ${p.employer} ${p.place ? '· ' + p.place : ''}`.trim()
+    : `Nam Nguyen, ${p.role}`;
 }
 
 window.matchMedia('(prefers-reduced-motion: reduce)').addEventListener('change', (e) => {
