@@ -42,20 +42,35 @@
 //      happening. Minimum-jerk gets the family right; the corrective phase gets
 //      its own ease-out, which is what produces the settle.
 //
-//   5. IT SOMETIMES HOLDS STILL, AND SOMETIMES DOES NOT. Physiological tremor
-//      is 8–12 Hz and about a pixel at screen scale, and a slower drift rides
-//      on top of it as the hand relaxes — but a hand resting on a mouse without
-//      pushing it moves the cursor by nothing at all, most of the time.
+//   5. IT IS STILL, EXCEPT AFTER SOMETHING HAPPENS.
 //
-//      The first version of this ran the tremor continuously, and Nam was right
-//      about what that costs: it is not realism, it is a fidget in the corner of
-//      the eye that never stops, and the eye keeps going back to it. So resting
-//      is a coin toss, re-tossed every second or two and weighted toward still,
-//      with the amplitude eased rather than switched — a tremor that snaps on
-//      reads as the page glitching, which is a worse tell than no tremor at all.
-//      And nothing tremors while the hand is working, the scroll especially:
-//      the wheel movement is already motion, and shaking on top of it is a
-//      shaky hand rather than a steady one.
+//      This took two wrong turns before it was right, and Nam called both.
+//
+//      First it tremored constantly, on the theory that a real hand never holds
+//      still. His objection: "it could be distracting" — and it was, because a
+//      cursor that never stops moving is a fidget in the corner of the eye and
+//      the eye keeps going back to it. Then it became a weighted coin toss
+//      between still and trembling, which was quieter and still wrong, because
+//      it had no reason for either. His objection to that one is the useful one:
+//      "I dont think the mouse tremor is a natural behavior in real human."
+//
+//      Correct. A cursor does not shimmer because a hand is warm. It moves when
+//      the person moves it, and there are exactly three moments where that
+//      movement is small enough to read as a tremor rather than as going
+//      somewhere — all three of them CONSEQUENCES OF AN ACTION:
+//
+//        · VERIFY, after landing and pressing. One or two real submovements of
+//          a pixel or three while you confirm you hit what you meant to. Nam:
+//          "kinda like our brains self QA policy to refine the mouse location."
+//        · SETTLE, after moving out of the way of what you just opened, hand
+//          still on the mouse with nothing to do. The quietest of the three.
+//        · DITHER, when you do not know what is next. The rarest, and only ever
+//          after something else — a hesitation with nothing behind it is not a
+//          hesitation.
+//
+//      Between those the arrow does not move at all. And nothing tremors while
+//      the hand is working, the scroll especially: the wheel movement is already
+//      motion, and shaking on top of it is a shaky hand rather than a steady one.
 //
 //   6. THERE IS A PAUSE BEFORE THE CLICK. Arriving and clicking in the same
 //      frame is not something a hand can do. The dwell is 90–200ms, which is
@@ -95,6 +110,14 @@ export interface Hand {
   at: (el: Element, press?: boolean) => Promise<void>;
   /** Press whatever is under the hand right now. */
   press: (el: Element) => Promise<void>;
+  /**
+   * Get out of the way of something that was just opened, then rest there.
+   *
+   * Called after a press that changed what is on screen. See `clearOf`.
+   */
+  retreat: (from?: Element) => Promise<void>;
+  /** Hesitate: a small aimless movement, for when there is nothing to do yet. */
+  dither: () => Promise<void>;
   /** Roll a surface to an offset, with the hand resting on it. */
   roll: (s: Scroller, to: number, ms?: number) => Promise<void>;
   /** Drift off the edge of the screen and stop. */
@@ -135,7 +158,44 @@ interface Leg {
   ms: number;
   ease: (t: number) => number;
   started: number;
+  /**
+   * Wait this long before starting, once the leg before it has landed.
+   *
+   * This is the gap a corrective submovement needs before it can exist. The
+   * throw is open-loop — it is planned before it starts and cannot be steered —
+   * so the correction cannot begin until the eye has seen where the throw
+   * actually landed and the decision has come back. That round trip is roughly
+   * 100 to 150 milliseconds, and it is the pause that makes a reach read as
+   * aiming rather than as an animation with a wobble on the end.
+   */
+  pre: number;
 }
+
+/**
+ * Why the hand is not perfectly still. Nothing else makes it move.
+ *
+ * Nam, and this is a better theory than the one it replaces: "I dont think the
+ * mouse tremor is a natural behavior in real human." Correct — a cursor does
+ * not shimmer because a hand is warm. It moves when the person moves it, and
+ * there are exactly three moments where that movement is small enough to read
+ * as a tremor rather than as going somewhere.
+ */
+type SpellKind =
+  /** Just landed and pressed: is that where I meant to be? */
+  | 'verify'
+  /** Parked out of the way, hand still on the mouse. */
+  | 'settle'
+  /** Not sure what to do next. */
+  | 'dither';
+
+/** Peak amplitude per spell, in pixels of tremor. All of them are small. */
+const PEAK: Record<SpellKind, number> = {
+  // The largest, because it is a real check rather than slack in a wrist.
+  verify: 0.9,
+  // The smallest: a hand resting with no intent behind it.
+  settle: 0.45,
+  dither: 0.6,
+};
 
 export function makeHand(root: HTMLElement, reduced: boolean): Hand {
   /*
@@ -163,108 +223,102 @@ export function makeHand(root: HTMLElement, reduced: boolean): Hand {
   let dead = false;
   let raf = 0;
 
-  /* Micro-drift: the slow half of holding still. Scheduled rather than
-     continuous, because a hand that drifts constantly reads as a hand on a
-     boat. Only ever started during a live spell — see `rest` below. */
-  let driftAt = performance.now() + rand(1400, 3600);
-  let drift = { dx: 0, dy: 0, from: 0, ms: 0, at: 0 };
-
   /**
-   * What the hand is doing while it is not going anywhere.
+   * The current reason for not being still, and when it started.
    *
-   * 'still' is a hand resting on a mouse without weight on it, which moves the
-   * cursor by nothing. 'alive' is the same hand with enough weight to show the
-   * tremor. Both are real, and the first is commoner — which is why the toss is
-   * weighted rather than even.
+   * NULL IS THE DEFAULT AND THE COMMON CASE. A spell is cast by something
+   * happening — landing on a target, parking out of the way, hesitating — and
+   * it decays to nothing on its own. Between spells the arrow does not move at
+   * all, which is what a cursor mostly does.
    */
-  let rest: 'still' | 'alive' = 'still';
-  let restUntil = 0;
+  let spell: { kind: SpellKind; at: number; ms: number } | null = null;
 
-  /**
-   * The tremor's amplitude, 0..1, eased toward its target every frame.
-   *
-   * Never switched. A tremor that appears from one frame to the next reads as
-   * the page glitching rather than as a hand, which is a worse tell than no
-   * tremor at all.
-   *
-   * ASYMMETRIC, and measured rather than guessed. The first version eased both
-   * ways at the same rate, and tracing the hand for 100 seconds said only 11% of
-   * its resting time was genuinely motionless against an intended 58%. An
-   * exponential ease has a long tail: from full, at 0.045 a frame, it takes a
-   * second and a half to fall below visibility, which ate most of every still
-   * spell. So it fades IN slowly, because an onset that announces itself is the
-   * thing being avoided, and OUT quickly, with a floor that takes the last
-   * invisible fraction to zero rather than crawling there.
-   */
-  let amp = 0;
-  /** Below this the tremor is sub-pixel and pointless. Snap it off. */
-  const AMP_FLOOR = 0.02;
+  const cast = (kind: SpellKind, ms: number): void => {
+    if (reduced) return;
+    spell = { kind, at: performance.now(), ms };
+  };
 
   /** True while the hand is on the wheel. Nothing tremors over the top of work. */
   let busy = false;
 
-  /** How often a resting spell is genuinely motionless. */
-  const STILL_CHANCE = 0.58;
-
   const paint = (t: number): void => {
     let px = x;
     let py = y;
-    const idle = !reduced && !legs.length && !standingDown && !busy;
 
-    if (idle) {
-      // Re-toss the coin every second or two, so a long wait is neither two
-      // minutes of vibration nor two minutes of a frozen arrow.
-      if (t >= restUntil) {
-        rest = Math.random() < STILL_CHANCE ? 'still' : 'alive';
-        restUntil = t + rand(1400, 4200);
-      }
-      amp += ((rest === 'alive' ? 1 : 0) - amp) * (rest === 'alive' ? 0.035 : 0.11);
-    } else {
-      // Quelled fast: a hand that has started moving is not also trembling.
-      amp += (0 - amp) * 0.2;
-    }
-    // The tail of an exponential is invisible and still costs a repaint every
-    // frame. Once it is sub-pixel it is off.
-    if (amp < AMP_FLOOR && !(idle && rest === 'alive')) amp = 0;
+    /*
+     * A spell only runs while the hand is otherwise still. Starting to move
+     * cancels it outright rather than fading it: once you are travelling
+     * somewhere, whatever you were unsure about is settled.
+     */
+    if (spell && (legs.length || standingDown || busy)) spell = null;
 
-    if (amp > 0) {
-      /*
-       * Physiological tremor. Two incommensurable frequencies summed, so it
-       * never repeats visibly — a single sine at 10 Hz reads as a vibration
-       * effect, which is a different and much worse thing than a hand.
-       */
-      px += (Math.sin(t * 0.0512) * 0.55 + Math.sin(t * 0.0231) * 0.4) * amp;
-      py += (Math.cos(t * 0.0447) * 0.5 + Math.sin(t * 0.0189) * 0.35) * amp;
-    }
-
-    if (idle) {
-      if (drift.ms > 0) {
-        const k = Math.min(1, (t - drift.at) / drift.ms);
-        px += drift.dx * settle(k);
-        py += drift.dy * settle(k);
-        if (k >= 1) {
-          // The drift is real: it becomes the new resting place rather than
-          // snapping back, which is what makes a long idle wander.
-          x += drift.dx;
-          y += drift.dy;
-          drift = { dx: 0, dy: 0, from: 0, ms: 0, at: 0 };
-          driftAt = t + rand(1600, 4200);
+    if (spell) {
+      const k = (t - spell.at) / spell.ms;
+      if (k >= 1) {
+        spell = null;
+      } else {
+        /*
+         * Decays from the start. There is no fade-in, because the thing that
+         * causes it — arriving, parking, hesitating — has already happened by
+         * the time the spell exists, and the correction is largest at the
+         * moment you notice you need one.
+         *
+         * The exponent keeps the tail short. A linear decay spends its second
+         * half at an amplitude too small to see and too large to stop painting.
+         */
+        const amp = PEAK[spell.kind] * (1 - k) ** 2.2;
+        /*
+         * END IT WHEN IT STOPS BEING VISIBLE, rather than letting it decay
+         * asymptotically to nothing.
+         *
+         * An exponential tail is invisible long before it is over: tracing this
+         * showed a settle spell nominally lasting four seconds while everything
+         * after the first second was below a twentieth of a pixel. That is not
+         * motion, it is arithmetic — and it kept the hand "moving" in the trace,
+         * which made the whole model impossible to check. Under a twentieth of a
+         * pixel the spell is finished.
+         */
+        if (amp < 0.05) {
+          spell = null;
+        } else {
+          /*
+           * Two incommensurable frequencies summed, so it never repeats
+           * visibly — a single sine reads as a vibration effect, which is a
+           * different and much worse thing than a hand.
+           */
+          px += Math.sin(t * 0.0512) * 0.62 * amp + Math.sin(t * 0.0231) * 0.44 * amp;
+          py += Math.cos(t * 0.0447) * 0.56 * amp + Math.sin(t * 0.0189) * 0.38 * amp;
         }
-      } else if (t >= driftAt && rest === 'alive') {
-        // A drift belongs to a live spell. A hand that is genuinely resting does
-        // not wander across the screen on its own.
-        drift = { dx: rand(-9, 9), dy: rand(-7, 7), from: 0, ms: rand(420, 900), at: t };
       }
     }
-    el.style.transform = `translate3d(${px.toFixed(2)}px, ${py.toFixed(2)}px, 0)`;
+
+    /*
+     * Do not write a transform that is the same as the last one.
+     *
+     * Most frames of a tour are now this branch — the hand is still, and still
+     * means still. Skipping the write is a small saving on its own and a real
+     * one against the compositor, but the reason it is here is honesty: a
+     * property that is rewritten sixty times a second with the same value is
+     * indistinguishable from one that is changing, to a profiler and to anyone
+     * trying to measure whether this model does what it claims.
+     */
+    const next = `translate3d(${px.toFixed(2)}px, ${py.toFixed(2)}px, 0)`;
+    if (next !== painted) {
+      painted = next;
+      el.style.transform = next;
+    }
   };
+  let painted = '';
 
   const frame = (t: number): void => {
     if (dead) return;
     raf = requestAnimationFrame(frame);
     const leg = legs[0];
     if (leg) {
-      const k = leg.ms > 0 ? Math.min(1, (t - leg.started) / leg.ms) : 1;
+      // `started` may be in the future — that is the inter-submovement dwell,
+      // and clamping k at zero is what holds the hand at the leg's origin for
+      // the length of it. See Leg.pre.
+      const k = leg.ms > 0 ? Math.min(1, Math.max(0, (t - leg.started) / leg.ms)) : 1;
       const e = leg.ease(k);
       /* Quadratic Bezier. One control point is enough for the bow — a cubic
          would let the path double back, which hands do not do on a single
@@ -275,12 +329,11 @@ export function makeHand(root: HTMLElement, reduced: boolean): Hand {
       if (k >= 1) {
         legs.shift();
         if (!legs.length) {
-          driftAt = t + rand(1200, 3000);
           const done = resolve;
           resolve = null;
           done?.();
         } else {
-          legs[0]!.started = t;
+          legs[0]!.started = t + legs[0]!.pre;
         }
       }
     }
@@ -320,11 +373,25 @@ export function makeHand(root: HTMLElement, reduced: boolean): Hand {
       ms: ms * BALLISTIC,
       ease: jerk,
       started: 0,
+      pre: 0,
     });
 
-    /* --- the corrections: short, straight, decelerating -------------------- */
-    // One correction for a near target, two for a far one. Nobody makes three
-    // unless the target is genuinely hard, and nothing here is.
+    /* --- the corrections: short, straight, decelerating, and PAUSED FIRST --- */
+    /*
+     * Nam: "it moves generally towards that direction, then refines its movement
+     * further to accurately click where it should."
+     *
+     * That is the shape, and the part that was missing is the word "then". The
+     * corrections used to run straight off the end of the throw, which turns
+     * three submovements into one long easing curve — the refinement was there
+     * in the geometry and invisible in the motion.
+     *
+     * Each correction now waits for the eye. The throw is open-loop; the
+     * correction cannot be planned until the miss has been seen, and that round
+     * trip is roughly 100–150ms. Holding still for it is what separates
+     * "arriving" from "aiming", and it costs about a fifth of a second on a
+     * reach that already takes most of one.
+     */
     const corrections = d > 380 ? 2 : 1;
     let fx = bx;
     let fy = by;
@@ -340,6 +407,9 @@ export function makeHand(root: HTMLElement, reduced: boolean): Hand {
         ms: ms * (last ? 0.18 : 0.12),
         ease: settle,
         started: 0,
+        // Shorter for a second correction: the eye is already on the target by
+        // then and only the distance is being re-judged.
+        pre: i === 0 ? rand(95, 155) : rand(55, 100),
       });
       fx = nx;
       fy = ny;
@@ -405,6 +475,50 @@ export function makeHand(root: HTMLElement, reduced: boolean): Hand {
     el2.dispatchEvent(new MouseEvent('click', { ...common, buttons: 0, detail: 1 }));
   };
 
+  /** One tiny corrective submovement, in a random direction, from where we are. */
+  const nudge = (dist: number, ms: number): Promise<void> => {
+    if (dead || reduced) return Promise.resolve();
+    const a = Math.random() * Math.PI * 2;
+    return new Promise((done) => {
+      const nx = x + Math.cos(a) * dist;
+      const ny = y + Math.sin(a) * dist;
+      legs = [{
+        x0: x, y0: y, cx: (x + nx) / 2, cy: (y + ny) / 2, x1: nx, y1: ny,
+        ms, ease: settle, started: performance.now(), pre: 0,
+      }];
+      resolve = done;
+    });
+  };
+
+  /**
+   * THE SELF-CHECK, and this is the one Nam described.
+   *
+   * "I could see a bit of tremor after it has finished moving and clicked, kinda
+   * like our brains self QA policy to refine the mouse location, like tiny
+   * corrections."
+   *
+   * That is not a tremor in the physiological sense and it should not be built
+   * as one. It is one or two REAL submovements of a pixel or three, made after
+   * the press, while you confirm you hit what you meant to. So it is legs, not
+   * noise — with a short spell of actual noise underneath, which is the part
+   * that reads as a hand still resting on the mouse while the eye checks.
+   *
+   * Not every time. Roughly half, because half the time you press a big obvious
+   * button and simply know you hit it.
+   */
+  const verify = async (): Promise<void> => {
+    if (dead || reduced) return;
+    if (Math.random() < 0.48) {
+      await wait(rand(70, 150));
+      await nudge(rand(1.4, 3.4), rand(90, 150));
+      if (Math.random() < 0.3) {
+        await wait(rand(60, 120));
+        await nudge(rand(1, 2.2), rand(80, 130));
+      }
+    }
+    cast('verify', rand(260, 620));
+  };
+
   const press = async (target: Element): Promise<void> => {
     if (dead) return;
     // The confirmation pause. Arriving and clicking in one frame is the other
@@ -415,17 +529,58 @@ export function makeHand(root: HTMLElement, reduced: boolean): Hand {
     window.setTimeout(() => el.classList.remove('is-press'), 130);
     strike(target);
     await wait(reduced ? 0 : 120);
+    await verify();
   };
 
   const centreOf = (target: Element): { x: number; y: number; w: number } | null => {
     const r = target.getBoundingClientRect();
     if (r.width === 0 && r.height === 0) return null;
-    /* Not dead centre. People land off-centre and the miss is legible; the
-       offset is bounded by the target so it always lands inside it. */
+    /*
+     * NOT DEAD CENTRE, and biased toward the side you came from.
+     *
+     * Nam: "usually not fully centered on the element either." Right, and the
+     * miss is not symmetric — a reach that has just decelerated tends to stop
+     * SHORT rather than to sail past, because stopping short costs half a
+     * correction and overshooting costs a whole one. So the landing point is
+     * pulled back along the direction of approach on top of the scatter.
+     *
+     * Both offsets are bounded by the target's own size, so it always lands
+     * inside the thing it is pressing however small that thing is.
+     */
+    const cx = r.left + r.width / 2;
+    const cy = r.top + r.height / 2;
+    const d = Math.hypot(cx - x, cy - y) || 1;
+    const near = rand(0.06, 0.2);
     return {
-      x: r.left + r.width / 2 + rand(-r.width * 0.18, r.width * 0.18),
-      y: r.top + r.height / 2 + rand(-r.height * 0.18, r.height * 0.18),
+      x: cx - ((cx - x) / d) * r.width * near + rand(-r.width * 0.16, r.width * 0.16),
+      y: cy - ((cy - y) / d) * r.height * near + rand(-r.height * 0.16, r.height * 0.16),
       w: Math.min(r.width, r.height),
+    };
+  };
+
+  /**
+   * Where to put the hand so it stops covering what it just opened.
+   *
+   * Nam: "after a useful click, user would move the mouse to the empty space to
+   * not obstruct the view." Everyone does this and nobody notices they do it —
+   * which is exactly the class of behaviour that makes a synthetic cursor read
+   * as a person, because its absence is felt without being identified.
+   *
+   * The heuristic is deliberately crude: go sideways, toward whichever margin
+   * has more room, far enough to clear the thing that was pressed, and stay well
+   * inside the viewport. Anything cleverer would need to know what is worth not
+   * covering, and the tour already knows that — it is the surface it is about to
+   * talk about.
+   */
+  const clearOf = (target?: Element): { x: number; y: number } => {
+    const m = 90;
+    const r = target?.getBoundingClientRect();
+    const room = { l: x, r: window.innerWidth - x };
+    const dir = room.r >= room.l ? 1 : -1;
+    const push = r ? Math.max(r.width * 0.6, 110) : rand(110, 190);
+    return {
+      x: Math.max(m, Math.min(window.innerWidth - m, x + dir * push + rand(-30, 30))),
+      y: Math.max(m, Math.min(window.innerHeight - m, y + rand(-60, 70))),
     };
   };
 
@@ -454,6 +609,34 @@ export function makeHand(root: HTMLElement, reduced: boolean): Hand {
     },
 
     press,
+
+    retreat: async (from) => {
+      if (dead || reduced) return;
+      setHot(null);
+      const to = clearOf(from);
+      await go(to.x, to.y, 140);
+      /*
+       * And now the hand is somewhere with nothing under it, still on the mouse,
+       * with no plan. That is the second of Nam's three cases and the longest of
+       * them: "as they leave their hand on the physical mouse, the on screen
+       * mouse might jitter just a little bit." Lowest amplitude of the three,
+       * and it decays to nothing rather than persisting.
+       */
+      cast('settle', rand(1200, 2800));
+    },
+
+    dither: async () => {
+      if (dead || reduced) return;
+      /*
+       * The rarest case, and Nam is right that it only makes sense after
+       * something: "when user is indecisive what to do next, this should also be
+       * after another action." A hesitation with nothing behind it is not a
+       * hesitation, it is a screensaver.
+       */
+      setHot(null);
+      await nudge(rand(7, 16), rand(320, 620));
+      cast('dither', rand(700, 1500));
+    },
 
     /**
      * Rolling a surface, with the hand resting on it.

@@ -271,11 +271,23 @@ export function startTour(root: HTMLElement, podium: Podium): TourHandle {
 
   /* ------------------------------------------------------------------ cues -- */
 
-  /** Travel to a control and press it, if it is there. */
-  const pressSel = async (sel: string): Promise<boolean> => {
+  /**
+   * Travel to a control and press it, if it is there.
+   *
+   * `clear` means the press changed what is on screen and the hand is now in
+   * front of it, so it moves aside afterwards. Nam: "after a useful click, user
+   * would move the mouse to the empty space to not obstruct the view."
+   *
+   * Opt-in rather than automatic, because it is only true of a press that ENDS
+   * something. Nobody wanders off between picking Entire Screen and picking
+   * Screen 1 — those are three presses of one decision, and moving away between
+   * them would look like second thoughts.
+   */
+  const pressSel = async (sel: string, clear = false): Promise<boolean> => {
     const el = q(sel);
     if (!el) return false;
     await hand.at(el, true);
+    if (clear) await hand.retreat(el);
     return true;
   };
 
@@ -308,6 +320,13 @@ export function startTour(root: HTMLElement, podium: Podium): TourHandle {
     if (!await appears('.shot .cb-page')) return;
     await wait(reduced ? 0 : 260);
     await doMaximise();
+    /*
+     * A beat of hesitation before the CV act starts talking. The browser is up,
+     * the document is on screen, and there is a moment where the next thing has
+     * not started yet — which is the third of Nam's three cases and the only one
+     * the script has to place deliberately, since the other two follow presses.
+     */
+    if (Math.random() < 0.4) await hand.dither();
   };
 
   const doMaximise = async (): Promise<void> => {
@@ -320,11 +339,16 @@ export function startTour(root: HTMLElement, podium: Podium): TourHandle {
     if (!btn || win?.classList.contains('is-max')) return;
     await hand.at(btn, true);
     await wait(reduced ? 0 : 240);
+    // The window just filled the screen and the hand is on its title bar. This
+    // is the clearest case there is for getting out of the way.
+    await hand.retreat(btn);
   };
 
   const doTab = async (id: string): Promise<void> => {
     const sel = `.shot .cb-tab[data-tab-id="${id}"]`;
-    if (await pressSel(sel)) { await wait(reduced ? 0 : 260); return; }
+    // A tab press opens a document the tour is about to talk about, and the hand
+    // is sitting on the tab strip directly above it.
+    if (await pressSel(sel, true)) { await wait(reduced ? 0 : 260); return; }
     /*
      * Not open. A person would type the address rather than give up, and the
      * omnibox is real — but the honest fallback here is the Explorer route,
