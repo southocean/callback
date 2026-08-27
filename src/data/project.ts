@@ -327,7 +327,7 @@ export const tasks: Task[] = [
    * because the rest of them needed a ticket view to live in.
    * --------------------------------------------------------------------- */
   {
-    id: 'N1', col: 'backlog', size: 'M', tag: 'onboarding',
+    id: 'N1', col: 'done', size: 'M', tag: 'onboarding',
     title: "Join the interview already sharing, Chrome centred, CV open",
     note: "The default state of the interview call should be presenting full screen with the mock Chrome centred on the CV.",
     detail: {
@@ -341,7 +341,7 @@ export const tasks: Task[] = [
     },
   },
   {
-    id: 'N2', col: 'backlog', size: 'S', tag: 'call',
+    id: 'N2', col: 'done', size: 'S', tag: 'call',
     title: "Window share offers Chrome, not Explorer",
     note: "Sharing a window offers the file explorer, where there is nothing to look at. It should offer the browser with its tabs.",
     detail: {
@@ -354,7 +354,7 @@ export const tasks: Task[] = [
     },
   },
   {
-    id: 'N3', col: 'backlog', size: 'M', tag: 'content',
+    id: 'N3', col: 'done', size: 'M', tag: 'content',
     title: "\"Things I built\", merged, with real itch.io games",
     note: "Four things I built becomes Things I built, absorbs the other list, and links actual games rather than a bare profile URL.",
     detail: {
@@ -369,7 +369,7 @@ export const tasks: Task[] = [
     },
   },
   {
-    id: 'N4', col: 'backlog', size: 'S', tag: 'content',
+    id: 'N4', col: 'done', size: 'S', tag: 'content',
     title: "Use the real Mahjong product, not a hand-drawn board",
     note: "The riichi board is sloppy and not up to code. Point at the real client instead.",
     detail: {

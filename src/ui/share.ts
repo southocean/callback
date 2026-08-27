@@ -30,6 +30,7 @@ import { ripple } from './gm3.js';
 import { trapFocus } from '../a11y.js';
 import { profile, pitch, roles, caseStudies, requirementMap, offstage, skills } from '../data/cv.js';
 import { eggs } from '../data/eggs.js';
+import { games } from '../data/games.js';
 import { currentPitch } from '../data/companies.js';
 import { buildDoc } from './built.js';
 
@@ -46,8 +47,8 @@ export interface Source {
 const TABS: Source[] = [
   { id: 'cv', kind: 'tab', title: 'Nam Nguyen — Senior SWE, Web Development', host: 'southocean.github.io' },
   { id: 'jobad', kind: 'tab', title: 'Google Careers — the posting, line by line', host: 'careers.google.com' },
-  { id: 'work', kind: 'tab', title: 'Four things I built, and what broke', host: 'southocean.github.io' },
-  { id: 'riichi', kind: 'tab', title: 'Riichi Mahjong — real-time client', host: 'localhost:5173' },
+  { id: 'work', kind: 'tab', title: 'Things I built', host: 'southocean.github.io' },
+  { id: 'riichi', kind: 'tab', title: 'Mahjong Stars — the live client', host: 'preview.mahjongstars.com' },
 ];
 
 /**
@@ -66,15 +67,40 @@ const TABS: Source[] = [
 interface Doc { title: string; host: string; page: () => HTMLElement }
 
 const DOCS: Record<string, Doc> = {
-  cv: { title: 'Nam Nguyen — Senior SWE, Web Development', host: 'southocean.github.io', page: () => pageCv() },
+  /*
+   * THE REAL CV, framed — not the authored drawing of it.
+   *
+   * Nam, on what the browser should open with: "which CV to use: the same as we
+   * have in view document in home screen." That is './#plain', the actual
+   * document, which is what the home screen's Open document overlay frames.
+   *
+   * This slot used to be pageCv(), an authored approximation, and the two had
+   * already started to drift: the drawing still said "Mahjong Logic" and had the
+   * old socials line. frameOf keeps the drawing as the fallback for the case where
+   * framing is refused, which is exactly the right division of labour — one of
+   * them is the document and the other is a picture of it.
+   *
+   * location.search comes along so the framed copy resolves the same company code
+   * as the page around it; without it the CV inside the share showed the neutral
+   * header while the call showed the named one.
+   */
+  cv: {
+    title: 'Nam Nguyen — Senior SWE, Web Development',
+    host: 'southocean.github.io',
+    page: () => frameOf(`${location.search}#plain`, 'Nam Nguyen — the CV as a document', pageCv),
+  },
   jobad: { title: 'Google Careers — the posting, line by line', host: 'careers.google.com', page: () => pageJobAd() },
-  work: { title: 'Four things I built, and what broke', host: 'southocean.github.io', page: () => pageWork() },
-  riichi: { title: 'Riichi Mahjong — real-time client', host: 'localhost:5173', page: () => pageRiichi() },
+  /* N3: one list, and it is not "four" any more. */
+  work: { title: 'Things I built', host: 'southocean.github.io', page: () => pageWork() },
+  riichi: { title: 'Mahjong Stars — the live client', host: 'preview.mahjongstars.com', page: () => pageRiichi() },
   tools: { title: 'Internal tooling — a bot controller', host: 'southocean.github.io', page: () => pageTools() },
   hobby: { title: 'Off the clock', host: 'southocean.github.io', page: () => pageHobby() },
 };
 DOCS['built'] = { title: 'How this was built', host: 'southocean.github.io', page: () => buildDoc() };
-DOCS['side'] = { title: 'Side projects and dev tools', host: 'southocean.github.io', page: () => pageSide() };
+/* 'side' is an alias for 'work' now: the two pages were answering one question
+   and have been merged (see pageWork). The id survives so side-projects.html in
+   Explorer still opens something, rather than becoming a file that does nothing. */
+DOCS['side'] = DOCS['work']!;
 for (const e of eggs) {
   DOCS['vid:' + e.id] = {
     title: e.title,
@@ -147,8 +173,18 @@ function pageExternal(url: string): HTMLElement {
   return wrap;
 }
 
+/*
+ * N2. Nam: "if user share screen window, dont offer the explorer view cause
+ * nothing is viewable there. Instead offer the chrome window, where we could
+ * show all the tabs there instead of showing each tab in the chrome tab."
+ *
+ * He is right about both halves. Window mode is one window on nothing, and a
+ * file list is the one surface in the mock OS with no content of its own — you
+ * share it and your audience watches you look at filenames. The browser carries
+ * the actual documents, and its strip already holds all of them.
+ */
 const WINDOWS: Source[] = [
-  { id: 'files', kind: 'window', title: 'File Explorer — Work' },
+  { id: 'browser', kind: 'window', title: 'Google Chrome — Nam Nguyen' },
 ];
 
 const SCREENS: Source[] = [
@@ -274,7 +310,7 @@ export function renderShared(
   src: Source,
   onOpen: (id: string) => void = () => {},
   onClose: () => void = () => {},
-  boot?: { egg?: string },
+  boot?: { egg?: string; cv?: boolean },
 ): HTMLElement {
   const body = contentFor(src, onOpen, onClose, boot);
   if (src.kind === 'tab') {
@@ -315,14 +351,21 @@ function frameOf(hash: string, title: string, fallback: () => HTMLElement): HTML
   const behind = fallback();
   const f = h('iframe', {
     class: 'pg-frame', src: './' + hash, title,
-    loading: 'lazy', referrerpolicy: 'no-referrer',
+    /*
+     * EAGER. The same bug pageExternal already had: a lazy iframe inside a window
+     * that is mid-animation counts as not-yet-visible, so it never starts loading,
+     * so is-live never fires, so the 3.5s timeout removes it and the authored
+     * fallback stays forever. QA caught the CV tab rendering the drawing instead
+     * of the document -- which is the one thing frameOf exists to avoid.
+     */
+    loading: 'eager', referrerpolicy: 'no-referrer',
   }) as HTMLIFrameElement;
   const wrap = h('div', { class: 'pg pg-live' }, behind, f);
   f.addEventListener('load', () => { behind.remove(); wrap.classList.add('is-live'); });
   window.setTimeout(() => { if (!wrap.classList.contains('is-live')) f.remove(); }, 4000);
   return wrap;
 }
-function contentFor(src: Source, onOpen: (id: string) => void, onClose: () => void, boot?: { egg?: string }): HTMLElement {
+function contentFor(src: Source, onOpen: (id: string) => void, onClose: () => void, boot?: { egg?: string; cv?: boolean }): HTMLElement {
   switch (src.id) {
     // The real thing, framed. #plain is a standalone document view — it has no
     // call chrome, so framing it cannot nest the app inside itself.
@@ -336,7 +379,11 @@ function contentFor(src: Source, onOpen: (id: string) => void, onClose: () => vo
     // Authored, because the original refuses to be framed.
     case 'jobad': return pageJobAd();
     case 'riichi': return pageRiichi();
-    case 'files': return pageWindow(onOpen, onClose);
+    // 'browser', not 'files': Window mode offers the browser now (see WINDOWS).
+    // The id and the case have to move together -- renaming only the id sent this
+    // straight past to the default branch, which is the desktop, so the Window
+    // share silently rendered the Entire Screen share instead.
+    case 'browser': return pageWindow(onOpen, onClose);
     // onClose is "the share ends" — Window mode already uses it for the single
     // window's close button. Start > Shut down means the same thing here.
     default: return pageDesktop(onClose, boot);
@@ -412,29 +459,6 @@ function pageVideo(id: string): HTMLElement {
  * titles are not in this repo's data and naming them from memory would be the
  * one invented thing on an otherwise sourced page.
  */
-function pageSide(): HTMLElement {
-  const link = (label: string, url: string, note: string): HTMLElement => {
-    const b = h('button', { class: 'pg-link', type: 'button' }, label) as HTMLButtonElement;
-    b.dataset.ext = url;
-    return h('div', { class: 'pg-role' }, b, h('span', {}, note), h('span', { class: 'pg-url' }, url));
-  };
-  return h('div', { class: 'pg' },
-    h('h1', { class: 'pg-h' }, 'Side projects and dev tools'),
-    h('p', { class: 'pg-sub' }, 'The things that are not the CV'),
-    h('p', { class: 'pg-lead' },
-      'Tooling built to make the day job possible, and a back catalogue of small games. Both are real and ' +
-      'both open in this browser.'),
-    h('div', { class: 'pg-roles' },
-      link('Bot controller', 'https://game.mstardev.com/bot.html',
-        'Drives bots onto live game tables so a real-time client can be tested without four colleagues. The ' +
-        'Test automation line on the CV is this.'),
-      link('Riichi Mahjong client', 'https://game.mstardev.com/',
-        'The production client itself, seven years and two platform generations of it.'),
-      link('itch.io — southocean', 'https://southocean.itch.io',
-        'Small games, most of them old. Listed as a profile rather than a highlight reel: they are not the ' +
-        'strongest thing here and pretending otherwise would be the wrong trade.')),
-    h('p', { class: 'pg-note' }, 'Clicking a title opens it in a tab. Some sites refuse to be framed, and this browser says so when they do.'));
-}
 
 // --------------------------------------------------------------- the pages --
 // All of this is real content from src/data/cv.ts. Nothing here is invented for
@@ -473,31 +497,82 @@ function pageJobAd(): HTMLElement {
   );
 }
 
+/**
+ * ONE LIST. Nam: "Four things I built: what did I tell you? Change this to
+ * Things I built, then merge the other things I built to the same list."
+ *
+ * Two pages were answering the same question — this one held the case studies,
+ * and "Side projects and dev tools" held the tools and the games. A reader
+ * finding one had no reason to think the other existed, and the heading counted
+ * to four while the answer was closer to twelve.
+ *
+ * Three groups now, in the order a reader cares about: the work, the tools that
+ * made the work possible, and the games. Every external row opens in this
+ * browser; the games each carry their own link rather than deferring to a
+ * profile page.
+ */
 function pageWork(): HTMLElement {
+  const ext = (label: string, url: string, note: string): HTMLElement => {
+    const b = h('button', { class: 'pg-link', type: 'button' }, label) as HTMLButtonElement;
+    b.dataset.ext = url;
+    return h('div', { class: 'pg-role' }, b, h('span', {}, note), h('span', { class: 'pg-url' }, url));
+  };
+
   return h('div', { class: 'pg' },
-    h('h1', { class: 'pg-h' }, 'Four things I built'),
+    h('h1', { class: 'pg-h' }, 'Things I built'),
+    h('p', { class: 'pg-sub' }, 'The product, the tooling around it, and a back catalogue of small games'),
+
+    h('h2', { class: 'pg-h2' }, 'The work'),
     h('div', { class: 'pg-cards' },
-      ...caseStudies.slice(0, 4).map((c) => h('div', { class: 'pg-card' },
+      ...caseStudies.map((c) => h('div', { class: 'pg-card' },
         h('b', {}, c.title),
         h('span', {}, c.problem)))),
+
+    h('h2', { class: 'pg-h2' }, 'Tooling'),
+    h('div', { class: 'pg-roles' },
+      ext('Mahjong Stars — the live client', 'https://preview.mahjongstars.com/',
+        'The production client itself, seven years and three platform generations of it. Public preview.'),
+      ext('Bot controller', 'https://game.mstardev.com/bot.html',
+        'Drives bots onto live tables so a real-time client can be tested without four colleagues. The test-automation line on the CV is this.')),
+
+    h('h2', { class: 'pg-h2' }, 'Games'),
+    h('div', { class: 'pg-games' },
+      ...games.map((g) => h('div', { class: 'pg-game' },
+        (() => {
+          const b = h('button', { class: 'pg-link', type: 'button' }, g.title) as HTMLButtonElement;
+          b.dataset.ext = g.url;
+          return b;
+        })(),
+        h('span', { class: 'pg-game-tag' }, g.tagline),
+        h('span', {}, g.why),
+        g.playable ? h('span', { class: 'pg-game-play' }, 'Plays in the browser') : h('span', {})))),
+    h('p', { class: 'pg-note' },
+      'Seven more on the profile: ',
+      (() => {
+        const b = h('button', { class: 'pg-link', type: 'button' }, 'itch.io/southocean') as HTMLButtonElement;
+        b.dataset.ext = 'https://southocean.itch.io';
+        return b;
+      })(),
+      '. Clicking any title opens it in a tab. Some sites refuse to be framed, and this browser says so when they do.'),
   );
 }
 
+/**
+ * THE REAL CLIENT. Nam: "the riichi mahjong, you just put there some sloppy
+ * riichi, looks very ugly and not up to code at all. Use our actual product:
+ * https://preview.mahjongstars.com/. this is a public url so its all good if we
+ * disclose it."
+ *
+ * He is right and it was the worst thing on the site: a hand-drawn mahjong board,
+ * on the CV of someone who builds mahjong clients for a living. The drawing was
+ * a stand-in from before there was a public URL to point at. There is one now.
+ *
+ * Framed with the same honest fallback as everything else — if the preview
+ * refuses to be embedded, pageExternal says so and offers the link rather than
+ * leaving a grey rectangle.
+ */
 function pageRiichi(): HTMLElement {
-  // A drawing of the board, not the client. The real one does not run here.
-  const wall = (n: number): HTMLElement[] =>
-    Array.from({ length: n }, () => h('span', { class: 'mj-tile' }));
-  return h('div', { class: 'pg pg-mj' },
-    h('div', { class: 'mj-board' },
-      h('div', { class: 'mj-side mj-top' }, ...wall(9)),
-      h('div', { class: 'mj-mid' },
-        h('div', { class: 'mj-side mj-left' }, ...wall(6)),
-        h('div', { class: 'mj-centre' }, h('span', {}, 'East'), h('b', {}, '25,000')),
-        h('div', { class: 'mj-side mj-right' }, ...wall(6))),
-      h('div', { class: 'mj-side mj-hand' }, ...wall(13))),
-    h('p', { class: 'pg-note' },
-      'Riichi client — real-time state shared across four seats. A drawing of it: the real one needs a server.'),
-  );
+  return pageExternal('https://preview.mahjongstars.com/');
 }
 
 /**
@@ -1798,10 +1873,25 @@ function chromeWindow(o: { onEmpty: () => void }): { body: HTMLElement; select: 
  * then we exit the screensharing mode." Which is also what Windows does — share
  * a window and the capture ends when the window does.
  */
-function pageWindow(onOpen: (id: string) => void, onClose: () => void): HTMLElement {
-  const { body, status } = explorerBody(onOpen);
+/**
+ * Window mode: one browser window, on nothing.
+ *
+ * It used to be File Explorer, which was the wrong choice for the reason in the
+ * WINDOWS note above. The browser opens on the CV — the document a reader came
+ * for — with every other page one tab away.
+ *
+ * onOpen is unused now: inside a single browser window a file click is a tab
+ * change, which the window handles itself. The parameter stays so the two share
+ * modes keep one signature.
+ */
+function pageWindow(_onOpen: (id: string) => void, onClose: () => void): HTMLElement {
+  const made = chromeWindow({ onEmpty: onClose });
+  made.select('cv');
   return h('div', { class: 'pg pg-win' },
-    win11({ title: 'Work', icon: icExplorerTask, body, status, full: false, onClose }));
+    win11({
+      title: 'Nam Nguyen — Senior SWE, Web Development',
+      icon: icChrome, body: made.body, full: false, onClose,
+    }));
 }
 
 /**
@@ -2191,7 +2281,7 @@ function playerWindow(id: string): { body: HTMLElement; select: (id: string) => 
  */
 type AppKind = 'explorer' | 'chrome' | 'player';
 
-function pageDesktop(onQuit: () => void, boot?: { egg?: string }): HTMLElement {
+function pageDesktop(onQuit: () => void, boot?: { egg?: string; cv?: boolean }): HTMLElement {
   const surface = h('div', { class: 'dk-surface' }) as HTMLElement;
 
   /**
@@ -3217,6 +3307,27 @@ function pageDesktop(onQuit: () => void, boot?: { egg?: string }): HTMLElement {
     // this point nothing here is in the document yet, so the surface measures
     // 0x0 and centring resolves to (0,0), which is exactly where QA found the
     // window. One frame later the desktop is mounted and laid out.
+    if (mine) requestAnimationFrame(() => centreWin(mine.el));
+  }
+
+  /*
+   * N1. Nam: "the default state when joining the interview call is in
+   * screensharing, full screen, with chrome opening the CV. I want chrome in the
+   * middle of the screen then. which CV to use: the same as we have in view
+   * document in home screen."
+   *
+   * So the call opens on the work rather than on an empty tile. Same centring as
+   * the egg boot, and the same document as the home screen's Open document — the
+   * browser frames './#plain', which is the one CV both routes render.
+   *
+   * Explorer is closed first: openWindow('explorer') runs unconditionally further
+   * up so the desktop is never empty, and a reader arriving at the CV does not
+   * need a file list behind it.
+   */
+  if (boot?.cv) {
+    for (const w of live.filter((x) => x.kind === 'explorer')) closeWin(w);
+    route('chrome', 'cv');
+    const mine = live.find((w) => w.kind === 'chrome');
     if (mine) requestAnimationFrame(() => centreWin(mine.el));
   }
 

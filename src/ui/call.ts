@@ -1925,13 +1925,19 @@ export function renderCall(store: Store, quests: Quests, deps: CallDeps): HTMLEl
    * clears the id so a later ordinary join does not start presenting on its own.
    */
   const eggId = store.get().eggPlay;
-  if (eggId) {
-    void (async () => {
-      const m = await import('./share.js');
-      const src = { id: 'desktop', kind: 'screen' as const, title: 'Screen 1' };
-      startShare(m.renderShared(src, openDoc, () => stopShare(), { egg: eggId }), src.title);
-    })();
-  }
+  /*
+   * N1: an ordinary join opens presenting too, with the CV on screen.
+   *
+   * Nam wants the reader to land on the work rather than on a tile with an
+   * avatar in it. An egg still wins, because someone who clicked a clip asked
+   * for the clip; anything else gets the document.
+   */
+  void (async () => {
+    const m = await import('./share.js');
+    const src = { id: 'desktop', kind: 'screen' as const, title: 'Screen 1' };
+    const boot = eggId ? { egg: eggId } : { cv: true };
+    startShare(m.renderShared(src, openDoc, () => stopShare(), boot), src.title);
+  })();
 
   return shell;
 }
