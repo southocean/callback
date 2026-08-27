@@ -258,6 +258,9 @@ export function renderCall(store: Store, quests: Quests, deps: CallDeps, bugs: B
     el.style.bottom = 'auto';
     el.style.left = `${left}px`;
     el.style.top = `${top}px`;
+    // Lazily, because the host does not exist until the call view is mounted and
+    // the first place() is the earliest point it is known to.
+    watchHost(el, host);
   }
 
   /** Clears the inline placement, so the stylesheet governs again. */
