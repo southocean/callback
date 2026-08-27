@@ -1,1 +1,0 @@
-import{a,b,c,d,e,f,g,h,i,j,k,l,m,n,o}from"./chunk-VFVPDTH2.js";export{c as SITE,b as START,f as caseStudies,g as chat,j as education,o as meta,l as offstage,d as pitch,a as profile,n as referralBlurb,m as requirementMap,e as roles,i as skills,k as teaching,h as transcript};
