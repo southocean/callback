@@ -16,6 +16,7 @@
 import { h, clear, icon, icons } from '../dom.js';
 import { mailSubject } from '../data/companies.js';
 import { openDev } from './devopen.js';
+import { openPlain } from './plainoverlay.js';
 import { sym } from './icons.js';
 import { ripple, attachMenu, micMeter, menu as gmMenu, warnBadge, noticeCard, dropCaret } from './gm3.js';
 import { tipAll, tip } from './tooltip.js';
@@ -610,7 +611,7 @@ export function renderCall(store: Store, quests: Quests, deps: CallDeps): HTMLEl
       : s.panel === 'about' ? h('div', { class: 'side-body' }, renderAbout())
       : s.panel === 'present' ? h('div', { class: 'side-body' }, renderPresent(store))
       : s.panel === 'offclock' ? h('div', { class: 'side-body' }, renderOffClock())
-      : s.panel === 'host' ? h('div', { class: 'side-body' }, hostControls(store))
+      : s.panel === 'host' ? h('div', { class: 'side-body' }, hostControls())
       : renderEng(store, quests);
 
     const panel = h(
@@ -1680,13 +1681,13 @@ export function renderCall(store: Store, quests: Quests, deps: CallDeps): HTMLEl
      * because the browser is not the window being captured. Routing to the host
      * app is the useful lie; the alternative is a dead row.
      */
-    if (id === 'plain' || id === 'cv') { store.dispatch({ t: 'plain', on: true }); return; }
+    if (id === 'plain' || id === 'cv') { openPlain(); return; }
     // Was routing to the effects tab, which no longer exists -- and 'spec' was
     // always the honest destination for a file called spec anyway.
     if (id === 'spec') { store.dispatch({ t: 'engTab', tab: 'spec' }); return; }
     if (id === 'hobby' || id.startsWith('vid:')) { store.dispatch({ t: 'panel', panel: 'offclock' }); return; }
     if (id === 'jobad') { store.dispatch({ t: 'panel', panel: 'about' }); return; }
-    store.dispatch({ t: 'plain', on: true });
+    openPlain();
   }
 
   const shareHost = h('div', {});
@@ -2141,7 +2142,9 @@ export function stopTour(): void {
 // the file, and the paragraph the referrer has to write (review H4).
 // --------------------------------------------------------------------------
 
-function hostControls(store: Store): HTMLElement {
+/* No `store` parameter any more: the one dispatch in here was the plain route,
+   and the CV opens as an overlay now (N54). */
+function hostControls(): HTMLElement {
   const url = SITE;
   const text = referralBlurb + url;
   const copy = h(
@@ -2178,7 +2181,7 @@ function hostControls(store: Store): HTMLElement {
       'div',
       { style: 'display:flex;gap:8px;flex-wrap:wrap' },
       h('a', { class: 'mbtn', href: 'NamNguyen_CV_2026.pdf', download: true }, 'Download the PDF'),
-      h('button', { class: 'mbtn', type: 'button', onclick: () => store.dispatch({ t: 'plain', on: true }) }, 'Read as a document'),
+      h('button', { class: 'mbtn', type: 'button', onclick: () => openPlain() }, 'Read as a document'),
       h('a', { class: 'mbtn', href: `mailto:${profile.emailUser}@${profile.emailHost}?subject=${mailSubject()}` }, 'Email me'),
     ),
     h('div', { class: 'shead' }, 'Links'),

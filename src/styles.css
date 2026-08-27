@@ -5299,6 +5299,20 @@ body.set-open .cc { bottom: calc(var(--botbar) + 52px + 12px); }
   margin-left: auto; font: 400 12px/17px var(--font); color: var(--dp-ink3);
   font-variant-numeric: tabular-nums;
 }
+/* A QA affordance rather than a feature of the CV, so it is quiet until reached:
+   the same pill shape the tabs use, at the panel's smallest type, and it only
+   takes colour on hover. It reports its own outcome in its label, which is why
+   the width is fixed -- "copied" and "blocked" are both longer than "copy" and a
+   button that resizes as you press it reads as a layout bug. */
+.sc-copy {
+  flex: 0 0 auto; min-width: 62px; margin-left: 10px;
+  font: 500 11px/1 var(--font); letter-spacing: .3px;
+  padding: 6px 10px; border: 1px solid var(--dp-line); border-radius: 14px;
+  background: none; color: var(--dp-ink3); cursor: pointer;
+  transition: background-color .075s linear, color .075s linear;
+}
+.sc-copy:hover { background-color: var(--dp-layer); color: var(--dp-ink); }
+.sc-copy:focus-visible { outline: 2px solid var(--dp-accent); outline-offset: 2px; }
 
 /* The three-register box that used to sit here is gone: the flow takes the full
    width now (.sc-row) and the two one-line alternates are tabled together below

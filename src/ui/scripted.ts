@@ -94,6 +94,60 @@ export function renderScriptEditor(): HTMLElement {
    */
   const stamps = new Map(timeline().map((t) => [`${t.part.id}:${t.index}`, t.at]));
 
+  /**
+   * COPY A SEGMENT, for reading it somewhere else.
+   *
+   * Nam: "for each segment, add a small button to copy all texts, this allows me
+   * to quickly QA them with another agent."
+   *
+   * So the payload is written to be pasted into a conversation, not to round-trip
+   * back into the codebase: the segment's name and running time, then one line
+   * per line with its timestamp and its beat. Everything the four columns show,
+   * in the order they show it, because the thing being QA'd is the script as
+   * heard rather than the data as stored.
+   *
+   * Plain text rather than JSON for the same reason. A reviewer reading nine
+   * lines of dialogue should not have to parse quotes and commas out of them
+   * first.
+   *
+   * The clipboard write can be refused -- it needs a user gesture and a secure
+   * context, and this panel is reachable inside an iframe -- so the failure is
+   * shown on the button rather than thrown. A button that silently does nothing
+   * is worse than one that says it could not.
+   */
+  const segmentText = (p: Part): string => {
+    const head = `${p.label} (${p.id}) - ${p.lines.length} lines, ${secs(partRuntime(p, 'lines'))}`;
+    const body = p.lines.map((l, i) => {
+      const at = clock(stamps.get(`${p.id}:${i}`) ?? 0);
+      const bs = (p.beats ?? []).filter((b) => b.at === i).map((b) => {
+        const { what, detail } = beatLabel(b);
+        return detail ? `${what} (${detail})` : what;
+      });
+      return `${at}  ${i + 1}. ${l.text}${bs.length ? `\n        [${bs.join('; ')}]` : ''}`;
+    });
+    const alts = [
+      `commentary: ${p.commentary.map((l) => l.text).join(' ')}`,
+      `brief: ${p.brief.map((l) => l.text).join(' ')}`,
+    ];
+    return [head, '', ...body, '', ...alts].join('\n');
+  };
+
+  const copyButton = (p: Part): HTMLElement => {
+    const btn = h('button', {
+      class: 'sc-copy', type: 'button',
+      'aria-label': `Copy the ${p.label} segment as text`,
+    }, 'copy') as HTMLButtonElement;
+    btn.addEventListener('click', () => {
+      void navigator.clipboard.writeText(segmentText(p)).then(
+        () => { btn.textContent = 'copied'; },
+        () => { btn.textContent = 'blocked'; },
+      ).then(() => {
+        window.setTimeout(() => { btn.textContent = 'copy'; }, 1600);
+      });
+    });
+    return btn;
+  };
+
   const flowRows = (p: Part): HTMLElement =>
     h('div', { class: 'sc-rows' },
       h('div', { class: 'sc-row is-head' },
@@ -199,7 +253,8 @@ export function renderScriptEditor(): HTMLElement {
         h('b', {}, p.label),
         h('code', {}, p.id),
         h('span', { class: 'sc-part-t' }, `${p.lines.length} lines · ${secs(partRuntime(p, 'lines'))}`),
-        p.needs ? h('span', { class: 'sc-needs' }, `needs ${p.needs}`) : h('span', {})),
+        p.needs ? h('span', { class: 'sc-needs' }, `needs ${p.needs}`) : h('span', {}),
+        copyButton(p)),
       flowRows(p),
       p.bail
         ? h('div', { class: 'sc-bail' },

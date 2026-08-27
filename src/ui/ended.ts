@@ -12,6 +12,7 @@ import type { Store } from '../state.js';
 import { profile } from '../data/cv.js';
 import type { Quests } from '../achievements.js';
 import { loadInterview, clockMs } from '../prefs.js';
+import { openPlain } from './plainoverlay.js';
 import { runtimeMs } from '../data/tour.js';
 
 export function renderEnded(store: Store, quests: Quests): HTMLElement {
@@ -197,7 +198,7 @@ export function renderEnded(store: Store, quests: Quests): HTMLElement {
         { class: 'ended-feedback' },
         h(
           'button',
-          { class: 'm-btn m-text', type: 'button', onclick: () => store.dispatch({ t: 'plain', on: true }) },
+          { class: 'm-btn m-text', type: 'button', onclick: () => openPlain() },
           'Submit feedback, or just read the CV as a document',
         ),
       ),

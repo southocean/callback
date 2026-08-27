@@ -25,6 +25,37 @@ import { trapFocus } from '../a11y.js';
 
 const ID = 'plain-overlay';
 
+/**
+ * What opening the CV counts as, registered once by main.ts.
+ *
+ * The overlay is opened from four places now (N54) and only one of them has the
+ * quest tray in scope, so the unlock cannot live at the call sites. It used to
+ * live in main.ts's #plain route, which meant the home screen's own "Open
+ * document" link -- the overlay this module exists for -- never unlocked it.
+ */
+let opened: (() => void) | null = null;
+
+export function onPlainOpened(fn: () => void): void {
+  opened = fn;
+}
+
+/** True while the CV is on screen, so a toggle knows which way to go. */
+export function plainOpen(): boolean {
+  return !!document.getElementById(ID);
+}
+
+export function closePlain(): void {
+  const el = document.getElementById(ID);
+  // The close button carries the focus release, so route through it rather than
+  // removing the node and leaving the trap armed.
+  el?.querySelector<HTMLElement>('.po-close')?.click();
+}
+
+/** Open it, or close it if it is already up. For the D shortcut. */
+export function togglePlain(): void {
+  if (plainOpen()) closePlain(); else openPlain();
+}
+
 export function openPlain(): void {
   if (document.getElementById(ID)) return;
 
@@ -69,4 +100,5 @@ export function openPlain(): void {
   // listener to keep in step with it.
   release = trapFocus(overlay, close);
   overlay.querySelector<HTMLElement>('.po-close')?.focus();
+  opened?.();
 }

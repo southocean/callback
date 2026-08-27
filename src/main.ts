@@ -8,11 +8,19 @@ import { spinner } from './ui/icons.js';
 import { prefersReducedMotion } from './a11y.js';
 import { Quests, konami } from './achievements.js';
 import { openDev } from './ui/devopen.js';
+import { togglePlain, onPlainOpened } from './ui/plainoverlay.js';
 import { codeFromUrl, pitchFor } from './data/companies.js';
 import { loadReadyGate, readyCardOpens } from './prefs.js';
 
 const root = must('#app');
 const quests = new Quests();
+
+/*
+ * Opening the CV counts as the quest wherever it is opened from. This used to be
+ * inside the #plain route, which meant the home screen's overlay -- the primary
+ * way anyone reaches the document -- did not count.
+ */
+onPlainOpened(() => quests.unlock('plain'));
 
 const route = parseRoute(location.hash);
 const boot: State = {
@@ -308,7 +316,16 @@ window.addEventListener('keydown', (e) => {
     case 's': store.dispatch({ t: 'panel', panel: 'present' }); break;
     case 't': store.dispatch({ t: 'panel', panel: 'tools' }); break;
     case 'h': store.dispatch({ t: 'hand', on: !s.handRaised }); break;
-    case 'd': store.dispatch({ t: 'plain', on: !s.plain }); break;
+    /*
+      * D opens the CV OVERLAY rather than routing to it (N54).
+      *
+      * The #plain route still exists and still matters -- recruiters get sent
+      * straight to it, and the overlay's own iframe loads it -- but reaching it
+      * from inside the app used to replace the whole screen, which is the one
+      * thing this build says it never does. Meet does not navigate away from
+      * itself.
+      */
+    case 'd': togglePlain(); break;
     default: return;
   }
 });
