@@ -18,12 +18,24 @@
 
 import { h } from '../dom.js';
 import { shipped } from '../data/story.js';
-import { skills } from '../data/cv.js';
 
 /** The size budget CI enforces, in bytes of gzip. Kept in step with build.mjs. */
 const BUDGET_KB = 50;
 
 interface Row { k: string; v: string }
+
+/**
+ * What THIS repository uses. Not a CV skills list — see the note in buildDoc.
+ * Every row is verifiable from the source tree or the build output.
+ */
+const THIS_BUILD: Row[] = [
+  { k: 'TypeScript', v: 'strict, no framework, no runtime dependency at all' },
+  { k: 'A hand-rolled h()', v: 'about twenty lines of DOM helper standing in for a view library' },
+  { k: 'A pure reducer', v: 'all state in one function, which is why it is unit-tested without a browser' },
+  { k: 'esbuild', v: 'code splitting per screen, and a gzip budget the CI fails on' },
+  { k: 'Plain CSS', v: 'one stylesheet, custom properties for the two palettes, container queries for the windows' },
+  { k: 'No backend', v: 'static files on GitHub Pages. Nothing is uploaded because there is nowhere to upload it' },
+];
 
 const SPECS: Row[] = [
   { k: 'Language', v: 'TypeScript, strict, in modules with one job each' },
@@ -36,24 +48,6 @@ const SPECS: Row[] = [
   { k: 'Hosting', v: 'Static files from docs/ on GitHub Pages. No server, no build step at request time' },
 ];
 
-const METHOD: Row[] = [
-  {
-    k: 'Measure, do not guess',
-    v: 'Geometry, colours and timings were read off the live product with getBoundingClientRect and getComputedStyle, not eyeballed from screenshots. Where a number could not be read — a native dialog, a canvas, an animation with no DOM — the notes say so rather than inventing one.',
-  },
-  {
-    k: 'Say what is not cloned',
-    v: 'Some surfaces could not be measured at all, and those are ours by admission: the share picker is a drawing of a browser dialog, and the presenting layout was authored before it could be read.',
-  },
-  {
-    k: 'No dead controls',
-    v: 'A control that cannot act is not rendered as a control. Rows that the original disables are disabled here too, and take no hover.',
-  },
-  {
-    k: 'No Google marks',
-    v: 'No logos, no wordmarks, no borrowed artwork. The typeface subset is the one openly licensed piece.',
-  },
-];
 
 /** The document itself, with no page chrome around it. */
 export function buildDoc(): HTMLElement {
@@ -61,39 +55,42 @@ export function buildDoc(): HTMLElement {
     'div',
     { class: 'bd' },
     /*
-     * Nam: sterilise the Google nod, and be open that this is heavily agentic
-     * programming. Both are true and neither needs dressing up: the point of the
-     * artefact is that it is a conversation rather than a page, and the point of
-     * the method is that a person and an agent built it in a week.
+     * ONE VOICE, TWO PARAGRAPHS.
+     *
+     * Nam: "the 2 first paragraphs have different styling (font size). Make sure
+     * the styling is consistent. Also the text is a bit long. Make it concise."
+     *
+     * Both true. The first had .bd-lead and the second had nothing, so a reader
+     * met two type sizes in the first two sentences of a document about
+     * craftsmanship. Both carry the class now, and both are shorter.
      */
     h('p', { class: 'bd-lead' },
-      'A CV you can talk to rather than read. It opens as a video call because a call is a conversation, and ' +
-      'a conversation is a better way to meet someone than a page of bullet points — the panels hold the ' +
-      'cover letter, the captions carry a voice-over, and the shared screen holds the work itself.'),
-    h('p', {},
-      'It is also, openly, a demonstration of agentic programming. One person and an agent built it in a week: ' +
-      'the interface was measured off the real product rather than eyeballed, every task ran through the same ' +
-      'three phases, and the corrections are in the commit log along with the retractions. The Timeline tab ' +
-      'shows the shape of that; the Process tab shows the method.'),
+      'A CV you can talk to rather than read. It opens as a call because a call is a conversation, and the ' +
+      'panels, captions and shared screen carry what a page of bullet points cannot.'),
+    h('p', { class: 'bd-lead' },
+      'It is also, openly, a demonstration of agentic programming: one person and an agent, one week, with ' +
+      'the interface measured off the real product rather than eyeballed. The corrections are in the commit ' +
+      'log along with the retractions.'),
 
     h('h2', {}, 'Specifications'),
     h('dl', { class: 'bd-rows' },
       ...SPECS.flatMap((r) => [h('dt', {}, r.k), h('dd', {}, r.v)])),
 
-    h('h2', {}, 'Method'),
-    h('dl', { class: 'bd-rows' },
-      ...METHOD.flatMap((r) => [h('dt', {}, r.k), h('dd', {}, r.v)])),
-
-    h('h2', {}, 'Stack'),
+    /*
+     * The Stack section used to render skills.primary — Nam's CV skills, which
+     * include C++ and a React/Unity history that has nothing to do with this
+     * repository. Nam: "this is project spec - everything in here is about this
+     * project. The C++ and React are not relevant here in this project spec."
+     *
+     * Right, and it was a category error rather than a wrong list: the panel
+     * documents the artefact, not its author. What is left is what this build
+     * actually uses, and every line of it is checkable against the source.
+     */
+    h('h2', {}, 'What it is built with'),
     h('ul', { class: 'bd-stack' },
-      ...skills.primary.slice(0, 5).map((s) => h('li', {},
-        h('b', {}, s.name), ' — ', h('span', {}, s.note)))),
+      ...THIS_BUILD.map((s) => h('li', {}, h('b', {}, s.k), ' — ', h('span', {}, s.v)))),
 
     h('h2', {}, 'What shipped'),
     h('p', {}, shipped.body),
-    h('p', { class: 'bd-note' },
-      'The reviews, the board of what is still open, and the day-by-day history are the other tabs of this ' +
-      'panel.'),
   );
 }
-

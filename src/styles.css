@@ -813,6 +813,13 @@ code { font: 400 12px/1.4 ui-monospace, Consolas, monospace; color: var(--dark-b
 .tabs {
   display: flex; flex-wrap: wrap; gap: 2px 2px; padding: 0 20px 8px; flex: 0 0 auto;
   border-bottom: 1px solid var(--dark-line);
+  /* Nam: "before the text this interface is a rebuild of google meet etc, we
+     should add a little top padding so it doesnt look so cluttered. This applies
+     to the text on all tabs. Maybe its easier to just add bottom padding to the
+     horizontal line separating the tabs and the content."
+     His second suggestion, which is the right one: putting it on the rule fixes
+     every tab at once instead of each view remembering to. */
+  margin-bottom: 14px;
 }
 .tab {
   font: 500 13px/1 var(--font); border: 0; background: none; color: var(--on-dark2);
@@ -5846,6 +5853,16 @@ body.presenting .shot { min-width: 0; }
 }
 @keyframes side-in { from { transform: translateX(100%); } }
 
+/* The exit. It had an entrance and no exit, so the panel arrived like a drawer
+   and left like a deleted element. Shorter than the entrance on purpose: coming
+   in is the panel introducing itself, going out is getting out of the way, and a
+   500ms dismissal feels like the app arguing about it. */
+.side.is-out {
+  animation: side-out .24s cubic-bezier(0.4, 0, 1, 1) both;
+  pointer-events: none;
+}
+@keyframes side-out { to { transform: translateX(100%); opacity: .6; } }
+
 /* ================= THE END SCREEN COUNTS YOU HOME ======================== */
 /* Nam: "when you end the call, there should be an auto timer that takes you back
  * to home screen."
@@ -5910,7 +5927,7 @@ body.presenting .shot { min-width: 0; }
 @media (max-width: 720px) { .end-timer { position: static; margin: 0 0 20px; } }
 
 @media (prefers-reduced-motion: reduce) {
-  .side { animation: none; transition: none; }
+  .side, .side.is-out { animation: none; transition: none; }
   .end-ring .end-arc { animation: none; }
 }
 
@@ -6774,7 +6791,6 @@ body.tray-open.cc-on .react-clip { bottom: calc(var(--botbar) + 268px); }
 .bd-lead { font: 400 16px/1.55 var(--font); color: #2b2f36; margin: 0 0 22px; }
 .bd h2 { font: 400 20px/1.3 var(--font-title); margin: 26px 0 8px; color: #1f2328; }
 .bd p { margin: 0 0 10px; }
-.bd-note { color: #5f6368; font-size: 12.5px; }
 .bd-rows { display: grid; grid-template-columns: auto 1fr; gap: 6px 16px; margin: 10px 0 0; }
 .bd-rows dt { font: 500 13px/19px var(--font); color: #1f2328; }
 .bd-rows dd { margin: 0; color: #40454c; font-size: 13px; }
@@ -7176,7 +7192,6 @@ body.tray-open.cc-on .react-clip { bottom: calc(var(--botbar) + 268px); }
 .dp .bd-lead { color: var(--dp-ink); }
 .dp .bd h2 { color: var(--dp-ink); }
 .dp .bd p { color: var(--dp-ink2); }
-.dp .bd-note { color: var(--dp-ink3); }
 .dp .bd-rows dd, .dp .bd-stack span { color: var(--dp-ink2); }
 .dp .bd-rows dt, .dp .bd-stack b { color: var(--dp-ink); }
 
@@ -7193,22 +7208,85 @@ body.tray-open.cc-on .react-clip { bottom: calc(var(--botbar) + 268px); }
   background: linear-gradient(180deg, var(--dp-accent), color-mix(in srgb, var(--dp-accent) 55%, transparent));
 }
 /* A day with no commits is a fact worth drawing, not a gap to hide. */
-.tl-bar.is-zero { background: var(--dp-line); }
 .tl-bar-d { font: 400 11px/1 var(--font); color: var(--dp-ink3); margin-top: 7px; white-space: nowrap; }
 
-.tl-list { list-style: none; margin: 0; padding: 0; }
-.tl-item {
-  position: relative; padding: 0 0 20px 22px;
-  border-left: 2px solid var(--dp-line);
+
+/* ================= THE KANBAN TICKET ==================================== */
+/* Nam: "the kanban ticket should on click open up a popup screen for that
+ * kanban, detailing even more info about that ticket. That would keep the board
+ * itself clean and not bloated."
+ *
+ * So the card stays one line and this holds the rest. It is deliberately the
+ * same material as the portal card it opens over — one family, two depths.
+ */
+.kb-tk {
+  /* ABOVE the portal, which is 300. At 220 the ticket opened correctly, took
+     focus correctly, and rendered entirely behind the panel that opened it —
+     invisible, and caught only because QA measured the z-index instead of
+     trusting the screenshot. A child dialog has to outrank its parent. */
+  position: fixed; inset: 0; z-index: 320;
+  display: grid; place-items: center; padding: 24px;
+  background-color: rgba(0, 0, 0, .5);
+  animation: kb-tk-in .12s ease-out both;
 }
-.tl-item:last-child { border-left-color: transparent; padding-bottom: 0; }
-.tl-dot {
-  position: absolute; left: -6px; top: 3px; width: 10px; height: 10px;
-  border-radius: 50%; background-color: var(--dp-accent);
+@keyframes kb-tk-in { from { opacity: 0; } to { opacity: 1; } }
+.kb-tk-card {
+  width: min(560px, 100%); max-height: 100%; overflow-y: auto;
+  background-color: var(--dp-bg); color: var(--dp-ink);
+  border: 1px solid var(--dp-line); border-radius: 14px; padding: 20px 22px 24px;
+  box-shadow: 0 24px 70px rgba(0, 0, 0, .45);
 }
-.tl-when { font: 500 11.5px/16px var(--font); color: var(--dp-ink3); letter-spacing: .3px; text-transform: uppercase; }
-.tl-what b { display: block; font: 500 14px/20px var(--font); color: var(--dp-ink); margin: 2px 0 3px; }
-.tl-what span { font: 400 13px/19px var(--font); color: var(--dp-ink2); }
+.kb-tk-h { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-bottom: 12px; }
+.kb-tk-col {
+  font: 500 11px/1 var(--font); letter-spacing: .3px; text-transform: uppercase;
+  color: var(--dp-ink3);
+}
+.kb-tk-x { margin-left: auto; color: var(--dp-ink2); }
+.kb-tk-t { font: 500 19px/26px var(--font); color: var(--dp-ink); margin: 0 0 8px; }
+.kb-tk-n { font: 400 14px/21px var(--font); color: var(--dp-ink2); margin: 0; }
+.kb-tk-b { margin-top: 18px; }
+.kb-tk-b h4 {
+  font: 500 11.5px/16px var(--font); letter-spacing: .4px; text-transform: uppercase;
+  color: var(--dp-ink3); margin: 0 0 6px;
+}
+.kb-tk-b p { font: 400 14px/21px var(--font); color: var(--dp-ink); margin: 0; }
+.kb-tk-b ul { margin: 0; padding-left: 20px; font: 400 14px/22px var(--font); color: var(--dp-ink); }
+.kb-tk-b li { margin-bottom: 4px; }
+.kb-tk-thin { font: 400 13px/19px var(--font); color: var(--dp-ink3); margin-top: 18px; }
+/* The card is a control now, so it says so. */
+.kb-card { cursor: pointer; }
+
+@media (prefers-reduced-motion: reduce) { .kb-tk { animation: none; } }
+
+/* ================= THE MILESTONE STRIP ================================== */
+/* One column per working day, running left to right. Nam: "I wonder if the
+ * milestones can spread horizontally kinda cascading, so we see the milestones
+ * along with the date too."
+ *
+ * A vertical list of eight items said "here is a list". Five dated columns say
+ * "this happened over five days", which is the actual claim.
+ */
+.ms-strip {
+  display: flex; gap: 12px; overflow-x: auto; padding-bottom: 6px;
+  scroll-snap-type: x proximity;
+}
+.ms-day {
+  flex: 0 0 232px; scroll-snap-align: start;
+  display: flex; flex-direction: column; gap: 8px;
+}
+.ms-day-h {
+  display: flex; align-items: baseline; gap: 8px;
+  padding-bottom: 7px; border-bottom: 2px solid var(--dp-accent);
+}
+.ms-day-h b { font: 500 13.5px/19px var(--font); color: var(--dp-ink); }
+.ms-day-h span { font: 400 11.5px/16px var(--font); color: var(--dp-ink3); margin-left: auto; }
+.ms-card {
+  background-color: var(--dp-surface); border-radius: 8px; padding: 12px 13px;
+}
+.ms-card b { display: block; font: 500 13px/18px var(--font); color: var(--dp-ink); margin-bottom: 4px; }
+.ms-card span { font: 400 12.5px/18px var(--font); color: var(--dp-ink2); }
+.tl-omit { margin-top: 8px; }
+
 
 /* --- the phases ---------------------------------------------------------- */
 .ph-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }

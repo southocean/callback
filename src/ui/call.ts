@@ -546,6 +546,9 @@ export function renderCall(store: Store, quests: Quests, deps: CallDeps): HTMLEl
    */
   let mounted: { el: HTMLElement; head: HTMLElement; kind: Panel } | null = null;
 
+  /** How long the panel takes to leave. Must match `side-out` in styles.css. */
+  const SIDE_OUT_MS = 240;
+
   const drawPanel = (): void => {
     const s = store.get();
     releaseTrap?.();
@@ -554,8 +557,29 @@ export function renderCall(store: Store, quests: Quests, deps: CallDeps): HTMLEl
     // 16 + 1032 + 17 + 358 + 17 = 1440. The class is what lets the CSS do that.
     document.body.classList.toggle('has-panel', s.panel !== 'none');
     if (s.panel === 'none') {
-      mounted?.el.remove();
+      /*
+       * IT SLIDES OUT. Nam: "when closing the right panel, it currently just
+       * disappears instantly. That's wrong. It should have a slide out exit
+       * animation."
+       *
+       * It had an entrance and no exit, which is the asymmetry you notice without
+       * being able to name: the panel arrives like a drawer and leaves like a
+       * deleted element. Meet slides it back out under the same easing.
+       *
+       * The element outlives the state change by the length of the animation, so
+       * it is detached on a timer -- and `mounted` is cleared IMMEDIATELY, so a
+       * panel reopened during the slide builds a fresh one rather than reviving
+       * the one on its way out.
+       */
+      const going = mounted?.el;
       mounted = null;
+      if (going) {
+        going.classList.add('is-out');
+        // aria-hidden as well as pointer-events: for the 240ms it is still in the
+        // tree it is a picture of a panel, not a panel.
+        going.setAttribute('aria-hidden', 'true');
+        window.setTimeout(() => going.remove(), SIDE_OUT_MS);
+      }
       return;
     }
 

@@ -11,14 +11,24 @@
 export { START } from './cv.js';
 
 /** Commits per day, from the git log. The shape of the work, not a claim about it. */
-export const commitsPerDay: { day: string; n: number; label: string }[] = [
+/**
+ * Read off `git log --date=short --format=%ad | sort | uniq -c`. The record keeps
+ * every day, including the quiet ones -- deleting a day from the DATA would be
+ * editing history.
+ *
+ * The chart hides the thinnest days, which is a display choice and Nam's call:
+ * "remove 22 aug and 24 aug, as they have 1 and 0 commit - not worth cluttering
+ * the view." So `thin` marks them and the view filters on it, which keeps the two
+ * concerns apart and means the totals stay true.
+ */
+export const commitsPerDay: { day: string; n: number; label: string; thin?: boolean }[] = [
   { day: '2026-08-20', n: 53, label: 'Day 1' },
   { day: '2026-08-21', n: 12, label: 'Day 2' },
-  { day: '2026-08-22', n: 1, label: 'Day 3' },
+  { day: '2026-08-22', n: 1, label: 'Day 3', thin: true },
   { day: '2026-08-23', n: 6, label: 'Day 4' },
-  { day: '2026-08-24', n: 0, label: 'Day 5' },
+  { day: '2026-08-24', n: 0, label: 'Day 5', thin: true },
   { day: '2026-08-25', n: 43, label: 'Day 6' },
-  { day: '2026-08-26', n: 11, label: 'Day 7' },
+  { day: '2026-08-26', n: 18, label: 'Day 7' },
 ];
 
 export interface Milestone {
@@ -229,6 +239,29 @@ export const reviews: Review[] = [
 
 export type Column = 'backlog' | 'doing' | 'review' | 'done';
 
+/**
+ * The long form behind a card.
+ *
+ * Nam: "the kanban ticket should on click open up a popup screen for that
+ * kanban, detailing even more info about that ticket. That would keep the board
+ * itself clean and not bloated, cause all the details are in the ticket popup
+ * view."
+ *
+ * So `note` is the one line the card shows and this is everything else. Every
+ * field is optional because a two-line chore does not need a rationale, and
+ * forcing one produces the kind of filler that makes a board unreadable.
+ */
+export interface TaskDetail {
+  /** Why it is worth doing. The part that goes stale slowest. */
+  why?: string;
+  /** What "done" means, as things a reader could check. */
+  done?: string[];
+  /** Where it came from — a QA session, a review, a measurement. */
+  raised?: string;
+  /** Anything known that would otherwise be rediscovered the hard way. */
+  notes?: string;
+}
+
 export interface Task {
   id: string;
   title: string;
@@ -237,6 +270,7 @@ export interface Task {
   /** Rough size, in the way a board actually uses it. */
   size: 'S' | 'M' | 'L';
   tag: 'onboarding' | 'specs' | 'call' | 'trust' | 'content';
+  detail?: TaskDetail;
 }
 
 export const columns: { id: Column; label: string }[] = [
@@ -252,10 +286,8 @@ export const columns: { id: Column; label: string }[] = [
  * trophy cabinet, not a plan.
  */
 export const tasks: Task[] = [
-  { id: 'T1', col: 'backlog', size: 'S', tag: 'trust', title: 'Static shell still says "Google Meet"', note: 'The pre-hydration paint claims to be a Google product. Fifteen minutes, and the highest-value fix on the list.' },
-  { id: 'T2', col: 'backlog', size: 'S', tag: 'trust', title: 'Disclaimer contradicts the build', note: 'It says no Google marks are used. The shell renders the Meet mark and the wordmark.' },
   { id: 'T3', col: 'backlog', size: 'S', tag: 'content', title: 'Work authorisation missing from the CV', note: 'profile.commute exists in the data and is rendered nowhere.' },
-  { id: 'T4', col: 'backlog', size: 'M', tag: 'trust', title: 'Say something before the camera prompt', note: 'The browser permission bar on a page dressed as Meet is the scariest moment in the funnel.' },
+  { id: 'T4', col: 'done', size: 'M', tag: 'trust', title: 'Say something before the camera prompt', note: 'Done, by removing the prompt instead. There is no permission bar left to get in front of \u2014 see T29.' },
   { id: 'T5', col: 'backlog', size: 'S', tag: 'trust', title: 'Label the emulated browser and desktop', note: 'A browser with an address bar drawn inside a page is a phishing pattern. Keep the trick, label it.' },
   { id: 'T6', col: 'backlog', size: 'M', tag: 'content', title: 'Rewrite the plain CV footer', note: 'It closes on build receipts and is no-print, so the PDF loses the disclaimer with it.' },
   { id: 'T7', col: 'backlog', size: 'S', tag: 'content', title: '"Against this job ad" names no job ad', note: 'With no company code the section renders one employer\'s requirements under a generic heading.' },
@@ -290,6 +322,364 @@ export const tasks: Task[] = [
   { id: 'T30', col: 'review', size: 'M', tag: 'specs', title: 'WebGL effects pipeline deleted', note: 'Removed with the camera it ran on: the Effects tab, src/fx/pipeline.ts, the fx side quest, the \u2018e\u2019 shortcut and the Backgrounds button. A real loss \u2014 it was the most technically substantial thing here \u2014 but it was only ever visible to a reader who granted the permission we just removed. Recoverable from git.' },
 
   { id: 'T31', col: 'review', size: 'S', tag: 'trust', title: 'BUG: the lobby named a camera it never asked about', note: 'Fixed. The lobby promoted a chip to "Integrated Camera" — a hardcoded device name, in a file whose own comment forbids exactly that. It only looked right because Windows calls most built-in webcams that. Now reads "No camera requested" beside "Effects unavailable", matching the mic and speaker chips, and the promote mechanism is gone because nothing can be granted.' },
+
+  /* ------------------------------------------------------------------------
+   * Nam's QA pass of 27 August: twenty-six numbered points, in his order, so a
+   * card can always be traced back to what he actually said. N25 shipped first
+   * because the rest of them needed a ticket view to live in.
+   * --------------------------------------------------------------------- */
+  {
+    id: 'N1', col: 'backlog', size: 'M', tag: 'onboarding',
+    title: "Join the interview already sharing, Chrome centred, CV open",
+    note: "The default state of the interview call should be presenting full screen with the mock Chrome centred on the CV.",
+    detail: {
+          "why": "The call currently opens on an empty tile. The first thing a reader should see is the work, not a placeholder avatar.",
+          "done": [
+                "Joining the interview meeting starts a share automatically",
+                "The mock Chrome opens centred, not cascaded",
+                "It shows the same CV document the home screen’s Open document shows"
+          ],
+          "raised": "Nam, QA 27 Aug, point 1"
+    },
+  },
+  {
+    id: 'N2', col: 'backlog', size: 'S', tag: 'call',
+    title: "Window share offers Chrome, not Explorer",
+    note: "Sharing a window offers the file explorer, where there is nothing to look at. It should offer the browser with its tabs.",
+    detail: {
+          "why": "Window mode is a single window on nothing. Explorer is a file list; Chrome carries the actual content and its tab strip can hold every document at once.",
+          "done": [
+                "The Window tab of the share picker offers the browser",
+                "Its tab strip shows the documents instead of one tab per share source"
+          ],
+          "raised": "Nam, QA 27 Aug, point 2"
+    },
+  },
+  {
+    id: 'N3', col: 'backlog', size: 'M', tag: 'content',
+    title: "\"Things I built\", merged, with real itch.io games",
+    note: "Four things I built becomes Things I built, absorbs the other list, and links actual games rather than a bare profile URL.",
+    detail: {
+          "why": "Two lists answering one question, and a link to a profile page asks the reader to do the browsing.",
+          "done": [
+                "One list, titled Things I built",
+                "Named games from southocean.itch.io with links",
+                "Graphics or at least a per-game line, not just the profile link"
+          ],
+          "raised": "Nam, QA 27 Aug, point 3",
+          "notes": "Source: https://southocean.itch.io/"
+    },
+  },
+  {
+    id: 'N4', col: 'backlog', size: 'S', tag: 'content',
+    title: "Use the real Mahjong product, not a hand-drawn board",
+    note: "The riichi board is sloppy and not up to code. Point at the real client instead.",
+    detail: {
+          "why": "A badly drawn mahjong board on the CV of someone who builds mahjong clients is the worst possible advert.",
+          "done": [
+                "The riichi page frames or links preview.mahjongstars.com",
+                "The hand-drawn board is gone"
+          ],
+          "raised": "Nam, QA 27 Aug, point 4",
+          "notes": "https://preview.mahjongstars.com/ — public, so disclosing it is fine."
+    },
+  },
+  {
+    id: 'N5', col: 'backlog', size: 'S', tag: 'onboarding',
+    title: "Home screen copy: subtitle and the meeting note",
+    note: "Two lines, both rewritten to Nam’s wording.",
+    detail: {
+          "done": [
+                "Subtitle: \"Lead front-end developer, 7 years · Agentic programming wizard · PhD in going the extra miles\"",
+                "Meeting note: \"Get personal with Nam in this interactive CV. Only if all meetings could be like this!\""
+          ],
+          "raised": "Nam, QA 27 Aug, point 5"
+    },
+  },
+  {
+    id: 'N6', col: 'backlog', size: 'S', tag: 'content',
+    title: "The contacts list: Diep Bui, no references, new search label",
+    note: "Trim the referral picker to the one real contact.",
+    detail: {
+          "done": [
+                "\"Diep — referral\" becomes \"Diep Bui\"",
+                "Both Reference rows deleted",
+                "Search placeholder becomes \"Search my referral\""
+          ],
+          "raised": "Nam, QA 27 Aug, point 6"
+    },
+  },
+  {
+    id: 'N7', col: 'backlog', size: 'S', tag: 'content',
+    title: "The Diep Bui card, and no work email anywhere",
+    note: "Retitle the card, replace the calling-as line with a joke, and purge nam@wasabiproductions.com from the whole site.",
+    detail: {
+          "why": "The work email is Nam’s current employer address and has no business on a job application.",
+          "done": [
+                "Card title: \"Diep Bui — referral\"",
+                "\"Calling as nam@wasabiproductions.com\" replaced with something playful",
+                "The description line is less stiff",
+                "nam@wasabiproductions.com appears nowhere in src/ or docs/"
+          ],
+          "raised": "Nam, QA 27 Aug, point 7"
+    },
+  },
+  {
+    id: 'N8', col: 'backlog', size: 'S', tag: 'content',
+    title: "Loosen the Calls page copy, and drop the referral note",
+    note: "One of the two lines should be playful, and the referral note goes — here and on the ended screen.",
+    detail: {
+          "why": "Nam: \"In general Idk if a referral note is really needed at all.\"",
+          "done": [
+                "Second line on the Calls page is playful rather than professional",
+                "The referral note is gone from the Calls page",
+                "It is gone from the ended screen too"
+          ],
+          "raised": "Nam, QA 27 Aug, point 8"
+    },
+  },
+  {
+    id: 'N9', col: 'backlog', size: 'S', tag: 'specs',
+    title: "Board cleanup, and take up T7",
+    note: "T1 and T2 off the board, T4 to done, T7 becomes the job-requirement section gated behind ?c=.",
+    detail: {
+          "done": [
+                "T1 and T2 removed",
+                "T4 moved to done",
+                "T7 actioned as \"Against the job requirement\", only rendered with a company code"
+          ],
+          "raised": "Nam, QA 27 Aug, point 9"
+    },
+  },
+  {
+    id: 'N10', col: 'backlog', size: 'S', tag: 'specs',
+    title: "Rename to Project spec, drop the work-authorisation review",
+    note: "The full name is too long, and one design-review point is wrong.",
+    detail: {
+          "why": "Nam: \"Any recruiter will know uppsala and stockholm are very close and I absolutely can work in sthlm. Meaningless point.\"",
+          "done": [
+                "Panel title reads \"Project spec\"",
+                "The \"CV does not say I can work here\" review is deleted",
+                "T3 comes off the board with it"
+          ],
+          "raised": "Nam, QA 27 Aug, point 10"
+    },
+  },
+  {
+    id: 'N11', col: 'backlog', size: 'S', tag: 'specs',
+    title: "Timeline: hide the near-empty days",
+    note: "22 and 24 August had 1 and 0 commits and clutter the chart.",
+    detail: {
+          "done": [
+                "Those two days are not drawn",
+                "The totals still include them"
+          ],
+          "raised": "Nam, QA 27 Aug, point 11"
+    },
+  },
+  {
+    id: 'N12', col: 'backlog', size: 'S', tag: 'specs',
+    title: "Overview: one type size, shorter, better subtitle",
+    note: "The first two paragraphs render at different sizes, the prose is long, and the panel subtitle says nothing.",
+    detail: {
+          "done": [
+                "Both opening paragraphs share one style",
+                "The prose is shorter",
+                "Subtitle: \"One week, one agent, one interactive CV.\""
+          ],
+          "raised": "Nam, QA 27 Aug, point 12"
+    },
+  },
+  {
+    id: 'N13', col: 'backlog', size: 'M', tag: 'specs',
+    title: "Overview holds the timeline; content is about the project only",
+    note: "Merge the Timeline tab in, drop Method, and stop rendering Nam’s personal skills in a panel about this repository.",
+    detail: {
+          "why": "Nam: \"this is project spec - everything in here is about this project. The C++ and React are not relevant here.\"",
+          "done": [
+                "Commit chart at the top of Overview",
+                "Milestones at the bottom, spread horizontally with dates",
+                "Timeline tab gone",
+                "Method section gone",
+                "Stack lists what this build uses, not what Nam knows"
+          ],
+          "raised": "Nam, QA 27 Aug, point 13"
+    },
+  },
+  {
+    id: 'N14', col: 'backlog', size: 'S', tag: 'specs',
+    title: "Clicking the dimmed ground closes Project spec",
+    note: "Same contract as the close button.",
+    detail: {
+          "done": [
+                "A press on the scrim closes the panel",
+                "A press that starts inside the card and drifts out does not"
+          ],
+          "raised": "Nam, QA 27 Aug, point 14"
+    },
+  },
+  {
+    id: 'N15', col: 'backlog', size: 'S', tag: 'content',
+    title: "The CV socials become icons",
+    note: "GitHub, LinkedIn and itch.io are already links; they should be icons.",
+    detail: {
+          "done": [
+                "Each social is an icon linking to its destination",
+                "Each has an accessible name"
+          ],
+          "raised": "Nam, QA 27 Aug, point 15"
+    },
+  },
+  {
+    id: 'N16', col: 'backlog', size: 'S', tag: 'content',
+    title: "BUG: email and location are oddly indented on the CV",
+    note: "The contact block does not line up with the rest of the document.",
+    detail: {
+          "raised": "Nam, QA 27 Aug, point 16"
+    },
+  },
+  {
+    id: 'N17', col: 'backlog', size: 'M', tag: 'content',
+    title: "Wasabi Productions, and four rewritten bullets",
+    note: "Mahjong Logic becomes Wasabi Productions, and the role bullets are replaced.",
+    detail: {
+          "why": "The company has a landing page now, and the React + Unity hybrid is no longer what the product is.",
+          "done": [
+                "Mahjong Logic → Wasabi Productions everywhere",
+                "No React + Unity hybrid claim anywhere in the CV",
+                "Platform bullet: web app, to Unity, to React Native for web and app",
+                "Team-of-five bullet replaced with the agentic-programming one",
+                "Third bullet: feature design, UX, responsive, 4–5 Dan bot, bot swarm controller, automated QA",
+                "Fourth bullet: designers, backend, marketing and investors; vertical grasp; decides feature priorities"
+          ],
+          "raised": "Nam, QA 27 Aug, point 17"
+    },
+  },
+  {
+    id: 'N18', col: 'backlog', size: 'S', tag: 'content',
+    title: "Merge the two labs into D&A Research",
+    note: "InfoLab and MSO Lab become one entry with only the highlights.",
+    detail: {
+          "done": [
+                "One entry, \"D&A Research\"",
+                "Graph mining, part of the Multinet library — InfoLab, Uppsala University, 2018",
+                "Sensor network optimisation: two publications, one book chapter, one best-paper award — MSO Lab, HUST, 2014–2017"
+          ],
+          "raised": "Nam, QA 27 Aug, point 18"
+    },
+  },
+  {
+    id: 'N19', col: 'backlog', size: 'S', tag: 'content',
+    title: "Bkav wording",
+    note: "\"Delivered a beta meeting the relevant ISO standards\" → \"Delivered a beta version meeting the relevant ISO standards\".",
+    detail: {
+          "raised": "Nam, QA 27 Aug, point 19"
+    },
+  },
+  {
+    id: 'N20', col: 'backlog', size: 'S', tag: 'content',
+    title: "\"Against this job ad\" → \"Against the job requirement\"",
+    note: "And it only renders with a company code.",
+    detail: {
+          "raised": "Nam, QA 27 Aug, points 9 and 20"
+    },
+  },
+  {
+    id: 'N21', col: 'backlog', size: 'M', tag: 'content',
+    title: "Restructure the skills block",
+    note: "Two columns, no duplicates, and a stronger test-automation line.",
+    detail: {
+          "why": "Languages were being listed twice — once by name and again under \"over 10,000 lines\" — and the bot-controller line undersells the testing work.",
+          "done": [
+                "Left column: skills and frameworks. Right column: languages",
+                "Frameworks: React, Unity, Flutter",
+                "Test automation: 75–90% unit coverage, AI-assisted, automated QA of core UI flows",
+                "The WebGL / effects-pipeline skill is deleted",
+                "No language appears twice"
+          ],
+          "raised": "Nam, QA 27 Aug, point 21"
+    },
+  },
+  {
+    id: 'N22', col: 'backlog', size: 'M', tag: 'content',
+    title: "Off the clock, rewritten; honours removed",
+    note: "Specific credits instead of vague instincts.",
+    detail: {
+          "done": [
+                "Honours section deleted",
+                "The \"Not filler\" line deleted",
+                "Stand-up: Fyris Komedi, Comedy Nation, Uppsala Roligaste 2026",
+                "Acting: Tomma Händer (.MOV Filmfestival 2026), The Darkest Hour, Don’t Cry Over Spilled Milk",
+                "SFX artist removed",
+                "Zombie walk: website, marketing, makeup, logistics; featured on SVT and UNT, with a link",
+                "Sports as its own line: swimming and Brazilian jiu-jitsu"
+          ],
+          "raised": "Nam, QA 27 Aug, point 22"
+    },
+  },
+  {
+    id: 'N23', col: 'backlog', size: 'S', tag: 'content',
+    title: "Trim the CV footer",
+    note: "The build receipts and the Google disclaimer are not doing work on the document.",
+    detail: {
+          "done": [
+                "Build/size/dependency line removed",
+                "The not-affiliated paragraph removed",
+                "The print hint kept if it still earns its place"
+          ],
+          "raised": "Nam, QA 27 Aug, point 23"
+    },
+  },
+  {
+    id: 'N24', col: 'backlog', size: 'L', tag: 'onboarding',
+    title: "The guided tour: captions, an on-screen cursor, and an adaptive script",
+    note: "The big one. A scripted walkthrough that narrates itself, moves a cursor in sync, and adapts when the visitor takes over.",
+    detail: {
+          "why": "Everything else on this board makes the CV better to read. This makes it a demo that runs itself — which is the difference between a page a recruiter skims and one they watch to the end.",
+          "done": [
+                "Captions on by default in the green room",
+                "The share sheet auto-closes after 8s, with a visible countdown that pauses on hover",
+                "Captions drive the demo: saying \"let us look at the CV\" opens it",
+                "An on-screen cursor represents Nam and moves in sync with the captions",
+                "Clicking anything switches the script to commentary mode for that part, then resumes",
+                "A queue of visitor actions, with commentary shortened as it grows",
+                "Too many queued actions: acknowledge it, hand over, end the captions politely",
+                "A planning doc, QA’d three times before implementation, then the feature QA’d against the doc"
+          ],
+          "raised": "Nam, QA 27 Aug, point 24",
+          "notes": "Script parts are prioritised so a shortened run still covers the important ones. Two modes: active showcase and passive commentary; the hard part is guessing intent when the visitor takes over."
+    },
+  },
+  {
+    id: 'N25', col: 'review', size: 'M', tag: 'specs',
+    title: "Kanban cards open a ticket",
+    note: "Shipped first, so the rest of the QA list had somewhere detailed to live.",
+    detail: {
+          "why": "Nam: \"That would keep the board itself clean and not bloated, cause all the details are in the ticket popup view.\"",
+          "done": [
+                "A card opens a ticket on click, Enter or Space",
+                "The ticket holds why, done-when, who raised it and notes",
+                "Escape and a press on the dimmed ground close it",
+                "Focus returns to the card"
+          ],
+          "raised": "Nam, QA 27 Aug, point 25"
+    },
+  },
+  {
+    id: 'N26', col: 'backlog', size: 'L', tag: 'specs',
+    title: "A script editor for the guided tour",
+    note: "A page showing every script branch, where they converge, and the safe jump points.",
+    detail: {
+          "why": "Nam: \"This would be incredibly helpful in tweaking and redesigning the caption script if needed.\" The tour in N24 is only maintainable if its branching is visible.",
+          "done": [
+                "Every script part is listed with its branches",
+                "Convergence points are shown",
+                "Safe jump points are marked"
+          ],
+          "raised": "Nam, QA 27 Aug, point 26",
+          "notes": "Depends on N24 landing first — there is no script tree to draw until there is a script tree."
+    },
+  },
 
   /* Flagged rather than done. Still true as of this build. */
   { id: 'T24', col: 'backlog', size: 'M', tag: 'specs', title: 'Initial payload is halfway to the ceiling', note: '24.7 kB of a 50 kB gate, up from 18.2. Still green, and the growth is real, but two deferred chunks are 17 kB and 19 kB and deserve a splitting pass before it becomes urgent.' },

@@ -26,11 +26,18 @@ import {
 } from '../data/project.js';
 import { START } from '../data/cv.js';
 
-type Tab = 'overview' | 'timeline' | 'process' | 'reviews' | 'board';
+type Tab = 'overview' | 'process' | 'reviews' | 'board';
 
+/*
+ * Timeline is gone as a tab and lives inside Overview instead. Nam: "I actually
+ * now think the timeline should be merged into the overview. The commit chart on
+ * top of the overview, and the milestone on the bottom."
+ *
+ * Which is the better shape anyway: the chart is the answer to "how was this
+ * built", and Overview is where that question gets asked.
+ */
 const TABS: { id: Tab; label: string }[] = [
   { id: 'overview', label: 'Overview' },
-  { id: 'timeline', label: 'Timeline' },
   { id: 'process', label: 'Process' },
   { id: 'reviews', label: 'Design reviews' },
   { id: 'board', label: 'Kanban board' },
@@ -46,7 +53,7 @@ export function openDevPortal(reducedMotion: boolean, mode: PortalMode = 'light'
 
   const tabs = h(
     'div',
-    { class: 'dp-tabs', role: 'tablist', 'aria-label': 'Project specifications' },
+    { class: 'dp-tabs', role: 'tablist', 'aria-label': 'Project spec' },
     ...TABS.map((t) =>
       h('button', {
         class: 'dp-tab', type: 'button', role: 'tab', 'aria-selected': 'false', 'data-t': t.id,
@@ -70,16 +77,16 @@ export function openDevPortal(reducedMotion: boolean, mode: PortalMode = 'light'
     'div',
     {
       class: `dp dp-${mode}${reducedMotion ? '' : ' dp-in'}`,
-      id: 'devportal', role: 'dialog', 'aria-modal': 'true', 'aria-label': 'Project specifications',
+      id: 'devportal', role: 'dialog', 'aria-modal': 'true', 'aria-label': 'Project spec',
     },
     h('div', { class: 'dp-card' },
       h('div', { class: 'dp-head' },
         h('span', { class: 'dp-head-ico', 'aria-hidden': 'true' }, sym('science', 22)),
         h('div', { class: 'dp-title' },
-          h('h1', {}, 'Project specifications'),
-          h('p', {}, 'How this site was made, when, and what is still open.')),
+          h('h1', {}, 'Project spec'),
+          h('p', {}, 'One week, one agent, one interactive CV.')),
         h('button', {
-          class: 'icon-btn dp-close', type: 'button', 'aria-label': 'Close project specifications', onclick: close,
+          class: 'icon-btn dp-close', type: 'button', 'aria-label': 'Close project spec', onclick: close,
         }, sym('close', 22))),
       tabs,
       body),
@@ -91,14 +98,21 @@ export function openDevPortal(reducedMotion: boolean, mode: PortalMode = 'light'
     }
     clear(body);
     body.appendChild(
-      tab === 'overview' ? buildDoc()
-      : tab === 'timeline' ? timelineView()
+      tab === 'overview' ? overviewView()
       : tab === 'process' ? processView()
       : tab === 'reviews' ? reviewsView()
       : boardView(),
     );
     body.scrollTop = 0;
   }
+
+  /*
+   * A press on the dimmed ground closes it. Nam: "clicking the dimmed background
+   * outside the project spec should close it too, the same way as clicking close
+   * button." Guarded on e.target being the scrim itself, so a press that starts
+   * inside the card and drifts out does not count as an outside press.
+   */
+  portal.addEventListener('pointerdown', (e) => { if (e.target === portal) close(); });
 
   draw();
   document.body.appendChild(portal);
@@ -124,34 +138,56 @@ const fmt = (iso: string): string => {
  * of the work visible — two very heavy days, one where nothing happened, and a
  * long tail of correction. The numbers are read off `git log`, not estimated.
  */
-function timelineView(): HTMLElement {
+/**
+ * OVERVIEW, with the timeline folded into it.
+ *
+ * Nam: "the timeline should be merged into the overview. The commit chart on top
+ * of the overview, and the milestone on the bottom. Although I wonder if the
+ * milestones can spread horizontally kinda cascading, so we see the milestones
+ * along with the date too."
+ *
+ * So: the chart answers "how was this built" before the prose does, and the
+ * milestones run left to right as one column per working day, which is the shape
+ * the question actually has. A vertical list of eight items said "here is a list";
+ * five dated columns say "this happened over five days".
+ */
+function overviewView(): HTMLElement {
   const total = commitsPerDay.reduce((a, b) => a + b.n, 0);
-  const peak = Math.max(...commitsPerDay.map((d) => d.n));
+  // Thin days are hidden from the chart, not from the total. See project.ts.
+  const shown = commitsPerDay.filter((d) => !d.thin);
+  const peak = Math.max(...shown.map((d) => d.n));
+  const hidden = commitsPerDay.length - shown.length;
+
+  // One column per day that produced a milestone, in order.
+  const days = [...new Set(milestones.map((m) => m.day))].sort();
 
   return h('div', { class: 'dp-col' },
     h('p', { class: 'dp-lead' },
-      `Started ${fmt(START)} 2026. ${total} commits in ${commitsPerDay.length} days, one person and an agent. ` +
-      'The shape matters more than the count: two very heavy days, one with nothing at all, and a long tail ' +
-      'of correction after the interface existed.'),
+      `${total} commits from ${fmt(START)}, one person and an agent. The shape matters more than the count: ` +
+      `two very heavy days and a long tail of correction after the interface existed.`),
 
     h('div', { class: 'tl-chart', role: 'img', 'aria-label': `${total} commits across ${commitsPerDay.length} days` },
-      ...commitsPerDay.map((d) => h('div', { class: 'tl-bar-wrap' },
+      ...shown.map((d) => h('div', { class: 'tl-bar-wrap' },
         h('div', { class: 'tl-bar-n' }, String(d.n)),
         h('div', { class: 'tl-bar-track' },
-          h('div', {
-            class: 'tl-bar' + (d.n === 0 ? ' is-zero' : ''),
-            style: `height:${d.n === 0 ? 2 : Math.round((d.n / peak) * 100)}%`,
-          })),
+          h('div', { class: 'tl-bar', style: `height:${Math.max(2, Math.round((d.n / peak) * 100))}%` })),
         h('div', { class: 'tl-bar-d' }, fmt(d.day))))),
+    hidden
+      ? h('p', { class: 'dp-note tl-omit' },
+        `${hidden} near-empty days are left off the chart. They are still in the total.`)
+      : h('span', {}),
 
-    h('h2', { class: 'dp-head2' }, 'Milestones'),
-    h('ol', { class: 'tl-list' },
-      ...milestones.map((m) => h('li', { class: 'tl-item' },
-        h('div', { class: 'tl-dot', 'aria-hidden': 'true' }),
-        h('div', { class: 'tl-when' }, `${fmt(m.day)} · commit ${m.n}`),
-        h('div', { class: 'tl-what' },
+    buildDoc(),
+
+    h('h2', { class: 'dp-head2' }, 'How it got here'),
+    h('div', { class: 'ms-strip' },
+      ...days.map((day) => h('div', { class: 'ms-day' },
+        h('div', { class: 'ms-day-h' },
+          h('b', {}, fmt(day)),
+          h('span', {}, `${commitsPerDay.find((d) => d.day === day)?.n ?? 0} commits`)),
+        ...milestones.filter((m) => m.day === day).map((m) => h('div', { class: 'ms-card' },
           h('b', {}, m.title),
-          h('span', {}, m.note))))),
+          h('span', {}, m.note)))))),
   );
 }
 
@@ -226,11 +262,75 @@ function boardView(): HTMLElement {
     wrap.querySelector<HTMLElement>(`[data-id="${id}"]`)?.focus();
   };
 
+  /**
+   * The ticket. Nam wanted the card to stay one line and the detail to live
+   * behind a click, which is the right split: a board is for seeing the shape of
+   * the work, and a ticket is for doing it.
+   *
+   * Opened by click, Enter or Space. Not by drag — dragstart suppresses the
+   * click that would otherwise follow, so the two gestures do not collide.
+   */
+  const openTicket = (t: Task): void => {
+    if (document.getElementById('kb-ticket')) return;
+    const d = t.detail ?? {};
+    let rel: (() => void) | null = null;
+    const shut = (): void => { rel?.(); sheet.remove(); wrap.querySelector<HTMLElement>(`[data-id="${t.id}"]`)?.focus(); };
+
+    const block = (label: string, node: HTMLElement | null): HTMLElement | null =>
+      node ? h('div', { class: 'kb-tk-b' }, h('h4', {}, label), node) : null;
+
+    const sheet = h('div', {
+      /*
+       * THE PALETTE HAS TO COME WITH IT.
+       *
+       * --dp-bg and its siblings are declared on .dp-light / .dp-dark, and this
+       * sheet is appended to document.body — outside the portal — so the tokens
+       * did not resolve and every surface fell back to transparent. QA caught a
+       * ticket that opened, took focus and read correctly while being
+       * see-through, which a screenshot alone would have let through.
+       *
+       * Copying the mode class rather than reparenting: the portal runs a
+       * transform animation, and a transformed ancestor becomes the containing
+       * block for a position:fixed child, which would break the scrim.
+       */
+      class: `kb-tk ${document.getElementById('devportal')?.classList.contains('dp-dark') ? 'dp-dark' : 'dp-light'}`,
+      id: 'kb-ticket', role: 'dialog', 'aria-modal': 'true',
+      'aria-label': `${t.id}: ${t.title}`,
+    },
+      h('div', { class: 'kb-tk-card' },
+        h('div', { class: 'kb-tk-h' },
+          h('span', { class: 'kb-id' }, t.id),
+          h('span', { class: `kb-tag kb-${t.tag}` }, t.tag),
+          h('span', { class: 'kb-size' }, t.size),
+          h('span', { class: 'kb-tk-col' }, columns.find((c) => c.id === t.col)?.label ?? t.col),
+          h('button', {
+            class: 'icon-btn kb-tk-x', type: 'button', 'aria-label': 'Close ticket', onclick: shut,
+          }, sym('close', 20))),
+        h('h3', { class: 'kb-tk-t' }, t.title),
+        h('p', { class: 'kb-tk-n' }, t.note),
+        block('Why', d.why ? h('p', {}, d.why) : null),
+        block('Done when', d.done?.length
+          ? h('ul', {}, ...d.done.map((x) => h('li', {}, x)))
+          : null),
+        block('Raised by', d.raised ? h('p', {}, d.raised) : null),
+        block('Notes', d.notes ? h('p', {}, d.notes) : null),
+        d.why || d.done || d.raised || d.notes
+          ? h('span', {})
+          : h('p', { class: 'kb-tk-thin' }, 'No detail written for this one yet.')),
+    ) as HTMLElement;
+
+    // A press on the dimmed ground closes it, same contract as the portal.
+    sheet.addEventListener('pointerdown', (e) => { if (e.target === sheet) shut(); });
+    document.body.appendChild(sheet);
+    rel = trapFocus(sheet, shut);
+    sheet.querySelector<HTMLElement>('.kb-tk-x')?.focus();
+  };
+
   const card = (t: Task): HTMLElement => {
     const el = h('div', {
       class: 'kb-card', draggable: 'true', tabindex: '0', 'data-id': t.id,
       role: 'listitem',
-      'aria-label': `${t.title}. Column ${t.col}. Arrow keys move it.`,
+      'aria-label': `${t.title}. Column ${t.col}. Enter opens the ticket, arrow keys move it.`,
     },
       h('div', { class: 'kb-card-t' }, t.title),
       h('div', { class: 'kb-card-n' }, t.note),
@@ -244,8 +344,10 @@ function boardView(): HTMLElement {
       el.classList.add('is-drag');
     });
     el.addEventListener('dragend', () => el.classList.remove('is-drag'));
+    el.addEventListener('click', () => openTicket(t));
     el.addEventListener('keydown', (e) => {
       const k = (e as KeyboardEvent).key;
+      if (k === 'Enter' || k === ' ') { e.preventDefault(); openTicket(t); return; }
       if (k !== 'ArrowLeft' && k !== 'ArrowRight') return;
       e.preventDefault();
       const i = columns.findIndex((c) => c.id === t.col);
