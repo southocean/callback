@@ -42,10 +42,20 @@
 //      happening. Minimum-jerk gets the family right; the corrective phase gets
 //      its own ease-out, which is what produces the settle.
 //
-//   5. IT NEVER HOLDS STILL. Physiological tremor is 8–12 Hz and about a pixel
-//      at screen scale, and there is a slower drift on top of it as the hand
-//      relaxes. A cursor frozen to the pixel reads as a screenshot — and
-//      because everything else here is moving, a frozen cursor is the tell.
+//   5. IT SOMETIMES HOLDS STILL, AND SOMETIMES DOES NOT. Physiological tremor
+//      is 8–12 Hz and about a pixel at screen scale, and a slower drift rides
+//      on top of it as the hand relaxes — but a hand resting on a mouse without
+//      pushing it moves the cursor by nothing at all, most of the time.
+//
+//      The first version of this ran the tremor continuously, and Nam was right
+//      about what that costs: it is not realism, it is a fidget in the corner of
+//      the eye that never stops, and the eye keeps going back to it. So resting
+//      is a coin toss, re-tossed every second or two and weighted toward still,
+//      with the amplitude eased rather than switched — a tremor that snaps on
+//      reads as the page glitching, which is a worse tell than no tremor at all.
+//      And nothing tremors while the hand is working, the scroll especially:
+//      the wheel movement is already motion, and shaking on top of it is a
+//      shaky hand rather than a steady one.
 //
 //   6. THERE IS A PAUSE BEFORE THE CLICK. Arriving and clicking in the same
 //      frame is not something a hand can do. The dwell is 90–200ms, which is
@@ -155,21 +165,79 @@ export function makeHand(root: HTMLElement, reduced: boolean): Hand {
 
   /* Micro-drift: the slow half of holding still. Scheduled rather than
      continuous, because a hand that drifts constantly reads as a hand on a
-     boat. */
+     boat. Only ever started during a live spell — see `rest` below. */
   let driftAt = performance.now() + rand(1400, 3600);
   let drift = { dx: 0, dy: 0, from: 0, ms: 0, at: 0 };
+
+  /**
+   * What the hand is doing while it is not going anywhere.
+   *
+   * 'still' is a hand resting on a mouse without weight on it, which moves the
+   * cursor by nothing. 'alive' is the same hand with enough weight to show the
+   * tremor. Both are real, and the first is commoner — which is why the toss is
+   * weighted rather than even.
+   */
+  let rest: 'still' | 'alive' = 'still';
+  let restUntil = 0;
+
+  /**
+   * The tremor's amplitude, 0..1, eased toward its target every frame.
+   *
+   * Never switched. A tremor that appears from one frame to the next reads as
+   * the page glitching rather than as a hand, which is a worse tell than no
+   * tremor at all.
+   *
+   * ASYMMETRIC, and measured rather than guessed. The first version eased both
+   * ways at the same rate, and tracing the hand for 100 seconds said only 11% of
+   * its resting time was genuinely motionless against an intended 58%. An
+   * exponential ease has a long tail: from full, at 0.045 a frame, it takes a
+   * second and a half to fall below visibility, which ate most of every still
+   * spell. So it fades IN slowly, because an onset that announces itself is the
+   * thing being avoided, and OUT quickly, with a floor that takes the last
+   * invisible fraction to zero rather than crawling there.
+   */
+  let amp = 0;
+  /** Below this the tremor is sub-pixel and pointless. Snap it off. */
+  const AMP_FLOOR = 0.02;
+
+  /** True while the hand is on the wheel. Nothing tremors over the top of work. */
+  let busy = false;
+
+  /** How often a resting spell is genuinely motionless. */
+  const STILL_CHANCE = 0.58;
 
   const paint = (t: number): void => {
     let px = x;
     let py = y;
-    if (!reduced && !legs.length && !standingDown) {
+    const idle = !reduced && !legs.length && !standingDown && !busy;
+
+    if (idle) {
+      // Re-toss the coin every second or two, so a long wait is neither two
+      // minutes of vibration nor two minutes of a frozen arrow.
+      if (t >= restUntil) {
+        rest = Math.random() < STILL_CHANCE ? 'still' : 'alive';
+        restUntil = t + rand(1400, 4200);
+      }
+      amp += ((rest === 'alive' ? 1 : 0) - amp) * (rest === 'alive' ? 0.035 : 0.11);
+    } else {
+      // Quelled fast: a hand that has started moving is not also trembling.
+      amp += (0 - amp) * 0.2;
+    }
+    // The tail of an exponential is invisible and still costs a repaint every
+    // frame. Once it is sub-pixel it is off.
+    if (amp < AMP_FLOOR && !(idle && rest === 'alive')) amp = 0;
+
+    if (amp > 0) {
       /*
        * Physiological tremor. Two incommensurable frequencies summed, so it
        * never repeats visibly — a single sine at 10 Hz reads as a vibration
        * effect, which is a different and much worse thing than a hand.
        */
-      px += Math.sin(t * 0.0512) * 0.55 + Math.sin(t * 0.0231) * 0.4;
-      py += Math.cos(t * 0.0447) * 0.5 + Math.sin(t * 0.0189) * 0.35;
+      px += (Math.sin(t * 0.0512) * 0.55 + Math.sin(t * 0.0231) * 0.4) * amp;
+      py += (Math.cos(t * 0.0447) * 0.5 + Math.sin(t * 0.0189) * 0.35) * amp;
+    }
+
+    if (idle) {
       if (drift.ms > 0) {
         const k = Math.min(1, (t - drift.at) / drift.ms);
         px += drift.dx * settle(k);
@@ -182,7 +250,9 @@ export function makeHand(root: HTMLElement, reduced: boolean): Hand {
           drift = { dx: 0, dy: 0, from: 0, ms: 0, at: 0 };
           driftAt = t + rand(1600, 4200);
         }
-      } else if (t >= driftAt) {
+      } else if (t >= driftAt && rest === 'alive') {
+        // A drift belongs to a live spell. A hand that is genuinely resting does
+        // not wander across the screen on its own.
         drift = { dx: rand(-9, 9), dy: rand(-7, 7), from: 0, ms: rand(420, 900), at: t };
       }
     }
@@ -410,14 +480,42 @@ export function makeHand(root: HTMLElement, reduced: boolean): Hand {
       // duration so a long scroll is more notches, not bigger ones.
       const notches = Math.max(3, Math.round((ms / 1000) * 14));
       const gap = ms / notches;
-      for (let i = 1; i <= notches; i += 1) {
-        if (dead) return;
-        // Ease the whole roll, so it starts and stops like a hand rather than
-        // like a scrollbar being dragged at constant speed.
-        const k = settle(i / notches);
-        s.set(from + delta * k);
-        y += delta > 0 ? -0.6 : 0.6;
-        await wait(gap);
+      /*
+       * The finger moves; the hand does not travel.
+       *
+       * This nudged the cursor a fixed amount per notch in the scroll direction
+       * and never gave it back, so a long roll walked the hand fifteen pixels
+       * down the screen and left it there — three or four rolls in and it had
+       * migrated off the surface it was supposed to be resting on. A finger on a
+       * wheel oscillates around where it is; it does not migrate. So it bobs
+       * around `restY` and comes back to it exactly.
+       *
+       * ONE half-sine across the whole roll, not one per notch. Per-notch was
+       * the first attempt and traced at about 4 Hz — a flutter, which is exactly
+       * the distraction Nam was warning about, arriving in the one place he
+       * named. A finger pushing a wheel makes a single movement out and back
+       * however long the scroll is, so this does too.
+       *
+       * `busy` holds the tremor off for the duration, which is Nam's note: the
+       * wheel movement is already motion, and shaking on top of it is a shaky
+       * hand rather than a steady one.
+       */
+      const restY = y;
+      const dir = delta > 0 ? 1 : -1;
+      busy = true;
+      try {
+        for (let i = 1; i <= notches; i += 1) {
+          if (dead) return;
+          // Ease the whole roll, so it starts and stops like a hand rather than
+          // like a scrollbar being dragged at constant speed.
+          const k = settle(i / notches);
+          s.set(from + delta * k);
+          y = restY - Math.sin(Math.PI * (i / notches)) * 2.4 * dir;
+          await wait(gap);
+        }
+      } finally {
+        y = restY;
+        busy = false;
       }
       s.set(to);
     },

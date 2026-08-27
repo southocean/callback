@@ -515,7 +515,18 @@ export const meta = {
     'A JS callback — what the job is.',
     'A stand-up callback — a joke that refers back to an earlier joke.',
   ],
-  disclaimer:
-    'Not affiliated with, endorsed by, or built at Google. No Google marks are used. This is an homage to a ' +
-    'product I like, built as a job application by one person in Uppsala.',
+  /*
+   * `disclaimer` is gone, and this is the third and last place it lived.
+   *
+   * It went from the CV footer first (N23) and from the ended screen last, both
+   * times for the same two reasons: it is legal throat-clearing in the position
+   * where a reader is deciding whether to keep going, and one of its sentences
+   * was false. "No Google marks are used" while the shell renders the Meet mark
+   * is R13 in tools/CV-PERCEPTION.md, and a disclaimer that is not true is worse
+   * than no disclaimer, because it is the one paragraph a careful reader checks.
+   *
+   * The honest version of the same claim survives where it is actually load-
+   * bearing: the README says exactly which two Google-owned things are used and
+   * why, at length, to a reader who has chosen to read about the build.
+   */
 };

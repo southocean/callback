@@ -9,7 +9,7 @@ import { h } from '../dom.js';
 import { mailSubject } from '../data/companies.js';
 import { sym } from './icons.js';
 import type { Store } from '../state.js';
-import { profile, meta } from '../data/cv.js';
+import { profile } from '../data/cv.js';
 import type { Quests } from '../achievements.js';
 
 export function renderEnded(store: Store, quests: Quests): HTMLElement {
@@ -235,12 +235,26 @@ export function renderEnded(store: Store, quests: Quests): HTMLElement {
         'div',
         { class: 'ended-fine' },
         h('p', {}, ...profile.links.map((l, i) => h('span', {}, i ? ' · ' : '', h('a', { href: l.href }, `${l.label}/${l.handle}`)))),
-        h('p', {}, meta.disclaimer),
+        /*
+         * ONE LINE. Nam: "Shorten it to just this."
+         *
+         * Two paragraphs went. The Google disclaimer was three sentences of
+         * legal throat-clearing on a screen whose job is to say thank you and
+         * hand over a link — and one of its sentences ("No Google marks are
+         * used") was not even true, since the shell renders the Meet mark. That
+         * is R13 in tools/CV-PERCEPTION.md, and it was already removed from the
+         * CV footer for the same reason. This was the last place it survived, so
+         * meta.disclaimer goes with it rather than sitting in the data unused.
+         *
+         * And the camera clause went because the camera did: there is no stream
+         * to have nowhere to go (T29). A joke about a feature nobody can find is
+         * just a confusing sentence.
+         */
         h(
           'p',
           {},
-          'Built in TypeScript with no framework and no dependencies. No analytics, no third-party requests and no ' +
-            'backend — which is why the camera stream had nowhere to go.',
+          'Built in TypeScript with no framework and no dependencies. No analytics, no third-party requests and no '
+            + 'backend. Powered by Claude.',
         ),
       ),
     ),
