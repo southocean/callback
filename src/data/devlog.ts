@@ -510,7 +510,7 @@ export const findings: Finding[] = [
 /** What the build refused to invent (T7). */
 export const actionItems = [
   'Replace the attached PDF with a print of plain mode. The old file omits TypeScript and test automation, which are hard requirements.',
-  'Supply real magnitudes for Mahjong Logic — players, concurrent tables, release cadence, platform split. Every one was left out rather than guessed.',
+  'Supply real magnitudes for Wasabi Productions — players, concurrent tables, release cadence, platform split. Every one was left out rather than guessed.',
   'Record a 20-second pitch clip for the host tile. The page works without it and is better with it.',
   'Confirm the target role. The copy is written for the senior posting.',
 ];

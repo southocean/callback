@@ -220,7 +220,7 @@ export function renderAbout(): HTMLElement {
 
   const axis = h(
     'div',
-    { class: 'axis', role: 'img', 'aria-label': 'Timeline of roles from 2013 to 2026. Mahjong Logic runs from 2019 to the present and is the longest engagement.' },
+    { class: 'axis', role: 'img', 'aria-label': 'Timeline of roles from 2013 to 2026. Wasabi Productions runs from 2019 to the present and is the longest engagement.' },
     ...[...byLane.keys()]
       .sort((a, b) => a - b)
       .map((lane) =>

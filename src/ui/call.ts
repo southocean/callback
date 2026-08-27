@@ -14,6 +14,7 @@
 // four panels; everything technical lives behind Meeting tools.
 
 import { h, clear, icon, icons } from '../dom.js';
+import { mailSubject } from '../data/companies.js';
 import { openDev } from './devopen.js';
 import { sym } from './icons.js';
 import { ripple, attachMenu, micMeter, menu as gmMenu, warnBadge, noticeCard, dropCaret } from './gm3.js';
@@ -509,8 +510,14 @@ export function renderCall(store: Store, quests: Quests, deps: CallDeps): HTMLEl
   const announce = announcer(ccLive, 1400);
   let t0 = performance.now();
   let ccTimer = 0;
+  /* True while the guided tour is speaking through this surface. */
+  let tourHasFloor = false;
+
   const startCC = (): void => {
-    if (ccTimer) return;
+    // Refuse the floor rather than fight for it: sync() calls startCC on every
+    // state change, and without this the transcript would talk over the tour
+    // roughly once a second.
+    if (ccTimer || tourHasFloor) return;
     t0 = performance.now();
     ccTimer = window.setInterval(() => {
       const span = (transcript[transcript.length - 1]?.at ?? 40) + 6;
@@ -1105,6 +1112,76 @@ export function renderCall(store: Store, quests: Quests, deps: CallDeps): HTMLEl
   // event as being shown it unprompted, and only the unprompted one is annoying.
   if (store.get().readyCard) noteReadyShown();
 
+  /**
+   * THE SHARE SHEET CLOSES ITSELF, AND SAYS SO.
+   *
+   * Nam: "we have the share this meeting window - we auto close this in 8sec -
+   * add some kind of indicator that its auto closing, and pause this timer if
+   * user hovers on it."
+   *
+   * Eight seconds is long enough to read the link and short enough that it stops
+   * being the first thing in the way of the call. The indicator matters more than
+   * the timer: a panel that vanishes on its own with no warning reads as a bug,
+   * and the same panel with a draining ring reads as considerate.
+   *
+   * Hover pauses BOTH halves. The ring pauses via animation-play-state in CSS;
+   * this pauses the count. Doing only the first would leave a frozen ring over a
+   * card that closed anyway, which is worse than not pausing at all.
+   */
+  const READY_MS = 8000;
+  const RC_R = 9.5;
+  const RC_C = 2 * Math.PI * RC_R;
+
+  const readyCountdown = (onDone: () => void): HTMLElement => {
+    const ns = 'http://www.w3.org/2000/svg';
+    const svg = document.createElementNS(ns, 'svg');
+    svg.setAttribute('viewBox', '0 0 22 22');
+    svg.setAttribute('aria-hidden', 'true');
+    const arc = document.createElementNS(ns, 'circle');
+    arc.setAttribute('cx', '11');
+    arc.setAttribute('cy', '11');
+    arc.setAttribute('r', String(RC_R));
+    arc.setAttribute('class', 'rc-arc');
+    svg.appendChild(arc);
+
+    const label = h('span', {}, 'Closing in 8s');
+    const wrap = h('div', { class: 'ready-count' }, svg as unknown as Node, label) as HTMLElement;
+    /*
+     * IN PIXELS. The same trap as the ended screen's ring: a unitless custom
+     * property inside calc() stays a <number>, so the keyframe never resolves to
+     * a length and Chrome falls back to a two-frame discrete animation. That one
+     * cost a QA session; it is not costing another.
+     */
+    wrap.style.setProperty('--rc', RC_C + 'px');
+    wrap.style.setProperty('--rc-dur', READY_MS + 'ms');
+
+    let left = READY_MS;
+    let last = Date.now();
+    let paused = false;
+    const tick = window.setInterval(() => {
+      if (!wrap.isConnected) { window.clearInterval(tick); return; }
+      const now = Date.now();
+      if (!paused) left -= now - last;
+      last = now;
+      label.textContent = paused ? 'Paused' : `Closing in ${Math.max(0, Math.ceil(left / 1000))}s`;
+      if (left <= 0) { window.clearInterval(tick); onDone(); }
+    }, 200);
+
+    /*
+     * Bound to the CARD rather than to the ring: the whole panel is what a reader
+     * trying to read the link will actually be hovering. Deferred a tick because
+     * the card does not exist yet when this runs -- this element is one of its
+     * children being built.
+     */
+    window.setTimeout(() => {
+      const card = wrap.closest('.ready');
+      card?.addEventListener('pointerenter', () => { paused = true; });
+      card?.addEventListener('pointerleave', () => { paused = false; });
+    }, 0);
+
+    return wrap;
+  };
+
   const readyHost = h('div', {});
   const drawReady = (): void => {
     clear(readyHost);
@@ -1145,6 +1222,7 @@ export function renderCall(store: Store, quests: Quests, deps: CallDeps): HTMLEl
           'Copy the referral note',
         ),
         h('p', { style: 'margin-top:14px' }, 'Or share this link with anyone who should see it'),
+        readyCountdown(() => store.dispatch({ t: 'readyCard', on: false })),
         h(
           'div',
           { class: 'ready-link' },
@@ -1939,7 +2017,50 @@ export function renderCall(store: Store, quests: Quests, deps: CallDeps): HTMLEl
     startShare(m.renderShared(src, openDoc, () => stopShare(), boot), src.title);
   })();
 
+  /**
+   * THE GUIDED TOUR (board ticket N24, planned in tools/PLAN-guided-tour.md).
+   *
+   * Started once, after the share has had a moment to mount: the first thing the
+   * script talks about is the CV on the shared screen, and talking before it
+   * exists would narrate an empty stage.
+   *
+   * Not for an egg -- someone who clicked a thirty-second clip asked for the
+   * clip, not a tour of the CV. And not twice: the call view is kept alive by
+   * sync() rather than re-mounted, so a guard here is the difference between one
+   * narrator and two talking over each other.
+   */
+  if (!eggId && !tourStarted) {
+    tourStarted = true;
+    window.setTimeout(() => {
+      void import('../tour/stage.js').then((m) => {
+        // The visitor may have left in the 1.6s it took to get here.
+        if (store.get().screen !== 'call') { tourStarted = false; return; }
+        tour = m.startTour(shell, {
+          say: (text) => { ccText.textContent = text; announce(text); },
+          // The call's transcript loops a scripted conversation. Two voices on
+          // one surface is worse than either alone, so the tour takes the floor.
+          suspendTranscript: () => { tourHasFloor = true; stopCC(); },
+          resumeTranscript: () => {
+            tourHasFloor = false;
+            if (store.get().captionsOn) startCC();
+          },
+        });
+      });
+    }, 1600);
+  }
+
   return shell;
+}
+
+/* Module-scoped so a re-render cannot start a second tour over the first. */
+let tourStarted = false;
+let tour: { stop: () => void } | null = null;
+
+/** Leaving the call ends the tour with it. Called from main.ts on leave. */
+export function stopTour(): void {
+  tour?.stop();
+  tour = null;
+  tourStarted = false;
 }
 
 // --------------------------------------------------------------------------
@@ -1985,7 +2106,7 @@ function hostControls(store: Store): HTMLElement {
       { style: 'display:flex;gap:8px;flex-wrap:wrap' },
       h('a', { class: 'mbtn', href: 'NamNguyen_CV_2026.pdf', download: true }, 'Download the PDF'),
       h('button', { class: 'mbtn', type: 'button', onclick: () => store.dispatch({ t: 'plain', on: true }) }, 'Read as a document'),
-      h('a', { class: 'mbtn', href: `mailto:${profile.emailUser}@${profile.emailHost}?subject=Google%20Meet%20web%20—%20Stockholm` }, 'Email me'),
+      h('a', { class: 'mbtn', href: `mailto:${profile.emailUser}@${profile.emailHost}?subject=${mailSubject()}` }, 'Email me'),
     ),
     h('div', { class: 'shead' }, 'Links'),
     h(

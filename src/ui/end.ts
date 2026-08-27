@@ -5,6 +5,7 @@
 // the block written for the person who has to file the referral (review H4).
 
 import { h, icon, icons } from '../dom.js';
+import { mailSubject } from '../data/companies.js';
 import { profile, referralBlurb, meta, SITE } from '../data/cv.js';
 import type { Quests } from '../achievements.js';
 
@@ -49,7 +50,7 @@ export function renderEnd(store: { dispatch: (a: { t: 'join' }) => unknown }, qu
         'div',
         { class: 'contact' },
         h('a', { class: 'btn btn-primary', href: 'NamNguyen_CV_2026.pdf', download: true }, icon(icons.doc, 18), 'Download the CV'),
-        h('a', { class: 'btn', href: `mailto:${address}?subject=Google%20Meet%20web%20-%20Stockholm` }, address),
+        h('a', { class: 'btn', href: `mailto:${address}?subject=${mailSubject()}` }, address),
         h('button', { class: 'btn', type: 'button', onclick: onPlain }, 'Read it as a document'),
         h('button', { class: 'btn', type: 'button', onclick: () => store.dispatch({ t: 'join' }) }, 'Re-join the call'),
       ),

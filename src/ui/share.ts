@@ -400,7 +400,7 @@ function pageTools(): HTMLElement {
   const note = skills.primary.find((k) => k.name === 'Test automation')?.note ?? '';
   return h('div', { class: 'pg' },
     h('h1', { class: 'pg-h' }, 'Internal tooling'),
-    h('p', { class: 'pg-sub' }, 'Mahjong Logic · a bot controller for testing live tables'),
+    h('p', { class: 'pg-sub' }, 'Wasabi Productions · a bot controller for testing live tables'),
     h('p', { class: 'pg-lead' }, bullet),
     h('div', { class: 'pg-cards' },
       h('div', { class: 'pg-card' }, h('b', {}, 'Test automation'), h('span', {}, note)),

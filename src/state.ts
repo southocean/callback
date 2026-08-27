@@ -105,7 +105,12 @@ export const initial: State = {
   // Off by default. Nam reported the transcript sitting on top of other things
   // on screen, and a caption nobody asked for that also covers the content is
   // worse than no caption — the button is right there on the bar.
-  captionsOn: false,
+  /*
+   * ON by default. Nam, on the onboarding: "make sure the CC option is on by
+   * default." The guided tour speaks THROUGH the captions, so a tour that
+   * started with them off would be a silent film.
+   */
+  captionsOn: true,
   handRaised: false,
   pinned: false,
   presAudio: true,

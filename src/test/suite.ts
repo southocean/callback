@@ -15,6 +15,8 @@ import { sample, policy, rng, profiles } from '../net/degrade.js';
 import {
   readyCardOpens, afterReadyShown, afterReadyClosed, READY_MUTE_MS, READY_MAX_SHOWS,
 } from '../prefs.js';
+import { reduceTour, initialTour, nextScripted, registerFor, QUEUE_BRIEF, type TourState } from '../tour/director.js';
+import { parts as tourParts } from '../data/tour.js';
 
 export interface Result {
   suite: string;
@@ -420,6 +422,142 @@ suite('content integrity', () => {
     ]);
     const blob = mods.map((m) => JSON.stringify(m)).join(' ');
     ok(!/wasabiproductions/i.test(blob), 'the current work address leaked into the public build');
+  });
+});
+
+
+suite('the guided tour director', () => {
+  /* A tour that has been started, for the tests that do not care how. */
+  const started = (): TourState => reduceTour(initialTour, { t: 'start' });
+
+  test('starts on the lowest-priority part', () => {
+    const s = started();
+    eq(s.mode, 'playing');
+    eq(s.current, 'intro', 'the tour did not open on the introduction');
+  });
+
+  test('plays the script in priority order', () => {
+    let s = started();
+    const seen: string[] = [];
+    for (let i = 0; i < tourParts.length; i += 1) {
+      seen.push(s.current!);
+      s = reduceTour(s, { t: 'partDone' });
+    }
+    const expected = [...tourParts].sort((a, b) => a.priority - b.priority).map((p) => p.id);
+    eq(seen.join(','), expected.join(','), 'the script did not run in priority order');
+    eq(s.mode, 'finished');
+  });
+
+  /*
+   * Nam's own example, which is the reason the resumption rule is what it is:
+   * interrupted during part 2, the visitor opens part 5, and afterwards the tour
+   * should run 3, 4, SKIP 5, then 6.
+   */
+  test("a visited part is skipped when the script reaches it", () => {
+    let s = started();
+    s = reduceTour(s, { t: 'partDone' });          // intro done, now on 'cv'
+    eq(s.current, 'cv');
+    s = reduceTour(s, { t: 'visit', id: 'desktop' });   // priority 5
+    s = reduceTour(s, { t: 'partDone' });          // cv done -> commentary on desktop
+    eq(s.mode, 'commenting');
+    eq(s.current, 'desktop');
+    s = reduceTour(s, { t: 'partDone' });          // desktop done -> back to script
+    eq(s.current, 'wasabi', 'did not resume at the lowest unplayed part');
+    s = reduceTour(s, { t: 'partDone' });
+    eq(s.current, 'build');
+    s = reduceTour(s, { t: 'partDone' });
+    eq(s.current, 'a11y', 'the visited part was narrated twice');
+  });
+
+  test('a visitor request outranks the script', () => {
+    let s = started();
+    s = reduceTour(s, { t: 'visit', id: 'tests' });
+    s = reduceTour(s, { t: 'partDone' });
+    eq(s.current, 'tests', 'the script carried on instead of following the visitor');
+    eq(s.mode, 'commenting');
+  });
+
+  test('never narrates the same part twice', () => {
+    let s = started();
+    s = reduceTour(s, { t: 'partDone' });
+    const before = s.current;
+    s = reduceTour(s, { t: 'visit', id: 'intro' });   // already played
+    eq(s.queue.length, 0, 'a played part was queued for a replay');
+    eq(s.current, before);
+  });
+
+  test('clicking the part being spoken does not queue it', () => {
+    let s = started();
+    s = reduceTour(s, { t: 'visit', id: 'intro' });
+    eq(s.queue.length, 0, 'the part already on air was queued');
+  });
+
+  test('a busy queue switches to the brief register', () => {
+    let s = started();
+    for (const id of ['cv', 'wasabi', 'build']) s = reduceTour(s, { t: 'visit', id });
+    eq(s.queue.length, QUEUE_BRIEF);
+    s = reduceTour(s, { t: 'partDone' });
+    eq(s.register, 'brief', 'a long queue did not shorten the commentary');
+    ok(s.warned, 'the shortening was never announced');
+  });
+
+  test('the register depends only on how long the queue is', () => {
+    eq(registerFor(1), 'commentary');
+    eq(registerFor(2), 'commentary');
+    eq(registerFor(QUEUE_BRIEF), 'brief');
+  });
+
+  test('too many requests hands over instead of talking faster', () => {
+    let s = started();
+    // Five, which is QUEUE_HANDOVER. Spelled out so the test fails loudly if
+    // the threshold moves rather than silently following it.
+    const ids = ['cv', 'wasabi', 'build', 'desktop', 'a11y'];
+    for (const id of ids) s = reduceTour(s, { t: 'visit', id });
+    eq(s.mode, 'handedOver', 'the tour kept narrating a visitor who was clearly exploring');
+    eq(s.queue.length, 0, 'a handed-over tour still had work queued');
+  });
+
+  test('handing over is terminal', () => {
+    let s = started();
+    for (const id of ['cv', 'wasabi', 'build', 'desktop', 'a11y']) s = reduceTour(s, { t: 'visit', id });
+    const after = reduceTour(s, { t: 'visit', id: 'tests' });
+    eq(after.mode, 'handedOver', 'the tour came back after handing over');
+    eq(reduceTour(s, { t: 'partDone' }).mode, 'handedOver');
+  });
+
+  test('stop ends it from anywhere', () => {
+    let s = started();
+    s = reduceTour(s, { t: 'visit', id: 'cv' });
+    s = reduceTour(s, { t: 'stop' });
+    eq(s.mode, 'finished');
+    eq(s.queue.length, 0);
+    eq(s.current, null);
+  });
+
+  test('every part has all three registers', () => {
+    for (const p of tourParts) {
+      ok(p.lines.length > 0, `${p.id} has no lines`);
+      ok(p.commentary.length > 0, `${p.id} has no commentary`);
+      ok(p.brief.length > 0, `${p.id} has no brief version`);
+    }
+  });
+
+  test('the brief version is never longer than the full one', () => {
+    for (const p of tourParts) {
+      const full = p.lines.reduce((a, l) => a + l.text.length, 0);
+      const brief = p.brief.reduce((a, l) => a + l.text.length, 0);
+      ok(brief <= full, `${p.id}: the brief register is longer than the full one`);
+    }
+  });
+
+  test('priorities are unique, so the order is not luck', () => {
+    const seen = new Set(tourParts.map((p) => p.priority));
+    eq(seen.size, tourParts.length, 'two parts share a priority');
+  });
+
+  test('nextScripted returns nothing once everything is played', () => {
+    const all: TourState = { ...initialTour, played: tourParts.map((p) => p.id) };
+    eq(nextScripted(all), null);
   });
 });
 

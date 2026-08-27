@@ -20,13 +20,14 @@ import { h, clear } from '../dom.js';
 import { sym } from './icons.js';
 import { trapFocus } from '../a11y.js';
 import { buildDoc } from './built.js';
+import { renderScriptEditor } from './scripted.js';
 import {
   commitsPerDay, milestones, phasesOfWork, personas, reviews,
   columns, tasks, type Task, type Column,
 } from '../data/project.js';
 import { START } from '../data/cv.js';
 
-type Tab = 'overview' | 'process' | 'reviews' | 'board';
+type Tab = 'overview' | 'process' | 'reviews' | 'board' | 'script';
 
 /*
  * Timeline is gone as a tab and lives inside Overview instead. Nam: "I actually
@@ -41,6 +42,8 @@ const TABS: { id: Tab; label: string }[] = [
   { id: 'process', label: 'Process' },
   { id: 'reviews', label: 'Design reviews' },
   { id: 'board', label: 'Kanban board' },
+  /* N26. The guided tour is only maintainable if its branching is visible. */
+  { id: 'script', label: 'Tour script' },
 ];
 
 export type PortalMode = 'light' | 'dark';
@@ -101,6 +104,7 @@ export function openDevPortal(reducedMotion: boolean, mode: PortalMode = 'light'
       tab === 'overview' ? overviewView()
       : tab === 'process' ? processView()
       : tab === 'reviews' ? reviewsView()
+      : tab === 'script' ? renderScriptEditor()
       : boardView(),
     );
     body.scrollTop = 0;

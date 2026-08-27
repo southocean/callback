@@ -5,6 +5,7 @@
 // meeting is safe" card. Same furniture, different contents.
 
 import { h } from '../dom.js';
+import { mailSubject } from '../data/companies.js';
 import { sym } from './icons.js';
 import type { Store } from '../state.js';
 import { profile, referralBlurb, meta, SITE } from '../data/cv.js';
@@ -225,7 +226,7 @@ export function renderEnded(store: Store, quests: Quests): HTMLElement {
             'div',
             { style: 'display:flex;gap:10px;flex-wrap:wrap' },
             h('a', { class: 'm-btn m-filled', href: 'NamNguyen_CV_2026.pdf', download: true }, 'Download the CV'),
-            h('a', { class: 'm-btn m-outlined', href: `mailto:${address}?subject=Google%20Meet%20web%20—%20Stockholm` }, address),
+            h('a', { class: 'm-btn m-outlined', href: `mailto:${address}?subject=${mailSubject()}` }, address),
           ),
         ),
       ),

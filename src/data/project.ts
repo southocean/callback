@@ -629,7 +629,7 @@ export const tasks: Task[] = [
     },
   },
   {
-    id: 'N24', col: 'backlog', size: 'L', tag: 'onboarding',
+    id: 'N24', col: 'done', size: 'L', tag: 'onboarding',
     title: "The guided tour: captions, an on-screen cursor, and an adaptive script",
     note: "The big one. A scripted walkthrough that narrates itself, moves a cursor in sync, and adapts when the visitor takes over.",
     detail: {
@@ -664,7 +664,7 @@ export const tasks: Task[] = [
     },
   },
   {
-    id: 'N26', col: 'backlog', size: 'L', tag: 'specs',
+    id: 'N26', col: 'done', size: 'L', tag: 'specs',
     title: "A script editor for the guided tour",
     note: "A page showing every script branch, where they converge, and the safe jump points.",
     detail: {

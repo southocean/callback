@@ -184,7 +184,7 @@ export const caseStudies: CaseStudy[] = [
   {
     id: 'mahjong',
     title: 'A real-time multiplayer client, through two platform migrations',
-    org: 'Mahjong Logic',
+    org: 'Wasabi Productions',
     years: '2019 — present',
     stack: ['JavaScript', 'React', 'Unity', 'C#', 'REST APIs', 'responsive UI'],
     problem:
@@ -446,12 +446,12 @@ export const requirementMap: { req: string; evidence: string; strength: 'strong'
   },
   {
     req: '5 years software development',
-    evidence: 'Bkav 2013—2015, Mahjong Logic 2019—present. Twelve years since the first professional line.',
+    evidence: 'Bkav 2013—2015, Wasabi Productions 2019—present. Twelve years since the first professional line.',
     strength: 'strong',
   },
   {
     req: '3 years front-end and UI development',
-    evidence: 'Seven years leading front end at Mahjong Logic, including all UX and responsive work.',
+    evidence: 'Seven years leading front end at Wasabi Productions, including all UX and responsive work.',
     strength: 'strong',
   },
   {
@@ -500,7 +500,7 @@ export const requirementMap: { req: string; evidence: string; strength: 'strong'
 /** For the friend who has to put his name on it (review H4, R2, R5). Fact-only. */
 export const referralBlurb =
   'Nam Nguyen — front-end, Uppsala. Seven years as lead front-end developer on a real-time multiplayer ' +
-  'game client at Mahjong Logic, where he led a team of five and took the product from a native desktop app ' +
+  'game client at Wasabi Productions, where he took the product through every platform it has had ' +
   'to the browser and then to a React + Unity hybrid. Before that, two years of C++ on signing hardware at ' +
   'Bkav. MSc Computer Science from Uppsala, plus four years of optimisation research with two publications, ' +
   'a book chapter and a best-paper award, and three semesters as a teaching assistant for algorithms. ' +

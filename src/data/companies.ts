@@ -120,3 +120,16 @@ export function codeFromUrl(search: string): string | null {
 export function currentPitch(): Pitch {
   return pitchFor(codeFromUrl(location.search));
 }
+
+/**
+ * The subject line for an "email me" link.
+ *
+ * Hard-coded as "Google Meet web — Stockholm" in three places, including the
+ * neutral send, which quietly defeated the whole point of this module: no
+ * employer is named unless a ?c= code names one. Found by sweeping the ended
+ * screen.
+ */
+export function mailSubject(): string {
+  const p = currentPitch();
+  return encodeURIComponent(p.named ? p.target : 'Your interactive CV');
+}
