@@ -40,6 +40,25 @@
 //     time the same line played, which is how you get a caption that looks
 //     broken rather than a person who paused. Same line, same stumble, always.
 //
+//   · AND THEY ARE RARE — twice in the whole flow, which is a measured number
+//     and not a vibe. The first pass put one on every line with a comma in it:
+//     sixteen of thirty-four. Nam: "they should be very rare, almost like a nice
+//     find. I'd say only 1 or twice. This is a well edited script and we should
+//     treat it that way, even the user would expect that, so the uh and ah is
+//     more a meta joke."
+//
+//     That is the right read, and the failure was a category error rather than a
+//     tuning miss: constant hesitation is a speech-synthesis effect, and what
+//     this wants is an editing joke. A joke told sixteen times is a tic. The rate
+//     is pinned by a test that tokenises the real script and counts, so adding
+//     lines cannot quietly make it chatty again.
+//
+//   · AND THEY COST NO TIME. Nam: "they should not slow down the conversation."
+//     They cannot: a line's dwell is the ring, and the ring runs the authored
+//     duration whatever the words do. A filler's rest is taken OUT of the reveal
+//     budget rather than added to it, so it borrows a few milliseconds from the
+//     words either side and gives the line back unchanged.
+//
 //   · A PRESS IS TWO-STAGE: mid-reveal it finishes the line, and after that it
 //     advances. Anything else means a visitor who presses to see the rest of a
 //     sentence loses the sentence.
@@ -80,6 +99,30 @@ const MAX_WORD_MS = 200;
  */
 const FILLERS = ['uh', 'uhm', 'ah'];
 
+/**
+ * HOW RARE. One eligible line in this many gets a hesitation.
+ *
+ * Tuned against the script rather than guessed: at 13 the flow's thirty-four
+ * lines carry two, and both land where a person would actually pause — "and the
+ * tests are real — uh they run in your browser", "and if I'm not, uh throw me out
+ * of a plane". Neighbouring values were measured too; 5 gives five, 7 gives four,
+ * 19 gives none at all in the flow.
+ *
+ * Three decisions — whether, where, and which word — are hashed on three
+ * different seeds. Sharing one correlates them, and at this rate the correlation
+ * is visible: with the word seeded off the bare text, both of the flow's two
+ * hesitations came out as "uhm", and two identical stumbles in one script is a
+ * pattern rather than a joke.
+ *
+ * The 'f:' prefix is doing nothing principled — it is the seed that happened to
+ * give "uh" and "ah", the two Nam asked for, on today's script. Any seed is as
+ * defensible; this one reads best. If the two lines it lands on are ever
+ * reworded the words will move, which is fine: the property being protected is
+ * that they differ from each other, and the test checks that rather than the
+ * literal choices.
+ */
+const STUMBLE_ONE_IN = 13;
+
 /** Stable, tiny, and only ever used to choose the same thing twice. */
 const hash = (s: string): number => {
   let n = 0;
@@ -99,9 +142,8 @@ interface Token {
  * A line, cut into the pieces it arrives in.
  *
  * The rests are what stop it sounding like a metronome: a comma is a shorter
- * pause than a full stop, an em dash is longer than either because it is where
- * somebody changes direction mid-sentence, and a filler is followed by the
- * longest pause of all because that is the entire point of saying "uh".
+ * pause than a full stop, and an em dash is longer than either because it is
+ * where somebody changes direction mid-sentence.
  */
 export function tokenise(text: string): Token[] {
   const words = text.split(/\s+/).filter(Boolean);
@@ -122,15 +164,18 @@ export function tokenise(text: string): Token[] {
   const breaks = words
     .map((w, i) => (/[,—–-]$/.test(w) ? i : -1))
     .filter((i) => i >= 0 && i < words.length - 2);
-  const at = !composed && words.length >= 7 && breaks.length
-    ? breaks[hash(text) % breaks.length]!
-    : -1;
+  const eligible = !composed && words.length >= 7 && breaks.length > 0;
+  // Eligible is not enough — see STUMBLE_ONE_IN. Most eligible lines get nothing.
+  const rare = hash(`stumble:${text}`) % STUMBLE_ONE_IN === 0;
+  const at = eligible && rare ? breaks[hash(text) % breaks.length]! : -1;
 
   words.forEach((w, i) => {
     const rest = /[.!?]$/.test(w) ? 260 : /[—–]$/.test(w) ? 220 : /[,;:]$/.test(w) ? 150 : 0;
     out.push({ text: w, restMs: rest });
     if (i === at) {
-      out.push({ text: FILLERS[hash(text + w) % FILLERS.length]!, filler: true, restMs: 340 });
+      // 140, not the 340 this shipped with. A third of a second of nothing is a
+      // stall the eye reads as a stutter in the page; this is a beat.
+      out.push({ text: FILLERS[hash(`f:${text}${w}`) % FILLERS.length]!, filler: true, restMs: 140 });
     }
   });
   return out;

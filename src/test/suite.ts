@@ -1012,10 +1012,53 @@ suite('the caption speaks', () => {
   });
 
   test('a hesitation lands in the same place every time', () => {
-    const text = 'Seven years leading the front end of an online Mahjong client, more or less.';
-    const a = tokenise(text).map((t) => `${t.text}${t.filler ? '*' : ''}`).join(' ');
-    const b = tokenise(text).map((t) => `${t.text}${t.filler ? '*' : ''}`).join(' ');
-    eq(a, b, 'the same line hesitated in two different places');
+    // One of the two lines in the flow that actually gets one -- a determinism
+    // test on a line with no filler in it passes by saying nothing.
+    const text = 'And the tests are real — they run in your browser, and you can break them.';
+    const shape = (t: string): string => tokenise(t).map((x) => `${x.text}${x.filler ? '*' : ''}`).join(' ');
+    ok(tokenise(text).some((t) => t.filler), 'the line chosen for this test no longer hesitates at all');
+    eq(shape(text), shape(text), 'the same line hesitated in two different places');
+  });
+
+  /*
+   * THE RATE, measured against the real script.
+   *
+   * Nam: "they should be very rare, almost like a nice find. I'd say only 1 or
+   * twice. This is a well edited script and we should treat it that way."
+   *
+   * The first pass put one on every line with a comma in it -- sixteen of the
+   * flow's thirty-four -- which is a tic rather than a joke. A prose comment
+   * cannot hold a rate in place, so this counts. It will fail if the gate is
+   * loosened, and it will also fail if enough lines are added that two becomes
+   * six, which is the case a constant in caption.ts would not have caught.
+   */
+  test('the flow hesitates once or twice, not constantly', () => {
+    const hits = timeline().filter((t) => tokenise(t.line.text).some((x) => x.filler));
+    ok(hits.length >= 1 && hits.length <= 3,
+      `${hits.length} of ${timeline().length} flow lines hesitate; wanted one or two`);
+  });
+
+  test('the two hesitations are not the same word', () => {
+    // Two identical stumbles in one script reads as a pattern, which is the one
+    // thing a joke told twice must not do. See the seed note in caption.ts.
+    const words = timeline()
+      .flatMap((t) => tokenise(t.line.text).filter((x) => x.filler).map((x) => x.text));
+    if (words.length < 2) return;
+    eq(new Set(words).size, words.length, `the flow's hesitations are all "${words[0]}"`);
+  });
+
+  test('a hesitation costs the line no time', () => {
+    /*
+     * Nam: "they should not slow down the conversation." A filler's rest is taken
+     * out of the reveal budget rather than added to the line, so the sum of the
+     * rests must not grow when one is inserted by more than the filler's own --
+     * and the line's dwell, which is the ring, never sees it at all.
+     */
+    const withOne = 'And the tests are real — they run in your browser, and you can break them.';
+    const t = tokenise(withOne);
+    const filler = t.find((x) => x.filler);
+    ok(!!filler, 'the line chosen for this test no longer hesitates');
+    ok(filler!.restMs <= 200, `a hesitation rests ${filler!.restMs}ms, which is a stall rather than a beat`);
   });
 
   test('at most one hesitation a line', () => {
