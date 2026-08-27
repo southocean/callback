@@ -360,19 +360,54 @@ export const transcript: TranscriptLine[] = [
  *
  * The WebGL entry is gone with the effects pipeline it cited (see T30).
  */
+/**
+ * WHAT THE LEFT COLUMN IS FOR, after Nam's pass on it.
+ *
+ * A claim, and the evidence for it. Every entry here has to survive being read
+ * by somebody who will click on the thing it names.
+ *
+ * The frameworks line was removed rather than reworded, and it is worth writing
+ * down why, because it was a real overclaim: "React · Unity · Flutter — the
+ * three frameworks the product has shipped on, across three platform
+ * migrations". Nam: "this is not true, the product has never shipped in
+ * Flutter." A CV that inflates one line puts every other line up for
+ * re-examination, and this one was doing it in the section a reviewer checks
+ * hardest. Frameworks are a fact about tooling, not a claim about outcomes, so
+ * they moved to the right column where facts about tooling already live.
+ *
+ * The other two edits are the same instinct applied twice:
+ *
+ *   · "Responsive & accessible UI" no longer says "this page". The section is a
+ *     record of seven years, not of one weekend, and scoping the only
+ *     accessibility claim to the artefact in front of the reader made it look
+ *     like the only accessibility work there has ever been. "Audited rather
+ *     than assumed" went with it — the audit is a feature of this site and it
+ *     is demonstrated two clicks away, so asserting it here is a boast in the
+ *     place where a boast is least useful.
+ *   · "Performance budgets" is "Performance", because the budget is one of
+ *     three things and naming the entry after the smallest of them undersold it.
+ */
 export const skills = {
   primary: [
-    { name: 'React · Unity · Flutter', note: 'the three frameworks the product has shipped on, across three platform migrations' },
     { name: 'Agentic programming', note: 'cross-team AI harnesses at Wasabi, and this entire site — built in a week by one person and an agent' },
     { name: 'Test automation', note: '75–90% unit coverage, AI-assisted, plus automated QA over the core UI flows' },
     { name: 'Real-time clients', note: 'shared state, reconnection and latency on a live multiplayer game — the same shape of problem as a video call' },
-    { name: 'Responsive & accessible UI', note: 'this page: roving tabindex, live regions, reduced-motion, keyboard-only paths, audited rather than assumed' },
-    { name: 'Performance budgets', note: 'an initial-load ceiling enforced in CI, so it cannot rot between releases' },
+    { name: 'Responsive & accessible UI', note: 'roving tabindex, live regions, reduced-motion, keyboard-only paths' },
+    { name: 'Performance', note: 'an initial-load ceiling enforced in CI so it cannot rot between releases, asset optimisation and lazy loading' },
   ],
   volume: {
     'Over 10,000 lines': ['TypeScript', 'JavaScript', 'C', 'C++', 'C#', 'Dart', 'Java'],
     'Over 1,000 lines': ['Erlang', 'SQL', 'Python', 'Matlab', 'R', 'PHP'],
-    'Tools & platforms': ['Figma', 'UML', 'Spark', 'MySQL', 'Git', 'Unity Editor'],
+    /*
+     * Frameworks first, then the tools, in one row rather than two: the right
+     * column is a list of things worked with, and a framework is one of those.
+     *
+     * 'Unity Editor' came out when 'Unity' went in. They are genuinely different
+     * things — an engine and its authoring tool — but reading "Unity, …, Unity
+     * Editor" in one comma-separated row looks like a list padded by accident,
+     * and the row is more credible six items long than seven.
+     */
+    'Tools & frameworks': ['React', 'Unity', 'Flutter', 'Figma', 'UML', 'Spark', 'MySQL', 'Git'],
   } as Record<string, string[]>,
 };
 
@@ -417,6 +452,28 @@ export const teaching = [
  * at exists" was a tease that never paid off, and one of the two it meant was
  * the effects pipeline, which no longer ships.
  */
+/**
+ * A word inside a line that is really a link.
+ *
+ * The press mentions used to hang off the end of the sentence as a bare "SVT",
+ * because the item carried one href and one label and had nowhere else to put
+ * them. So the line read "Featured on SVT and UNT." and then said "SVT" again,
+ * as a link, after the full stop — which is the shape of a citation and not the
+ * shape of a sentence. Nam: "have the hyperlink on the SVT after Featured on,
+ * not a separate SVT after everything."
+ *
+ * Right, and it also meant the second outlet could not be linked at all, since
+ * there was only room for one. Both are linked now, in place.
+ */
+export interface Mention { text: string; href: string }
+
+export interface Offstage {
+  what: string;
+  why: string;
+  /** Words inside `why` to turn into links. Each matches the first occurrence. */
+  links?: Mention[];
+}
+
 export const offstage = {
   items: [
     {
@@ -430,12 +487,45 @@ export const offstage = {
     {
       what: 'Uppsala Zombie Walk organiser',
       why: 'Website, marketing, makeup, logistics and the rest of it. Featured on SVT and UNT.',
-      href: 'https://www.svt.se/nyheter/lokalt/uppsala/zombie-walk-i-uppsala',
-      hrefLabel: 'SVT',
+      links: [
+        { text: 'SVT', href: 'https://www.svt.se/nyheter/lokalt/uppsala/zombie-walk-i-uppsala' },
+        { text: 'UNT', href: 'https://www.unt.se/kultur/hogtider/artikel/har-intar-zombierna-stan-se-spoklika-vandringen-/reo9w2yl' },
+      ],
     },
-    { what: 'Sports', why: 'Swimming and Brazilian jiu-jitsu.' },
-  ] as { what: string; why: string; href?: string; hrefLabel?: string }[],
+    /*
+     * Sports is gone on Nam's call. It was the only item here that named a thing
+     * without evidence behind it — the other three carry venues, festivals and
+     * press — so it read as the line you add when the section looks short.
+     */
+  ] as Offstage[],
 };
+
+/**
+ * Split a line into plain and linked segments.
+ *
+ * PURE, and it lives here rather than in a renderer because both the document
+ * and the mock browser's Off the clock page have to produce the same sentence,
+ * and the last time two views built the same content separately they drifted.
+ * They build their own nodes from these segments; only the splitting is shared.
+ *
+ * Each mention matches its FIRST occurrence and only that one, searched left to
+ * right from where the previous match ended. A mention whose text is not in the
+ * line is skipped rather than thrown for: a broken link in a CV is bad, and a
+ * blank page where the CV should be is worse.
+ */
+export function segments(text: string, links: Mention[] = []): { text: string; href?: string }[] {
+  const out: { text: string; href?: string }[] = [];
+  let rest = text;
+  for (const m of links) {
+    const at = rest.indexOf(m.text);
+    if (at < 0) continue;
+    if (at > 0) out.push({ text: rest.slice(0, at) });
+    out.push({ text: m.text, href: m.href });
+    rest = rest.slice(at + m.text.length);
+  }
+  if (rest) out.push({ text: rest });
+  return out;
+}
 
 /** Requirement-by-requirement, against the senior posting. */
 export const requirementMap: { req: string; evidence: string; strength: 'strong' | 'met' | 'honest' }[] = [

@@ -28,7 +28,7 @@ import { h, clear, icon, icons } from '../dom.js';
 import { loadSound, saveSound } from '../prefs.js';
 import { ripple } from './gm3.js';
 import { trapFocus } from '../a11y.js';
-import { profile, pitch, roles, caseStudies, requirementMap, offstage, skills } from '../data/cv.js';
+import { profile, pitch, roles, caseStudies, requirementMap, offstage, skills, segments } from '../data/cv.js';
 import { eggs } from '../data/eggs.js';
 import { games } from '../data/games.js';
 import { currentPitch } from '../data/companies.js';
@@ -431,12 +431,15 @@ function pageHobby(): HTMLElement {
        they meant was the effects pipeline, which no longer ships. */
     h('p', { class: 'pg-sub' }, 'What he does when nobody is paying him'),
     h('div', { class: 'pg-roles' },
+      // Same sentence as the document builds, from the same segments — the last
+      // time these two views assembled one piece of content separately they
+      // drifted, and this one carries the press links.
       ...offstage.items.map((it) => h('div', { class: 'pg-role' },
         h('b', {}, it.what),
-        h('span', {}, it.why),
-        it.href
-          ? h('span', {}, h('a', { href: it.href, target: '_blank', rel: 'noopener' }, it.hrefLabel ?? 'Read it'))
-          : h('span', {})))),
+        h('span', {},
+          ...segments(it.why, it.links).map((s) => (s.href
+            ? h('a', { href: s.href, target: '_blank', rel: 'noopener' }, s.text)
+            : h('span', {}, s.text))))))),
     h('p', { class: 'pg-note' }, 'The clips are in this folder, next to this file.'));
 }
 

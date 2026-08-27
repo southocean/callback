@@ -9,7 +9,8 @@
     "verify": "npm run typecheck && npm test && npm run cssstruct && npm run deadcss && npm run build",
     "serve": "node serve.mjs",
     "deadcss": "node tools/css-deadcheck.mjs",
-    "cssstruct": "node tools/css-structure.mjs"
+    "cssstruct": "node tools/css-structure.mjs",
+    "pdf": "node tools/print-cv.mjs"
   },
   "type": "module",
   "devDependencies": {

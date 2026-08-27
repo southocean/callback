@@ -11,7 +11,7 @@ import { h } from '../dom.js';
 import { currentPitch } from '../data/companies.js';
 import { sym, socialLink, type SocialName } from './icons.js';
 import {
-  profile, pitch, roles, education, teaching, skills, offstage, requirementMap,
+  profile, pitch, roles, education, teaching, skills, offstage, requirementMap, segments,
 } from '../data/cv.js';
 
 function email(): string {
@@ -117,7 +117,17 @@ export function renderPlain(onBack: () => void, embedded = false): HTMLElement {
 
     h('section', {}, h('h2', {}, 'Skills'),
       h('div', { class: 'doc-2col' },
-        h('div', {}, ...skills.primary.map((s) => h('div', { class: 'doc-skill' }, h('b', {}, s.name), ' — ', h('span', { class: 'doc-note' }, s.note)))),
+        /*
+         * A COLON, not an em dash. Nam: "change to : instead of emdash here to
+         * keep consistency between left and right column."
+         *
+         * The right column has always been "Over 10,000 lines: TypeScript, …",
+         * and the left was "Test automation — 75–90% unit coverage". Two columns
+         * of the same section, side by side, punctuating the same relationship
+         * two different ways — which reads as two lists that happen to be next
+         * to each other rather than as one section in two halves.
+         */
+        h('div', {}, ...skills.primary.map((s) => h('div', { class: 'doc-skill' }, h('b', {}, `${s.name}: `), h('span', { class: 'doc-note' }, s.note)))),
         h('div', {}, ...Object.entries(skills.volume).map(([k, v]) => h('div', { class: 'doc-skill' }, h('b', {}, `${k}: `), h('span', { class: 'doc-note' }, v.join(', '))))),
       ),
     ),
@@ -137,13 +147,14 @@ export function renderPlain(onBack: () => void, embedded = false): HTMLElement {
        attached to the research they came from instead of listed away from it. */
 
     h('section', {}, h('h2', {}, 'Off the clock'),
+      // The press mentions are links where they are named, rather than a
+      // citation bolted onto the end of the sentence. See segments() in cv.ts.
       ...offstage.items.map((i) => h('div', { class: 'doc-skill' },
-        h('b', {}, i.what), ' — ',
-        h('span', { class: 'doc-note' }, i.why),
-        // A press mention is worth more as a link than as a claim.
-        i.href
-          ? h('span', { class: 'doc-note' }, ' ', h('a', { href: i.href, target: '_blank', rel: 'noopener' }, i.hrefLabel ?? 'Read it'))
-          : h('span', {}))),
+        h('b', {}, `${i.what}: `),
+        h('span', { class: 'doc-note' },
+          ...segments(i.why, i.links).map((s) => (s.href
+            ? h('a', { href: s.href, target: '_blank', rel: 'noopener' }, s.text)
+            : h('span', {}, s.text)))))),
     ),
 
     h(
