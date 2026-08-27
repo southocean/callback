@@ -222,16 +222,93 @@ function overviewView(): HTMLElement {
 
     buildDoc(),
 
-    h('h2', { class: 'dp-head2' }, 'How it got here'),
-    h('div', { class: 'ms-strip' },
-      ...days.map((day) => h('div', { class: 'ms-day' },
-        h('div', { class: 'ms-day-h' },
-          h('b', {}, fmt(day)),
-          h('span', {}, `${commitsPerDay.find((d) => d.day === day)?.n ?? 0} commits`)),
-        ...milestones.filter((m) => m.day === day).map((m) => h('div', { class: 'ms-card' },
-          h('b', {}, m.title),
-          h('span', {}, m.note)))))),
+    /*
+     * MILESTONES, on a rail.
+     *
+     * Nam: "How it got here => Change to milestones." And on the strip it
+     * replaced: "very bland, just a table, nothing exciting. I actually
+     * contemplate using the old layout of the milestone (vertical, with some
+     * blue highlight), only because it has some more color and movement."
+     *
+     * The thing he is remembering is real: the old vertical list ran down a
+     * spine with an accent dot per entry, and the dots were most of what made it
+     * read as a timeline rather than as a list. The horizontal strip that
+     * replaced it kept the dates and dropped the spine, which is exactly how it
+     * became a table.
+     *
+     * So the spine comes back, turned ninety degrees. Same rail, same dots, same
+     * accent, laid out left to right because that is the axis he asked to keep
+     * and because a week reads better along one. The last day's node is live,
+     * since the most recent thing is the one a reader is looking for.
+     */
+    h('h2', { class: 'dp-head2' }, 'Milestones'),
+    railStrip(days),
   );
+}
+
+/**
+ * The milestone rail, and the wheel handler that makes it browsable.
+ *
+ * Nam: "if we scroll, it should go horizontally. For lazy browsing that is."
+ *
+ * A wheel over a horizontal strip does nothing by default, which means the only
+ * way past the fold is a drag on a scrollbar. So vertical wheel is translated
+ * into horizontal scroll — but only while the strip has somewhere to go in that
+ * direction. At either end the event is left alone and the page scrolls on,
+ * which is the difference between a strip that browses and a strip that traps
+ * you.
+ */
+function railStrip(days: string[]): HTMLElement {
+  const strip = h('div', {
+    class: 'ms-strip', tabindex: '0', role: 'group', 'aria-label': 'Milestones, by day',
+  },
+    ...days.map((day, i) => {
+      const m = milestones.find((x) => x.day === day);
+      return h('div', { class: 'ms-day' + (i === days.length - 1 ? ' is-latest' : '') },
+        h('span', { class: 'ms-node', 'aria-hidden': 'true' }),
+        h('span', { class: 'ms-date' }, fmt(day)),
+        h('span', { class: 'ms-n' }, `${commitsPerDay.find((d) => d.day === day)?.n ?? 0} commits`),
+        h('span', { class: 'ms-title' }, m?.title ?? ''));
+    })) as HTMLElement;
+
+  /*
+   * WHERE THE STRIP IS HEADING, not where it is.
+   *
+   * `scroll-behavior: smooth` means scrollLeft animates toward whatever it was
+   * assigned, so reading it during a run of wheel events reads a position from
+   * a few frames ago. That is fine for scrolling and wrong for the end check:
+   * wheeling up while a scroll to zero was still animating found a non-zero
+   * scrollLeft, decided the strip had room, and swallowed the event. The strip
+   * held the wheel and the panel behind it would not move.
+   *
+   * So the decision uses the target and the browser uses the animation. Cleared
+   * once the wheel goes quiet, after which the live position is the truth again.
+   */
+  let target: number | null = null;
+  let settle = 0;
+
+  strip.addEventListener('wheel', (e) => {
+    const ev = e as WheelEvent;
+    // A trackpad's horizontal gesture already does the right thing; taking it
+    // over would fight the axis the visitor chose.
+    if (Math.abs(ev.deltaX) > Math.abs(ev.deltaY)) return;
+    const max = strip.scrollWidth - strip.clientWidth;
+    if (max <= 0) return;
+    const at = target ?? strip.scrollLeft;
+    // Hand the event back at the ends so the page keeps scrolling past it. A
+    // strip that eats the wheel at its own edge is a trap, not a control.
+    if ((ev.deltaY < 0 && at <= 0) || (ev.deltaY > 0 && at >= max - 1)) {
+      target = null;
+      return;
+    }
+    ev.preventDefault();
+    target = Math.max(0, Math.min(max, at + ev.deltaY));
+    strip.scrollLeft = target;
+    window.clearTimeout(settle);
+    settle = window.setTimeout(() => { target = null; }, 180);
+  }, { passive: false });
+
+  return strip;
 }
 
 /** How the work actually ran: three phases per task, and a fourth per batch. */

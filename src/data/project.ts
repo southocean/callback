@@ -29,58 +29,51 @@ export const commitsPerDay: { day: string; n: number; label: string; thin?: bool
   { day: '2026-08-24', n: 0, label: 'Day 5', thin: true },
   { day: '2026-08-25', n: 43, label: 'Day 6' },
   { day: '2026-08-26', n: 18, label: 'Day 7' },
+  { day: '2026-08-27', n: 17, label: 'Day 8' },
 ];
 
+/**
+ * ONE A DAY, AND A TITLE ONLY.
+ *
+ * This used to carry a `note` of two or three sentences and a commit number,
+ * and eight entries covered five days. Nam, reading it back: "all the text
+ * explaining stuff, we can get rid of them. We just need to know the big
+ * picture, what was done when, and every day its 1 milestone max."
+ *
+ * He is right about what the section is for. Nobody reads a milestone strip to
+ * learn how a thing works; they read it to see the shape of a week. The notes
+ * were a second copy of explanations that already exist in the build document,
+ * the design reviews and the board, and the commit numbers were precision
+ * nobody had asked for.
+ *
+ * A day may have no milestone. `max` is the rule, not a quota, and the two
+ * near-empty days did not produce one.
+ */
 export interface Milestone {
   day: string;
-  /** Which commit, counting from the first. */
-  n: number;
   title: string;
-  note: string;
 }
 
-/** Real commits, chosen to space across the life of the project. */
+/** The most consequential thing that happened on each day that had one. */
 export const milestones: Milestone[] = [
-  {
-    day: '2026-08-20', n: 1,
-    title: 'First commit',
-    note: 'An interactive CV, built as a call. The metaphor was fixed before any interface existed.',
-  },
-  {
-    day: '2026-08-20', n: 3,
-    title: 'Measured, not eyeballed',
-    note: 'The interface became a clone built from getBoundingClientRect and getComputedStyle rather than from screenshots. Every later correction traces back to this decision.',
-  },
-  {
-    day: '2026-08-20', n: 52,
-    title: 'The lobby, at every width',
-    note: 'A breakpoint that derives itself from the content instead of a round number picked by hand.',
-  },
-  {
-    day: '2026-08-21', n: 61,
-    title: 'The in-call screen',
-    note: 'Panels, reactions, captions and the control bar, all cloned from measurement.',
-  },
-  {
-    day: '2026-08-21', n: 64,
-    title: 'A failed measurement, recorded',
-    note: 'A pass that produced a contradiction was written up rather than quietly re-run. The reaction band could not be both places at once, and saying so is what found the real rule.',
-  },
-  {
-    day: '2026-08-23', n: 70,
-    title: 'The shared screen becomes a machine',
-    note: 'A Windows desktop drawn in the browser: windows that drag, resize, minimise and snap.',
-  },
-  {
-    day: '2026-08-25', n: 88,
-    title: 'Pin, unpin, and the presenting layout',
-    note: 'The last of the call states, all read off the live product while a share was running.',
-  },
-  {
-    day: '2026-08-26', n: 120,
-    title: 'Read as a stranger would read it',
-    note: 'A perception pass: what a non-technical reader sees first, and what reads as a scam. The riskiest findings were about framing, not code.',
-  },
+  /*
+   * Day one had three candidates: the first commit, the decision to measure
+   * rather than eyeball, and the lobby's derived breakpoint. The first commit
+   * is not a milestone, it is a start date, and every project has one. The
+   * measuring decision is the one every later correction traces back to.
+   */
+  { day: '2026-08-20', title: 'Measured, not eyeballed' },
+  /*
+   * "A failed measurement, recorded" was here and is gone. Nam: "what kind of
+   * milestone is this? remove." Right: it is a good story about how the work
+   * runs, which is what the Process tab is for, and it is not a thing that got
+   * built on a day.
+   */
+  { day: '2026-08-21', title: 'The in-call screen' },
+  { day: '2026-08-23', title: 'The shared screen becomes a desktop' },
+  { day: '2026-08-25', title: 'Pinned and presenting layouts' },
+  { day: '2026-08-26', title: 'Read as a stranger would read it' },
+  { day: '2026-08-27', title: 'The call gives its own demo' },
 ];
 
 export interface Phase {
