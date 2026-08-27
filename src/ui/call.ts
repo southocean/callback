@@ -266,6 +266,48 @@ export function renderCall(store: Store, quests: Quests, deps: CallDeps, bugs: B
     el.style.left = el.style.top = el.style.right = el.style.bottom = '';
   }
 
+  /**
+   * KEEP THE CORNER TRUE WHEN THE HOST CHANGES SHAPE.
+   *
+   * place() writes numeric left/top measured off the host at the moment it runs,
+   * and nothing recomputed them afterwards, so anything that reshaped the host
+   * left the tile where it used to belong. Nam: "the position of the video tile
+   * is also a bit off in our version compared to the original meet."
+   *
+   * Two ways in, both real, and both measured at 1440x900 while presenting:
+   *
+   *   THE CAPTIONS. sync() calls place() and only then toggles `cc-on`, so the
+   *   measure is taken against a stage that is about to lose 216px to the caption
+   *   band. The tile sat correctly at right 16 / bottom 16 with captions on, and
+   *   turning them off left it 232 from the bottom rather than 16.
+   *
+   *   THE WINDOW. There was no resize handling in this file at all, so dragging
+   *   the browser wider walked the tile off its corner and left it there.
+   *
+   * A ResizeObserver on the host answers both, and the reactions tray and the
+   * side panel besides, without each of them having to remember to call place().
+   * Reordering sync() would have fixed only the first.
+   *
+   * It cannot loop: .grid-wrap.is-solo carries container-type: size, so the tile
+   * it repositions cannot feed back into the host's own box.
+   *
+   * Not while dragging, and not while unplaced -- the pointer owns the position
+   * until it is released, and an unplaced tile is the stylesheet's business.
+   */
+  let hostRO: ResizeObserver | null = null;
+  let watched: HTMLElement | null = null;
+
+  function watchHost(el: HTMLElement, host: HTMLElement): void {
+    if (watched === host) return;
+    hostRO?.disconnect();
+    hostRO = new ResizeObserver(() => {
+      if (!draggable() || el.classList.contains('is-dragging') || !el.style.left) return;
+      place(el, false);
+    });
+    hostRO.observe(host);
+    watched = host;
+  }
+
   function draggable(): boolean {
     return document.body.classList.contains('presenting') && !store.get().pinned;
   }

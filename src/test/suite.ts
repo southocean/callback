@@ -1203,6 +1203,23 @@ suite('the caption speaks', () => {
     ok(t[2]!.restMs > t[0]!.restMs, 'a full stop is not a longer pause than a comma');
   });
 
+  /*
+   * N60. The authored hesitation, which is the only thing the renderer knows
+   * about a stumble. A test rather than a read of the regex, because the failure
+   * is invisible: without the rest, "Claude, uh, made this section redundant"
+   * still reads correctly and just does not pause, and nobody notices a beat
+   * that is missing.
+   */
+  test('an authored hesitation earns a longer rest than a comma', () => {
+    const t = tokenise('Claude, uh, made this whole section redundant LOL.');
+    const uh = t.find((w) => w.text === 'uh,');
+    const claude = t.find((w) => w.text === 'Claude,');
+    ok(!!uh && !!claude, 'the line was not tokenised as written');
+    ok(uh!.restMs > claude!.restMs, 'the hesitation does not hold longer than an ordinary comma');
+    // And a sentence merely ending on one is not a stumble.
+    eq(tokenise('Talk to the hand.').every((w) => w.restMs <= 260), true);
+  });
+
   test('an empty line does not throw', () => {
     eq(tokenise('').length, 0);
     eq(tokenise('   ').length, 0);

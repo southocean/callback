@@ -1233,7 +1233,7 @@ export const tasks: Task[] = [
         'The list, the hiding places and the art are all documented in the Project spec',
       ],
       raised: 'Nam, script pass 28 Aug',
-      notes: 'Art was the interesting constraint. Twelve bespoke illustrations is a week of drawing, and twelve copies of one beetle is not a collection. So the drawing is parametric: eight body plans, scarab, jewel, longhorn, cicada, swallowtail, birdwing, mantis and leaf, each taking a palette and a set of proportions. A silhouette is the same geometry with one flat fill, which is why an uncaught bug has exactly the right outline and gives nothing else away.',
+      notes: 'QA found one leak worth recording, because it is the kind that survives a code review. Every trigger runs through one delegated listener that ignores untrusted clicks, which is what stops the conversation catching bugs on the visitor’s behalf, and the scarab is the single exception: it is awarded from inside the raise-hand handler, and a handler cannot see who called it. The close performs "Raise your hand" with the hand, so the script was quietly banking a third of a bug. Driving it in a browser is what showed it, and the fix is one boolean. Art was the interesting constraint. Twelve bespoke illustrations is a week of drawing, and twelve copies of one beetle is not a collection. So the drawing is parametric: eight body plans, scarab, jewel, longhorn, cicada, swallowtail, birdwing, mantis and leaf, each taking a palette and a set of proportions. A silhouette is the same geometry with one flat fill, which is why an uncaught bug has exactly the right outline and gives nothing else away.',
     },
   },
   {
