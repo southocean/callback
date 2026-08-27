@@ -88,9 +88,9 @@ export const SITE = 'https://southocean.github.io/callback/';
 
 /** The one-liner. Five seconds to land (review U5). */
 export const pitch =
-  'I have spent seven years leading the front end of a real-time multiplayer client — ' +
-  'shared state, reconnection, latency, a rendering engine embedded in a web app. ' +
-  'That is the same shape of problem as a video call.';
+  'Seven years leading the front end of a real-time multiplayer client: shared state, ' +
+  'reconnection, latency, a rendering engine embedded in a web app. The same shape of ' +
+  'problem as a video call.';
 
 export const roles: Role[] = [
   {
@@ -125,10 +125,10 @@ export const roles: Role[] = [
      */
     bullets: [
       'Game client for online mahjong, built for the Chinese and Japanese markets.',
-      'Pivoted the product through every platform it has had: web app, to Unity, and now React Native serving both web and mobile.',
-      'Pioneered agentic programming at the company — built the cross-team AI harnesses and drove adoption beyond my own team.',
-      'Feature design, UX and responsive design, advanced Mahjong bot design (4–5 Dan), the bot swarm controller, and automated QA.',
-      'Worked directly with designers, backend, marketing and investors — a vertical grasp of the whole product, and an active say in what gets built next.',
+      'Took the product through every platform it has had: web, then Unity, now React Native on web and mobile.',
+      'Pioneered agentic programming: built the cross-team AI harnesses, drove adoption beyond my team.',
+      'Feature design, responsive UI, advanced Mahjong bot (4–5 Dan), bot swarm controller, automated QA.',
+      'Worked directly with design, backend, marketing and investors, with an active say in what gets built next.',
     ],
   },
   /*
@@ -152,8 +152,8 @@ export const roles: Role[] = [
     kind: 'research',
     gist: 'Graph mining and combinatorial optimisation. This is where the algorithms came from.',
     bullets: [
-      'Graph mining, contributed to the Multinet open-source library — InfoLab, Uppsala University, 2018.',
-      'Sensor network optimisation: two publications, one book chapter, one best-paper award — MSO Lab, HUST, 2014–2017.',
+      'Graph mining for the Multinet open-source library. InfoLab, Uppsala University, 2018.',
+      'Sensor network optimisation: two papers, a book chapter, a best-paper award. MSO Lab, HUST, 2014–2017.',
     ],
   },
   {
@@ -168,8 +168,8 @@ export const roles: Role[] = [
     kind: 'engineering',
     gist: 'Security tokens in C++. Where getting it exactly right was the whole job.',
     bullets: [
-      'Researched and built eToken, a hardware security token for signing and verifying digital signatures.',
-      'Delivered a beta version meeting the relevant ISO standards.',
+      'Built eToken, a hardware security token for signing and verifying digital signatures.',
+      'Delivered a beta meeting the relevant ISO standards.',
     ],
   },
 ];
@@ -179,14 +179,14 @@ export const caseStudies: CaseStudy[] = [
     id: 'mahjong',
     title: 'A real-time multiplayer client, through two platform migrations',
     org: 'Wasabi Productions',
-    years: '2019 — present',
+    years: '2019–present',
     stack: ['JavaScript', 'React', 'Unity', 'C#', 'REST APIs', 'responsive UI'],
     problem:
       'Four players at a table, in different countries, on different networks, all of whom must see the same ' +
       'board at the same moment. One of them is on hotel wifi. The client has to stay honest about shared ' +
       'state while the connection underneath it is not honest at all.',
     approach: [
-      'Took the product from a native desktop app to the browser, then to a hybrid client running React for interface and Unity for the table itself — embedding a rendering engine inside a web app and keeping the two in step.',
+      'Took the product from a native desktop app to the browser, then to a hybrid running React for interface and Unity for the table itself: a rendering engine inside a web app, kept in step.',
       'Designed the API surface between client and server, which is where the reconnection and resync behaviour actually lives.',
       'Built a bot controller so live tables could be driven under test instead of by hand. Test automation for a system whose hardest bugs only appear with four real participants.',
       'Localised for the Chinese and Japanese markets, where the game conventions and the typography both differ.',
@@ -208,7 +208,7 @@ export const caseStudies: CaseStudy[] = [
       'a PDF is free, so a claim is worth nothing. The artifact had to be the evidence.',
     approach: [
       'Strict TypeScript, no framework, no runtime dependencies. The whole bundle is under the budget printed in the footer, and the build fails if it goes over.',
-      'A real unit-test suite over real logic — the state reducer, timeline geometry, the caption scheduler, the network model. It runs in CI and it runs in your browser, in the Engineering panel.',
+      'A real unit-test suite over real logic: the state reducer, timeline geometry, the caption scheduler, the network model. It runs in CI and in your browser, in the Engineering panel.',
       'A chaos switch in that panel injects a fault so you can watch the suite go red. A green screenshot proves nothing.',
       'A WebGL filter chain over live video, because effects are a feature this product ships and building one is more convincing than mentioning one.',
       'A network simulator that degrades the call: loss, jitter, resolution collapse. The failure mode this team actually lives in.',
@@ -220,15 +220,15 @@ export const caseStudies: CaseStudy[] = [
   },
   {
     id: 'etoken',
-    title: 'eToken — signing hardware, in C++',
+    title: 'eToken: signing hardware, in C++',
     org: 'Bkav Corp.',
-    years: '2013 — 2015',
+    years: '2013–2015',
     stack: ['C++', 'cryptographic signing', 'ISO conformance'],
     problem:
       'A device that signs documents has no acceptable margin of error and no useful way to say "roughly".',
     approach: [
       'Researched and implemented the token that signs and verifies digital signatures.',
-      'Drove it to a beta meeting the relevant ISO standards — conformance as the definition of done, rather than a phase at the end.',
+      'Drove it to a beta meeting the relevant ISO standards, with conformance as the definition of done rather than a phase at the end.',
     ],
     relevance:
       'Two years in a codebase where correctness was the product. It is the reason I write tests before I am asked to.',
@@ -237,7 +237,7 @@ export const caseStudies: CaseStudy[] = [
     id: 'research',
     title: 'Combinatorial optimisation, published',
     org: 'MSO Lab, HUST · InfoLab, Uppsala',
-    years: '2014 — 2018',
+    years: '2014–2018',
     stack: ['algorithms', 'genetic algorithms', 'graph mining', 'Matlab', 'Python'],
     problem:
       'Where to place sensors, how to route between them, and how to find a good answer when the exact one is out of reach.',
@@ -249,7 +249,7 @@ export const caseStudies: CaseStudy[] = [
     ],
     relevance:
       'Both postings list data structures and algorithms as preferred. This is not a weekend of practice ' +
-      'problems — it is four years of it, peer-reviewed, and three semesters of teaching it to other people.',
+      'problems. It is four years of it, peer-reviewed, and three semesters of teaching it to other people.',
   },
 ];
 
@@ -258,7 +258,7 @@ export const chat: ChatMessage[] = [
   {
     from: 'system',
     at: '',
-    text: 'Nam started a call. This panel is the cover letter — he just refused to attach it as a .docx.',
+    text: 'Nam started a call. This panel is the cover letter. He just refused to attach it as a .docx.',
   },
   {
     from: 'nam',
@@ -279,7 +279,7 @@ export const chat: ChatMessage[] = [
     from: 'nam',
     at: '09:01',
     text:
-      'I took that client from a desktop app to the browser, then to a React + Unity hybrid — a rendering ' +
+      'I took that client from a desktop app to the browser, then to a React + Unity hybrid: a rendering ' +
       'engine living inside a web page, which is a sentence I understand the cost of. I led the five people ' +
       'who did it with me.',
   },
@@ -288,7 +288,7 @@ export const chat: ChatMessage[] = [
     at: '09:02',
     text:
       'Before that: two years of C++ on signing hardware, where correctness was the product. Before that, ' +
-      'four years of optimisation research — two papers, a book chapter, a best-paper award, and three ' +
+      'four years of optimisation research. Two papers, a book chapter, a best-paper award, and three ' +
       'semesters as a teaching assistant for algorithms. Your ad asks for data structures and algorithms. ' +
       'That part I can show you.',
   },
@@ -297,7 +297,7 @@ export const chat: ChatMessage[] = [
     at: '09:03',
     text:
       'One thing I will not pretend about: accessibility is listed as preferred and I have not shipped a ' +
-      'product where it was my mandate. So I did the work here instead — this page is keyboard-complete, ' +
+      'product where it was my mandate. So I did the work here instead. This page is keyboard-complete, ' +
       'screen-reader tested, and the Engineering panel audits it live and is allowed to fail. Judge it on that.',
   },
   {
@@ -305,7 +305,7 @@ export const chat: ChatMessage[] = [
     at: '09:04',
     text:
       'Your posting mentions agentic coding. I built this with it, and left the build log in the Engineering ' +
-      'panel — including three rounds of people picking the plan apart, and what I changed each time.',
+      'panel, including three rounds of people picking the plan apart and what I changed each time.',
   },
   {
     from: 'nam',
@@ -319,7 +319,7 @@ export const chat: ChatMessage[] = [
     at: '09:06',
     text:
       "I'm 38 minutes from your office, I speak Swedish at C1, and I already have the right to work here. " +
-      'End the call whenever you like — there is a PDF and an email address on the way out.',
+      'End the call whenever you like. There is a PDF and an email address on the way out.',
   },
 ];
 
@@ -385,11 +385,11 @@ export const chat: ChatMessage[] = [
  */
 export const skills = {
   primary: [
-    { name: 'Agentic programming', note: 'cross-team AI harnesses at Wasabi, and this entire site — built in a week by one person and an agent' },
-    { name: 'Test automation', note: '75–90% unit coverage, AI-assisted, plus automated QA over the core UI flows' },
-    { name: 'Real-time clients', note: 'shared state, reconnection and latency on a live multiplayer game — the same shape of problem as a video call' },
-    { name: 'Responsive & accessible UI', note: 'roving tabindex, live regions, reduced-motion, keyboard-only paths' },
-    { name: 'Performance', note: 'an initial-load ceiling enforced in CI so it cannot rot between releases, asset optimisation and lazy loading' },
+    { name: 'Agentic programming', note: 'cross-team AI harnesses at Wasabi, and this site: one person, one agent, one week' },
+    { name: 'Test automation', note: '75–90% unit coverage, AI-assisted, plus automated QA over the core flows' },
+    { name: 'Real-time clients', note: 'shared state, reconnection and latency on a live multiplayer game' },
+    { name: 'Responsive & accessible UI', note: 'roving tabindex, live regions, reduced motion, keyboard-only paths' },
+    { name: 'Performance', note: 'load budget enforced in CI, asset optimisation, lazy loading' },
   ],
   volume: {
     'Over 10,000 lines': ['TypeScript', 'JavaScript', 'C', 'C++', 'C#', 'Dart', 'Java'],
@@ -403,12 +403,12 @@ export const skills = {
      * Editor" in one comma-separated row looks like a list padded by accident,
      * and the row is more credible six items long than seven.
      */
-    'Tools & frameworks': ['React', 'Unity', 'Flutter', 'Figma', 'UML', 'Spark', 'MySQL', 'Git'],
+    'Tools & frameworks': ['React', 'Unity', 'Flutter', 'Figma'],
   } as Record<string, string[]>,
 };
 
 export const education = [
-  { school: 'Uppsala University', award: 'MSc, Computer Science', years: '2016 — 2018', place: 'Uppsala, Sweden' },
+  { school: 'Uppsala University', award: 'MSc, Computer Science', years: '2016–2018', place: 'Uppsala, Sweden' },
   {
     school: 'Tokyo University of Agriculture and Technology',
     award: 'Research exchange',
@@ -418,7 +418,7 @@ export const education = [
   {
     school: 'Hanoi University of Science and Technology',
     award: 'BS, Computer Science',
-    years: '2011 — 2016',
+    years: '2011–2016',
     place: 'Hanoi, Vietnam',
   },
 ];
@@ -426,7 +426,7 @@ export const education = [
 export const teaching = [
   'Database Design (HT16, HT17)',
   'Advanced Software Design (HT17)',
-  'Genetic Algorithms (2014 — 2015)',
+  'Genetic Algorithms (2015)',
 ];
 
 /*
@@ -474,7 +474,7 @@ export const offstage = {
   items: [
     {
       what: 'Stand-up comedy',
-      why: 'Performed at Fyris Komedi and Comedy Nation. Competed in Uppsalas Roligaste 2026.',
+      why: 'Fyris Komedi and Comedy Nation. Competed in Uppsalas Roligaste 2026.',
     },
     {
       what: 'Acting',
@@ -482,7 +482,7 @@ export const offstage = {
     },
     {
       what: 'Uppsala Zombie Walk organiser',
-      why: 'Website, marketing, makeup, logistics and the rest of it. Featured on SVT and UNT.',
+      why: 'Website, marketing, makeup and logistics. Featured on SVT and UNT.',
       links: [
         { text: 'SVT', href: 'https://www.svt.se/nyheter/lokalt/uppsala/zombie-walk-i-uppsala' },
         { text: 'UNT', href: 'https://www.unt.se/kultur/hogtider/artikel/har-intar-zombierna-stan-se-spoklika-vandringen-/reo9w2yl' },
@@ -532,7 +532,7 @@ export const requirementMap: { req: string; evidence: string; strength: 'strong'
   },
   {
     req: '5 years software development',
-    evidence: 'Bkav 2013—2015, Wasabi Productions 2019—present. Twelve years since the first professional line.',
+    evidence: 'Bkav 2013–2015, Wasabi Productions 2019–present. Twelve years since the first professional line.',
     strength: 'strong',
   },
   {
@@ -562,7 +562,7 @@ export const requirementMap: { req: string; evidence: string; strength: 'strong'
   },
   {
     req: 'Preferred: technical leadership',
-    evidence: 'Led a team of five for seven years — task breakdown, reviews, architecture decisions.',
+    evidence: 'Led a team of five for seven years: task breakdown, reviews, architecture decisions.',
     strength: 'strong',
   },
   {
@@ -578,14 +578,14 @@ export const requirementMap: { req: string; evidence: string; strength: 'strong'
   },
   {
     req: 'Agentic coding techniques and tools',
-    evidence: 'This site was built with them, and the build log is in the Engineering panel — reviews, objections, and what changed.',
+    evidence: 'Built with them, and the build log is in the Engineering panel: reviews, objections, what changed.',
     strength: 'met',
   },
 ];
 
 /** For the friend who has to put his name on it (review H4, R2, R5). Fact-only. */
 export const referralBlurb =
-  'Nam Nguyen — front-end, Uppsala. Seven years as lead front-end developer on a real-time multiplayer ' +
+  'Nam Nguyen, front-end, Uppsala. Seven years as lead front-end developer on a real-time multiplayer ' +
   'game client at Wasabi Productions, where he took the product through every platform it has had ' +
   'to the browser and then to a React + Unity hybrid. Before that, two years of C++ on signing hardware at ' +
   'Bkav. MSc Computer Science from Uppsala, plus four years of optimisation research with two publications, ' +
@@ -597,9 +597,9 @@ export const referralBlurb =
 export const meta = {
   siteName: 'Callback',
   why: [
-    'A phone callback — what I am asking for.',
-    'A JS callback — what the job is.',
-    'A stand-up callback — a joke that refers back to an earlier joke.',
+    'A phone callback: what I am asking for.',
+    'A JS callback: what the job is.',
+    'A stand-up callback: a joke that refers back to an earlier joke.',
   ],
   /*
    * `disclaimer` is gone, and this is the third and last place it lived.

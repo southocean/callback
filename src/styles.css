@@ -1074,17 +1074,96 @@ body.plain { background: #fff; color: #16181c; }
 .doc-note { font: 400 13px/1.5 var(--font); color: #6b7280; }
 .doc-foot { font: 400 12px/1.6 var(--font); color: #8a8f98; border-top: 1px solid #dcdcd6; padding-top: 14px; margin-top: 34px; }
 
+/* ============================ THE PRINTED CV ============================= */
+/* The PDF is a print of this document, so this block is not a courtesy — it is
+ * the layout of the file that gets attached to applications and forwarded. It
+ * gets treated as a layout rather than as a handful of overrides.
+ *
+ * Nam, looking at the generated PDF: "my email, location and social media is now
+ * back to the left? It should be on the right!"
+ *
+ * THE CAUSE. `.doc-top` is a flex row with `flex-wrap: wrap`, and A4 minus the
+ * page margins is about 690 CSS pixels. That is narrow enough that the name
+ * block and the contact block no longer fit on one line, so the contact block
+ * wrapped underneath — and being `text-align: right` inside a box only as wide
+ * as its own longest line, it landed against the left margin with a ragged
+ * indent. Right-aligned text in the wrong place looks like a broken indent, not
+ * like right-aligned text, which is why it read as a formatting bug.
+ *
+ * So print refuses the wrap outright and lets the name column be the one that
+ * gives up width. Nothing about the screen layout changes.
+ */
 @media print {
   body.plain { background: #fff; }
-  .doc { padding: 0; max-width: none; font-size: 11pt; }
+  .doc { padding: 0; max-width: none; font-size: 10.5pt; }
   .doc-back, .doc-foot, .no-print { display: none !important; }
-  .doc h1 { font-size: 26pt; }
-  .doc h2 { margin: 14pt 0 7pt; font-size: 9pt; }
-  .doc ul { font-size: 10pt; margin-bottom: 8pt; }
-  .doc li { margin-bottom: 1pt; }
-  .doc-pitch { font-size: 11pt; margin: 10pt 0 14pt; }
+
+  .doc-top { flex-wrap: nowrap; align-items: flex-start; gap: 16pt; }
+  /* The name column absorbs the shortfall; the contact column keeps its width
+     and its alignment, which is the whole point of the fix. */
+  .doc-top > div:first-child { min-width: 0; flex: 1 1 auto; }
+  .doc-contact { flex: 0 0 auto; text-align: right; font-size: 9pt; line-height: 1.55; }
+  .doc-socials { justify-content: flex-end; }
+
+  /*
+   * THE SUMMARY LINE IS NOT PRINTED. Nam: "We should also get rid of this ... in
+   * the pdf, not needed."
+   *
+   * It earns its place on screen, where a reader has landed cold and needs one
+   * sentence telling them what they are looking at. On paper it is three lines
+   * saying what the Experience section underneath says in detail, to a reader
+   * who is already holding the whole document.
+   */
+  .doc-pitch { display: none !important; }
+
+  /*
+   * THE VERTICAL RHYTHM IS TIGHTER ON PAPER, AND IT BUYS THE SECOND PAGE BACK.
+   *
+   * The harness measured the content at 1085px against a 1024px page: 61px
+   * over, which is about four lines, for a document whose own footer calls it a
+   * one-pager. That gap closes in the whitespace rather than in the words. A CV
+   * that spills four lines onto a second page is read as two pages, and the
+   * second one is where the hobbies live.
+   *
+   * Every number below is leading, not type size. Shrinking the text to fit is
+   * how a CV ends up at 8pt and unread; the space between sections is where a
+   * screen layout is genuinely too generous for print.
+   */
+  .doc h1 { font-size: 24pt; }
+  .doc-target { font-size: 9.5pt; margin-top: 2pt; }
+  .doc-top { padding-bottom: 8pt; margin-bottom: 0; }
+  .doc h2 { margin: 8pt 0 4pt; font-size: 8.5pt; padding-bottom: 2pt; }
+  .doc h3 { font-size: 12pt; }
+  .doc ul { font-size: 9.5pt; margin-bottom: 4pt; }
+  .doc li { margin-bottom: 0; }
+  .doc-sub, .doc-when { font-size: 9pt; }
+  .doc-skill { font-size: 9.5pt; line-height: 1.4; margin-bottom: 4pt; }
+  .doc section > div + div { margin-top: 5pt; }
+  /*
+   * Two real columns on paper.
+   *
+   * A4 less its margins is 680px, which trips the 720px breakpoint further down
+   * this file where `.doc-2col` collapses to one column for phones. That rule
+   * has equal specificity and comes later, so it was winning, and the skills
+   * section printed as one tall column. Named through `.doc` to outrank it
+   * rather than moved: the print block belongs with the document's own styles,
+   * not stranded at the bottom of the file behind every phone override.
+   */
+  .doc .doc-2col { display: grid; grid-template-columns: 1fr 1fr; gap: 0 18pt; }
   .doc section { break-inside: avoid; }
-  @page { margin: 14mm; }
+  /*
+   * Links keep their underline and lose their colour.
+   *
+   * The first pass took both, and the print showed why that is wrong: SVT and
+   * UNT are the evidence for the zombie walk, and with no marking at all they
+   * read as two more words in a sentence. A PDF link is still clickable, so
+   * unmarking it hides a working thing.
+   *
+   * The colour goes because blue text on paper is a web habit; the underline
+   * stays because that is what tells a reader there is a source behind the word.
+   */
+  .doc a { color: inherit; text-decoration: underline; text-underline-offset: 2px; }
+  @page { margin: 13mm; }
 }
 
 /* ========================================================== responsive === */

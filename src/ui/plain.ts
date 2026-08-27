@@ -85,7 +85,7 @@ export function renderPlain(onBack: () => void, embedded = false): HTMLElement {
         h(
           'div',
           {},
-          h('div', { class: 'doc-row' }, h('h3', {}, r.org), h('span', { class: 'doc-when' }, `${r.fromLabel} — ${r.toLabel}`)),
+          h('div', { class: 'doc-row' }, h('h3', {}, r.org), h('span', { class: 'doc-when' }, `${r.fromLabel}–${r.toLabel}`)),
           h('div', { class: 'doc-sub' }, `${r.title} · ${r.place}`),
           h('ul', {}, ...r.bullets.map((x) => h('li', {}, x))),
         ),
@@ -111,7 +111,7 @@ export function renderPlain(onBack: () => void, embedded = false): HTMLElement {
         h('h2', {}, 'Against the job requirement'),
         h('p', { class: 'doc-target' }, job.target),
         ...requirementMap.map((r) =>
-          h('div', { class: 'doc-skill' }, h('b', {}, `${r.strength === 'honest' ? '~' : '✓'} ${r.req} — `), h('span', { class: 'doc-note' }, r.evidence)),
+          h('div', { class: 'doc-skill' }, h('b', {}, `${r.strength === 'honest' ? '~' : '✓'} ${r.req}: `), h('span', { class: 'doc-note' }, r.evidence)),
         ))
       : h('span', {}),
 
