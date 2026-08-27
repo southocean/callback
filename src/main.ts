@@ -7,6 +7,7 @@ import { renderHome } from './ui/home.js';
 import { spinner } from './ui/icons.js';
 import { prefersReducedMotion } from './a11y.js';
 import { Quests, konami } from './achievements.js';
+import { Bugs, wireBugs } from './bugs.js';
 import { openDev } from './ui/devopen.js';
 import { togglePlain, onPlainOpened } from './ui/plainoverlay.js';
 import { codeFromUrl, pitchFor } from './data/companies.js';
@@ -14,6 +15,14 @@ import { loadReadyGate, readyCardOpens } from './prefs.js';
 
 const root = must('#app');
 const quests = new Quests();
+/*
+ * The collection, board ticket N59. Wired once, at boot, rather than per screen:
+ * its triggers live on surfaces that come and go (the shared desktop is a
+ * deferred chunk that mounts and unmounts), and a listener that has to be
+ * re-attached on every render is a listener that will eventually not be.
+ */
+const bugs = new Bugs();
+wireBugs(bugs);
 
 /*
  * Opening the CV counts as the quest wherever it is opened from. This used to be
@@ -44,9 +53,10 @@ const boot: State = {
 const store = new Store(boot);
 
 /*
- * The tab title and the link preview name the employer only when a code does.
- * index.html ships the Google version as its static default, which is right for
- * the send it was built for and wrong for every other one.
+ * The tab title and the link preview name the employer unless the neutral code
+ * asks them not to (N66). index.html ships the Google version as its static
+ * default, which used to be right for one send and wrong for every other one,
+ * and is now simply what the default is.
  */
 {
   const p = pitchFor(boot.company);
@@ -208,15 +218,16 @@ function render(): void {
     clear(root);
     root.appendChild(renderHome(store, s.reducedMotion));
     quests.mount(root);
+    bugs.mount(root);
     return;
   }
   if (key === 'lobby') {
     mount(key, () => import('./ui/lobby.js').then((m) => m.renderLobby(store, media)));
   } else if (key === 'ended') {
-    mount(key, () => import('./ui/ended.js').then((m) => m.renderEnded(store, quests)));
+    mount(key, () => import('./ui/ended.js').then((m) => m.renderEnded(store, quests, bugs)));
   } else {
     mount(key, () => import('./ui/call.js')
-      .then((m) => m.renderCall(store, quests, { toggleCamera })));
+      .then((m) => m.renderCall(store, quests, { toggleCamera }, bugs)));
   }
 }
 
@@ -244,6 +255,7 @@ function mount(key: string, load: () => Promise<HTMLElement>): void {
     clear(root);
     root.appendChild(node);
     quests.mount(root);
+    bugs.mount(root);
   }).catch(() => {
     if (ticket !== renderTicket) return;
     clear(root);

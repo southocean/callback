@@ -46,6 +46,7 @@ import {
   type Bail, type Beat, type Line, type Surface,
 } from '../data/tour.js';
 import { markEggSeen, unseenEggs } from '../prefs.js';
+import { currentPitch } from '../data/companies.js';
 import { makeHand, type Hand, type Scroller } from './cursor.js';
 import {
   reduceTour, initialTour, linesFor, partForElement, quipForElement, quipForEvent, quipById,
@@ -108,6 +109,14 @@ export interface Podium {
   /** Open an easter-egg clip on the shared screen. */
   playEgg: (id: string) => void;
   /**
+   * Hand the visitor a side quest the script has just completed for them.
+   *
+   * N63. Off the clock plays the clips nobody found, so it has to be the thing
+   * that credits them for it: a visitor who watched all six and got nothing has
+   * been shown the content and denied the mechanic.
+   */
+  quest: (id: string) => void;
+  /**
    * The conversation reached its last line, in `ms`. Not called when the
    * visitor stops it, and not called when it gives up and hands over — neither
    * is a completed hearing, so neither is timed.
@@ -115,6 +124,14 @@ export interface Podium {
   finished: (ms: number) => void;
   /** The outro was sat through to its final word. */
   stayed: () => void;
+  /**
+   * How many bugs this visitor has not caught -- board ticket N67.
+   *
+   * The outro's tease names the number, so it has to be the real one. It comes
+   * through the podium rather than being imported because the collection is
+   * owned by the app shell and the conversation is a guest in the call.
+   */
+  bugsLeft: () => number;
 }
 
 /** How long to keep looking for something the tour has just asked for. */
@@ -205,6 +222,19 @@ export function startTour(root: HTMLElement, podium: Podium): TourHandle {
     floorLine = text;
     await podium.say(text, Math.max(0, Math.round(ms * pace(visitor))));
   };
+
+  /**
+   * What a line actually says, once the employer is resolved.
+   *
+   * Exactly one line in the script carries an `alt`, and it is the only sentence
+   * in the whole conversation that names a company. Since N66 the named version
+   * is what almost everybody hears; the alternative exists because the neutral
+   * build is still one parameter away, and a sentence thanking an employer
+   * nobody applied to is worse than no sentence at all.
+   */
+  const words = (line: Line): string => (
+    line.alt !== undefined && !currentPitch().named ? line.alt : line.text
+  );
 
   /* -------------------------------------------------------- the interview -- */
 
@@ -458,16 +488,84 @@ export function startTour(root: HTMLElement, podium: Podium): TourHandle {
       await voice('…which you have already found. All of them. Respect.', 3200);
       return;
     }
-    for (const egg of left.slice(0, 3)) {
+    /*
+     * ALL OF THEM, not the first three -- board ticket N63. Nam: "We can be
+     * generous here, now that we add in the bugs too that we will not be
+     * generous about." The two mechanics want opposite postures, and this is
+     * the generous one: the achievements are a walk around the surface, and
+     * withholding half of it to save ninety seconds buys nothing.
+     */
+    for (const egg of left) {
       if (dead) return;
       podium.playEgg(egg.id);
       markEggSeen(egg.id);
       await voice(`${egg.title}. ${egg.blurb}`, 5200);
     }
+    // And they are credited for it, which is the half the first version missed.
+    podium.quest('offclock');
+  };
+
+  /**
+   * DRAG THE VIDEO, for real -- board ticket N64.
+   *
+   * The close says "Drag the video" and then drags it. Synthetic PointerEvents
+   * along the hand's own path, which works only because the tile's drag handler
+   * already tolerates them: it wraps setPointerCapture in a try precisely
+   * because a synthetic pointer has no capture to take (see wireDrag in
+   * ui/call.ts). That guard was written for a different reason and is what makes
+   * this a cue rather than a rewrite.
+   *
+   * Six steps rather than a per-frame stream. The handler only reads clientX and
+   * clientY, so the intermediate points exist to make the tile follow the hand
+   * rather than teleport; the snap at the end is the product's own transition
+   * and needs no help.
+   *
+   * It gives up quietly at every step, like doShare: the tile is only draggable
+   * while presenting and unpinned, and a visitor who has pinned something has
+   * said what they want more clearly than the script has.
+   */
+  const dragTile = async (): Promise<void> => {
+    const tile = document.querySelector<HTMLElement>('.solo');
+    const host = document.querySelector<HTMLElement>('.grid-wrap');
+    if (!tile || !host || !document.body.classList.contains('presenting')) return;
+
+    const b = tile.getBoundingClientRect();
+    const hb = host.getBoundingClientRect();
+    const from = { x: b.left + b.width / 2, y: b.top + b.height / 2 };
+    // The opposite side, horizontally: the tile lives bottom right by default,
+    // so this reads as a move rather than a twitch, and the corner it latches to
+    // is decided by the handler rather than asserted here.
+    const to = {
+      x: from.x < hb.left + hb.width / 2 ? hb.right - b.width / 2 - 24 : hb.left + b.width / 2 + 24,
+      y: from.y,
+    };
+
+    const send = (type: string, x: number, y: number): void => {
+      tile.dispatchEvent(new PointerEvent(type, {
+        pointerId: 1, bubbles: true, cancelable: true, clientX: x, clientY: y,
+      }));
+    };
+
+    await hand.to(from.x, from.y);
+    send('pointerdown', from.x, from.y);
+    const STEPS = 6;
+    for (let i = 1; i <= STEPS; i += 1) {
+      if (dead) { send('pointercancel', from.x, from.y); return; }
+      const x = from.x + (to.x - from.x) * (i / STEPS);
+      const y = from.y + (to.y - from.y) * (i / STEPS);
+      await hand.to(x, y);
+      send('pointermove', x, y);
+    }
+    send('pointerup', to.x, to.y);
+    // The snap is a 300ms transition on the tile. Standing on top of it while it
+    // moves is the one thing that would make the gesture read as a glitch.
+    await wait(reduced ? 0 : 360);
+    await hand.retreat(tile);
   };
 
   const runCue = async (cue: string): Promise<void> => {
     if (cue === 'share') return doShare();
+    if (cue === 'drag') return dragTile();
     if (cue === 'maximise') return doMaximise();
     if (cue === 'eggs') return doEggs();
     if (cue === 'park') { await hand.park(); return; }
@@ -585,7 +683,7 @@ export function startTour(root: HTMLElement, podium: Podium): TourHandle {
        * away, the press went through to the app, and the share picker was
        * dismissed by the very press that was meant to hurry it along.
        */
-      const said = voice(line.text, line.ms);
+      const said = voice(words(line), line.ms);
       if (beats.length) {
         performing = true;
         podium.lock();
@@ -666,6 +764,33 @@ export function startTour(root: HTMLElement, podium: Podium): TourHandle {
    *     pre-roll, which is the only way to say "I have actually stopped now"
    *     without saying it a seventh time.
    */
+  /**
+   * "three easter eggs and five bugs", or "one bug", or nothing at all.
+   *
+   * Words rather than digits up to twelve, because this is a spoken line and
+   * "There are still 3 easter eggs out there" reads as a status bar. Both halves
+   * drop out when their count is zero, so a completionist who has every clip but
+   * two bugs hears a sentence about bugs and no arithmetic about eggs.
+   *
+   * Returning the empty string is the signal to drop the line entirely. See the
+   * note on `needs` in data/tour.ts.
+   */
+  const WORDS = [
+    'no', 'one', 'two', 'three', 'four', 'five', 'six',
+    'seven', 'eight', 'nine', 'ten', 'eleven', 'twelve',
+  ];
+  const some = (n: number, one: string, more: string): string =>
+    `${WORDS[n] ?? n} ${n === 1 ? one : more}`;
+
+  const leftToFind = (): string => {
+    const eggs = unseenEggs().length;
+    const bugs = podium.bugsLeft();
+    const bits: string[] = [];
+    if (eggs > 0) bits.push(some(eggs, 'easter egg', 'easter eggs'));
+    if (bugs > 0) bits.push(some(bugs, 'bug', 'bugs'));
+    return bits.join(' and ');
+  };
+
   let outroRan = false;
 
   const runOutro = async (): Promise<void> => {
@@ -677,7 +802,19 @@ export function startTour(root: HTMLElement, podium: Podium): TourHandle {
       // so a visitor who clicks during a twenty-second gap is not talked at once
       // more before being let go.
       if (visitor.lastInput !== at) return;
-      await voice(line.text, line.ms);
+      /*
+       * A line that counts what is left, and is skipped when the answer is
+       * nothing. Skipped means skipped: its silence goes with it, because the
+       * previous line's gap has already run and a second one back to back would
+       * read as the outro having stalled.
+       */
+      let text = line.text;
+      if (line.needs === 'left') {
+        const left = leftToFind();
+        if (!left) continue;
+        text = text.replace('{left}', left);
+      }
+      await voice(text, line.ms);
       if (visitor.lastInput !== at) return;
       /*
        * THE STRIP GOES AWAY, and then the silence. This is the whole fix for
@@ -728,7 +865,7 @@ export function startTour(root: HTMLElement, podium: Podium): TourHandle {
     for (const chapter of story) {
       for (const line of chapter.lines) {
         if (dead) return;
-        await voice(line.text, line.ms);
+        await voice(words(line), line.ms);
       }
     }
     tour = reduceTour(tour, { t: 'toldDone' });

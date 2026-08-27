@@ -38,8 +38,15 @@
 
 import type { Tier } from '../tour/profile.js';
 
-/** One caption. */
-export interface Line { text: string; ms: number }
+/**
+ * One caption.
+ *
+ * `alt` is what the line says when no employer is named. Exactly one line in
+ * the script has one, and it is the only sentence anywhere in the conversation
+ * that mentions a company: see the note on it in the personal segment, and
+ * data/companies.ts for why a neutral build still has to exist after N66.
+ */
+export interface Line { text: string; ms: number; alt?: string }
 
 /**
  * A named thing the stage knows how to do, for the steps a CSS selector cannot
@@ -52,6 +59,8 @@ export type Cue =
   /** Maximise the browser window inside the shared desktop. */
   | 'maximise'
   | 'tab:cv' | 'tab:jobad' | 'tab:built' | 'tab:work'
+  /** Drag the self tile to another corner, with real pointer events. */
+  | 'drag'
   /** Play the easter-egg clips this visitor has not found yet. */
   | 'eggs'
   /** The hand drifts off the edge and stops. */
@@ -151,8 +160,8 @@ export const parts: Part[] = [
     lines: [
       L('Thanks for joining. I know a CV that opens a call is a bit much.', 3600),
       L("So let me be quick about why I'm in your applicant pool.", 3000),
-      L('Click around while I talk. You could even complete all 17 achievements.', 4200),
-      L('Let me get my screen up.', 2400),
+      L('While I talk, click around if you want. Lots of bugs here ;)', 4200),
+      L('First, let me get my screen up.', 2400),
     ],
     beats: [
       // The share is PERFORMED, not switched on: the hand goes to the button,
@@ -201,14 +210,22 @@ export const parts: Part[] = [
      */
     lines: [
       L('This is the CV.', 1800),
-      L('Seven years leading the front end of an online Mahjong client.', 4000),
-      L('Four players, four networks, one shared board, no excuses about latency.', 4600),
-      L('Desktop, then web, then a Unity renderer embedded in a React app.', 4400),
-      L('Working cross-team with basically everyone: design, server, QA, and the people who get the call when a table breaks at midnight.', 5600),
+      L('Seven years leading front end for an online Mahjong client.', 4000),
+      L('Four players, one shared board, no excuses about latency.', 4200),
+      L('Desktop, then Dart, then Unity and finally Native React.', 4200),
+      L('Working cross-team with everyone: design, backend, marketing, QA.', 4400),
       L('Before that, four years of optimisation research. Two papers and a book chapter.', 4800),
       L('And before that, C++ on signing hardware. Correctness was the product.', 4400),
-      L("Here are my tech skills. Claude made this whole section redundant, LOL.", 4200),
-      L('Education: Vietnam, Japan, Sweden. I love tonkotsu.', 3600),
+      L('Here are my tech skills.', 2000),
+      /*
+       * THE HESITATION IS AUTHORED, which is the whole of what N53 asked for.
+       * The word is in the line because Nam put it there, and the caption's
+       * tokeniser holds on it the way it holds on a full stop. Nothing derives
+       * the placement, so nothing can put it in front of a punchline again.
+       */
+      L('Claude, uh, made this whole section redundant LOL.', 4000),
+      L('Education: Vietnam, Japan, Sweden.', 2600),
+      L('I love tonkotsu! Three countries, and that is the strongest opinion I brought home.', 4600),
     ],
     beats: [
       { at: 0, roll: { of: 'cv', to: 0, ms: 500 } },
@@ -216,7 +233,7 @@ export const parts: Part[] = [
       { at: 5, roll: { of: 'cv', to: 0.42, ms: 1600 } },
       { at: 6, roll: { of: 'cv', to: 0.55, ms: 1400 } },
       { at: 7, roll: { of: 'cv', to: 'Skills', ms: 1500 } },
-      { at: 8, roll: { of: 'cv', to: 'Education', ms: 1400 } },
+      { at: 9, roll: { of: 'cv', to: 'Education', ms: 1400 } },
     ],
     /*
      * N35, armed on line 1 — the Wasabi years. Three seconds is Nam's number and
@@ -256,9 +273,9 @@ export const parts: Part[] = [
     lines: [
       L('Great. So how does all that score against the job requirement?', 3600),
       L("I've got you covered.", 1800),
-      L('Degree, check. Five years of software development, check.', 4000),
-      L('Front end, testing, launches, architecture. Check, check, check, check.', 4400),
-      L('You get a check. And you get a check. And everybody gets a check.', 4200),
+      L('Degree ✅. Five years of software development ✅.', 3600),
+      L('Front end, algorithm, architecture, QA: ✅ ✅ ✅ ✅.', 4000),
+      L('I ran out of requirements before I ran out of evidence.', 3800),
       L("Yeah. I'm a safe hire.", 2600),
     ],
     beats: [
@@ -286,13 +303,15 @@ export const parts: Part[] = [
     lines: [
       L('Now let me show you how this was built.', 2800),
       L('No framework. No runtime dependency. One stylesheet and a reducer.', 4400),
-      L('The interface was measured off the real product, not eyeballed. The measurements are in there, including the one that was wrong.', 5600),
-      L('There is a size budget that fails the build.', 3000),
-      /* N45, the loop's line 9. The flow already said the tests were real; what
-         it never did was tell anyone to go and break them, which is the half
-         that turns a claim into an invitation. */
-      L('And the tests are real. They run in your browser, and you can break them.', 4600),
-      L('One person and an agent, one week. The retractions are in the commit log with everything else.', 4800),
+      L('The interface was measured off the real product, not eyeballed.', 3800),
+      /* The number, not a gesture at one. It is BUDGET in build.mjs, and the
+         build genuinely refuses to finish above it. */
+      L('Fifty kilobytes gzipped on first load, and the build fails if it goes over.', 4400),
+      /* N45's "go and break the tests" line is gone. The tests already have a
+         quip, a panel and a switch that breaks them; a fourth pitch for one
+         feature is the section selling instead of showing. */
+      L("A CV gamified to the moon, cause who doesn't like games?", 4000),
+      L("One person and an agent, one week. The most fun I've had in months!", 4600),
     ],
     beats: [
       { at: 0, cue: 'tab:built' },
@@ -317,11 +336,10 @@ export const parts: Part[] = [
      * half the calendar should not be shown their own discoveries.
      */
     lines: [
-      L('Last but not least, let me get you some more achievements.', 3400),
+      L("And here's how I have fun after work.", 3000),
       L('These are hidden in the calendar on the home screen. You found some of them.', 4200),
       L("Here are the ones you didn't.", 2400),
-      L("Bottom line: I'm pretty fun at work. And if I'm not, throw me out of a plane. I love that.", 5200),
-      L('Sorry if that came across corny. I would be in Hollywood otherwise.', 4000),
+      L("So yeah, I'm not bad at having fun. Hope you've enjoyed this too!", 4400),
     ],
     beats: [
       { at: 2, cue: 'eggs' },
@@ -354,15 +372,31 @@ export const parts: Part[] = [
        * ending -- which is the exact failure the caption loop used to cause.
        */
       L("And that's everything I came here to show you. The rest is yours.", 3800),
-      L('Everything on screen is real and nothing here breaks. Open the panels, drag the windows, run the tests.', 5000),
-      L("The plain document is top left if you'd rather just read it, and there's a PDF next to it.", 4600),
+      /*
+       * N64. This used to be one line naming three things and doing none of
+       * them: "Open the panels, drag the windows, run the tests." Nam: "Each of
+       * these action, we demo it with the mouse."
+       *
+       * So it is four lines, and three of them are beats. It is the one place in
+       * the script where saying and showing had come apart, which matters more
+       * here than anywhere else because the sentence's whole claim is that the
+       * page does what it says.
+       */
+      L('Everything on screen is real and nothing here breaks.', 3000),
+      L('Open the chat.', 2200),
+      L('Drag the video.', 2600),
+      L('Raise your hand.', 2400),
+      L('The CV is also available in home screen and after this meeting.', 4400),
       L('Thank you for your time. Genuinely.', 3000),
     ],
     beats: [
-      { at: 3, cue: 'park' },
+      { at: 2, move: '[data-ctl="chat"]', click: true },
+      { at: 3, cue: 'drag' },
+      { at: 4, move: '[data-ctl="hand"]', click: true },
+      { at: 6, cue: 'park' },
     ],
-    commentary: [L('The plain document is top left, and there is a PDF beside it.', 3600)],
-    brief: [L("That's me. Plain document top left, PDF beside it. Thanks for the time.", 3400)],
+    commentary: [L('The CV is in the home screen too, and on the way out. There is a PDF beside it.', 4200)],
+    brief: [L("That's me. The CV is in the home screen too. Thanks for the time.", 3400)],
   },
 ];
 
@@ -397,7 +431,7 @@ export const story: Chapter[] = [
   {
     q: 'Why are you applying for this, and why now?',
     lines: [
-      L("Since you're still here, the part a CV never answers.", 3400),
+      L("Since you're still here, here's what a CV never answers...", 3400),
       L("I've spent seven years making one product better for the same players. I know that job very well now.", 5000),
       L('I want the version of it where the constraints are harder and the people around me are better than me.', 4800),
     ],
@@ -405,51 +439,69 @@ export const story: Chapter[] = [
   {
     q: 'What do you actually like about this kind of work?',
     lines: [
-      L('What I like is the moment a thing on screen behaves exactly the way you predicted it would.', 4600),
-      L("Front end is the only discipline where you find out immediately whether you were right.", 4400),
+      L('What I like is to correctly guess user intention. I apply that in my daily life too!', 5000),
+      /*
+       * The only company-specific sentence in the whole script, which is why
+       * Line carries an `alt`. Nam: "This part touches google and should be
+       * guarded on the company code." With N66 the guard almost never fires,
+       * and it still has to exist: the neutral build is one parameter away and
+       * a sentence naming an employer nobody applied to is worse than no
+       * sentence at all.
+       */
+      {
+        text: 'Plus I love the beauty and efficiency in the simplicity. I found a lot of that at Google.',
+        ms: 5200,
+        alt: 'Plus I love the beauty and efficiency in the simplicity. It is rarer than it should be.',
+      },
     ],
   },
   {
     q: 'What are you strongest at?',
     lines: [
-      L('Strength: I am unreasonable about measuring things. This whole page is built off getBoundingClientRect rather than screenshots.', 5600),
-      L("And I finish. Two platform migrations on a live product with real money on the tables. Nobody got to stop halfway.", 5200),
+      L("What's my strength? Going the extra miles. And having fun with it! This CV speaks for itself.", 5600),
+      L('I learn fast and deliver. We downsized after a pivot, and I quadrupled my own output with AI.', 5400),
     ],
   },
   {
     q: 'What are your weaknesses, honestly?',
     lines: [
-      L('Weakness, honestly: I go too deep too early. I built a WebGL effects pipeline for this site and then deleted it, because it needed a camera permission I decided we should never ask for.', 6400),
-      L("That was the right call and it cost me two days. I'd rather tell you that than pretend the two days were planned.", 5000),
-      L('The other one: I am funnier in writing than in a first meeting. You may have noticed.', 4200),
+      L('Weakness? I easily get carried away. You know, flow state. I try to aim it at the right priority.', 5400),
+      L('For example, I could make a fun CV in one evening. It has been a week.', 4400),
+      L("The other one: I am funnier in writing than in a first meeting. Let's hope you never notice.", 4600),
     ],
   },
   {
     q: 'How do you work with other people?',
     lines: [
-      L("On a live client you are never the only owner of anything. Server, design, QA, support: everything I shipped went through all four.", 5400),
-      L('I write the thing down before I argue about it. Most disagreements turn out to be two people describing different problems.', 5200),
+      L('How I work with others? I listen first, get all the constraints, then propose the best solution I can find.', 5600),
+      L('I also write it down before we discuss. Most disagreements turn out to be about different constraints.', 5200),
     ],
   },
   {
     q: 'What happens when you are wrong?',
     lines: [
-      L("I record it. There is a measurement in this build that produced a contradiction: the reaction band could not be in two places at once.", 5400),
-      L('I wrote up the failure instead of quietly re-running it, and the write-up is what found the real rule.', 4800),
+      L("What if I'm wrong? I record it, and I never make the same mistake twice.", 4400),
+      L('And I chase it the extra mile. A technical mistake is fine. An interpretation mistake means the team was misaligned.', 6000),
     ],
   },
   {
     q: 'What is the hardest thing you have shipped?',
     lines: [
-      L('Hardest: shared state across four seats, with reconnection, on latency you do not control.', 4600),
-      L('One of those four players is always on hotel wifi. That constraint shaped more of my career than any framework has.', 5000),
+      L("The hardest thing I've shipped? Pivoting from Unity to React in two weeks. I was in the zone.", 5200),
+      L('So the hardest part was not technical. It was the deadline, and I set it myself. I could have taken three months.', 5800),
     ],
   },
   {
-    q: 'Why should we take the risk?',
+    q: 'Why you?',
     lines: [
-      L("Last one. Why take the risk: because you can check every claim on this page by clicking on it.", 4800),
-      L("That's the whole pitch. Thanks for listening to it.", 3200),
+      /*
+       * Was "Why should we take the risk?". Nam: "I dont understand this
+       * question. What risk is there in hiring me LOL. Lets use this to spin it
+       * in a more positive light." He is right that it was a defensive frame
+       * borrowed from a conversation nobody in this one is having.
+       */
+      L('Last one. Why me? Because I chase beauty and efficiency, which is exactly what you build for.', 5200),
+      L("Let's have fun doing it together. Thanks for listening!", 3400),
     ],
   },
 ];
@@ -654,27 +706,60 @@ export const asides = {
  * question in the first line, and the achievement for sitting through it is only
  * worth having because leaving is this easy.
  */
-export const OUTRO_CAP_MS = 120_000;
+/*
+ * FOUR MINUTES, up from two, and board ticket N67 is the reason.
+ *
+ * Nam: "we may want to increase the silent time between messages after the
+ * goodbye ... This is the time user is exploring the app, we want to keep the
+ * caption on for the commentary messages. Plus, the timing of the call has
+ * already finished by the goodbye, so stretching out the after goodbye doesnt
+ * cost user anything literally."
+ *
+ * He is right about the cost, and it is worth being precise about why the cap
+ * existed at all. It was never a budget: it is a promise about the WORST CASE
+ * for somebody who cannot see how much is left. Any input at all abandons the
+ * outro, the interview clock stopped at the goodbye, and nothing downstream
+ * waits on it. So the number that matters is "how long could a person sit here
+ * being talked at against their will", and four minutes of mostly silence, with
+ * an exit on every keypress, is still an honest answer.
+ */
+export const OUTRO_CAP_MS = 240_000;
 
 export interface OutroLine extends Line {
   /** Silence after the bubble goes, before the next line appears. */
   gap: number;
+  /**
+   * Skip this line when there is nothing left to find.
+   *
+   * The tease counts the easter eggs and bugs still out there (N67), and for a
+   * completionist that count is zero. "There are 0 things left, that is all I am
+   * saying" is a worse line than no line, and it takes away the reward for
+   * having finished.
+   */
+  needs?: 'left';
 }
 
-const O = (text: string, ms: number, gap: number): OutroLine => ({ text, ms, gap });
+const O = (text: string, ms: number, gap: number, needs?: OutroLine['needs']): OutroLine =>
+  (needs ? { text, ms, gap, needs } : { text, ms, gap });
 
 export const outro: OutroLine[] = [
-  O('Still here?', 2600, 4000),
-  O('The call does not actually end, by the way. Sit as long as you like.', 4200, 7000),
-  O('Questions? My email is on the way out. Or the referral note, if you know somebody. 🙏', 5000, 10_000),
-  O('There is nothing more to see here. I swear.', 3400, 14_000),
-  O('…okay. There are two easter eggs. That is all I am saying.', 4000, 18_000),
-  O('You are unusually patient. That is a promising sign for a code review.', 4400, 22_000),
+  O('Still here?', 2600, 6000),
+  O('The call does not actually end, by the way. Sit as long as you like.', 4200, 11_000),
+  O('Questions? My email is on the way out. Or the referral note, if you know somebody. 🙏', 4600, 17_000),
+  O('There is nothing more to see here. I swear.', 3400, 24_000),
+  /*
+   * N67. This said "two easter eggs", which was already wrong for anybody who
+   * had found one, and said nothing at all about the bugs. {left} is filled in
+   * at speaking time from what THIS visitor has actually found, and the line is
+   * dropped entirely when the answer is nothing. See fillLeft() in tour/stage.ts.
+   */
+  O('…okay. There are still {left} out there. That is all I am saying.', 4000, 32_000, 'left'),
+  O('You are unusually patient. That is a promising sign for a code review.', 4400, 41_000),
   /* The last thing said, and the only line with no silence after it: the captions
      go off instead — see the note on the outro in src/tour/stage.ts — which is the
      only way to signal "I have actually stopped now" without saying it a seventh
      time. */
-  O('Alright. Genuinely, thank you for your time. Good luck with the rest of the pile. 👋', 5200, 0),
+  O('Alright. Genuinely, thank you for your time. Good luck with the rest of the pile. 👋', 4800, 0),
 ];
 
 // ---------------------------------------------------------------------------

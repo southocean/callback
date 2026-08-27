@@ -28,6 +28,8 @@ import {
 } from '../tour/profile.js';
 import { readSeenEggs, stillUnseen } from '../prefs.js';
 import { VISIBLE_QUESTS } from '../data/quests.js';
+import { bugs as bugList, bugById, BUG_COUNT } from '../data/bugs.js';
+import { codeFromUrl, pitchFor, DEFAULT_CODE, NEUTRAL_CODE } from '../data/companies.js';
 
 export interface Result {
   suite: string;
@@ -354,17 +356,51 @@ suite("the meeting's ready card", () => {
 
 suite('content integrity', () => {
   /*
-   * N30. The tour's opening line names a number out loud: "maybe you can
-   * complete all 17 achievements." A number in a script that nothing checks is a
-   * number that goes wrong the first time somebody adds a quest, and it goes
-   * wrong in the worst possible place -- the second sentence a stranger hears.
+   * N58 retired the test that used to live here.
+   *
+   * It pinned "all 17 achievements" in the opening line against the quest list,
+   * which was exactly right for as long as the opening named a number. It does
+   * not any more: the third sentence now hands over a different goal, and a
+   * count nobody says cannot go stale.
+   *
+   * What replaces it is the same idea one level up. Any number a spoken line
+   * commits to has to be checkable, so this asserts the general rule rather than
+   * one instance of it: if the script ever starts counting achievements again,
+   * the count has to be the real one.
    */
-  test('the number of achievements the script promises is the number there are', () => {
+  test('a spoken achievement count, if there is one, is the real one', () => {
+    const spoken = tourParts.flatMap((p) => p.lines.map((l) => l.text)).join(' ');
+    const said = /\b(\d+) achievements\b/.exec(spoken);
+    if (!said) return;
+    eq(Number(said[1]), VISIBLE_QUESTS, 'the script promises a different number of achievements than exist');
+  });
+
+  /*
+   * N58's own line, and the only thing worth pinning about it: it promises bugs,
+   * and there had better be some.
+   */
+  test('the opening promises bugs, and there are bugs', () => {
     const intro = tourParts.find((p) => p.id === 'intro');
     const line = intro?.lines.map((l) => l.text).join(' ') ?? '';
-    const said = /\ball (\d+) achievements\b/.exec(line);
-    ok(!!said, 'the opening no longer names an achievement count');
-    eq(Number(said![1]), VISIBLE_QUESTS, 'the script promises a different number of achievements than exist');
+    ok(/\bbugs\b/i.test(line), 'the opening no longer hands over the bug hunt');
+    ok(BUG_COUNT > 0, 'the opening promises bugs and the collection is empty');
+  });
+
+  /*
+   * N66. Nam: "let's just treat the default CV (without c parameter) as c = 1."
+   *
+   * Worth a test rather than a read of the source, because the failure mode is
+   * silent and expensive: a send that renders a generic heading looks fine and
+   * is the one thing the whole companies module exists to prevent.
+   */
+  test('no code at all resolves to the employer, and ?c=0 does not', () => {
+    eq(codeFromUrl(''), DEFAULT_CODE, 'a bare link no longer names the employer');
+    eq(codeFromUrl('?c=' + NEUTRAL_CODE), null, 'the neutral build is no longer reachable');
+    eq(codeFromUrl('?c=' + DEFAULT_CODE), DEFAULT_CODE);
+    // An unknown code is a typo in a link, not a request for a generic CV.
+    eq(codeFromUrl('?c=zzz'), DEFAULT_CODE, 'an unrecognised code fell back to nobody');
+    ok(pitchFor(codeFromUrl('')).named, 'the default pitch names no employer');
+    ok(!pitchFor(codeFromUrl('?c=' + NEUTRAL_CODE)).named, 'the neutral pitch named an employer');
   });
 
   test('the referral blurb carries no superlatives', async () => {
@@ -693,6 +729,25 @@ suite('the conversation director', () => {
       `at the slowest pace the outro runs ${Math.round(worst / 1000)}s, over its ${OUTRO_CAP_MS / 1000}s cap`);
   });
 
+  /*
+   * N67. The tease counts what this visitor has left, so the line has to carry
+   * the placeholder AND declare that it is droppable. Either half without the
+   * other is a bug that only shows up for a completionist: a placeholder with no
+   * `needs` says "there are still no things out there", and a `needs` with no
+   * placeholder silently hides a line for the wrong reason.
+   */
+  test('the counting line is a template, and is droppable', () => {
+    const counted = outro.filter((l) => l.text.includes('{left}'));
+    eq(counted.length, 1, 'the outro should name what is left exactly once');
+    eq(counted[0]!.needs, 'left', 'the counting line is not marked droppable');
+    for (const l of outro) {
+      if (l.needs === 'left') ok(l.text.includes('{left}'), 'a droppable line has nothing to fill in');
+      // A placeholder nothing fills is a line that says "{left}" out loud.
+      const rest = l.text.replace('{left}', '');
+      ok(!/[{}]/.test(rest), `an unfilled placeholder is left in "${l.text.slice(0, 40)}"`);
+    }
+  });
+
   test('the outro ends on the goodbye, not on a joke', () => {
     const last = outro[outro.length - 1]?.text ?? '';
     ok(/thank you/i.test(last), 'the last thing said after the goodbye is not a thank you');
@@ -717,12 +772,15 @@ suite('the conversation director', () => {
    * codepoint".
    */
   test('no em dashes anywhere in the script', () => {
-    const spoken = [
+    const lines = [
       ...tourParts.flatMap((p) => [...p.lines, ...p.commentary, ...p.brief, ...(p.bail?.lines ?? [])]),
       ...tourQuips, ...tourAcks, ...outro,
       ...tourStory.flatMap((c) => c.lines),
       ...Object.values(asides),
-    ].map((l) => l.text);
+    ];
+    // N60's `alt` is spoken text too, and it is exactly the kind of second
+    // wording a sweep forgets: it only ever plays on the neutral build.
+    const spoken = lines.flatMap((l) => ('alt' in l && l.alt ? [l.text, l.alt] : [l.text]));
     const all = [...spoken, ...tourStory.map((c) => c.q)];
     for (const text of all) {
       ok(!/[—–]/.test(text), `an em dash is still in the script: "${text.slice(0, 56)}"`);
@@ -863,6 +921,57 @@ suite('the personal segment', () => {
 
   test('the questions are distinct', () => {
     eq(new Set(tourStory.map((c) => c.q)).size, tourStory.length, 'two chapters ask the same thing');
+  });
+});
+
+/* ------------------------------------------------------------------------- */
+
+/*
+ * THE BUG COLLECTION -- board ticket N59.
+ *
+ * Everything here is a property of the data rather than of the catching, and
+ * that split is deliberate: the catching is three lines of counting, and what
+ * actually goes wrong with a collection is the content. A duplicate id silently
+ * merges two bugs, a shared body plan makes two of them the same drawing, and a
+ * missing hint leaves a slot in the case that can never be filled by anyone who
+ * did not write it.
+ */
+suite('the bug collection', () => {
+  test('every bug is distinct, all the way down', () => {
+    eq(new Set(bugList.map((b) => b.id)).size, bugList.length, 'two bugs share an id');
+    eq(new Set(bugList.map((b) => b.name)).size, bugList.length, 'two bugs share a name');
+    eq(new Set(bugList.map((b) => b.species)).size, bugList.length, 'two bugs are the same species');
+    /*
+     * The one that matters most. Nam asked for a drawer, and twelve tints of one
+     * beetle is a palette: if two bugs share a body plan they share a
+     * silhouette, and the silhouette is the entire content of an empty slot.
+     */
+    eq(new Set(bugList.map((b) => b.plan)).size, bugList.length, 'two bugs are drawn the same way');
+  });
+
+  test('every bug can be found, and says how', () => {
+    for (const b of bugList) {
+      ok(b.repeat >= 1, `${b.id} needs ${b.repeat} presses, which is not a number of presses`);
+      ok(b.hint.trim().length > 0, `${b.id} has no hint, so an empty slot says nothing`);
+      ok(b.where.trim().length > 0, `${b.id} does not say where it was`);
+      ok(b.fact.trim().length > 0, `${b.id} has no fact, so catching it pays nothing`);
+      eq(b.palette.length, 4, `${b.id} has the wrong number of colours to be drawn`);
+    }
+  });
+
+  test('lookup finds them and does not invent them', () => {
+    eq(bugById(bugList[0]!.id)?.name, bugList[0]!.name);
+    eq(bugById('no-such-bug'), undefined);
+    eq(BUG_COUNT, bugList.length, 'the count the outro reads is not the number there are');
+  });
+
+  /* The hints and the labels are read by a person, so the same rule applies. */
+  test('no em dashes anywhere in the collection', () => {
+    for (const b of bugList) {
+      for (const text of [b.name, b.species, b.hint, b.where, b.fact]) {
+        ok(!/[—–]/.test(text), `an em dash is in the collection: "${text.slice(0, 48)}"`);
+      }
+    }
   });
 });
 

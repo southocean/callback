@@ -12,7 +12,7 @@
 // customises itself per employer is worthless if you cannot check what went out.
 
 import { h } from '../dom.js';
-import { companies, NEUTRAL } from '../data/companies.js';
+import { companies, NEUTRAL, DEFAULT_CODE, NEUTRAL_CODE } from '../data/companies.js';
 import { profile, SITE } from '../data/cv.js';
 
 const row = (k: string, v: string): HTMLElement =>
@@ -31,13 +31,15 @@ export function renderCompany(onHome: () => void): HTMLElement {
         h('div', { class: 'doc-target' }, 'Unlisted. Nothing in the CV links here.'))),
 
     h('p', { class: 'co-lead' },
-      'The CV names no employer by default. A code in the query string swaps in the ' +
-      'company-specific lines, the header, the scheduled meeting and the opening message of the ' +
-      'cover letter. Everything else is identical, so there is one artefact rather than one per application.'),
+      `A code in the query string swaps in the company-specific lines: the header, the scheduled ` +
+      'meeting and the opening message of the cover letter. Everything else is identical, so there is ' +
+      `one artefact rather than one per application. No code at all now resolves to ?c=${DEFAULT_CODE}.`),
 
-    h('h2', {}, 'Default, no code'),
+    h('h2', {}, 'The neutral build'),
     h('p', { class: 'co-note' },
-      'What every reader sees without a code. Every line is true regardless of who opens the link.'),
+      `Names no employer at all, and every line is true regardless of who opens the link. It used to be ` +
+      `what a bare link gave you; since N66 you ask for it with ?c=${NEUTRAL_CODE}, because the one ` +
+      'application actually in flight was the one getting a generic heading.'),
     h('dl', { class: 'co-card' },
       row('Applying for', NEUTRAL.target),
       row('Meeting title', NEUTRAL.meeting),

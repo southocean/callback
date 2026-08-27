@@ -33,6 +33,9 @@ import { makeCaption } from './caption.js';
 import { sample } from '../net/degrade.js';
 import type { Profile } from '../net/degrade.js';
 import type { Quests } from '../achievements.js';
+import type { Bugs } from '../bugs.js';
+import { bugById } from '../data/bugs.js';
+import { bugArt } from './bugart.js';
 import { noteReadyShown, noteReadyClosed, markEggSeen, recordInterview } from '../prefs.js';
 import { signal } from './signal.js';
 
@@ -54,7 +57,7 @@ export interface CallDeps {
   toggleCamera: () => void;
 }
 
-export function renderCall(store: Store, quests: Quests, deps: CallDeps): HTMLElement {
+export function renderCall(store: Store, quests: Quests, deps: CallDeps, bugs: Bugs): HTMLElement {
   let releaseTrap: (() => void) | null = null;
 
   // ------------------------------------------------------------- host tile --
@@ -694,7 +697,7 @@ export function renderCall(store: Store, quests: Quests, deps: CallDeps): HTMLEl
     label: string,
     icon: IconName,
     cls: string,
-    onClick: () => void,
+    onClick: (e: Event) => void,
     state?: () => { on: boolean; icon?: IconName; label?: string },
   ): Btn => {
     const b = h('button', { class: `cbtn ${cls}`, type: 'button', 'aria-label': label, onclick: onClick }, sym(icon, 24)) as Btn;
@@ -793,10 +796,10 @@ export function renderCall(store: Store, quests: Quests, deps: CallDeps): HTMLEl
   const ccBtn = named(cbtn('Turn on captions', 'closed_caption', '', () => store.dispatch({ t: 'captions', on: !store.get().captionsOn }),
     () => ({ on: store.get().captionsOn, label: store.get().captionsOn ? 'Turn off captions' : 'Turn on captions' })), 'captions');
 
-  const handBtn = named(cbtn('Raise hand', 'back_hand', '', () => {
+  const handBtn = named(cbtn('Raise hand', 'back_hand', '', (e) => {
     const on = !store.get().handRaised;
     store.dispatch({ t: 'hand', on });
-    if (on) slap();
+    if (on) slap(e.isTrusted);
     if (on) quests.unlock('hand');
     if (on) replayHand();
 
@@ -815,9 +818,12 @@ export function renderCall(store: Store, quests: Quests, deps: CallDeps): HTMLEl
     b.sync = () => b.setAttribute('aria-pressed', store.get().panel === panel ? 'true' : 'false');
     return b;
   };
-  const chatBtn = sideBtn('Chat with everyone', 'chat', 'chat');
-  const toolsBtn = sideBtn('Meeting tools', 'apps', 'tools');
-  const hostBtn = sideBtn('Host controls', 'lock_person', 'host');
+  // Named for the same reason the bar controls are (see `named` above): the
+  // close performs "open the chat" with the hand, and a beat needs a selector
+  // that survives the label changing.
+  const chatBtn = named(sideBtn('Chat with everyone', 'chat', 'chat'), 'chat');
+  const toolsBtn = named(sideBtn('Meeting tools', 'apps', 'tools'), 'tools');
+  const hostBtn = named(sideBtn('Host controls', 'lock_person', 'host'), 'host');
 
   const questLine = h('div', {});
   const bar = h(
@@ -1791,9 +1797,51 @@ export function renderCall(store: Store, quests: Quests, deps: CallDeps): HTMLEl
    */
   const SCARE = 0.85;
 
-  function slap(): void {
+  /**
+   * A scarab on the glass, briefly.
+   *
+   * Timed against slap-rush in styles.css rather than guessed: the hand's
+   * keyframe peaks at 46% of 1.25s, so impact is 575ms after the class lands.
+   * The bug crawls in for half a second, is flat at 580, and is gone before the
+   * hand has finished retreating. Every number here is that one number.
+   *
+   * The drawing is the same drawing the frame and the toast use, at 64px. A
+   * second illustration of the same animal is how two of them start disagreeing.
+   */
+  function squash(): void {
+    const bug = bugById('goldbug');
+    if (!bug) return;
+    const el = h('div', { class: 'bug-squash', 'aria-hidden': 'true' }, bugArt(bug, { size: 64 })) as HTMLElement;
+    layer.appendChild(el);
+    window.setTimeout(() => el.classList.add('is-flat'), 580);
+    window.setTimeout(() => el.remove(), 1600);
+  }
+
+  /**
+   * `trusted` is not decoration -- QA found the leak it closes.
+   *
+   * Every other bug is caught through one delegated listener that ignores
+   * untrusted clicks, which is what stops the conversation's own hand catching
+   * them for you. The scarab is the exception: it is awarded from inside this
+   * handler, and a handler cannot tell who called it. The close performs "Raise
+   * your hand" with the hand, so without this the script would be quietly
+   * putting a third of a bug in the visitor's pocket.
+   */
+  function slap(trusted: boolean): void {
     quests.unlock('hand');
     quests.unlock('slap');
+    /*
+     * THE GILDED SCARAB -- board ticket N59, and Nam's own example: "if you get
+     * the raise hand animation 3 times, on the third time you get a bug, then
+     * the hand smashes it LOL."
+     *
+     * The order is the joke. The bug is on screen BEFORE the hand arrives, the
+     * hand lands on it, and the toast is held back until after the impact so the
+     * notice is a post-mortem rather than a spoiler. `hit` is what decides which
+     * raise this is, and it says no on every other one.
+     */
+    const scarab = trusted && bugs.hit('goldbug', 1000);
+    if (scarab) squash();
     const hand = h('div', { class: 'slap-hand', 'aria-hidden': 'true' }, '✋');
     const flash = h('div', { class: 'slap-flash', 'aria-hidden': 'true' });
     const wrap = h('div', { class: 'slap' }, flash, hand);
@@ -2107,6 +2155,7 @@ export function renderCall(store: Store, quests: Quests, deps: CallDeps): HTMLEl
           // mounting and the script reaching that line.
           captionsOn: () => store.get().captionsOn,
           playEgg,
+          quest: (id) => quests.unlock(id),
           /*
            * Unlocked at the END, not at the start. Hearing him out is the
            * seventeenth quest and its hint says "let the conversation run to the
@@ -2120,6 +2169,8 @@ export function renderCall(store: Store, quests: Quests, deps: CallDeps): HTMLEl
            */
           finished: (ms) => { quests.unlock('tour'); recordInterview(ms); },
           stayed: () => quests.unlock('stayed'),
+          // The tease counts the real ones (N67), and it is the app that knows.
+          bugsLeft: () => { const c = bugs.count(); return c.total - c.got; },
         });
       });
     }, 1000);

@@ -47,7 +47,9 @@ Four screens, all deep-linkable:
 
 Two smaller, deliberate departures, both documented where they live: the pre-join mic meter fades out instead of vanishing (Meet uses `display: none` with no transition), and Calls opens a one-person dialog where Meet would ring a group — a screen never measured is a screen not guessed at.
 
-Press <kbd>?</kbd> for the shortcuts. There are two easter eggs; one of them is older than the web.
+Press <kbd>?</kbd> for the shortcuts. There are hidden achievements, one of them older than the web, and there are twelve bugs.
+
+**The bugs.** Not defects: specimens. Twelve of them are hidden across the build, and each is caught by doing one thing three times, which is what testing software actually looks like. They are drawn rather than photographed, one authored body plan per animal, and the ones you have not caught show as silhouettes with their hint still readable. The case opens from the screen you land on after leaving the call.
 
 ---
 

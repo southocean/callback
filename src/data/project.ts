@@ -281,7 +281,7 @@ export const tasks: Task[] = [
   { id: 'T4', col: 'done', size: 'M', tag: 'trust', title: 'Say something before the camera prompt', note: 'Done, by removing the prompt instead. There is no permission bar left to get in front of \u2014 see T29.' },
   { id: 'T5', col: 'backlog', size: 'S', tag: 'trust', title: 'Label the emulated browser and desktop', note: 'A browser with an address bar drawn inside a page is a phishing pattern. Keep the trick, label it.' },
   { id: 'T6', col: 'backlog', size: 'M', tag: 'content', title: 'Rewrite the plain CV footer', note: 'It closes on build receipts and is no-print, so the PDF loses the disclaimer with it.' },
-  { id: 'T7', col: 'backlog', size: 'S', tag: 'content', title: '"Against this job ad" names no job ad', note: 'With no company code the section renders one employer\'s requirements under a generic heading.' },
+  { id: 'T7', col: 'done', size: 'S', tag: 'content', title: '"Against this job ad" names no job ad', note: 'Closed by N66 from the other end: with no code the CV now names the employer, so the section has a job ad to be against.' },
   { id: 'T8', col: 'review', size: 'M', tag: 'onboarding', title: 'CV opens as an overlay, not a route', note: 'Shipped. Meet never navigates away from itself and neither should this.' },
   { id: 'T9', col: 'review', size: 'M', tag: 'onboarding', title: 'Per-company copy behind a code', note: 'Shipped. No employer named by default; ?c= swaps in the specific lines.' },
   { id: 'T10', col: 'review', size: 'L', tag: 'specs', title: 'Project specifications panel', note: 'Shipped. One place the build is documented, reachable from the home screen and from inside the call.' },
@@ -1204,7 +1204,7 @@ export const tasks: Task[] = [
    * rest of the pass put together (N59).
    * --------------------------------------------------------------------- */
   {
-    id: 'N58', col: 'backlog', size: 'S', tag: 'content',
+    id: 'N58', col: 'done', size: 'S', tag: 'content',
     title: 'The opening stops counting achievements out loud',
     note: 'It hands over a different goal instead: there are bugs in here.',
     detail: {
@@ -1218,7 +1218,7 @@ export const tasks: Task[] = [
     },
   },
   {
-    id: 'N59', col: 'backlog', size: 'L', tag: 'call',
+    id: 'N59', col: 'done', size: 'L', tag: 'call',
     title: 'The bug collection',
     note: 'Twelve bugs hidden across the site, caught by repetition, pinned in a real entomology frame.',
     detail: {
@@ -1237,7 +1237,7 @@ export const tasks: Task[] = [
     },
   },
   {
-    id: 'N60', col: 'backlog', size: 'M', tag: 'content',
+    id: 'N60', col: 'done', size: 'M', tag: 'content',
     title: 'The CV section, in his own words',
     note: 'Five lines rewritten, one split in two so the hesitation has somewhere to land.',
     detail: {
@@ -1254,7 +1254,7 @@ export const tasks: Task[] = [
     },
   },
   {
-    id: 'N61', col: 'backlog', size: 'S', tag: 'content',
+    id: 'N61', col: 'done', size: 'S', tag: 'content',
     title: 'The job requirement section ticks rather than says "check"',
     note: 'Emoji carry the repetition, and the Oprah bit is replaced.',
     detail: {
@@ -1269,7 +1269,7 @@ export const tasks: Task[] = [
     },
   },
   {
-    id: 'N62', col: 'backlog', size: 'S', tag: 'content',
+    id: 'N62', col: 'done', size: 'S', tag: 'content',
     title: 'The build section names the budget and stops selling the tests',
     note: 'A number instead of "there is a size budget", and a line about games instead of a second test pitch.',
     detail: {
@@ -1284,7 +1284,7 @@ export const tasks: Task[] = [
     },
   },
   {
-    id: 'N63', col: 'backlog', size: 'M', tag: 'call',
+    id: 'N63', col: 'done', size: 'M', tag: 'call',
     title: 'Off the clock is generous with the clips',
     note: 'It plays every one the visitor has not found, and credits them for it.',
     detail: {
@@ -1299,7 +1299,7 @@ export const tasks: Task[] = [
     },
   },
   {
-    id: 'N64', col: 'backlog', size: 'M', tag: 'call',
+    id: 'N64', col: 'done', size: 'M', tag: 'call',
     title: 'The close demonstrates the three things it names',
     note: 'Open the chat, drag the video, raise your hand: each one is performed, not described.',
     detail: {
@@ -1315,7 +1315,7 @@ export const tasks: Task[] = [
     },
   },
   {
-    id: 'N65', col: 'backlog', size: 'M', tag: 'content',
+    id: 'N65', col: 'done', size: 'M', tag: 'content',
     title: 'The personal segment, rewritten in his voice',
     note: 'Eight answers, and two of the questions no longer have to be guessed from the answer.',
     detail: {
@@ -1331,7 +1331,7 @@ export const tasks: Task[] = [
     },
   },
   {
-    id: 'N66', col: 'backlog', size: 'S', tag: 'trust',
+    id: 'N66', col: 'done', size: 'S', tag: 'trust',
     title: 'Google is the default, not a code',
     note: 'The neutral build stays reachable, it just stops being what a stranger gets.',
     detail: {
@@ -1346,7 +1346,7 @@ export const tasks: Task[] = [
     },
   },
   {
-    id: 'N67', col: 'backlog', size: 'M', tag: 'call',
+    id: 'N67', col: 'done', size: 'M', tag: 'call',
     title: 'The outro counts what is left, and takes its time',
     note: 'The tease names the real number of eggs and bugs still out there, and the silences stretch.',
     detail: {

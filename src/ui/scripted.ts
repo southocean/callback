@@ -333,6 +333,10 @@ export function renderScriptEditor(): HTMLElement {
       + 'caption sitting on screen with its ring filling for twenty-six seconds announces that another line is '
       + 'coming, so the surprise was spent before the joke arrived. With the strip gone the call looks finished, '
       + 'which is the only state a visitor can be surprised out of.'),
+    h('p', { class: 'dp-note' },
+      '{left} is filled in when the line is spoken, from what this visitor has actually found: the easter '
+      + 'eggs still in the calendar and the bugs still in the build. When the answer is nothing, the line is '
+      + 'dropped rather than said, because a tease with a zero in it takes away the reward for finishing.'),
     h('div', { class: 'sc-alts' },
       h('div', { class: 'sc-alt is-head' },
         h('span', {}, 'up for'),

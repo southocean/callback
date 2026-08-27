@@ -6145,6 +6145,42 @@ body.presenting .hand-name { font-size: 13px; line-height: 20px; padding-right: 
  * case is genuinely two-column and keeps its own reservation. */
 body.presenting:not(.is-pinned) .shot-wrap { right: 0; }
 body.presenting .shot { min-width: 0; }
+
+/* --- the share is letterboxed, and its shape is capped -------------------- */
+/* Nam, on the share with the captions up: "the sharing screen becomes way too
+ * wide ... I think we can stretch a bit more but we shouldnt go too wide."
+ *
+ * MEASURED at 1440x900 while presenting. Captions off the share is 1329x748,
+ * ratio 1.777, which is right. Captions on it is 1329x532, ratio 2.498: the
+ * caption band reserves 216 of height and the share keeps every pixel of its
+ * width, so the shape blows out instead of the box shrinking. On a 1920 stage
+ * the same run reaches about 3.4:1.
+ *
+ * This is the bug the solo tile already had, and the fix is the same shape: fit
+ * a ratio box inside the area rather than stretching to fill it. See the long
+ * note above .grid-wrap.is-solo, including the warning about why max-width and
+ * max-height cannot express this.
+ *
+ * What differs is that the share does not hold one ratio. Nam asked for a band
+ * rather than a fixed 16:9, so the area is used as-is when its shape is already
+ * reasonable and only the extremes are corrected:
+ *
+ *   width  = min(area, height * 2)     caps it at 2:1
+ *   height = min(area, width * 3 / 4)  floors it at 4:3
+ *
+ * At 16:9 both minimums pick the area and the share fills it exactly, so the
+ * captions-off case is unchanged.
+ *
+ * The container is .shot-wrap rather than .grid-wrap because the pinned case
+ * insets .shot-wrap's right edge to carve out the panel column. cqw has to
+ * resolve against the space the share actually has, not the space the stage
+ * has, or the pinned share is sized for a column that is not there. */
+body.presenting .shot-wrap { container-type: size; display: grid; place-items: center; }
+body.presenting .shot {
+  width: min(100cqw, calc(100cqh * 2));
+  height: min(100cqh, calc(100cqw * 3 / 4));
+}
+
 @media (max-width: 720px) {
   body.presenting .shot-wrap { right: 0; bottom: 88px; }
 }
@@ -7504,6 +7540,185 @@ body.tray-open.cc-on .react-clip { bottom: calc(var(--botbar) + 268px); }
 @media (prefers-reduced-motion: reduce) {
   .quest-toast, .quest-toast.out, .qt-bump { animation: none; }
   .qt-x::after { transition: none; }
+}
+
+/* ==================== THE BUG COLLECTION (N59) =========================== */
+/* Nam sent a photograph of a real entomology drawer: pale backing board, warm
+   wood frame, specimens pinned in rows with a label under each. Everything
+   below is that, and the only thing it borrows from Meet is the dialog scrim,
+   because the case is deliberately NOT part of the product. It is a thing the
+   product happens to be holding. */
+
+/* The drawing itself. One rule for both states: a silhouette is the same
+   geometry taking its colour from `currentColor`, so nothing here has to know
+   which of the two it is looking at. */
+.bug-art { display: block; overflow: visible; }
+.is-hidden-bug { color: #b9b2a3; opacity: .55; }
+
+/* --- the toast, which is the achievement toast with an animal in it ------ */
+/* Same surface, same dwell, same dismiss. Two notification designs in one
+   product is one too many, and the drawing already tells them apart. */
+.quest-toast.is-bug { padding-left: 8px; }
+.qt-bug {
+  flex: 0 0 auto; width: 34px; height: 42px;
+  display: grid; place-items: center;
+}
+.qt-bug .bug-art { max-height: 42px; }
+
+/* --- the scarab, and the scarab flattened ------------------------------- */
+/* Timed against slap-rush: the hand peaks at 46% of 1.25s, so impact is 575ms.
+   The bug crawls up for half a second and is flat at 580. */
+.bug-squash {
+  position: absolute; left: 50%; top: 58%;
+  transform: translate(-50%, -50%);
+  animation: bug-crawl 620ms cubic-bezier(0.4, 0, 0.2, 1) both;
+  transform-origin: 50% 60%;
+  filter: drop-shadow(0 6px 10px rgba(0, 0, 0, .45));
+}
+@keyframes bug-crawl {
+  from { transform: translate(-260%, 30%) rotate(-24deg); }
+  to   { transform: translate(-50%, -50%) rotate(4deg); }
+}
+/* Flat, and it stays flat. A bug that springs back has not been smashed. */
+.bug-squash.is-flat {
+  animation: none;
+  transform: translate(-50%, -50%) scale(1.5, .16) rotate(4deg);
+  opacity: .5;
+  transition: transform 90ms cubic-bezier(0.3, 0, 0.1, 1), opacity 700ms linear 500ms;
+}
+
+/* --- the case ----------------------------------------------------------- */
+.bug-frame-wrap {
+  position: fixed; inset: 0; z-index: 400;
+  display: grid; place-items: center; padding: 24px;
+  background-color: rgba(20, 18, 14, .62);
+  animation: bugin .18s ease-out both;
+}
+@keyframes bugin { from { opacity: 0; } }
+/* The frame. Three layers of wood rather than one border, because a real one
+   has a bevel and the bevel is most of what says "frame" at a glance. */
+.bug-frame {
+  width: min(980px, 100%); max-height: 100%;
+  display: flex; flex-direction: column;
+  border-radius: 6px;
+  background-color: #c69a5c;
+  padding: 14px;
+  box-shadow: 0 24px 60px rgba(0, 0, 0, .5),
+              inset 0 0 0 2px rgba(255, 255, 255, .35),
+              inset 0 0 0 14px #b0834a;
+  overflow: hidden;
+}
+.bug-frame-top {
+  display: flex; align-items: center; gap: 12px;
+  padding: 2px 4px 12px;
+  color: #4a3313;
+}
+.bug-frame-top h2 {
+  margin: 0; flex: 1 1 auto;
+  font: 500 20px/26px var(--font-title); letter-spacing: .1px;
+}
+.bug-tally {
+  font: 400 13px/18px var(--font); font-variant-numeric: tabular-nums;
+  color: #6b4c22;
+}
+.bug-x {
+  flex: 0 0 auto; width: 32px; height: 32px; padding: 0;
+  border: 0; border-radius: 50%; cursor: pointer;
+  background-color: rgba(74, 51, 19, .12); color: #4a3313;
+  display: grid; place-items: center; --sl: #4a3313;
+}
+.bug-x:hover { background-color: rgba(74, 51, 19, .2); }
+.bug-x:focus-visible { outline: 2px solid #4a3313; outline-offset: 2px; }
+
+/* The backing board. Cotton wool white, faintly warm, like the photograph. */
+.bug-case {
+  flex: 1 1 auto; min-height: 0;
+  display: grid; grid-template-columns: 1fr 268px; gap: 0;
+  background-color: #f6f3ea;
+  border-radius: 2px;
+  box-shadow: inset 0 2px 10px rgba(90, 70, 40, .25);
+  overflow: hidden;
+}
+.bug-grid {
+  min-height: 0; overflow: auto;
+  display: grid; grid-template-columns: repeat(4, 1fr);
+  gap: 4px; padding: 16px;
+  align-content: start;
+}
+.bug-slot {
+  position: relative; border: 0; background: none; cursor: pointer;
+  padding: 10px 4px 8px; border-radius: 6px;
+  display: flex; flex-direction: column; align-items: center; gap: 4px;
+  color: #3d2f16;
+}
+.bug-slot:hover { background-color: rgba(120, 92, 40, .09); }
+.bug-slot.is-on { background-color: rgba(120, 92, 40, .16); }
+.bug-slot:focus-visible { outline: 2px solid #6b4c22; outline-offset: -2px; }
+/* The pin head. Every specimen in a drawer has one and it is the detail that
+   makes the row read as pinned rather than as clip art laid out. */
+.bug-pin {
+  position: absolute; top: 6px; left: 50%; transform: translateX(-50%);
+  width: 7px; height: 7px; border-radius: 50%;
+  background: radial-gradient(circle at 30% 30%, #fff, #8b8b8b 60%, #4a4a4a);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, .4);
+}
+.bug-slot-name {
+  font: 400 10px/13px var(--font); text-align: center;
+  color: #6b5a34; max-width: 100%;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.bug-slot.is-empty .bug-slot-name { color: #a2947a; }
+
+/* --- the label, which is the whole interface ---------------------------- */
+.bug-detail {
+  min-height: 0; overflow: auto;
+  padding: 20px 20px 24px;
+  border-left: 1px solid #e0d8c4;
+  background-color: #fffdf7;
+}
+.bug-plate {
+  display: grid; place-items: center; min-height: 150px;
+  margin-bottom: 12px;
+}
+.bug-dt-name {
+  margin: 0 0 2px; font: 500 17px/23px var(--font-title); color: #33291a;
+}
+.bug-dt-sp {
+  margin: 0 0 12px; font: italic 400 13px/18px var(--font); color: #7a6a4c;
+}
+.bug-dt-hint {
+  margin: 0 0 10px; font: 400 13px/19px var(--font); color: #4a4033;
+}
+.bug-dt-fact { margin: 0; font: 400 13px/19px var(--font); color: #5b5241; }
+.bug-dt-fact.is-locked { color: #9a917f; font-style: italic; }
+
+@media (max-width: 760px) {
+  .bug-case { grid-template-columns: 1fr; grid-template-rows: 1fr auto; }
+  .bug-grid { grid-template-columns: repeat(3, 1fr); }
+  .bug-detail { border-left: 0; border-top: 1px solid #e0d8c4; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .bug-frame-wrap, .bug-squash { animation: none; }
+  .bug-squash.is-flat { transition: none; }
+}
+
+/* --- the collection, in the project spec (N59) --------------------------- */
+/* The answer key. A row per animal rather than the drawer's grid, because this
+   one is read rather than browsed: it carries the trigger, the hint and the
+   fact, and none of those fit under a 84px specimen. */
+.bugspec { display: flex; flex-direction: column; gap: 4px; }
+.bugspec-row {
+  display: grid; grid-template-columns: 84px 1fr; gap: 14px; align-items: start;
+  padding: 12px 4px; border-bottom: 1px solid var(--dp-line);
+}
+.bugspec-row:last-child { border-bottom: 0; }
+.bugspec-art { display: grid; place-items: center; padding-top: 2px; }
+.bugspec-txt h3 { margin: 0 0 1px; font: 500 14px/20px var(--font-title); color: var(--dp-ink); }
+.bugspec-txt p { margin: 0 0 3px; font: 400 13px/19px var(--font); color: var(--dp-ink2); }
+.bugspec-sp { font: italic 400 12px/18px var(--font); color: var(--dp-ink3); margin-bottom: 6px; }
+.bugspec-fact { color: var(--dp-ink3); }
+@media (max-width: 560px) {
+  .bugspec-row { grid-template-columns: 60px 1fr; gap: 10px; }
 }
 
 /* ================= WINDOWS: MICA, FOCUS, MOTION ========================== */

@@ -102,10 +102,28 @@ interface Token {
  * now keeps them out. A branch that provably cannot fire is worse than no branch:
  * it reads as a supported case.
  */
+/**
+ * A hesitation, and the only one the renderer knows about, board ticket N60.
+ *
+ * N53 removed the automatic version and said what would have to be true for it
+ * to come back: "Placement, when it returns, is authored per line rather than
+ * derived." This is that. The word is in the script because Nam wrote it there,
+ * and all this does is hold on it, the way it already holds on a full stop.
+ *
+ * The distinction is not pedantic. The reverted version chose WHERE to stumble
+ * by reading punctuation, and punctuation is exactly where a setup hands over to
+ * a joke, so it kept landing in the one place a stumble must never go. A
+ * renderer that only reacts to a word somebody typed cannot make that mistake.
+ *
+ * Comma-delimited, so "uh" mid-sentence is a hesitation and a sentence that
+ * happens to end on one is not.
+ */
+const HESITATION = /^(uh|um|ah|er|erm),$/i;
+
 export function tokenise(text: string): Token[] {
   return text.split(/\s+/).filter(Boolean).map((w) => ({
     text: w,
-    restMs: /[.!?]$/.test(w) ? 260 : /[,;:]$/.test(w) ? 150 : 0,
+    restMs: HESITATION.test(w) ? 520 : /[.!?]$/.test(w) ? 260 : /[,;:]$/.test(w) ? 150 : 0,
   }));
 }
 

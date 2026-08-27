@@ -5,14 +5,20 @@
 // 'google meet' in the text anywhere... Can we do some kind of url param,
 // something obsfucated that would trigger showing these google terms."
 //
-// So the DEFAULT build names no employer at all. Every company-specific line —
-// the applying-for header, the scheduled meeting title, the opening chat line —
-// resolves through here, and without a code it resolves to a neutral version
-// that is true for any application.
+// Every company-specific line — the applying-for header, the scheduled meeting
+// title, the opening chat line — resolves through here rather than being written
+// into the renderers, so swapping employers is a parameter rather than a pass
+// over the codebase.
 //
-// `?c=1` is deliberately unremarkable. It reads like a campaign parameter, not
-// like a switch that changes the content, and it survives being pasted into an
-// email without looking like a tracking link.
+// WHAT THE DEFAULT IS, AND WHY IT CHANGED (N66). It used to be the neutral
+// version: no code, no employer named. Nam's call is that the reuse is
+// hypothetical and the Google application is not, so no code now resolves to
+// `?c=1`, and `?c=0` is how you ask for the neutral build back. The neutral copy
+// below is untouched; only which one you get by default has moved.
+//
+// `?c=` is deliberately unremarkable either way. It reads like a campaign
+// parameter, not like a switch that changes the content, and it survives being
+// pasted into an email without looking like a tracking link.
 //
 // The clone itself is NOT gated. Rebuilding Meet is the portfolio piece whoever
 // is reading it; only the claim "I am applying to you, for this role" is
@@ -105,9 +111,34 @@ export function pitchFor(code: string | null): Pitch {
  * to survive navigating between screens. Kept out of every rendered link so the
  * parameter is only ever present because someone was sent it.
  */
+/**
+ * The code that means "name nobody" -- board ticket N66.
+ *
+ * It has to be a REAL code rather than an unrecognised one, because an
+ * unrecognised value now falls back to the default rather than to neutral. A
+ * reader who wants the reusable build asks for it by name.
+ */
+export const NEUTRAL_CODE = '0';
+
+/**
+ * What a visitor with no code at all gets.
+ *
+ * Nam: "let's all in for google first, so let's just treat the default CV
+ * (without c parameter) as c = 1 ... Lets try our chance with google first
+ * before reusing the CV for other job ads."
+ *
+ * The machinery above was built for a reuse that has not happened, and until it
+ * does, the neutral build is the one costing something: the single application
+ * actually in flight was the one rendering a generic heading over one
+ * employer's requirements. That is T7 on the board, and this closes it from the
+ * other end.
+ */
+export const DEFAULT_CODE = '1';
+
 export function codeFromUrl(search: string): string | null {
   const v = new URLSearchParams(search).get('c');
-  return v && companyByCode(v) ? v : null;
+  if (v === NEUTRAL_CODE) return null;
+  return v && companyByCode(v) ? v : DEFAULT_CODE;
 }
 
 /**

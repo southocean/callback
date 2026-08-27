@@ -11,13 +11,16 @@ import { sym } from './icons.js';
 import type { Store } from '../state.js';
 import { profile } from '../data/cv.js';
 import type { Quests } from '../achievements.js';
+import type { Bugs } from '../bugs.js';
+import { openBugFrame } from './bugframe.js';
 import { loadInterview, clockMs } from '../prefs.js';
 import { openPlain } from './plainoverlay.js';
 import { runtimeMs } from '../data/tour.js';
 
-export function renderEnded(store: Store, quests: Quests): HTMLElement {
+export function renderEnded(store: Store, quests: Quests, bugs: Bugs): HTMLElement {
   const address = `${profile.emailUser}@${profile.emailHost}`;
   const { got, total } = quests.count();
+  const caught = bugs.count();
   /*
    * HOW LONG IT TOOK — board ticket N51.
    *
@@ -275,6 +278,41 @@ export function renderEnded(store: Store, quests: Quests): HTMLElement {
             got === total
               ? 'All of them, which is more thorough than most interview loops. The main quest is the one in the job ad: four people on four networks, all seeing the same thing at the same instant.'
               : 'A few are still open, under Meeting tools → Storyline. Two more are not on the list at all, and one of them is the oldest keyboard shortcut in games.',
+          ),
+        ),
+      ),
+
+      /*
+       * THE COLLECTION -- board ticket N59.
+       *
+       * Under the side quests rather than above them, because it is the harder
+       * one and this screen should read easiest first. It is here at all for the
+       * reason Nam gave: "By the end of a call, they will see the list of bugs
+       * they've collected." The card names the number and the drawer holds the
+       * rest, so a visitor who caught none is told there was something to catch
+       * rather than shown twelve empty boxes on arrival.
+       */
+      h(
+        'div',
+        { class: 'safe' },
+        sym('science', 24),
+        h(
+          'div',
+          {},
+          h('h2', {}, `Bugs: ${caught.got} of ${caught.total}`),
+          h(
+            'p',
+            {},
+            caught.got === caught.total
+              ? 'The whole drawer. Nobody was supposed to get all of them, so consider the QA position filled.'
+              : caught.got === 0
+                ? 'There are bugs hidden in this build on purpose. They are caught by doing the same thing three times, which is what testing software actually looks like.'
+                : 'The rest are still out there. Each one is caught by doing one thing three times, and every empty slot in the case keeps its hint.',
+          ),
+          h(
+            'button',
+            { class: 'm-btn m-outlined', type: 'button', onclick: () => openBugFrame(bugs) },
+            'Open the case',
           ),
         ),
       ),

@@ -26,8 +26,10 @@ import {
   columns, tasks, type Task, type Column,
 } from '../data/project.js';
 import { START } from '../data/cv.js';
+import { bugs as collection } from '../data/bugs.js';
+import { bugArt } from './bugart.js';
 
-type Tab = 'overview' | 'process' | 'reviews' | 'board' | 'script';
+type Tab = 'overview' | 'process' | 'reviews' | 'board' | 'script' | 'bugs';
 
 /*
  * Timeline is gone as a tab and lives inside Overview instead. Nam: "I actually
@@ -48,6 +50,18 @@ const TABS: { id: Tab; label: string }[] = [
    * script the tour suspends and hands back, and the one Nam wants to fold in.
    */
   { id: 'script', label: 'Scripts' },
+  /*
+   * N59. Nam: "List of bugs, where they are hidden and the image for them, add
+   * these info in the project spec."
+   *
+   * IT IS THE ANSWER KEY, and putting it in a panel any visitor can open is a
+   * real cost to the hunt. It goes in anyway, and the page says so in its first
+   * line. This build has published every measurement including the one that was
+   * wrong; a mechanic whose design is documented everywhere except where it
+   * would spoil something is a mechanic being marketed rather than specified.
+   * Anyone who does not want the answers is one tab away from not reading them.
+   */
+  { id: 'bugs', label: 'Collection' },
 ];
 
 export type PortalMode = 'light' | 'dark';
@@ -105,6 +119,7 @@ export function specBody(): { tabs: HTMLElement; body: HTMLElement } {
       : tab === 'process' ? processView()
       : tab === 'reviews' ? reviewsView()
       : tab === 'script' ? renderScriptEditor()
+      : tab === 'bugs' ? collectionView()
       : boardView(),
     );
     body.scrollTop = 0;
@@ -330,6 +345,37 @@ function processView(): HTMLElement {
 }
 
 /** The three readers, and a current read of the CV in each of their voices. */
+/**
+ * The collection, with nothing withheld.
+ *
+ * The counterpart of the case on the ended screen, which shows an uncaught bug
+ * as an outline and its hint and nothing else. This is the specification: every
+ * animal, every trigger, every fact, in one table, so the mechanic can be
+ * checked rather than taken on trust.
+ */
+function collectionView(): HTMLElement {
+  return h('div', { class: 'dp-col' },
+    h('p', { class: 'dp-lead' },
+      'Twelve bugs are hidden in this build. Each is caught by doing one thing three times, except the '
+      + 'three that hide behind a single act nobody performs by accident. This page names all of them, '
+      + 'which does spoil the hunt: the case on the way out shows an outline and a hint instead.'),
+    h('p', { class: 'dp-note' },
+      'The drawings are authored SVG, one body plan per animal rather than one beetle in twelve colours. '
+      + 'A silhouette is the same geometry drawn in a single colour, so an empty slot has exactly the right '
+      + 'outline and gives away nothing else.'),
+
+    h('div', { class: 'bugspec' },
+      ...collection.map((b) => h('div', { class: 'bugspec-row' },
+        h('div', { class: 'bugspec-art' }, bugArt(b, { size: 72 })),
+        h('div', { class: 'bugspec-txt' },
+          h('h3', {}, b.name),
+          h('div', { class: 'bugspec-sp' }, b.species),
+          h('p', {}, h('b', {}, 'Hidden in: '), b.where),
+          h('p', {}, h('b', {}, 'Hint shown: '), b.hint),
+          h('p', { class: 'bugspec-fact' }, b.fact))))),
+  );
+}
+
 function reviewsView(): HTMLElement {
   const byPersona = (id: string): HTMLElement[] =>
     reviews.filter((r) => r.persona === id).map((r) => h('div', { class: `rv rv-${r.verdict}` },
