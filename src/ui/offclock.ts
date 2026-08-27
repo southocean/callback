@@ -1,9 +1,9 @@
 // "Off the clock" — the participant nobody expects in the call.
 //
-// The hobbies section of a CV is usually filler. Here it is load-bearing: the
-// SFX makeup is why the effects pipeline is real, the stand-up is why he can
-// tell in ten seconds that an idea is bad, and the game development is why this
-// page has side quests in it at all.
+// The hobbies section of a CV is usually filler. This one names venues, films
+// and press instead of drawing morals from them — Nam, on the earlier version:
+// "The descriptions here are very vague, I dont like it." The SFX-makeup claim
+// that used to justify the effects pipeline is gone with the pipeline itself.
 //
 // It plays as a reel: one clip auto-advances into the next, and the strip above
 // the video always says what you are looking at and what it is evidence of.

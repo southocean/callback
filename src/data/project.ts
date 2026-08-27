@@ -197,14 +197,6 @@ export const reviews: Review[] = [
       'link reported rather than merely closed.',
   },
   {
-    persona: 'recruiter', verdict: 'risk',
-    heading: 'The CV does not say I can work here',
-    body:
-      'Work authorisation is the first thing I check on an international application and it is not on the ' +
-      'document. It exists in the data — "38 minutes from the Stockholm office, no relocation, no visa ' +
-      'sponsorship needed" — and it is not rendered anywhere a reader can see it.',
-  },
-  {
     persona: 'manager', verdict: 'strong',
     heading: 'The method is the argument, and it holds',
     body:
@@ -273,10 +265,17 @@ export interface Task {
   detail?: TaskDetail;
 }
 
+/*
+ * Nam: "when you start working on some ticket, move it to in progress, and after
+ * that to QA, then after you QA it then move it to done, that's the flow."
+ *
+ * So the third column is QA rather than In review. The id stays review because
+ * renaming it would touch every card for no gain; the label is what anyone reads.
+ */
 export const columns: { id: Column; label: string }[] = [
   { id: 'backlog', label: 'Backlog' },
   { id: 'doing', label: 'In progress' },
-  { id: 'review', label: 'In review' },
+  { id: 'review', label: 'QA' },
   { id: 'done', label: 'Done' },
 ];
 
@@ -286,7 +285,6 @@ export const columns: { id: Column; label: string }[] = [
  * trophy cabinet, not a plan.
  */
 export const tasks: Task[] = [
-  { id: 'T3', col: 'backlog', size: 'S', tag: 'content', title: 'Work authorisation missing from the CV', note: 'profile.commute exists in the data and is rendered nowhere.' },
   { id: 'T4', col: 'done', size: 'M', tag: 'trust', title: 'Say something before the camera prompt', note: 'Done, by removing the prompt instead. There is no permission bar left to get in front of \u2014 see T29.' },
   { id: 'T5', col: 'backlog', size: 'S', tag: 'trust', title: 'Label the emulated browser and desktop', note: 'A browser with an address bar drawn inside a page is a phishing pattern. Keep the trick, label it.' },
   { id: 'T6', col: 'backlog', size: 'M', tag: 'content', title: 'Rewrite the plain CV footer', note: 'It closes on build receipts and is no-print, so the PDF loses the disclaimer with it.' },
@@ -385,7 +383,7 @@ export const tasks: Task[] = [
     },
   },
   {
-    id: 'N5', col: 'backlog', size: 'S', tag: 'onboarding',
+    id: 'N5', col: 'done', size: 'S', tag: 'onboarding',
     title: "Home screen copy: subtitle and the meeting note",
     note: "Two lines, both rewritten to Nam’s wording.",
     detail: {
@@ -397,7 +395,7 @@ export const tasks: Task[] = [
     },
   },
   {
-    id: 'N6', col: 'backlog', size: 'S', tag: 'content',
+    id: 'N6', col: 'done', size: 'S', tag: 'content',
     title: "The contacts list: Diep Bui, no references, new search label",
     note: "Trim the referral picker to the one real contact.",
     detail: {
@@ -410,22 +408,22 @@ export const tasks: Task[] = [
     },
   },
   {
-    id: 'N7', col: 'backlog', size: 'S', tag: 'content',
+    id: 'N7', col: 'done', size: 'S', tag: 'content',
     title: "The Diep Bui card, and no work email anywhere",
-    note: "Retitle the card, replace the calling-as line with a joke, and purge nam@wasabiproductions.com from the whole site.",
+    note: "Retitle the card, replace the calling-as line with a joke, and purge the work address from the whole site.",
     detail: {
           "why": "The work email is Nam’s current employer address and has no business on a job application.",
           "done": [
                 "Card title: \"Diep Bui — referral\"",
-                "\"Calling as nam@wasabiproductions.com\" replaced with something playful",
+                "The \"Calling as\" line replaced with something playful",
                 "The description line is less stiff",
-                "nam@wasabiproductions.com appears nowhere in src/ or docs/"
+                "The work address appears nowhere in src/ or docs/ \u2014 asserted by a test"
           ],
           "raised": "Nam, QA 27 Aug, point 7"
     },
   },
   {
-    id: 'N8', col: 'backlog', size: 'S', tag: 'content',
+    id: 'N8', col: 'done', size: 'S', tag: 'content',
     title: "Loosen the Calls page copy, and drop the referral note",
     note: "One of the two lines should be playful, and the referral note goes — here and on the ended screen.",
     detail: {
@@ -439,7 +437,7 @@ export const tasks: Task[] = [
     },
   },
   {
-    id: 'N9', col: 'backlog', size: 'S', tag: 'specs',
+    id: 'N9', col: 'done', size: 'S', tag: 'specs',
     title: "Board cleanup, and take up T7",
     note: "T1 and T2 off the board, T4 to done, T7 becomes the job-requirement section gated behind ?c=.",
     detail: {
@@ -452,7 +450,7 @@ export const tasks: Task[] = [
     },
   },
   {
-    id: 'N10', col: 'backlog', size: 'S', tag: 'specs',
+    id: 'N10', col: 'done', size: 'S', tag: 'specs',
     title: "Rename to Project spec, drop the work-authorisation review",
     note: "The full name is too long, and one design-review point is wrong.",
     detail: {
@@ -466,7 +464,7 @@ export const tasks: Task[] = [
     },
   },
   {
-    id: 'N11', col: 'backlog', size: 'S', tag: 'specs',
+    id: 'N11', col: 'done', size: 'S', tag: 'specs',
     title: "Timeline: hide the near-empty days",
     note: "22 and 24 August had 1 and 0 commits and clutter the chart.",
     detail: {
@@ -478,7 +476,7 @@ export const tasks: Task[] = [
     },
   },
   {
-    id: 'N12', col: 'backlog', size: 'S', tag: 'specs',
+    id: 'N12', col: 'done', size: 'S', tag: 'specs',
     title: "Overview: one type size, shorter, better subtitle",
     note: "The first two paragraphs render at different sizes, the prose is long, and the panel subtitle says nothing.",
     detail: {
@@ -491,7 +489,7 @@ export const tasks: Task[] = [
     },
   },
   {
-    id: 'N13', col: 'backlog', size: 'M', tag: 'specs',
+    id: 'N13', col: 'done', size: 'M', tag: 'specs',
     title: "Overview holds the timeline; content is about the project only",
     note: "Merge the Timeline tab in, drop Method, and stop rendering Nam’s personal skills in a panel about this repository.",
     detail: {
@@ -507,7 +505,7 @@ export const tasks: Task[] = [
     },
   },
   {
-    id: 'N14', col: 'backlog', size: 'S', tag: 'specs',
+    id: 'N14', col: 'done', size: 'S', tag: 'specs',
     title: "Clicking the dimmed ground closes Project spec",
     note: "Same contract as the close button.",
     detail: {
@@ -519,7 +517,7 @@ export const tasks: Task[] = [
     },
   },
   {
-    id: 'N15', col: 'backlog', size: 'S', tag: 'content',
+    id: 'N15', col: 'done', size: 'S', tag: 'content',
     title: "The CV socials become icons",
     note: "GitHub, LinkedIn and itch.io are already links; they should be icons.",
     detail: {
@@ -531,7 +529,7 @@ export const tasks: Task[] = [
     },
   },
   {
-    id: 'N16', col: 'backlog', size: 'S', tag: 'content',
+    id: 'N16', col: 'done', size: 'S', tag: 'content',
     title: "BUG: email and location are oddly indented on the CV",
     note: "The contact block does not line up with the rest of the document.",
     detail: {
@@ -539,7 +537,7 @@ export const tasks: Task[] = [
     },
   },
   {
-    id: 'N17', col: 'backlog', size: 'M', tag: 'content',
+    id: 'N17', col: 'done', size: 'M', tag: 'content',
     title: "Wasabi Productions, and four rewritten bullets",
     note: "Mahjong Logic becomes Wasabi Productions, and the role bullets are replaced.",
     detail: {
@@ -556,7 +554,7 @@ export const tasks: Task[] = [
     },
   },
   {
-    id: 'N18', col: 'backlog', size: 'S', tag: 'content',
+    id: 'N18', col: 'done', size: 'S', tag: 'content',
     title: "Merge the two labs into D&A Research",
     note: "InfoLab and MSO Lab become one entry with only the highlights.",
     detail: {
@@ -569,7 +567,7 @@ export const tasks: Task[] = [
     },
   },
   {
-    id: 'N19', col: 'backlog', size: 'S', tag: 'content',
+    id: 'N19', col: 'done', size: 'S', tag: 'content',
     title: "Bkav wording",
     note: "\"Delivered a beta meeting the relevant ISO standards\" → \"Delivered a beta version meeting the relevant ISO standards\".",
     detail: {
@@ -577,7 +575,7 @@ export const tasks: Task[] = [
     },
   },
   {
-    id: 'N20', col: 'backlog', size: 'S', tag: 'content',
+    id: 'N20', col: 'done', size: 'S', tag: 'content',
     title: "\"Against this job ad\" → \"Against the job requirement\"",
     note: "And it only renders with a company code.",
     detail: {
@@ -585,7 +583,7 @@ export const tasks: Task[] = [
     },
   },
   {
-    id: 'N21', col: 'backlog', size: 'M', tag: 'content',
+    id: 'N21', col: 'done', size: 'M', tag: 'content',
     title: "Restructure the skills block",
     note: "Two columns, no duplicates, and a stronger test-automation line.",
     detail: {
@@ -601,7 +599,7 @@ export const tasks: Task[] = [
     },
   },
   {
-    id: 'N22', col: 'backlog', size: 'M', tag: 'content',
+    id: 'N22', col: 'done', size: 'M', tag: 'content',
     title: "Off the clock, rewritten; honours removed",
     note: "Specific credits instead of vague instincts.",
     detail: {
@@ -618,7 +616,7 @@ export const tasks: Task[] = [
     },
   },
   {
-    id: 'N23', col: 'backlog', size: 'S', tag: 'content',
+    id: 'N23', col: 'done', size: 'S', tag: 'content',
     title: "Trim the CV footer",
     note: "The build receipts and the Google disclaimer are not doing work on the document.",
     detail: {
@@ -651,7 +649,7 @@ export const tasks: Task[] = [
     },
   },
   {
-    id: 'N25', col: 'review', size: 'M', tag: 'specs',
+    id: 'N25', col: 'done', size: 'M', tag: 'specs',
     title: "Kanban cards open a ticket",
     note: "Shipped first, so the rest of the QA list had somewhere detailed to live.",
     detail: {

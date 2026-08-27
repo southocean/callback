@@ -101,7 +101,13 @@ export const pitch =
 export const roles: Role[] = [
   {
     id: 'mahjong',
-    org: 'Mahjong Logic',
+    /*
+     * WASABI PRODUCTIONS, not Mahjong Logic. Nam: "finally we have a nice company
+     * landing page." The id stays 'mahjong' because it keys the case study, the
+     * easter-egg routes and the timeline geometry, and renaming it would be a
+     * migration for no reader-visible gain.
+     */
+    org: 'Wasabi Productions',
     title: 'Lead front-end developer',
     from: 2019.25,
     to: null,
@@ -110,45 +116,50 @@ export const roles: Role[] = [
     place: 'Uppsala, Sweden',
     kind: 'engineering',
     gist: 'Seven years on a real-time multiplayer game client. The closest thing on this CV to a video call.',
+    /*
+     * All four rewritten to Nam's wording, 27 August.
+     *
+     * The platform line was factually stale: the product is no longer a React +
+     * Unity hybrid, and a CV claiming an architecture the company has moved off
+     * is a claim an interviewer can catch in one question.
+     *
+     * The team-of-five line went at Nam's request — "Im not very comfortable with
+     * this stat, cause it wasnt always 5" — and a number you have to qualify is
+     * worth less than the thing it was standing in for. What replaced it is the
+     * agentic-programming work, which is both true and the most current thing on
+     * the CV, and which this whole site happens to be evidence of.
+     */
     bullets: [
       'Game client for online mahjong, built for the Chinese and Japanese markets.',
-      'Led the product through two platform generations: native desktop app, to web, to a hybrid React + Unity client.',
-      'Led a team of five. Broke down and distributed the work, ran the reviews, owned the calls.',
-      'UX and responsive design, API design, internal tooling (a bot controller for testing live tables), payments and analytics integration.',
-      'Worked directly with designers, marketing and investors — the technical argument had to survive contact with all three.',
+      'Pivoted the product through every platform it has had: web app, to Unity, and now React Native serving both web and mobile.',
+      'Pioneered agentic programming at the company — built the cross-team AI harnesses and drove adoption beyond my own team.',
+      'Feature design, UX and responsive design, advanced Mahjong bot design (4–5 Dan), the bot swarm controller, and automated QA.',
+      'Worked directly with designers, backend, marketing and investors — a vertical grasp of the whole product, and an active say in what gets built next.',
     ],
   },
+  /*
+   * ONE RESEARCH ENTRY, not two. Nam: "we can merge Info Lab and MSO Lab into
+   * one, just D&A Research, which contains just the highlight."
+   *
+   * Two research entries with four bullets between them took as much of the page
+   * as the seven-year role above them, which is the wrong weighting on a CV
+   * applying for a front-end job. Each lab keeps its name, its institution and
+   * its dates inside its own line, so nothing is lost except the space.
+   */
   {
-    id: 'infolab',
-    org: 'InfoLab, Uppsala University',
-    title: "Master's thesis",
-    from: 2018.0,
-    to: 2018.85,
-    fromLabel: 'Jan 2018',
-    toLabel: 'Nov 2018',
-    place: 'Uppsala, Sweden',
-    kind: 'research',
-    gist: 'Graph mining on Twitter. Shipped into an open-source library, not a drawer.',
-    bullets: [
-      'Graph mining over Twitter data, contributed to the Multinet open-source library.',
-      'Supervised by Prof. Matteo Magnani.',
-    ],
-  },
-  {
-    id: 'msolab',
-    org: 'MSO Lab, HUST',
-    title: 'Research assistant',
+    id: 'research',
+    org: 'D&A Research',
+    title: 'Data and algorithms research',
     from: 2014.0,
-    to: 2017.0,
+    to: 2018.85,
     fromLabel: '2014',
-    toLabel: '2017',
-    place: 'Hanoi, Vietnam',
+    toLabel: '2018',
+    place: 'Uppsala · Hanoi',
     kind: 'research',
-    gist: 'Three years of combinatorial optimisation. This is where the algorithms came from.',
+    gist: 'Graph mining and combinatorial optimisation. This is where the algorithms came from.',
     bullets: [
-      'Wireless sensor network optimisation, with Hanh N.T. and Prof. Binh H.T.T.',
-      'Grant co-holder: IEEE AIYEHUM 2016 and 2017, IEEE R-10 HTA 2017.',
-      'Two publications, one book chapter, one best-paper award.',
+      'Graph mining, contributed to the Multinet open-source library — InfoLab, Uppsala University, 2018.',
+      'Sensor network optimisation: two publications, one book chapter, one best-paper award — MSO Lab, HUST, 2014–2017.',
     ],
   },
   {
@@ -164,7 +175,7 @@ export const roles: Role[] = [
     gist: 'Security tokens in C++. Where getting it exactly right was the whole job.',
     bullets: [
       'Researched and built eToken, a hardware security token for signing and verifying digital signatures.',
-      'Delivered a beta meeting the relevant ISO standards.',
+      'Delivered a beta version meeting the relevant ISO standards.',
     ],
   },
 ];
@@ -333,21 +344,35 @@ export const transcript: TranscriptLine[] = [
   { at: 47, speaker: 'Nam', text: 'I live 38 minutes away and I speak Swedish. Your move.' },
 ];
 
+/**
+ * TWO COLUMNS, NO DUPLICATES.
+ *
+ * Nam: "In this part there are a lot of duplicates. JavaScript — over 10,000
+ * lines, lots of languages that get over 10,000 lines, while we already have a
+ * section for Over 10,000 lines ... I think the best structure is left column
+ * skills and framework and right column languages."
+ *
+ * He is right that it was saying everything twice: five of the eight left-hand
+ * entries were bare languages whose only note was a line count the right-hand
+ * column already gave. So the left column is now only things a language list
+ * cannot express — what he can build and what he builds it with — and every
+ * language lives once, on the right.
+ *
+ * The WebGL entry is gone with the effects pipeline it cited (see T30).
+ */
 export const skills = {
   primary: [
-    { name: 'TypeScript', note: 'this site: strict, zero dependencies, under a size budget enforced in CI' },
-    { name: 'JavaScript', note: 'over 10,000 lines' },
-    { name: 'React', note: 'seven years on a production client, through a full re-architecture' },
-    { name: 'Test automation', note: 'bot controller driving live game tables; the suite in the Engineering panel' },
-    { name: 'C++', note: 'over 10,000 lines — signing hardware at Bkav' },
-    { name: 'Java', note: 'over 10,000 lines' },
-    { name: 'C#', note: 'over 10,000 lines — Unity client work' },
-    { name: 'WebGL / real-time rendering', note: 'the effects pipeline on this page' },
+    { name: 'React · Unity · Flutter', note: 'the three frameworks the product has shipped on, across three platform migrations' },
+    { name: 'Agentic programming', note: 'cross-team AI harnesses at Wasabi, and this entire site — built in a week by one person and an agent' },
+    { name: 'Test automation', note: '75–90% unit coverage, AI-assisted, plus automated QA over the core UI flows' },
+    { name: 'Real-time clients', note: 'shared state, reconnection and latency on a live multiplayer game — the same shape of problem as a video call' },
+    { name: 'Responsive & accessible UI', note: 'this page: roving tabindex, live regions, reduced-motion, keyboard-only paths, audited rather than assumed' },
+    { name: 'Performance budgets', note: 'an initial-load ceiling enforced in CI, so it cannot rot between releases' },
   ],
   volume: {
-    'Over 10,000 lines': ['C', 'C++', 'C#', 'Dart', 'Java', 'JavaScript'],
+    'Over 10,000 lines': ['TypeScript', 'JavaScript', 'C', 'C++', 'C#', 'Dart', 'Java'],
     'Over 1,000 lines': ['Erlang', 'SQL', 'Python', 'Matlab', 'R', 'PHP'],
-    Familiar: ['Flutter', 'Unity', 'React', 'Figma', 'UML', 'Spark', 'MySQL'],
+    'Tools & platforms': ['Figma', 'UML', 'Spark', 'MySQL', 'Git', 'Unity Editor'],
   } as Record<string, string[]>,
 };
 
@@ -373,24 +398,43 @@ export const teaching = [
   'Genetic Algorithms (2014 — 2015)',
 ];
 
-export const honours = [
-  { year: '2018', what: 'Co-author, book chapter in Soft Computing' },
-  { year: '2016', what: 'Erasmus+, Uppsala University' },
-  { year: '2016', what: '1st place, Student Research Competition, HUST' },
-  { year: '2015', what: 'Best paper, IEEE R10-HTC Conference, Philippines' },
-  { year: '2015', what: 'Participant, EBA fieldwork, Philippines' },
-  { year: '2014', what: 'Participant, JENESYS 2.0, Tokyo' },
-];
+/*
+ * HONOURS REMOVED, on Nam's call. The two that carry weight — the best paper and
+ * the book chapter — are already in the research entry above, where they are
+ * attached to the work that earned them rather than sitting in a list of six
+ * things from a decade ago.
+ */
 
+/**
+ * SPECIFIC, not evocative.
+ *
+ * Nam: "The descriptions here are very vague, I dont like it." Fair — every line
+ * was a simile about what the hobby taught him, which is the CV equivalent of
+ * answering a question about your weekend with a metaphor. Named venues, named
+ * films, named press. A reader can check all of it.
+ *
+ * The intro line went too: "Two of these are the reason the page you are looking
+ * at exists" was a tease that never paid off, and one of the two it meant was
+ * the effects pipeline, which no longer ships.
+ */
 export const offstage = {
-  intro: 'Not filler. Two of these are the reason the page you are looking at exists.',
   items: [
-    { what: 'Stand-up comedian', why: 'Ten seconds to find out whether a thing lands. Same instinct as a UX review.' },
-    { what: 'Actor', why: 'The other side of the camera. Useful when the product is a camera.' },
-    { what: 'SFX artist', why: 'Why the effects pipeline in the Engineering panel is a real one.' },
-    { what: 'Zombie walk organiser', why: 'Crowd logistics, in makeup.' },
-    { what: 'Brazilian jiu-jitsu', why: 'Losing repeatedly to better people, on purpose, as a hobby.' },
-  ],
+    {
+      what: 'Stand-up comedy',
+      why: 'Performed at Fyris Komedi and Comedy Nation. Competed in Uppsalas Roligaste 2026.',
+    },
+    {
+      what: 'Acting',
+      why: 'Short films: Tomma Händer (.MOV Filmfestival 2026), The Darkest Hour, Don’t Cry Over Spilled Milk.',
+    },
+    {
+      what: 'Uppsala Zombie Walk organiser',
+      why: 'Website, marketing, makeup, logistics and the rest of it. Featured on SVT and UNT.',
+      href: 'https://www.svt.se/nyheter/lokalt/uppsala/zombie-walk-i-uppsala',
+      hrefLabel: 'SVT',
+    },
+    { what: 'Sports', why: 'Swimming and Brazilian jiu-jitsu.' },
+  ] as { what: string; why: string; href?: string; hrefLabel?: string }[],
 };
 
 /** Requirement-by-requirement, against the senior posting. */

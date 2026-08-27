@@ -1,1 +1,0 @@
-import{a,b,c,d,e,f,g,h,i,j,k,l,m,n,o,p}from"./chunk-5AQ7I6OD.js";export{c as SITE,b as START,f as caseStudies,g as chat,j as education,l as honours,p as meta,m as offstage,d as pitch,a as profile,o as referralBlurb,n as requirementMap,e as roles,i as skills,k as teaching,h as transcript};

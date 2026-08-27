@@ -150,15 +150,8 @@ function render(): void {
   // The Calls tab. A real second tab rather than a link, because Meet has
   // exactly two and a third would be the tell.
   if (key === 'calls') {
-    mount('calls', () => import('./ui/calls.js').then((m) => m.renderCalls({
-      // No pushState here: the store subscriber derives the hash from state, and
-      // it canonicalises a host panel to "#host". Pushing "#call/host" first
-      // just wrote a URL that was overwritten a tick later.
-      onOpenReferral: () => {
-        store.dispatch({ t: 'screen', screen: 'call' });
-        store.dispatch({ t: 'panel', panel: 'host' });
-      },
-    })).then((node) => renderHome(store, store.get().reducedMotion, node)));
+    mount('calls', () => import('./ui/calls.js').then((m) => m.renderCalls({}))
+      .then((node) => renderHome(store, store.get().reducedMotion, node)));
     return;
   }
 

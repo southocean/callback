@@ -9,11 +9,10 @@
 
 import { h } from '../dom.js';
 import { currentPitch } from '../data/companies.js';
-import { sym } from './icons.js';
+import { sym, socialLink, type SocialName } from './icons.js';
 import {
-  profile, pitch, roles, education, teaching, honours, skills, offstage, requirementMap, meta,
+  profile, pitch, roles, education, teaching, skills, offstage, requirementMap,
 } from '../data/cv.js';
-import { buildMeta } from './eng.js';
 
 function email(): string {
   // Assembled rather than sitting in the markup (review S3).
@@ -38,7 +37,9 @@ function email(): string {
  * that is already a full application.
  */
 export function renderPlain(onBack: () => void, embedded = false): HTMLElement {
-  const b = buildMeta();
+  // Named `job`, not `pitch`: data/cv.ts already exports a `pitch` and shadowing
+  // it here would silently swap the CV summary for the company copy.
+  const job = currentPitch();
 
   return h(
     'main',
@@ -72,7 +73,8 @@ export function renderPlain(onBack: () => void, embedded = false): HTMLElement {
         { class: 'doc-contact' },
         h('div', {}, h('a', { href: `mailto:${email()}` }, email())),
         h('div', {}, profile.place),
-        h('div', {}, ...profile.links.map((l, i) => h('span', {}, i ? ' · ' : '', h('a', { href: l.href }, `${l.label}/${l.handle}`)))),
+        h('div', { class: 'doc-socials' },
+          ...profile.links.map((l) => socialLink(l.label as SocialName, l.href))),
       ),
     ),
 
@@ -90,11 +92,28 @@ export function renderPlain(onBack: () => void, embedded = false): HTMLElement {
       ),
     ),
 
-    h('section', {}, h('h2', {}, 'Against this job ad'),
-      ...requirementMap.map((r) =>
-        h('div', { class: 'doc-skill' }, h('b', {}, `${r.strength === 'honest' ? '~' : '✓'} ${r.req} — `), h('span', { class: 'doc-note' }, r.evidence)),
-      ),
-    ),
+    /*
+     * GATED, AND RENAMED. Nam: "we reference the google actual hiring title, but
+     * guard this section under url param c=1, cause we dont have the data on
+     * other companies job ad."
+     *
+     * That was T7 on the board: with no code the section rendered one employer's
+     * requirements under a heading that named none, so a reader at a different
+     * company was being shown a mapping against a posting they had never seen.
+     * It is a real section when there is a real posting behind it and absent
+     * otherwise, which is the only honest pair of states available.
+     *
+     * The heading is "Against the job requirement" per point 20, and it now
+     * names the role it is measuring against.
+     */
+    job.named
+      ? h('section', {},
+        h('h2', {}, 'Against the job requirement'),
+        h('p', { class: 'doc-target' }, job.target),
+        ...requirementMap.map((r) =>
+          h('div', { class: 'doc-skill' }, h('b', {}, `${r.strength === 'honest' ? '~' : '✓'} ${r.req} — `), h('span', { class: 'doc-note' }, r.evidence)),
+        ))
+      : h('span', {}),
 
     h('section', {}, h('h2', {}, 'Skills'),
       h('div', { class: 'doc-2col' },
@@ -114,20 +133,38 @@ export function renderPlain(onBack: () => void, embedded = false): HTMLElement {
       h('div', { class: 'doc-skill' }, h('b', {}, 'Languages: '), h('span', { class: 'doc-note' }, profile.languages)),
     ),
 
-    h('section', {}, h('h2', {}, 'Honours'),
-      h('dl', { class: 'doc-honours' }, ...honours.flatMap((x) => [h('dt', {}, x.year), h('dd', {}, x.what)])),
-    ),
+    /* Honours removed — see the note in data/cv.ts. The two that carry weight are
+       attached to the research they came from instead of listed away from it. */
 
     h('section', {}, h('h2', {}, 'Off the clock'),
-      h('p', { class: 'doc-note' }, offstage.intro),
-      ...offstage.items.map((i) => h('div', { class: 'doc-skill' }, h('b', {}, i.what), ' — ', h('span', { class: 'doc-note' }, i.why))),
+      ...offstage.items.map((i) => h('div', { class: 'doc-skill' },
+        h('b', {}, i.what), ' — ',
+        h('span', { class: 'doc-note' }, i.why),
+        // A press mention is worth more as a link than as a claim.
+        i.href
+          ? h('span', { class: 'doc-note' }, ' ', h('a', { href: i.href, target: '_blank', rel: 'noopener' }, i.hrefLabel ?? 'Read it'))
+          : h('span', {}))),
     ),
 
     h(
       'footer',
       { class: 'doc-foot no-print' },
-      h('p', {}, `This document and the interactive version render from one data module, so they cannot disagree. Print this page for a one-page PDF. Build ${b.commit} · ${(b.jsGzip / 1024).toFixed(1)} kB of JavaScript, gzipped · no dependencies · no third-party requests.`),
-      h('p', {}, meta.disclaimer),
+      /*
+       * WHAT A CV FOOTER IS FOR. Nam: "Whats up with the footer in the CV? ...
+       * Idk if they are relevant at all. We can remove them I think."
+       *
+       * Right. Three things were in there and two were talking to the wrong
+       * reader. The build receipts -- commit hash, gzip size, no dependencies --
+       * are a good boast in the Project spec panel, where someone has chosen to
+       * read about the build; on the CV they interrupt a document about seven
+       * years of work to mention a kilobyte count. And meta.disclaimer was
+       * separately wrong: it asserted "No Google marks are used" while the shell
+       * renders the Meet mark, which the perception doc had already filed as R13.
+       *
+       * What survives is the one line that helps the reader in front of it: this
+       * page prints as a one-pager. Everything else moved to where it belongs.
+       */
+      h('p', {}, 'Print this page for a one-page PDF.'),
     ),
   );
 }

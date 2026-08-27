@@ -76,41 +76,27 @@ export const CONTACTS: Contact[] = [
      * intact while still making the referral real.
      */
     id: 'ref-diep',
-    name: 'Diep — referral',
+    name: 'Diep Bui',
     email: 'diepbp.github.io',
-    initials: 'D',
+    initials: 'DB',
     tint: '#c4eed0',
     ink: '#072711',
-    relation: 'Can refer me internally, and has worked with me directly. His own page is the introduction.',
+    relation: 'Has worked with me directly, and can refer me internally — which is the short way of saying he knows what he would be vouching for. His own page does the introducing.',
     href: 'https://diepbp.github.io/',
     voice: 'https://diepbp.github.io/',
     confirmed: true,
     referral: true,
   },
-  {
-    id: 'ref-lead',
-    name: 'Reference — engineering lead',
-    email: 'ask@example.com',
-    initials: 'EL',
-    tint: '#0b57d0',
-    ink: '#ffffff',
-    relation: 'Led the team through two of the four case studies. Can speak to how I work under a deadline.',
-    href: 'mailto:ask@example.com?subject=Reference%20for%20Nam%20Nguyen',
-    voice: 'mailto:ask@example.com?subject=Reference%20call%20for%20Nam%20Nguyen',
-    confirmed: false,
-  },
-  {
-    id: 'ref-peer',
-    name: 'Reference — client-side peer',
-    email: 'ask@example.com',
-    initials: 'CP',
-    tint: '#c2e7ff',
-    ink: '#001d35',
-    relation: 'Paired on the real-time client for three years. Can speak to the code rather than the outcome.',
-    href: 'mailto:ask@example.com?subject=Reference%20for%20Nam%20Nguyen',
-    voice: 'mailto:ask@example.com?subject=Reference%20call%20for%20Nam%20Nguyen',
-    confirmed: false,
-  },
+  /*
+   * The two invented references are gone. Nam: "You can delete the 2 references
+   * too."
+   *
+   * They were structurally honest — confirmed: false, an example.com address, a
+   * comment saying they were placeholders — and still the wrong thing on the
+   * page. A reader does not see the flag; they see three references, two of which
+   * cannot be contacted. One real referral says more than one real referral
+   * flanked by two hypotheticals.
+   */
 ];
 
 /**
@@ -121,5 +107,20 @@ export function referrableContacts(named: boolean): Contact[] {
   return CONTACTS.filter((c) => !c.referral || named);
 }
 
-/** The account the call goes out as. Meet prints the signed-in address here. */
-export const CALLING_AS = 'nam@wasabiproductions.com';
+/**
+ * What Meet prints under the call buttons.
+ *
+ * It was Nam's actual work address. Nam: "this is irrelevant ... Its my current
+ * work email and should not be even mentioned here." Right on both counts — a
+ * job application is the last place to publish the address you are applying away
+ * from, and it was answering a question nobody had asked.
+ *
+ * Meet does put the signed-in account here, so the slot is real; what goes in it
+ * is the joke the slot invites. A test now asserts the old value cannot come
+ * back — see test/suite.ts.
+ *
+ * The SUBJECT only: the view already writes "Calling as " in front of it, and the
+ * first attempt at this line included the prefix too, which rendered as
+ * "Calling as Calling as someone who really wants this job".
+ */
+export const CALLING_AS = 'someone who really wants this job';

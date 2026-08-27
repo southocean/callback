@@ -496,3 +496,58 @@ export function settleLockup(root: ParentNode = document): void {
   stopImpact = null;
   settle(found.parts);
 }
+
+/**
+ * The three social marks, as icons rather than as "GitHub/southocean".
+ *
+ * Nam: "since we already provide links, I think we should just have them
+ * hyperlinked on an icon, like github icon opening github etc."
+ *
+ * They also fix the complaint one point later — "Why is there weird indentation
+ * for the email and location here?" The contact block is right-aligned, and it
+ * held three lines of wildly different widths: an email, a city, and sixty
+ * characters of "GitHub/southocean · LinkedIn/southocean · itch.io/southocean".
+ * Right-aligning lines that differ that much produces a ragged left edge, and a
+ * ragged left edge reads as accidental indentation. Three small icons make the
+ * third line short, so the alignment reads as alignment.
+ *
+ * Hand-authored paths at a 24 viewBox, monochrome, so they take currentColor and
+ * sit at whatever size the caller asks for. Not from an icon font: three glyphs
+ * is not worth a network request, and Material has none of them.
+ */
+export type SocialName = 'GitHub' | 'LinkedIn' | 'itch.io';
+
+const SOCIAL_PATHS: Record<SocialName, string> = {
+  GitHub:
+    'M12 .5a11.5 11.5 0 0 0-3.64 22.42c.58.1.79-.25.79-.55v-2.1c-3.2.7-3.88-1.54-3.88-1.54-.53-1.34-1.29-1.7-1.29-1.7-1.05-.72.08-.7.08-.7 1.16.08 1.77 1.19 1.77 1.19 1.03 1.77 2.71 1.26 3.37.96.1-.75.4-1.26.73-1.55-2.55-.29-5.23-1.28-5.23-5.7 0-1.26.45-2.29 1.19-3.1-.12-.29-.52-1.46.11-3.05 0 0 .97-.31 3.18 1.18a11 11 0 0 1 5.79 0c2.2-1.49 3.17-1.18 3.17-1.18.63 1.59.23 2.76.12 3.05.74.81 1.18 1.84 1.18 3.1 0 4.43-2.69 5.4-5.25 5.69.41.36.78 1.06.78 2.14v3.17c0 .3.2.66.8.55A11.5 11.5 0 0 0 12 .5z',
+  LinkedIn:
+    'M4.98 3.5a2.5 2.5 0 1 0 0 5 2.5 2.5 0 0 0 0-5zM3 9h4v12H3zM9.5 9H13v1.7h.05c.5-.9 1.7-1.9 3.5-1.9 3 0 4.45 1.9 4.45 5.3V21h-4v-6c0-1.5-.55-2.5-1.9-2.5-1.1 0-1.75.75-2.05 1.5-.1.25-.1.6-.1.95V21h-4z',
+  'itch.io':
+    'M3.13 1.34C2.09 1.96.02 4.34 0 4.96v1.03c0 1.31 1.23 2.46 2.34 2.46 1.34 0 2.45-1.11 2.45-2.42 0 1.31 1.07 2.42 2.41 2.42s2.38-1.11 2.38-2.42c0 1.31 1.14 2.42 2.48 2.42h.02c1.34 0 2.48-1.11 2.48-2.42 0 1.31 1.04 2.42 2.38 2.42s2.41-1.11 2.41-2.42c0 1.31 1.11 2.42 2.45 2.42C22.31 8.45 24 7.3 24 5.99V4.96c-.02-.62-2.09-3-3.13-3.62C17.66 1.23 15.11 1.2 12 1.2s-7.2.06-8.87.14zm6.32 6.6a2.7 2.7 0 0 1-.47.6c-.5.5-1.19.81-1.95.81a2.75 2.75 0 0 1-1.95-.81c-.16-.16-.3-.35-.42-.55-.12.2-.29.39-.45.55-.5.5-1.19.81-1.95.81-.09 0-.19-.01-.26-.02-.29 2.9-.63 7.16.36 8.17 1.28.3 3.65.43 6.03.44 2.39 0 4.75-.14 6.03-.44.99-1.01.65-5.27.36-8.17-.08.01-.17.02-.26.02-.76 0-1.45-.31-1.95-.81-.16-.16-.33-.35-.45-.55-.12.2-.26.39-.42.55-.5.5-1.19.81-1.95.81-.76 0-1.45-.31-1.95-.81a2.7 2.7 0 0 1-.4-.6zm-2.42 2.2c.76 0 1.43 0 2.27.92.66-.07 1.35-.1 2.05-.1.7 0 1.39.03 2.05.1.84-.92 1.51-.92 2.27-.92 0 0 1.6 0 2.72 3.19l.9 3.22c.66 2.4-.21 2.46-1.3 2.46-1.61-.06-2.5-1.23-2.5-2.4-1.09.18-2.36.27-3.63.27-1.27 0-2.54-.09-3.63-.27 0 1.17-.89 2.34-2.5 2.4-1.09 0-1.96-.06-1.3-2.46l.9-3.22C5.43 10.14 7.03 10.14 7.03 10.14zM12 12.4l-.02.01-1.09 1.07-.99.99.99.99h2.22l.99-.99-.99-.99-1.09-1.07z',
+};
+
+/** One social link: the mark, wrapped in an anchor that says where it goes. */
+export function socialLink(name: SocialName, href: string, size = 20): HTMLElement {
+  const ns = 'http://www.w3.org/2000/svg';
+  const svg = document.createElementNS(ns, 'svg');
+  svg.setAttribute('viewBox', '0 0 24 24');
+  svg.setAttribute('width', String(size));
+  svg.setAttribute('height', String(size));
+  svg.setAttribute('aria-hidden', 'true');
+  svg.setAttribute('focusable', 'false');
+  const path = document.createElementNS(ns, 'path');
+  path.setAttribute('d', SOCIAL_PATHS[name]);
+  path.setAttribute('fill', 'currentColor');
+  svg.appendChild(path);
+  const a = document.createElement('a');
+  a.className = 'doc-social';
+  a.href = href;
+  a.target = '_blank';
+  a.rel = 'noopener';
+  // The icon is decorative; the accessible name comes from here, because "a
+  // GitHub logo" is not what a screen reader user needs to hear about a link.
+  a.setAttribute('aria-label', name);
+  a.title = name;
+  a.appendChild(svg);
+  return a;
+}

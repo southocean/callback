@@ -992,6 +992,24 @@ body.plain { background: #fff; color: #16181c; }
 .doc h1 { font: 400 38px/1.1 var(--font-title); letter-spacing: -.5px; }
 .doc-target { font: 400 14px/20px var(--font); color: #4a4f57; margin-top: 5px; }
 .doc-contact { font: 400 13.5px/1.7 var(--font); text-align: right; color: #4a4f57; }
+/* The socials are icons now, which is also what fixes the "weird indentation":
+   the block is right-aligned, and it used to hold an email, a city, and sixty
+   characters of "GitHub/southocean · LinkedIn/...". Right-aligning lines that
+   differ that much leaves a ragged left edge, and a ragged left edge reads as
+   accidental indentation. Three icons make the third line short. */
+.doc-socials { display: flex; gap: 10px; justify-content: flex-end; margin-top: 4px; }
+.doc-social {
+  display: inline-flex; color: #4a4f57; border-radius: 4px;
+  transition: color .12s linear;
+}
+.doc-social:hover { color: var(--blue); }
+.doc-social:focus-visible { outline: 2px solid var(--blue); outline-offset: 3px; }
+/* Narrow enough that the header stacks: the contact block gets the full width, so
+   right-aligning it strands it away from the name it belongs to. */
+@media (max-width: 560px) {
+  .doc-contact { text-align: left; }
+  .doc-socials { justify-content: flex-start; }
+}
 .doc-contact a { color: var(--blue); text-decoration: none; }
 .doc-pitch { font: 400 16px/1.55 var(--font); color: #2b2f36; margin: 18px 0 26px; max-width: 62ch; }
 .doc h2 {

@@ -366,11 +366,17 @@ function pageTools(): HTMLElement {
 function pageHobby(): HTMLElement {
   return h('div', { class: 'pg' },
     h('h1', { class: 'pg-h' }, 'Off the clock'),
-    h('p', { class: 'pg-sub' }, 'Five of them, and two are the reason this page exists'),
-    h('p', { class: 'pg-lead' }, offstage.intro),
+    /* Was "Five of them, and two are the reason this page exists" over
+       offstage.intro. Both were teases that never paid off, and one of the two
+       they meant was the effects pipeline, which no longer ships. */
+    h('p', { class: 'pg-sub' }, 'What he does when nobody is paying him'),
     h('div', { class: 'pg-roles' },
       ...offstage.items.map((it) => h('div', { class: 'pg-role' },
-        h('b', {}, it.what), h('span', {}, it.why)))),
+        h('b', {}, it.what),
+        h('span', {}, it.why),
+        it.href
+          ? h('span', {}, h('a', { href: it.href, target: '_blank', rel: 'noopener' }, it.hrefLabel ?? 'Read it'))
+          : h('span', {})))),
     h('p', { class: 'pg-note' }, 'The clips are in this folder, next to this file.'));
 }
 
@@ -447,13 +453,23 @@ function pageCv(): HTMLElement {
 }
 
 function pageJobAd(): HTMLElement {
+  const pitch = currentPitch();
   return h('div', { class: 'pg' },
     h('h1', { class: 'pg-h' }, 'The posting, line by line'),
-    h('p', { class: 'pg-sub' }, currentPitch().target),
-    h('ul', { class: 'pg-reqs' },
-      ...requirementMap.map((r) => h('li', { class: `pg-req is-${r.strength}` },
-        h('span', { class: 'pg-tick', 'aria-hidden': 'true' }, r.strength === 'honest' ? '–' : '✓'),
-        h('span', {}, h('b', {}, r.req), h('span', {}, r.evidence))))),
+    h('p', { class: 'pg-sub' }, pitch.target),
+    /*
+     * Same gate as the CV's section, for the same reason: the requirement map is
+     * written against one specific posting, and rendering it for a reader at
+     * another company measures them against a job they never advertised.
+     */
+    pitch.named
+      ? h('ul', { class: 'pg-reqs' },
+        ...requirementMap.map((r) => h('li', { class: `pg-req is-${r.strength}` },
+          h('span', { class: 'pg-tick', 'aria-hidden': 'true' }, r.strength === 'honest' ? '–' : '✓'),
+          h('span', {}, h('b', {}, r.req), h('span', {}, r.evidence)))))
+      : h('p', { class: 'pg-note' },
+        'The line-by-line mapping is written against one specific posting, so it appears only when this link ' +
+        'carries the company code for it. Without one, the CV is the whole answer.'),
   );
 }
 

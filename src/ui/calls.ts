@@ -74,10 +74,9 @@ import { currentPitch } from '../data/companies.js';
 
 export interface CallsOpts {
   /** Referral note lives in one place so it can be edited without hunting. */
-  onOpenReferral: () => void;
 }
 
-export function renderCalls(o: CallsOpts): HTMLElement {
+export function renderCalls(_o: CallsOpts): HTMLElement {
   /** Selection is a set, because Meet's is. */
   const chosen = new Set<string>();
   let open = false;
@@ -85,8 +84,8 @@ export function renderCalls(o: CallsOpts): HTMLElement {
   const input = h('input', {
     type: 'text',
     class: 'calls-input',
-    placeholder: 'Search contacts or dial',
-    'aria-label': 'Search contacts or dial',
+    placeholder: 'Search my referral',
+    'aria-label': 'Search my referral',
     autocomplete: 'off',
     role: 'combobox',
     'aria-expanded': 'false',
@@ -224,7 +223,7 @@ export function renderCalls(o: CallsOpts): HTMLElement {
     cont.disabled = !any;
     input.setAttribute('aria-expanded', open ? 'true' : 'false');
     // Measured, and the opposite of what we had: Meet KEEPS the placeholder
-    // after a chip lands. The field reads "[chip] Search contacts or dial",
+    // after a chip lands. The field reads "[chip] Search my referral",
     // because the field still does something — you can select more people. We
     // were blanking it, which made the pill look finished and turned a live
     // control into a label.
@@ -329,7 +328,13 @@ export function renderCalls(o: CallsOpts): HTMLElement {
     },
       h('div', { class: 'cd-bar' }, more, x),
       avatar(c, 88),
-      h('h2', { class: 'cd-name' }, c.name),
+      /*
+       * The card says "— referral" and the list does not, which is deliberate and
+       * is what Nam asked for across points 6 and 7: the list is a list of people,
+       * where the suffix is noise beside one entry, and the card is where you find
+       * out what this person is FOR.
+       */
+      h('h2', { class: 'cd-name' }, c.referral ? c.name + ' — referral' : c.name),
       h('p', { class: 'cd-mail' }, shown(c)),
       h('p', { class: 'cd-rel' }, c.relation),
       h('div', { class: 'cd-btns' }, voice, video),
@@ -375,10 +380,21 @@ export function renderCalls(o: CallsOpts): HTMLElement {
       h('div', { class: 'calls-art', 'aria-hidden': 'true' }, art()),
       h('h1', { class: 'calls-h' }, 'Connect with someone who knows the work'),
       h('p', { class: 'calls-s' },
-        'A reference beats a claim. Search above, or take the interview already waiting on the Meetings tab.'),
-      h('button', {
-        class: 'm-btn m-tonal m-new', type: 'button', onclick: () => o.onOpenReferral(),
-      }, sym('person_add', 20), h('span', { class: 'm-new-label' }, 'The referral note'))),
+        /* Nam: "All these texts are very professional. Maybe one of them can be
+           more playful, maybe the second line." The heading carries the serious
+           claim, so the line under it does not have to. */
+        'A reference beats a claim, and he did volunteer. There is also an interview sitting on the Meetings tab, ' +
+        'already running, with one participant looking at his watch.'),
+      /*
+       * The referral note button is gone. Nam: "The referral note may not be very
+       * useful here. In general Idk if a referral note is really needed at all."
+       *
+       * It was the one call to action on an empty state, which made it look like
+       * the point of the screen -- and the point of the screen is the referral
+       * beside it, not a paragraph about him. It still exists in Host controls
+       * for anyone who actually has to write one.
+       */
+    ),
   );
 }
 

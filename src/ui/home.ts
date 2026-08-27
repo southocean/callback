@@ -12,7 +12,6 @@ import { h, clear } from '../dom.js';
 import { sym, lockup, spinner, focusRing, playLockup, settleLockup } from './icons.js';
 import { openDev } from './devopen.js';
 import { currentPitch } from '../data/companies.js';
-import { START } from '../data/cv.js';
 
 import { openPlain } from './plainoverlay.js';
 import { tip, tipAll, tipAllAbove, hideTip, rearm } from './tooltip.js';
@@ -157,19 +156,6 @@ function slot(on: Date): { day: string; date: number; label: string; week: { n: 
   };
 }
 
-/**
- * The home shell. `body` swaps the content column for another screen that lives
- * inside the same chrome — the Calls tab does this. Without it the boot sequence
- * would asynchronously clear main and overwrite whatever the caller put there,
- * which is exactly what happened the first time.
- */
-/** "20 August" from the project's first-commit date. */
-function startLabel(): string {
-  const [, m, d] = START.split('-');
-  const months = ['January', 'February', 'March', 'April', 'May', 'June',
-    'July', 'August', 'September', 'October', 'November', 'December'];
-  return `${Number(d)} ${months[Number(m) - 1]}`;
-}
 
 export function renderHome(store: Store, reducedMotion = false, body?: HTMLElement): HTMLElement {
   let s = slot(viewing);
@@ -562,10 +548,17 @@ export function renderHome(store: Store, reducedMotion = false, body?: HTMLEleme
       dayBody.appendChild(h(
         'p',
         { class: 'sched-note' },
-        // Was "waiting since March, when the CV was last updated" -- a joke whose
-        // takeaway was a false staleness claim. The date now comes from the git
-        // history via data/project.ts, so it cannot drift again.
-        `Talk to him more personally with this interactive CV. He has been waiting since ${startLabel()}, when this CV was first built.`,
+        /*
+         * Third version of this line. It was "waiting since March, when the CV was
+         * last updated" -- a joke whose takeaway was a false staleness claim. Then
+         * it was the same joke with a correct date, which fixed the falsehood and
+         * kept the problem: it spent its one sentence on the build's history
+         * rather than on a reason to press Join.
+         *
+         * Nam: "Short and sweet." No date at all now, which also means nothing
+         * left to go stale.
+         */
+        'Get personal with Nam in this interactive CV. Only if all meetings could be like this!',
       ));
       dayBody.appendChild(hint);
     } else if (egg) {
@@ -659,7 +652,7 @@ export function renderHome(store: Store, reducedMotion = false, body?: HTMLEleme
         // Nam: say what it is immediately, and use the second line for a reason
         // to keep reading rather than for mechanics the reader can already see.
         h('div', { class: 'banner-t' }, "Short on time? Here's my CV."),
-        h('div', { class: 'banner-s' }, 'Lead front-end developer, 7 years \u00b7 PhD in everything but Computer Science'),
+        h('div', { class: 'banner-s' }, 'Lead front-end developer, 7 years · Agentic programming wizard · PhD in going the extra miles'),
       ),
       // Opens over the app rather than navigating to it -- Meet never leaves
       // itself. The href stays so the link is still a real link for anyone who

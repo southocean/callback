@@ -68,8 +68,8 @@ export const reel: Clip[] = [
     label: 'SFX makeup',
     caption: 'Prosthetics, built and worn. Same self-tape, different day.',
     why:
-      'This is why the effects pipeline in the Engineering panel is a real filter chain and not a CSS ' +
-      'hue-rotate. I have spent years on the practical version of the same problem.',
+      'Built and worn, on a face, with a deadline. The practical version of the same problem a shader solves, ' +
+      'and the reason a horror short gets finished on a weekend.',
     src: 'media/sfx.mp4',
     poster: 'media/sfx.jpg',
     seconds: 6,

@@ -397,6 +397,30 @@ suite('content integrity', () => {
     const cv = await import('../data/cv.js');
     ok(!/07\d[\s.\-]?\d{3}[\s.\-]?\d{4}/.test(JSON.stringify(cv)), 'a phone number leaked into the public build');
   });
+
+  /*
+   * The work address, asserted gone.
+   *
+   * Nam: "Control the site and make sure we dont leave any other reference to
+   * nam@wasabiproductions.com. Its my current work email and should not be even
+   * mentioned here."
+   *
+   * A grep answers that once; a test answers it every build. It walks the data
+   * modules a reader can actually reach rather than the whole tree, because the
+   * point is what gets published, and it matches the domain rather than the full
+   * address so a different local part cannot slip past.
+   */
+  test('the work address is nowhere in the web build', async () => {
+    const mods = await Promise.all([
+      import('../data/cv.js'),
+      import('../data/contacts.js'),
+      import('../data/companies.js'),
+      import('../data/project.js'),
+      import('../data/story.js'),
+    ]);
+    const blob = mods.map((m) => JSON.stringify(m)).join(' ');
+    ok(!/wasabiproductions/i.test(blob), 'the current work address leaked into the public build');
+  });
 });
 
 // ---------------------------------------------------------------------------

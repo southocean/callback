@@ -109,7 +109,7 @@ export const flow = {
       what: 'Meeting tools is the engineering wing',
       body:
         'Meet keeps whiteboards and polls here. This keeps the test suite, a live accessibility audit, the measured ' +
-        'bundle size, a WebGL effects pipeline, a network-degradation simulator, this spec, and a map against the job ad.',
+        'bundle size, a network-degradation simulator, and this spec.',
     },
     {
       what: 'Off the clock',

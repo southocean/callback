@@ -16,21 +16,15 @@ export function renderEnded(store: Store, quests: Quests): HTMLElement {
   const { got, total } = quests.count();
   const text = referralBlurb + url;
 
-  const copy = h(
-    'button',
-    {
-      class: 'm-btn m-outlined',
-      type: 'button',
-      onclick: () => {
-        void navigator.clipboard?.writeText(text).then(
-          () => (copy.textContent = 'Copied'),
-          () => (copy.textContent = 'Clipboard blocked — select it above'),
-        );
-      },
-    },
-    sym('content_copy', 18),
-    'Copy the referral note',
-  );
+  /*
+   * The "Copy the referral note" button is gone from this screen. Nam: "I'd say
+   * remove it from the meeting end screen too."
+   *
+   * The card it sat in is about reassuring a referrer that nothing has to be
+   * written from scratch, and the paragraph is right there to read. A copy
+   * button turned a reassurance into a task, on the one screen where the visitor
+   * has already decided to leave.
+   */
 
   /**
    * The auto-return, copied from the original.
@@ -210,7 +204,6 @@ export function renderEnded(store: Store, quests: Quests): HTMLElement {
               'every sentence checks out against the CV.',
           ),
           h('div', { class: 'blurb' }, text),
-          copy,
         ),
       ),
 
