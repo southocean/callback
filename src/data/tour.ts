@@ -151,7 +151,7 @@ export const parts: Part[] = [
     lines: [
       L('Thanks for joining. I know a CV that opens a call is a bit much.', 3600),
       L("So let me be quick about why I'm in your applicant pool.", 3000),
-      L('Click around while I talk — you could even complete all 17 achievements.', 4200),
+      L('Click around while I talk. You could even complete all 17 achievements.', 4200),
       L('Let me get my screen up.', 2400),
     ],
     beats: [
@@ -204,8 +204,8 @@ export const parts: Part[] = [
       L('Seven years leading the front end of an online Mahjong client.', 4000),
       L('Four players, four networks, one shared board, no excuses about latency.', 4600),
       L('Desktop, then web, then a Unity renderer embedded in a React app.', 4400),
-      L('Working cross-team with basically everyone — design, server, QA, and the people who get the call when a table breaks at midnight.', 5600),
-      L('Before that, four years of optimisation research — two papers and a book chapter.', 4800),
+      L('Working cross-team with basically everyone: design, server, QA, and the people who get the call when a table breaks at midnight.', 5600),
+      L('Before that, four years of optimisation research. Two papers and a book chapter.', 4800),
       L('And before that, C++ on signing hardware. Correctness was the product.', 4400),
       L("Here are my tech skills. Claude made this whole section redundant, LOL.", 4200),
       L('Education: Vietnam, Japan, Sweden. I love tonkotsu.', 3600),
@@ -235,7 +235,7 @@ export const parts: Part[] = [
     commentary: [
       L('The CV, yes. One data module renders this and the call, so they cannot disagree.', 4200),
     ],
-    brief: [L('The CV — seven years on a real-time client, and the research before it.', 3200)],
+    brief: [L('The CV. Seven years on a real-time client, and the research before it.', 3200)],
     triggers: ['[data-icon="cv"]', '.cb-tab[data-tab-id="cv"]'],
   },
 
@@ -256,7 +256,7 @@ export const parts: Part[] = [
     lines: [
       L('Great. So how does all that score against the job requirement?', 3600),
       L("I've got you covered.", 1800),
-      L('Degree — check. Five years of software development — check.', 4000),
+      L('Degree, check. Five years of software development, check.', 4000),
       L('Front end, testing, launches, architecture. Check, check, check, check.', 4400),
       L('You get a check. And you get a check. And everybody gets a check.', 4200),
       L("Yeah. I'm a safe hire.", 2600),
@@ -291,7 +291,7 @@ export const parts: Part[] = [
       /* N45, the loop's line 9. The flow already said the tests were real; what
          it never did was tell anyone to go and break them, which is the half
          that turns a claim into an invitation. */
-      L('And the tests are real — they run in your browser, and you can break them.', 4600),
+      L('And the tests are real. They run in your browser, and you can break them.', 4600),
       L('One person and an agent, one week. The retractions are in the commit log with everything else.', 4800),
     ],
     beats: [
@@ -317,7 +317,7 @@ export const parts: Part[] = [
      * half the calendar should not be shown their own discoveries.
      */
     lines: [
-      L('Last but not least — let me get you some more achievements.', 3400),
+      L('Last but not least, let me get you some more achievements.', 3400),
       L('These are hidden in the calendar on the home screen. You found some of them.', 4200),
       L("Here are the ones you didn't.", 2400),
       L("Bottom line: I'm pretty fun at work. And if I'm not, throw me out of a plane. I love that.", 5200),
@@ -397,7 +397,7 @@ export const story: Chapter[] = [
   {
     q: 'Why are you applying for this, and why now?',
     lines: [
-      L("Since you're still here — the part a CV never answers.", 3400),
+      L("Since you're still here, the part a CV never answers.", 3400),
       L("I've spent seven years making one product better for the same players. I know that job very well now.", 5000),
       L('I want the version of it where the constraints are harder and the people around me are better than me.', 4800),
     ],
@@ -413,11 +413,11 @@ export const story: Chapter[] = [
     q: 'What are you strongest at?',
     lines: [
       L('Strength: I am unreasonable about measuring things. This whole page is built off getBoundingClientRect rather than screenshots.', 5600),
-      L("And I finish. Two platform migrations on a live product with real money on the tables — nobody got to stop halfway.", 5200),
+      L("And I finish. Two platform migrations on a live product with real money on the tables. Nobody got to stop halfway.", 5200),
     ],
   },
   {
-    q: 'What are your weaknesses — honestly?',
+    q: 'What are your weaknesses, honestly?',
     lines: [
       L('Weakness, honestly: I go too deep too early. I built a WebGL effects pipeline for this site and then deleted it, because it needed a camera permission I decided we should never ask for.', 6400),
       L("That was the right call and it cost me two days. I'd rather tell you that than pretend the two days were planned.", 5000),
@@ -427,14 +427,14 @@ export const story: Chapter[] = [
   {
     q: 'How do you work with other people?',
     lines: [
-      L("On a live client you are never the only owner of anything. Server, design, QA, support — everything I shipped went through all four.", 5400),
+      L("On a live client you are never the only owner of anything. Server, design, QA, support: everything I shipped went through all four.", 5400),
       L('I write the thing down before I argue about it. Most disagreements turn out to be two people describing different problems.', 5200),
     ],
   },
   {
     q: 'What happens when you are wrong?',
     lines: [
-      L("I record it. There is a measurement in this build that produced a contradiction — the reaction band could not be in two places at once.", 5400),
+      L("I record it. There is a measurement in this build that produced a contradiction: the reaction band could not be in two places at once.", 5400),
       L('I wrote up the failure instead of quietly re-running it, and the write-up is what found the real rule.', 4800),
     ],
   },
@@ -508,14 +508,14 @@ const Q = (
 export const quips: Quip[] = [
   /* --- the shared desktop ------------------------------------------------ */
   Q('desk-first', 'desktop', 'desk:first', 'A real desktop: windows, explorer, browser, player.', 2800),
-  Q('desk-drag', 'desktop', 'desk:drag', 'Yeah — you can do that.', 1800),
+  Q('desk-drag', 'desktop', 'desk:drag', 'Yeah, you can do that.', 1800),
   Q('desk-snap', 'desktop', 'desk:snap', 'Snap layouts. I call this one Chrominion.', 2600),
   Q('desk-min', 'desktop', 'desk:min', "It's not gone. It's on the taskbar, being patient.", 2800),
   Q('desk-close', 'desktop', 'desk:close', "Fine. That one wasn't important.", 2200),
-  Q('desk-folder', 'desktop', 'desk:folder', 'Real folders. Well — real-ish.', 2200),
+  Q('desk-folder', 'desktop', 'desk:folder', 'Real folders. Well, real-ish.', 2200),
   Q('desk-resize', 'desktop', 'desk:resize', 'It resizes properly too. Container queries, not media queries.', 3200),
   Q('desk-clock', 'desktop', '.dk-clock', 'That clock is the only honest thing on this desktop.', 3000),
-  Q('desk-tray', 'desktop', '.dk-tray-btn:not(.dk-clock)', "Sorry — no wifi. That's a picture of wifi.", 2800),
+  Q('desk-tray', 'desktop', '.dk-tray-btn:not(.dk-clock)', "Sorry, no wifi. That's a picture of wifi.", 2800),
   Q('desk-start', 'desktop', '.dk-start', 'There is a Start menu. There is even a shutdown, and it shuts something down.', 3600),
   Q('desk-tv', 'desktop', '.dk-tv-btn', 'Task view. Alt-Tab belongs to your real computer, not to mine.', 3400),
   Q('desk-peek', 'desktop', '.dk-peek-card', 'Those previews are the windows themselves, scaled. They cannot go stale.', 3600),
@@ -524,7 +524,7 @@ export const quips: Quip[] = [
   Q('cb-tab', 'browser', '.cb-tab', 'Tabs open, tabs close. A browser inside a browser.', 2800),
   Q('cb-new', 'browser', '.cb-new', 'Go on then. Open a new one.', 2200),
   Q('cb-omni', 'browser', '.cb-omni-in', 'You can type a real URL in there. It will actually go.', 3000),
-  Q('cb-riichi', 'browser', '.cb-tab[data-tab-id="riichi"]', "That tab is the live client. Not a screenshot of it — the client.", 3400),
+  Q('cb-riichi', 'browser', '.cb-tab[data-tab-id="riichi"]', "That tab is the live client. Not a screenshot of it. The actual client.", 3400),
   Q('cb-work', 'browser', '.cb-tab[data-tab-id="work"]', 'Everything I have built that I am allowed to show you.', 3000),
 
   /* --- the call's own panels --------------------------------------------- */
@@ -572,13 +572,13 @@ export const acks: Ack[] = [
 
   /* browsing — moving, but with intent. */
   A('b1', 'browsing', "Wow, you're a fast reader.", 2200),
-  A('b2', 'browsing', 'Right — you have the gist.', 2000),
+  A('b2', 'browsing', 'Right, you have the gist.', 2000),
   A('b3', 'browsing', 'Skimming. Respectable.', 2000),
   A('b4', 'browsing', 'Ah, you know what you are looking for.', 2600),
   A('b5', 'browsing', "Fine, I'll keep up.", 2000),
 
   /* skimming — faster than the script. */
-  A('k1', 'skimming', 'CV — yeah, yeah. You want more, I see.', 3000),
+  A('k1', 'skimming', 'CV? Yeah, yeah. You want more, I see.', 3000),
   A('k2', 'skimming', "Okay, you're hunting for something specific. Keep going, it is in here.", 4000),
   A('k3', 'skimming', "I'll talk faster.", 1800),
   A('k4', 'skimming', 'You are moving faster than I can talk. Which is a compliment, I think.', 3800),
@@ -597,15 +597,15 @@ export const acks: Ack[] = [
  */
 export const asides = {
   /** Queue is getting long: said once, then never again. */
-  shorten: L('Lots to look at — I will keep these short.', 2800),
+  shorten: L('Lots to look at. I will keep these short.', 2800),
   /** Queue is too long: the tour hands over and stops. */
   handOver: L(
-    'You clearly know your way around. I will get out of the way — everything is where you would expect, '
+    'You clearly know your way around. I will get out of the way. Everything is where you would expect, '
     + 'and the plain document is in the top left. Thanks for the time.',
     6000,
   ),
   /** The visitor pressed Stop. */
-  stopped: L('Of course — I will leave you to it.', 2400),
+  stopped: L('Of course. I will leave you to it.', 2400),
   /** The visitor went quiet mid-tour and the script takes the wheel back. */
   resume: L('Still here? I will carry on then.', 2600),
 };
@@ -649,7 +649,7 @@ export const outro: Line[] = [
   /* The last thing said. The captions go off after it — see the note on the
      outro in src/tour/stage.ts — which is the only way to signal "I have
      actually stopped now" without saying it a seventh time. */
-  L('Alright — genuinely, thank you for your time. Good luck with the rest of the pile. 👋', 5000),
+  L('Alright. Genuinely, thank you for your time. Good luck with the rest of the pile. 👋', 5000),
 ];
 
 // ---------------------------------------------------------------------------

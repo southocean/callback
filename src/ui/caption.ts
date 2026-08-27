@@ -93,14 +93,19 @@ interface Token {
 /**
  * A line, cut into the pieces it arrives in.
  *
- * The rests are what stop it sounding like a metronome: a comma is a shorter
- * pause than a full stop, and an em dash is longer than either because it is
- * where somebody changes direction mid-sentence.
+ * The rests are what stop it sounding like a metronome: a comma, semicolon or
+ * colon is a breath, and a full stop is longer because it is the end of a
+ * thought rather than a turn inside one.
+ *
+ * There was a third case, 220ms for an em dash, and it is gone because the script
+ * no longer contains one anywhere — Nam had all twenty-two taken out, and a test
+ * now keeps them out. A branch that provably cannot fire is worse than no branch:
+ * it reads as a supported case.
  */
 export function tokenise(text: string): Token[] {
   return text.split(/\s+/).filter(Boolean).map((w) => ({
     text: w,
-    restMs: /[.!?]$/.test(w) ? 260 : /[—–]$/.test(w) ? 220 : /[,;:]$/.test(w) ? 150 : 0,
+    restMs: /[.!?]$/.test(w) ? 260 : /[,;:]$/.test(w) ? 150 : 0,
   }));
 }
 

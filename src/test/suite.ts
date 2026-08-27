@@ -20,7 +20,7 @@ import {
 import { reduceTour, initialTour, nextScripted, registerFor, QUEUE_BRIEF, type TourState } from '../tour/director.js';
 import {
   parts as tourParts, quips as tourQuips, acks as tourAcks, story as tourStory,
-  outro, timeline, runtimeMs, transcriptLines, OUTRO_CAP_MS,
+  outro, asides, timeline, runtimeMs, transcriptLines, OUTRO_CAP_MS,
 } from '../data/tour.js';
 import {
   observe, initialVisitor, tier, pace, passive, acknowledge, interests,
@@ -677,6 +677,32 @@ suite('the conversation director', () => {
    * which is the place it would come back. A line calling the conversation a
    * tour is a line written by somebody thinking of it as one.
    */
+  /*
+   * Nam: "everything in the script would be user facing, and we dont want any em
+   * dashes there, remove all of them."
+   *
+   * Twenty-two of them came out, and this stops the twenty-third going in. It
+   * covers the story's QUESTIONS as well as its lines: the hiring-manager
+   * questions are printed in the Scripts panel beside the answers, so they are
+   * read by a person too.
+   *
+   * En dash is included. It is a different character doing the same job, and
+   * "no em dashes" plainly means "not that punctuation" rather than "not that
+   * codepoint".
+   */
+  test('no em dashes anywhere in the script', () => {
+    const spoken = [
+      ...tourParts.flatMap((p) => [...p.lines, ...p.commentary, ...p.brief, ...(p.bail?.lines ?? [])]),
+      ...tourQuips, ...tourAcks, ...outro,
+      ...tourStory.flatMap((c) => c.lines),
+      ...Object.values(asides),
+    ].map((l) => l.text);
+    const all = [...spoken, ...tourStory.map((c) => c.q)];
+    for (const text of all) {
+      ok(!/[—–]/.test(text), `an em dash is still in the script: "${text.slice(0, 56)}"`);
+    }
+  });
+
   test('nothing in the script calls itself a tour', () => {
     const spoken = [
       ...tourParts.flatMap((p) => [...p.lines, ...p.commentary, ...p.brief, ...(p.bail?.lines ?? [])]),

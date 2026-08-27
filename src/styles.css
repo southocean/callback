@@ -5284,21 +5284,31 @@ body.set-open .cc { bottom: calc(var(--botbar) + 52px + 12px); }
   font: 500 12px/1 var(--font);
 }
 .sc-part-h b { font: 500 14.5px/20px var(--font); color: var(--dp-ink); }
+/* Pushed right, so the segment's length sits at the far end of its own header
+   rather than crowding the id beside the title. */
+.sc-part-t {
+  margin-left: auto; font: 400 12px/17px var(--font); color: var(--dp-ink3);
+  font-variant-numeric: tabular-nums;
+}
 
-/* Three registers across, so a brief version that has drifted from its full one
-   is visible rather than something you have to hold in your head. */
-.sc-regs { display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: 10px; }
-.sc-reg { background-color: var(--dp-surface); border-radius: 8px; padding: 10px 11px; }
-.sc-reg-h { display: flex; align-items: baseline; gap: 8px; margin-bottom: 7px; }
-.sc-reg-h b { font: 500 12px/16px var(--font); color: var(--dp-ink); }
-.sc-reg-h span { font: 400 11px/16px var(--font); color: var(--dp-ink3); margin-left: auto; }
+/* The three-register box that used to sit here is gone: the flow takes the full
+   width now (.sc-row) and the two one-line alternates are tabled together below
+   it (.sc-alt). See the note on flowRows() in src/ui/scripted.ts. */
 .sc-lines { margin: 0; padding-left: 17px; }
 .sc-lines li { font: 400 12.5px/18px var(--font); color: var(--dp-ink2); margin-bottom: 6px; }
 .sc-beat {
   display: block; margin-top: 3px;
   font: 500 10.5px/15px var(--font); color: #e8710a;
 }
-.sc-beat code { display: block; color: var(--dp-ink3); }
+/* `.sc-part code` sets word-break: break-all, which is right for the selectors it
+   was written for ('.cb-tab[data-tab-id="jobad"]' has nothing to break on) and
+   wrong here: a beat's detail is a readable phrase, and QA caught it wrapping as
+   "Screen 1 -> Sha / re -> launch Chrome". Breaks at spaces, and only inside a
+   word when a single word genuinely cannot fit. */
+.sc-beat code {
+  display: block; color: var(--dp-ink3);
+  word-break: normal; overflow-wrap: break-word;
+}
 
 .sc-asides { display: flex; flex-direction: column; gap: 8px; }
 .sc-aside {
@@ -5355,29 +5365,65 @@ body.set-open .cc { bottom: calc(var(--botbar) + 52px + 12px); }
 }
 .sc-quip-k.is-event { color: var(--dp-accent) !important; }
 
-/* --- the clock down the left of the script (N46) ------------------------- */
-/* One row per line, and the part label only on the row that starts a part: a
-   label repeated down every row of a nine-line segment is nine chances to read
-   it as nine segments. */
-.sc-clock { display: flex; flex-direction: column; }
-.sc-tick {
-  display: grid; grid-template-columns: 42px 1fr auto; gap: 4px 12px;
-  align-items: baseline; padding: 7px 12px;
-  border-left: 2px solid var(--dp-line);
+/* --- the flow, four columns a line (N46) --------------------------------- */
+/* Nam: "4 columns time, line id within this segment, line content, mouse
+ * interaction if any."
+ *
+ * What was here before was three registers side by side, and the reason it had to
+ * go is arithmetic: every segment has exactly one commentary line and one brief
+ * line, so two thirds of the width carried two sentences while the nine-line
+ * segment beside them wrapped every line twice.
+ *
+ * The two narrow columns are fixed and the two wide ones share what is left, so
+ * the timestamps line up down the page whatever the content does. `minmax(0, 1fr)`
+ * on the text column rather than `1fr`: a grid item's automatic minimum is its
+ * content, so a long unbroken line would otherwise push the beat column off the
+ * card instead of wrapping. */
+.sc-rows { display: flex; flex-direction: column; }
+.sc-row {
+  display: grid;
+  grid-template-columns: 46px 34px minmax(0, 1fr) minmax(120px, 240px);
+  gap: 10px; align-items: baseline; padding: 8px 2px;
 }
-/* The first line of a part gets the rule and the label, which is what turns a
-   flat list of forty lines back into six segments. */
-.sc-tick.is-partstart { border-left-color: var(--dp-accent); margin-top: 10px; }
-.sc-tick-at { font: 400 11px/19px var(--font); }
-/* Its own row, full width. `display: none` when empty takes it out of the grid
-   entirely, so a mid-part line falls back to the plain three-column row. */
-.sc-tick-p {
-  grid-column: 1 / -1; font: 500 12px/17px var(--font); color: var(--dp-accent);
-  margin-bottom: 2px;
+.sc-row + .sc-row { border-top: 1px solid var(--dp-line); }
+.sc-row.is-head {
+  border-bottom: 1px solid var(--dp-line); padding-bottom: 6px;
 }
-.sc-tick-p:empty { display: none; }
-.sc-tick-t { grid-column: 2; font: 400 13px/19px var(--font); color: var(--dp-ink); }
-.sc-tick-b { grid-column: 2 / -1; }
+.sc-row.is-head span {
+  font: 500 10px/16px var(--font); letter-spacing: .4px;
+  text-transform: uppercase; color: var(--dp-ink3);
+}
+.sc-row-at { font: 400 12px/19px var(--font); }
+.sc-row-n { font: 400 12px/19px var(--font); color: var(--dp-ink3); font-variant-numeric: tabular-nums; }
+.sc-row-t { font: 400 13px/19px var(--font); color: var(--dp-ink); }
+.sc-row-b .sc-beat { margin-top: 0; }
+/* A line that does nothing gets a mark rather than a blank, so an empty cell
+   reads as "nothing happens here" instead of as a rendering fault. */
+.sc-row-none { font: 400 13px/19px var(--font); color: var(--dp-line); }
+
+/* --- the two one-line registers, out of the flow's way ------------------- */
+.sc-alts { display: flex; flex-direction: column; margin-bottom: 4px; }
+.sc-alt {
+  display: grid; grid-template-columns: minmax(140px, 200px) minmax(0, 1fr) minmax(0, 1fr);
+  gap: 12px; align-items: baseline; padding: 9px 2px;
+}
+.sc-alt + .sc-alt { border-top: 1px solid var(--dp-line); }
+.sc-alt.is-head { border-bottom: 1px solid var(--dp-line); padding-bottom: 6px; }
+.sc-alt.is-head > span {
+  font: 500 10px/16px var(--font); letter-spacing: .4px;
+  text-transform: uppercase; color: var(--dp-ink3);
+}
+/* DIRECT CHILDREN ONLY, and that is the fix rather than the style.
+   `.sc-alt span` as a descendant selector also matched the .sc-pri badge nested
+   inside the segment cell, and at (0,2,0) it outranked .sc-pri's own (0,1,0) --
+   so the number went grey on the accent circle and QA found six badges that
+   looked empty. Overriding it back with !important, which is what I did first,
+   fixed the cell and broke the badge again. */
+.sc-alt > span { font: 400 12.5px/18px var(--font); color: var(--dp-ink2); }
+.sc-alt > .sc-alt-p {
+  display: flex; align-items: center; gap: 8px;
+  font: 500 13px/19px var(--font); color: var(--dp-ink);
+}
 
 /* The questions, with their answers under them. */
 .sc-story { display: flex; flex-direction: column; gap: 10px; }

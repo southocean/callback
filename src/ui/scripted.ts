@@ -60,31 +60,61 @@ const beatLabel = (b: Beat): { what: string; detail: string } => {
   if (b.roll) return { what: 'scrolls', detail: `${b.roll.of} → ${typeof b.roll.to === 'number' ? `${Math.round(b.roll.to * 100)}%` : b.roll.to}` };
   if (b.move) return { what: b.click ? 'moves and presses' : 'moves', detail: b.move };
   if (b.hold) return { what: 'waits', detail: `${b.hold}ms` };
-  return { what: '—', detail: '' };
+  return { what: '·', detail: '' };
 };
 
 export function renderScriptEditor(): HTMLElement {
   const flow = ordered();
-  const total = flow.reduce((a, p) => a + partRuntime(p, 'lines'), 0);
+  // The benchmark, from data/tour.ts rather than re-added here. It used to be
+  // computed locally as well, which is two ways to say one number.
+  const total = runtimeMs();
   const jumpable = flow.filter((p) => (p.triggers?.length ?? 0) > 0);
   const storyMs = story.reduce((a, c) => a + c.lines.reduce((b, l) => b + l.ms, 0), 0);
 
-  const register = (p: Part, key: 'lines' | 'commentary' | 'brief', label: string): HTMLElement =>
-    h('div', { class: `sc-reg sc-${key}` },
-      h('div', { class: 'sc-reg-h' },
-        h('b', {}, label),
-        h('span', {}, `${p[key].length} line${p[key].length === 1 ? '' : 's'} · ${secs(partRuntime(p, key))}`)),
-      h('ol', { class: 'sc-lines' },
-        ...p[key].map((l, i) => {
-          const bs = key === 'lines' ? (p.beats ?? []).filter((b) => b.at === i) : [];
-          return h('li', {},
-            h('span', {}, l.text),
-            ...bs.map((b) => {
-              const { what, detail } = beatLabel(b);
-              return h('span', { class: 'sc-beat' }, what, detail ? h('code', {}, detail) : h('span', {}));
-            }),
-            bs.length ? h('span', {}) : h('span', {}));
-        })));
+  /*
+   * THE FLOW, ONE ROW PER LINE — Nam's four columns.
+   *
+   * "4 columns time, line id within this segment, line content, mouse interaction
+   * if any. so like 0s line 1 (line content) (mouse interaction). This is a much
+   * better view of the script in the ideal scenario."
+   *
+   * What this replaced was three registers side by side, and the problem was
+   * arithmetic rather than taste: every part has exactly one commentary line and
+   * one brief line, so two thirds of the width went to two short sentences while
+   * the nine-line segment they were beside wrapped every line twice. Nam: "its
+   * very cramped!"
+   *
+   * So the alternates moved to their own section below, where a one-line register
+   * is the natural shape, and the flow gets the whole width.
+   *
+   * The timestamp is the one from `timeline()` — the same derived clock the
+   * running order is measured with — so a line's position here and its position
+   * in the benchmark cannot disagree. `stamps` is built once outside this helper
+   * because timeline() walks every part each call.
+   */
+  const stamps = new Map(timeline().map((t) => [`${t.part.id}:${t.index}`, t.at]));
+
+  const flowRows = (p: Part): HTMLElement =>
+    h('div', { class: 'sc-rows' },
+      h('div', { class: 'sc-row is-head' },
+        h('span', {}, 'at'),
+        h('span', {}, 'line'),
+        h('span', {}, 'says'),
+        h('span', {}, 'and does')),
+      ...p.lines.map((l, i) => {
+        const bs = (p.beats ?? []).filter((b) => b.at === i);
+        return h('div', { class: 'sc-row' },
+          h('span', { class: 'sc-ms sc-row-at' }, clock(stamps.get(`${p.id}:${i}`) ?? 0)),
+          h('span', { class: 'sc-row-n' }, String(i + 1)),
+          h('span', { class: 'sc-row-t' }, l.text),
+          h('span', { class: 'sc-row-b' },
+            ...(bs.length
+              ? bs.map((b) => {
+                const { what, detail } = beatLabel(b);
+                return h('span', { class: 'sc-beat' }, what, detail ? h('code', {}, detail) : h('span', {}));
+              })
+              : [h('span', { class: 'sc-row-none' }, '·')])));
+      }));
 
   const byGroup = (g: Quip['group']): Quip[] => quips.filter((q) => q.group === g);
   const GROUPS: { key: Quip['group']; label: string; why: string }[] = [
@@ -103,14 +133,14 @@ export function renderScriptEditor(): HTMLElement {
     h('p', { class: 'dp-note' },
       'It is not a tour and the word is gone from everywhere a visitor can see it (N44). It was not a labelling '
       + "problem: a script that thinks of itself as a tour writes lines that introduce sections, and the call's own "
-      + 'caption loop — written to be walked into cold, so no line could lean on the one before — sounded more like '
+      + 'caption loop, written to be walked into cold so no line could lean on the one before, sounded more like '
       + 'a person than the thing narrating over it did. The loop is folded in (N45); there is no second script left '
       + 'to play behind this one.'),
 
     /* --- the flow -------------------------------------------------------- */
     h('h2', { class: 'dp-head2' }, 'The primary flow'),
     h('p', { class: 'dp-note' },
-      'Order is priority, not the order they appear in the file. Every part carries three registers — it '
+      'Order is priority, not the order they appear in the file. Every part carries three registers, and it '
       + 'picks a tone rather than a length, which is what stops an interrupted run reading as a truncated one. '
       + 'Durations are authored and then scaled at run time by how patient the visitor is being.'),
     h('div', { class: 'sc-flowlist' },
@@ -125,23 +155,23 @@ export function renderScriptEditor(): HTMLElement {
     h('div', { class: 'sc-flow' },
       h('div', { class: 'sc-flow-b' }, h('b', {}, 'playing'), h('span', {}, 'Works down the priority order, in the full register.')),
       h('div', { class: 'sc-flow-arrow', 'aria-hidden': 'true' }, '↓ a visitor clicks'),
-      h('div', { class: 'sc-flow-b' }, h('b', {}, 'commenting'), h('span', {}, `Speaks that part's commentary. Queue of 1–${QUEUE_BRIEF - 1}.`)),
+      h('div', { class: 'sc-flow-b' }, h('b', {}, 'commenting'), h('span', {}, `Speaks that part's commentary. Queue of 1 to ${QUEUE_BRIEF - 1}.`)),
       h('div', { class: 'sc-flow-arrow', 'aria-hidden': 'true' }, '↓ queue reaches ' + QUEUE_BRIEF),
       h('div', { class: 'sc-flow-b' }, h('b', {}, 'brief'), h('span', {}, 'Shortest register, announced once.')),
       h('div', { class: 'sc-flow-arrow', 'aria-hidden': 'true' }, '↓ queue reaches ' + QUEUE_HANDOVER),
-      h('div', { class: 'sc-flow-b is-end' }, h('b', {}, 'handed over'), h('span', {}, 'Says one line and stops. Terminal — it does not come back.'))),
+      h('div', { class: 'sc-flow-b is-end' }, h('b', {}, 'handed over'), h('span', {}, 'Says one line and stops. Terminal: it does not come back.'))),
     h('p', { class: 'dp-note' },
       'Every path converges on the same queue: after any commentary the director returns to the lowest-priority '
       + 'part that has not been covered, whether the script reached it or the visitor did. That single rule is what '
       + 'makes a part visited out of turn get skipped later rather than replayed. '
-      + `Going quiet for ${IDLE_MS / 1000}s drops the backlog instead of working through it — a question nobody `
+      + `Going quiet for ${IDLE_MS / 1000}s drops the backlog instead of working through it. A question nobody `
       + 'remembers asking is not worth answering.'),
 
     /* --- where it is safe to jump --------------------------------------- */
     h('h2', { class: 'dp-head2' }, 'Safe jump points'),
     h('p', { class: 'dp-note' },
       `${jumpable.length} of ${flow.length} parts can be entered out of turn. A part is jumpable when it has a `
-      + 'trigger — a selector the visitor can click — and marked clean when it opens without assuming the part '
+      + 'trigger, meaning a selector the visitor can click, and marked clean when it opens without assuming the part '
       + 'before it was heard.'),
     h('div', { class: 'sc-jumps' },
       ...flow.map((p) => h('div', { class: `sc-jump is-${p.entry}${(p.triggers?.length ?? 0) ? '' : ' is-locked'}` },
@@ -151,18 +181,26 @@ export function renderScriptEditor(): HTMLElement {
         ...(p.triggers ?? []).map((t) => h('code', {}, t)),
         p.needs ? h('span', { class: 'sc-needs' }, `needs: ${p.needs}`) : h('span', {})))),
 
-    /* --- the parts ------------------------------------------------------- */
-    h('h2', { class: 'dp-head2' }, 'The parts, register by register'),
+    /* --- the flow, line by line ------------------------------------------ */
+    h('h2', { class: 'dp-head2' }, 'The flow, line by line'),
+    h('p', { class: 'dp-note' },
+      `The uninterrupted run, ${secs(total)} of it, in the order it is spoken. Four columns: the second the line is `
+      + 'due, its number inside the segment, what he says, and what the hand does while he says it. The clock is '
+      + 'derived from the dwells before it, so a line cannot be at one second here and another in the running time '
+      + 'above. Nothing in this section is a duration a visitor will actually experience: every line can be held or '
+      + 'skipped, and this is the ideal case.'),
+    h('p', { class: 'dp-note' },
+      'The last column runs both ways (N46). It is what the script does to the screen, and the same selector, '
+      + 'clicked by the visitor instead, cuts the line being spoken short and jumps to that segment rather than '
+      + 'queueing behind one they have visibly left.'),
     ...flow.map((p) => h('div', { class: 'sc-part' },
       h('div', { class: 'sc-part-h' },
         h('span', { class: 'sc-pri' }, String(p.priority)),
         h('b', {}, p.label),
         h('code', {}, p.id),
+        h('span', { class: 'sc-part-t' }, `${p.lines.length} lines · ${secs(partRuntime(p, 'lines'))}`),
         p.needs ? h('span', { class: 'sc-needs' }, `needs ${p.needs}`) : h('span', {})),
-      h('div', { class: 'sc-regs' },
-        register(p, 'lines', 'Full'),
-        register(p, 'commentary', 'Commentary'),
-        register(p, 'brief', 'Brief')),
+      flowRows(p),
       p.bail
         ? h('div', { class: 'sc-bail' },
           h('b', {}, `Bail on line ${p.bail.at}`),
@@ -170,7 +208,25 @@ export function renderScriptEditor(): HTMLElement {
           h('ol', { class: 'sc-lines' }, ...p.bail.lines.map((l) => h('li', {}, h('span', {}, l.text), h('span', {})))))
         : h('span', {}))),
 
-    /* --- the commentary -------------------------------------------------- */
+    /* --- the alternates -------------------------------------------------- */
+    h('h2', { class: 'dp-head2' }, 'The same segment, said shorter'),
+    h('p', { class: 'dp-note' },
+      'Every segment carries three registers and picks a TONE rather than a length: the full version above, a '
+      + 'commentary for when the visitor opened it themselves, and a brief for when the queue is long enough that '
+      + 'the register drops. Both alternates are one line, which is why they are here rather than beside the flow. '
+      + 'Side by side they took two thirds of the width to say two sentences. Listed together so a brief that has '
+      + 'drifted away from the full version it stands in for is visible.'),
+    h('div', { class: 'sc-alts' },
+      h('div', { class: 'sc-alt is-head' },
+        h('span', {}, 'segment'),
+        h('span', {}, 'commentary, if they opened it'),
+        h('span', {}, 'brief, if they are moving fast')),
+      ...flow.map((p) => h('div', { class: 'sc-alt' },
+        h('span', { class: 'sc-alt-p' }, h('span', { class: 'sc-pri' }, String(p.priority)), p.label),
+        h('span', {}, p.commentary.map((l) => l.text).join(' ')),
+        h('span', {}, p.brief.map((l) => l.text).join(' '))))),
+
+    /* --- the commentary quips -------------------------------------------- */
     h('h2', { class: 'dp-head2' }, 'Commentary only'),
     h('p', { class: 'dp-note' },
       'These are never reached by the script. Each fires once, ever, cuts in over whatever is being said and hands '
@@ -218,35 +274,6 @@ export function renderScriptEditor(): HTMLElement {
     h('div', { class: 'sc-asides' },
       ...Object.entries(asides).map(([k, l]) => h('div', { class: 'sc-aside' },
         h('b', {}, k), h('span', {}, l.text), h('span', { class: 'sc-ms' }, secs(l.ms))))),
-
-    /* --- the clock -------------------------------------------------------- */
-    h('h2', { class: 'dp-head2' }, 'The clock'),
-    h('p', { class: 'dp-note' },
-      `Every line with the second it is due, and the beat it fires. ${secs(runtimeMs())} end to end if nobody `
-      + 'touches it. The timestamps are DERIVED — the running sum of the dwells before them, in priority order — so '
-      + 'they cannot drift from the durations they are made of. A real visit is almost always shorter: skipping a '
-      + 'line with a press is free, and a visitor who starts exploring drops the register to brief.'),
-    h('p', { class: 'dp-note' },
-      'The arrow runs both ways (N46). A beat is what the script does to the screen; the same selector clicked by '
-      + 'the visitor cuts the line being spoken short and jumps to that part, rather than queueing behind a segment '
-      + 'they have already left.'),
-    h('div', { class: 'sc-clock' },
-      /*
-       * The part label goes FIRST and spans the row, so it sits above its segment
-       * rather than beside the first line of it. QA caught what the other order
-       * costs: a label spanning columns 2-3 fills row one, which pushes the line
-       * text down to row two COLUMN ONE -- a 42px timestamp column -- so the
-       * first line of every segment rendered as one clipped word.
-       */
-      ...timeline().map((t) => h('div', { class: `sc-tick${t.index === 0 ? ' is-partstart' : ''}` },
-        h('span', { class: 'sc-tick-p' }, t.index === 0 ? t.part.label : ''),
-        h('span', { class: 'sc-ms sc-tick-at' }, clock(t.at)),
-        h('span', { class: 'sc-tick-t' }, t.line.text),
-        h('span', { class: 'sc-ms' }, secs(t.line.ms)),
-        ...t.beats.map((b) => {
-          const { what, detail } = beatLabel(b);
-          return h('span', { class: 'sc-beat sc-tick-b' }, what, detail ? h('code', {}, detail) : h('span', {}));
-        })))),
 
     /* --- after the goodbye ------------------------------------------------ */
     h('h2', { class: 'dp-head2' }, 'After the goodbye'),
