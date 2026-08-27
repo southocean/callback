@@ -6447,7 +6447,8 @@ body.presenting .shot { min-width: 0; }
    inner body's own max-height is released here. Two scrollbars inside a fake
    window is the tell that a dialog has been dropped somewhere it does not go. */
 .pg-spec { padding: 0; }
-.pg-spec .dp-inner { display: block; }
+/* No wrapper to neutralise any more: specBody() hands the tabs and the body back
+   separately, so this host is their flex parent and the dialog is its own. */
 .pg-spec .dp-body { max-height: none; overflow: visible; padding: 0 4px; }
 .pg-spec .dp-tabs { position: sticky; top: 0; z-index: 2; background-color: var(--pg-bg, #fff); }
 

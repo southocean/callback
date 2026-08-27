@@ -117,7 +117,10 @@ const DOCS: Record<string, Doc> = {
 DOCS['built'] = {
   title: 'How this was built',
   host: 'southocean.github.io',
-  page: () => h('div', { class: 'pg pg-spec' }, specBody()),
+  page: () => {
+    const { tabs, body } = specBody();
+    return h('div', { class: 'pg pg-spec' }, tabs, body);
+  },
 };
 /* 'side' is an alias for 'work' now: the two pages were answering one question
    and have been merged (see pageWork). The id survives so side-projects.html in

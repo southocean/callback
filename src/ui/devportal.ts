@@ -68,8 +68,19 @@ export type PortalMode = 'light' | 'dark';
  * page inside the share adds nothing. That asymmetry is deliberate — a modal with
  * a focus trap, rendered inside a fake browser window inside a screen share, would
  * capture the keyboard for a window that is a drawing.
+ *
+ * IT RETURNS THE TWO PARTS, NOT A WRAPPER AROUND THEM, and that is a bug fix
+ * rather than a preference. The first version returned `.dp-inner` holding both,
+ * which stopped the dialog scrolling: `.dp-card` is a column flexbox with
+ * `overflow: hidden`, and `.dp-body` earns its scrollbar from `flex: 1 1 auto`
+ * plus `min-height: 0` AS A DIRECT CHILD OF IT. Put a plain div between them and
+ * the body sizes to its content instead, the card clips it, and the wheel does
+ * nothing. Nam: "now I cannot scroll on the project spec?!"
+ *
+ * Handing back the parts lets the dialog rebuild exactly the DOM it had before
+ * this was extracted, which is the only version of it that has been looked at.
  */
-export function specBody(): HTMLElement {
+export function specBody(): { tabs: HTMLElement; body: HTMLElement } {
   let tab: Tab = 'overview';
   const body = h('div', { class: 'dp-body' });
 
@@ -100,7 +111,7 @@ export function specBody(): HTMLElement {
   }
 
   draw();
-  return h('div', { class: 'dp-inner' }, tabs, body);
+  return { tabs, body };
 }
 
 export function openDevPortal(reducedMotion: boolean, mode: PortalMode = 'light'): void {
@@ -111,6 +122,9 @@ export function openDevPortal(reducedMotion: boolean, mode: PortalMode = 'light'
     release?.();
     portal.remove();
   };
+
+  // Both go in as direct children of .dp-card — see the note on specBody().
+  const { tabs, body } = specBody();
 
   /*
    * The mode is one class on the root and every rule below it reads custom
@@ -132,7 +146,8 @@ export function openDevPortal(reducedMotion: boolean, mode: PortalMode = 'light'
         h('button', {
           class: 'icon-btn dp-close', type: 'button', 'aria-label': 'Close project spec', onclick: close,
         }, sym('close', 22))),
-      specBody()),
+      tabs,
+      body),
   ) as HTMLElement;
 
   /*
