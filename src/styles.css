@@ -699,7 +699,22 @@ button { font: inherit; }
 
 /* ============================================================ ENDED ====== */
 
-.ended { min-height: 100%; display: grid; place-items: center; padding: 40px 24px 80px; }
+/*
+ * TOP-ANCHORED, NOT CENTRED. Measured off Nam's screenshot of the real ended
+ * screen, scale pinned rather than eyeballed: the capture is 2000px wide on a
+ * 2560x1440 display at dpr 1, so 1 image px = 1.28 CSS px. Two independent
+ * checks agree -- Chrome's chrome measures 94 image px against a live
+ * outerHeight-innerHeight of 121, and the countdown ring's centre lands at
+ * 46.7 CSS px against ours at 47.
+ *
+ * The original puts the h1 top at ~99 CSS px below the viewport top. We had it
+ * at 297. The bug was never the padding: place-items:center makes the position
+ * a function of BOTH viewport height and content height, so it drifted with the
+ * window and jumped ~80px the moment the referral card was removed. A layout
+ * whose geometry depends on how much content it happens to hold cannot match a
+ * top-anchored original at any size.
+ */
+.ended { min-height: 100%; display: grid; justify-items: center; align-content: start; padding: 100px 24px 80px; }
 .ended-in { max-width: 620px; text-align: center; }
 .ended h1 { font: 400 36px/44px var(--font-title); color: var(--ink3); margin-bottom: 28px; }
 .ended-acts { display: flex; gap: 12px; justify-content: center; flex-wrap: wrap; margin-bottom: 12px; }
@@ -711,10 +726,6 @@ button { font: inherit; }
 .safe svg { flex: 0 0 auto; color: var(--blue); }
 .safe h2 { font: 400 18px/24px var(--font); color: var(--ink2); margin-bottom: 4px; }
 .safe p { font: 400 14px/20px var(--font); color: var(--sec); letter-spacing: .2px; margin: 0 0 10px; }
-.blurb {
-  background-color: var(--surface); border-radius: 8px; padding: 14px 16px; margin: 12px 0;
-  font: 400 13px/20px var(--font); color: var(--ink2); text-align: left;
-}
 .ended-fine { font: 400 12px/18px var(--font); color: var(--sec2); text-align: left; }
 .ended-fine a { color: var(--sec2); }
 

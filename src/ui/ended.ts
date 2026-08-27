@@ -2,29 +2,29 @@
 //
 // Measured: white canvas, 36px/400 h1 in #3c4043, a 40px outlined "Rejoin" and a
 // filled "Return to home screen", a text "Submit feedback", then the "Your
-// meeting is safe" card. Same furniture, different contents.
+// meeting is safe" card. Same furniture, different contents -- and one card
+// fewer than the original, since the referral card was removed.
 
 import { h } from '../dom.js';
 import { mailSubject } from '../data/companies.js';
 import { sym } from './icons.js';
 import type { Store } from '../state.js';
-import { profile, referralBlurb, meta, SITE } from '../data/cv.js';
+import { profile, meta } from '../data/cv.js';
 import type { Quests } from '../achievements.js';
 
 export function renderEnded(store: Store, quests: Quests): HTMLElement {
   const address = `${profile.emailUser}@${profile.emailHost}`;
-  const url = SITE;
   const { got, total } = quests.count();
-  const text = referralBlurb + url;
 
   /*
-   * The "Copy the referral note" button is gone from this screen. Nam: "I'd say
-   * remove it from the meeting end screen too."
+   * THE REFERRAL CARD IS GONE. Its copy button went first, then the card with
+   * it. Nam: "please remove this referral code in the meeting end screen."
    *
-   * The card it sat in is about reassuring a referrer that nothing has to be
-   * written from scratch, and the paragraph is right there to read. A copy
-   * button turned a reassurance into a task, on the one screen where the visitor
-   * has already decided to leave.
+   * It addressed a reader who had already agreed to refer him, on the screen
+   * every other visitor also lands on -- so for almost everyone it answered a
+   * question they had not asked, in the last position they would read. The
+   * referral itself still exists where it is actually wanted: on the Calls page,
+   * behind a company code.
    */
 
   /**
@@ -187,24 +187,6 @@ export function renderEnded(store: Store, quests: Quests): HTMLElement {
           'button',
           { class: 'm-btn m-text', type: 'button', onclick: () => store.dispatch({ t: 'plain', on: true }) },
           'Submit feedback — or just read the CV as a document',
-        ),
-      ),
-
-      h(
-        'div',
-        { class: 'safe' },
-        sym('shield', 24),
-        h(
-          'div',
-          {},
-          h('h2', {}, 'Your referral is safe'),
-          h(
-            'p',
-            {},
-            'Nobody has to write anything from scratch. This paragraph is fact-only, carries no superlatives, and ' +
-              'every sentence checks out against the CV.',
-          ),
-          h('div', { class: 'blurb' }, text),
         ),
       ),
 
