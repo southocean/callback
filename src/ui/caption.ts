@@ -123,6 +123,16 @@ export interface Caption {
   /** A line with no dwell contract, for a quip putting back what it cut over. */
   show: (text: string) => void;
   /**
+   * Take the strip off screen entirely, leaving the call looking finished.
+   *
+   * Not the same as clear(): this is used between the outro's lines (N49), where
+   * an empty bubble would be as much of a tell as a full one. The bubble is a
+   * dark rounded rectangle with padding, so emptying its text leaves a visible
+   * placeholder that says "something is coming". This removes it, and the next
+   * say() brings it back.
+   */
+  hush: () => void;
+  /**
    * End the held line's dwell now, without touching what is on screen.
    *
    * Used when a click jumps the script (N46): the line has been spoken, the
@@ -321,6 +331,7 @@ export function makeCaption(who: string): Caption {
   };
 
   const begin = (text: string, ms: number): void => {
+    el.classList.remove('is-hushed');
     // A line arriving over an unfinished one resolves the old promise rather
     // than dropping it: whoever was awaiting it is moving on either way, and a
     // promise nobody settles is a script that stops mid-sentence.
@@ -408,6 +419,17 @@ export function makeCaption(who: string): Caption {
       resolve = done;
     }),
     show: (text) => { if (!dead) begin(text, 0); },
+    hush: () => {
+      if (dead) return;
+      settle();
+      stopClock();
+      tokens = [];
+      shown = 0;
+      dwell = 0;
+      textEl.replaceChildren();
+      el.classList.remove('is-timed');
+      el.classList.add('is-hushed');
+    },
     skip: () => { if (!dead) settle(); },
     announce,
     clear: () => {

@@ -621,35 +621,60 @@ export const asides = {
  * There is nothing more to see here. I swear. some more stuff like this, spacing
  * out more and more, but no longer than 2min."
  *
- * THE GAPS ARE THE JOKE. A run of lines at an even four seconds is a script that
- * has not finished; the same lines at six, then nine, then thirteen is somebody
- * who has genuinely run out of things to say and keeps thinking of one more. So
- * the dwell on each line is the silence AFTER it, and it grows every time.
+ * TWO NUMBERS A LINE, AND THE SECOND ONE IS THE WHOLE JOKE.
  *
- * Two rules this has to obey, and the test suite holds both:
+ * The first version had one: the line's dwell, growing 6s to 26s. It read
+ * completely wrong, and Nam caught exactly why: "the post end scripts all of the
+ * sudden have very long time out cause its waiting for the next line - this gives
+ * away that there are more! We dont spoil it like that."
  *
- *   · the gaps only ever grow, because a gap that shrinks reads as a new
- *     section starting rather than a conversation winding down;
- *   · the whole thing fits inside two minutes, because the visitor cannot see
- *     how much is left and an outro with no visible end is a hostage situation.
+ * He is right. A caption bubble sitting on screen with a ring slowly filling is
+ * the app saying "something else is coming" — so a twenty-six second dwell
+ * announces the punchline it is about to deliver. The surprise was being spent
+ * before the joke arrived.
  *
- * It is abandoned by any input at all. Someone who starts clicking has answered
- * the question in the first line, and the achievement for sitting through it is
- * only worth having because leaving is this easy.
+ * So `ms` is now how long the bubble is UP, at ordinary reading speed like every
+ * other line, and `gap` is the silence AFTER IT DISAPPEARS. The strip goes away
+ * entirely, the call looks finished, and then he speaks again. Nam: "The feeling
+ * here is that user genuinely think its all done, then we continue talking,
+ * that's the surprise."
+ *
+ * The gaps still grow, which is still the joke — somebody who has run out and
+ * keeps thinking of one more thing. It is just that the growing part is now
+ * silence rather than a visible countdown.
+ *
+ * Two rules the test suite holds:
+ *
+ *   · the gaps only ever grow, because a gap that shrinks reads as a new section
+ *     starting rather than a conversation winding down;
+ *   · display plus silence fits inside two minutes even at the slowest pace,
+ *     because the visitor cannot see how much is left.
+ *
+ * Abandoned by any input at all. Someone who starts clicking has answered the
+ * question in the first line, and the achievement for sitting through it is only
+ * worth having because leaving is this easy.
  */
 export const OUTRO_CAP_MS = 120_000;
 
-export const outro: Line[] = [
-  L('Still here?', 6000),
-  L('The call does not actually end, by the way. Sit as long as you like.', 9000),
-  L('Questions? My email is on the way out. Or the referral note, if you know somebody. 🙏', 13_000),
-  L('There is nothing more to see here. I swear.', 17_000),
-  L('…okay. There are two easter eggs. That is all I am saying.', 21_000),
-  L('You are unusually patient. That is a promising sign for a code review.', 26_000),
-  /* The last thing said. The captions go off after it — see the note on the
-     outro in src/tour/stage.ts — which is the only way to signal "I have
-     actually stopped now" without saying it a seventh time. */
-  L('Alright. Genuinely, thank you for your time. Good luck with the rest of the pile. 👋', 5000),
+export interface OutroLine extends Line {
+  /** Silence after the bubble goes, before the next line appears. */
+  gap: number;
+}
+
+const O = (text: string, ms: number, gap: number): OutroLine => ({ text, ms, gap });
+
+export const outro: OutroLine[] = [
+  O('Still here?', 2600, 4000),
+  O('The call does not actually end, by the way. Sit as long as you like.', 4200, 7000),
+  O('Questions? My email is on the way out. Or the referral note, if you know somebody. 🙏', 5000, 10_000),
+  O('There is nothing more to see here. I swear.', 3400, 14_000),
+  O('…okay. There are two easter eggs. That is all I am saying.', 4000, 18_000),
+  O('You are unusually patient. That is a promising sign for a code review.', 4400, 22_000),
+  /* The last thing said, and the only line with no silence after it: the captions
+     go off instead — see the note on the outro in src/tour/stage.ts — which is the
+     only way to signal "I have actually stopped now" without saying it a seventh
+     time. */
+  O('Alright. Genuinely, thank you for your time. Good luck with the rest of the pile. 👋', 5200, 0),
 ];
 
 // ---------------------------------------------------------------------------

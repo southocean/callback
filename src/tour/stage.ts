@@ -88,6 +88,8 @@ export interface Podium {
   say: (text: string, ms: number) => Promise<void>;
   /** A line with no dwell contract — a quip putting back what it cut over. */
   show: (text: string) => void;
+  /** Take the caption strip off screen. Used for the outro's silences (N49). */
+  hush: () => void;
   /** Abandon the line being held, now. Used when a click jumps the script. */
   skip: () => void;
   /** Are the call's captions on? If not, this is a silent film. */
@@ -618,6 +620,21 @@ export function startTour(root: HTMLElement, podium: Podium): TourHandle {
       if (visitor.lastInput !== at) return;
       await voice(line.text, line.ms);
       if (visitor.lastInput !== at) return;
+      /*
+       * THE STRIP GOES AWAY, and then the silence. This is the whole fix for
+       * N49's first version: a bubble left on screen with its ring filling for
+       * twenty-six seconds announces that another line is coming, which spends
+       * the surprise before the joke arrives.
+       *
+       * The silence is NOT scaled by pace(). The display above is, because that
+       * is reading time and a patient visitor should get more of it; a comedic
+       * beat is authored and a patient visitor stretching it to half again is how
+       * the two-minute cap gets broken.
+       */
+      if (line.gap > 0) {
+        podium.hush();
+        await wait(line.gap);
+      }
     }
     if (dead) return;
     podium.stayed();
@@ -630,6 +647,19 @@ export function startTour(root: HTMLElement, podium: Podium): TourHandle {
     await wait(reduced ? 0 : 900);
     if (podium.captionsOn()) await pressSel('[data-ctl="captions"]', true);
     await hand.park();
+    /*
+     * AND THEN NOTHING IS LEFT, so nothing should be left on screen.
+     *
+     * Nam: "the stop talking button remains after everything finished and we click
+     * the caption button?" It did. The control was kept deliberately after the
+     * flow finished — the personal segment is uninterruptible except by Stop, so
+     * removing it early would leave a ninety-second segment with no way out — but
+     * that reasoning stops applying here. The outro is the last thing there is:
+     * the story has run, the goodbye has been said, the captions have been turned
+     * off. A Stop control at that point offers to stop something that is not
+     * happening.
+     */
+    teardown();
   };
 
   /* ------------------------------------------------------------ the personal -- */

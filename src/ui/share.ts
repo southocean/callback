@@ -119,7 +119,19 @@ DOCS['built'] = {
   host: 'southocean.github.io',
   page: () => {
     const { tabs, body } = specBody();
-    return h('div', { class: 'pg pg-spec' }, tabs, body);
+    /*
+     * `dp-light` IS LOAD-BEARING, not decoration. Every colour in the panel comes
+     * from a --dp-* custom property, and those are declared on .dp-light and
+     * .dp-dark rather than on :root -- which is how one component wears two
+     * palettes. The dialog gets the class on its own root; this host had none, so
+     * every one of them resolved to nothing and the page rendered as unstyled
+     * text with no surfaces, no rules and no accent. Nam: "the layout for the
+     * project spec when open in the mock chrome is completely broken!?!"
+     *
+     * Light rather than dark because the emulated browser is showing a white
+     * document, the same as every other page in that strip.
+     */
+    return h('div', { class: 'pg pg-spec dp-light' }, tabs, body);
   },
 };
 /* 'side' is an alias for 'work' now: the two pages were answering one question

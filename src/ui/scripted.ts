@@ -278,16 +278,24 @@ export function renderScriptEditor(): HTMLElement {
     /* --- after the goodbye ------------------------------------------------ */
     h('h2', { class: 'dp-head2' }, 'After the goodbye'),
     h('p', { class: 'dp-note' },
-      `${outro.length} lines that only play if the visitor does not leave, and the gaps are the joke: `
-      + `${outro.map((l) => `${Math.round(l.ms / 1000)}s`).join(' → ')}. A run of lines at an even four seconds is `
-      + 'a script that has not finished. The same lines spacing out is somebody who has genuinely run out and keeps '
-      + `thinking of one more. Capped at ${OUTRO_CAP_MS / 1000}s, currently `
-      + `${Math.round(outro.reduce((a, l) => a + l.ms, 0) / 1000)}s. Any input at all abandons it, which is what `
-      + 'makes the achievement for sitting through it worth having.'),
-    h('div', { class: 'sc-asides' },
-      ...outro.map((l, i) => h('div', { class: 'sc-aside' },
-        h('b', {}, i === outro.length - 1 ? 'and then silence' : `+${Math.round(l.ms / 1000)}s`),
+      `${outro.length} lines that only play if the visitor does not leave. Each one is up for an ordinary `
+      + 'reading time and then the strip GOES AWAY, and the silence that follows is what grows: '
+      + `${outro.slice(0, -1).map((l) => `${Math.round(l.gap / 1000)}s`).join(' then ')}, and then nothing. `
+      + `Total ${Math.round(outro.reduce((a, l) => a + l.ms + l.gap, 0) / 1000)}s against a `
+      + `${OUTRO_CAP_MS / 1000}s cap, and any input at all abandons it.`),
+    h('p', { class: 'dp-note' },
+      'The silence is the point, and the first version got it wrong by leaving the bubble up for the whole gap. A '
+      + 'caption sitting on screen with its ring filling for twenty-six seconds announces that another line is '
+      + 'coming, so the surprise was spent before the joke arrived. With the strip gone the call looks finished, '
+      + 'which is the only state a visitor can be surprised out of.'),
+    h('div', { class: 'sc-alts' },
+      h('div', { class: 'sc-alt is-head' },
+        h('span', {}, 'up for'),
+        h('span', {}, 'says'),
+        h('span', {}, 'then silent for')),
+      ...outro.map((l) => h('div', { class: 'sc-alt' },
+        h('span', { class: 'sc-ms' }, secs(l.ms)),
         h('span', {}, l.text),
-        h('span', { class: 'sc-ms' }, secs(l.ms))))),
+        h('span', { class: 'sc-ms' }, l.gap ? secs(l.gap) : 'the captions go off')))),
   );
 }

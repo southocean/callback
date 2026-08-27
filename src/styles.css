@@ -601,6 +601,15 @@ button { font: inherit; }
 /* It is in the tab order now, so it needs to look like it when it is reached.
    Held and focused are the same state, so they share the accent. */
 .cc:focus-visible { outline: 2px solid #8ab4f8; outline-offset: 2px; }
+/* Off screen between the outro's lines (N49), so the call looks finished rather
+   than looking like it is loading something.
+
+   A CLASS, not an inline style: call.ts sets `cc.style.display` from whether
+   captions are on, so an inline display here would be overwritten by the next
+   sync() -- and, worse, would survive being turned back on. With the class, the
+   captions-off inline `none` still wins while captions are off, and the class
+   governs the rest. */
+.cc.is-hushed { display: none; }
 
 /* A word that has arrived carries no class and no rule: nothing animates per
    word, because sixty spans fading in at once is a shimmer and the effect wanted
@@ -6492,11 +6501,26 @@ body.presenting .shot { min-width: 0; }
    Scrolling belongs to the browser's page area, not to a nested body, so the
    inner body's own max-height is released here. Two scrollbars inside a fake
    window is the tell that a dialog has been dropped somewhere it does not go. */
-.pg-spec { padding: 0; }
-/* No wrapper to neutralise any more: specBody() hands the tabs and the body back
-   separately, so this host is their flex parent and the dialog is its own. */
-.pg-spec .dp-body { max-height: none; overflow: visible; padding: 0 4px; }
-.pg-spec .dp-tabs { position: sticky; top: 0; z-index: 2; background-color: var(--pg-bg, #fff); }
+/* THE BAND IS THIS HOST, not the columns inside it.
+ *
+ * The views centre themselves: .dp-col is 780px with `margin: 0 auto` and
+ * .dp-col-wide is 1100. Inside the dialog that is right, because the tabs and
+ * the body are both as wide as the card. Inside the emulated browser the page is
+ * as wide as the window -- 1327px in the QA run -- so the tab strip ran the full
+ * width with its 24px padding while the content sat centred 274px in from it.
+ * Two different left edges, which is what read as broken alignment.
+ *
+ * So the page is the band, and the columns inside it stop centring. One left
+ * edge, whatever the window is doing. */
+.pg-spec { padding: 0; max-width: 1100px; margin: 0 auto; }
+.pg-spec .dp-col, .pg-spec .dp-col-wide { max-width: none; margin: 0; }
+/* The dialog's body owns its own scrolling; here the browser's page area does,
+   so the body must not clip or size itself. Two scrollbars inside a fake window
+   is the tell that a dialog has been dropped somewhere it does not belong. */
+.pg-spec .dp-body { max-height: none; overflow: visible; padding: 18px 24px 40px; }
+/* Sticky, and opaque now that the palette resolves -- it was falling back to a
+   bare #fff over content that is also nearly white. */
+.pg-spec .dp-tabs { position: sticky; top: 0; z-index: 2; background-color: var(--dp-bg); }
 
 /* ============== ROUND 4: THE PANEL, AND THE TILE'S CONTROLS ============== */
 /* Measured on a live call at 2560x1215. See tools/PLAN-call-view.md, Round 4. */

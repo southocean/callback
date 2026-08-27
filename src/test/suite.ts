@@ -646,23 +646,49 @@ suite('the conversation director', () => {
    * as a new section starting, which is the opposite of an ending. And the cap
    * exists because the visitor cannot see how much is left.
    */
-  test('the outro gaps only ever grow', () => {
-    for (let i = 1; i < outro.length - 1; i += 1) {
-      ok(outro[i]!.ms > outro[i - 1]!.ms,
-        `outro line ${i} comes sooner than the one before it, so the winding-down reads as a restart`);
+  test('the outro silences only ever grow', () => {
+    // The last line has no silence after it -- the captions go off instead.
+    const gaps = outro.slice(0, -1).map((l) => l.gap);
+    for (let i = 1; i < gaps.length; i += 1) {
+      ok(gaps[i]! > gaps[i - 1]!,
+        `outro line ${i} comes back sooner than the one before it, so the winding-down reads as a restart`);
+    }
+    eq(outro[outro.length - 1]!.gap, 0, 'the last line has a silence after it, so nothing ends the outro');
+  });
+
+  /*
+   * Nam: "the post end scripts all of the sudden have very long time out cause
+   * its waiting for the next line - this gives away that there are more! We dont
+   * spoil it like that."
+   *
+   * The giveaway was a visible bubble with a filling ring sitting there for
+   * twenty-six seconds. The fix splits each line into a display and a silence,
+   * and the property worth pinning is that no bubble is EVER up for an unusual
+   * length of time: the display has to look like every other line in the script,
+   * so it is checked against the longest one the flow actually uses.
+   */
+  test('no outro bubble sits on screen longer than a normal line', () => {
+    const longestInFlow = Math.max(...tourParts.flatMap((p) => p.lines.map((l) => l.ms)));
+    for (const l of outro) {
+      ok(l.ms <= longestInFlow,
+        `an outro bubble is up for ${l.ms}ms, longer than the flow's longest line (${longestInFlow}ms),`
+        + ' which is what tells the visitor another line is coming');
     }
   });
 
   /*
    * QA caught that the authored sum is not the number Nam's two minutes applies
-   * to: every duration is scaled by pace() on the way to the caption, and a
-   * visitor sitting perfectly still is the SLOWEST case rather than the fastest.
-   * So the cap is checked at the worst pace the profile can produce.
+   * to: the DISPLAY of each line is scaled by pace() on the way to the caption,
+   * and a visitor sitting perfectly still is the SLOWEST case rather than the
+   * fastest. The silences are not scaled -- a comedic beat is authored -- so the
+   * cap is checked with the worst pace applied to the half that moves.
    */
   test('the outro fits inside its cap even at the slowest pace', () => {
-    const total = outro.reduce((a, l) => a + l.ms, 0);
+    const shown = outro.reduce((a, l) => a + l.ms, 0);
+    const silent = outro.reduce((a, l) => a + l.gap, 0);
+    const total = shown + silent;
     ok(total <= OUTRO_CAP_MS, `the outro runs ${Math.round(total / 1000)}s, over its ${OUTRO_CAP_MS / 1000}s cap`);
-    const worst = total * PACE_MAX;
+    const worst = shown * PACE_MAX + silent;
     ok(worst <= OUTRO_CAP_MS,
       `at the slowest pace the outro runs ${Math.round(worst / 1000)}s, over its ${OUTRO_CAP_MS / 1000}s cap`);
   });
