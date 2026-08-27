@@ -1198,6 +1198,170 @@ export const tasks: Task[] = [
     },
   },
 
+  /* ------------------------------------------------------------------------
+   * Nam's script pass of 28 August. He read the whole conversation back line by
+   * line and rewrote most of it, plus one new mechanic that is bigger than the
+   * rest of the pass put together (N59).
+   * --------------------------------------------------------------------- */
+  {
+    id: 'N58', col: 'backlog', size: 'S', tag: 'content',
+    title: 'The opening stops counting achievements out loud',
+    note: 'It hands over a different goal instead: there are bugs in here.',
+    detail: {
+      why: 'Nam: "3. While I talk, click around if you want. Lots of bugs here ;) / 4. First, let me get my screen up." Naming a number was N30’s idea and it was a good one while the achievements were the only game. They are not any more, and "all 17 achievements" is a chore handed to a stranger in the third sentence. A wink about bugs is an invitation that costs nothing to decline.',
+      done: [
+        'Line 3 promises bugs rather than a count',
+        'Line 4 says "First", so the share reads as the first of several things',
+        'The test that pinned the count against the quest list is retired with the line it guarded',
+      ],
+      raised: 'Nam, script pass 28 Aug',
+    },
+  },
+  {
+    id: 'N59', col: 'backlog', size: 'L', tag: 'call',
+    title: 'The bug collection',
+    note: 'Twelve bugs hidden across the site, caught by repetition, pinned in a real entomology frame.',
+    detail: {
+      why: 'Nam: "This is like the same as easter eggs, but reward a different kind of exploration: the developer’s dedication ... the bugs here are different. We basically have a collection ... user needs to catch them all pokemon style." The achievements reward breadth: touch each thing once. Nothing rewarded going back to the same thing to see whether it still holds up, which is the actual habit of somebody who tests software. Repetition is the mechanic because repetition is the behaviour.',
+      done: [
+        'A registry of twelve bugs: name, species, where it hides, the hint, and the fact',
+        'Each is caught by doing one thing three times, or by one deliberately obscure act',
+        'Catching one raises a toast like an achievement, with the bug drawn in it, reading "New bug"',
+        'The ended screen opens a frame: caught bugs painted, uncaught ones silhouettes',
+        'A silhouette still shows its hint. A caught bug shows the species and the facts',
+        'Every bug is an authored SVG, no bitmaps and no third-party requests',
+        'The list, the hiding places and the art are all documented in the Project spec',
+      ],
+      raised: 'Nam, script pass 28 Aug',
+      notes: 'Art was the interesting constraint. Twelve bespoke illustrations is a week of drawing, and twelve copies of one beetle is not a collection. So the drawing is parametric: eight body plans, scarab, jewel, longhorn, cicada, swallowtail, birdwing, mantis and leaf, each taking a palette and a set of proportions. A silhouette is the same geometry with one flat fill, which is why an uncaught bug has exactly the right outline and gives nothing else away.',
+    },
+  },
+  {
+    id: 'N60', col: 'backlog', size: 'M', tag: 'content',
+    title: 'The CV section, in his own words',
+    note: 'Five lines rewritten, one split in two so the hesitation has somewhere to land.',
+    detail: {
+      why: 'Nam went through the section line by line. The platform line was wrong in a way only he would catch: it said "Desktop, then web, then a Unity renderer embedded in a React app", and the real sequence is Desktop, Dart, Unity, React Native. The cross-team line lost its midnight-support flourish because the true list is longer and duller and includes marketing.',
+      done: [
+        'Seven years leading front end, four players, one shared board',
+        'Desktop, then Dart, then Unity and finally Native React',
+        'Design, backend, marketing, QA',
+        'The skills line splits, so "Claude, uh, made this whole section redundant LOL" is its own beat',
+        'Education gains a punchline instead of trailing off',
+      ],
+      raised: 'Nam, script pass 28 Aug',
+      notes: 'The "uh" is the return of the hesitation N53 reverted, on the terms N53 set: authored, not derived. The word is in the line because Nam put it there, and the caption renderer holds on it the way it holds on a full stop. Placement is a writing decision and it is now written down.',
+    },
+  },
+  {
+    id: 'N61', col: 'backlog', size: 'S', tag: 'content',
+    title: 'The job requirement section ticks rather than says "check"',
+    note: 'Emoji carry the repetition, and the Oprah bit is replaced.',
+    detail: {
+      why: 'Nam: "we can use the emoji here for check to lessen the reading load." Four spelled-out "check"s in one caption is a lot of reading for a joke about how little reading is required. And on the punchline: "here I meant to land a punchline, but I couldnt think of anything else better. Help."',
+      done: [
+        'Lines 3 and 4 use a tick glyph instead of the word',
+        'Line 4 names the real four: front end, algorithm, architecture, QA',
+        'The Oprah line is gone, replaced with one that points at the evidence',
+      ],
+      raised: 'Nam, script pass 28 Aug',
+      notes: 'The replacement is "I ran out of requirements before I ran out of evidence." It lands because it is the only claim on this page that the page itself can settle: everything named is a thing the visitor can click.',
+    },
+  },
+  {
+    id: 'N62', col: 'backlog', size: 'S', tag: 'content',
+    title: 'The build section names the budget and stops selling the tests',
+    note: 'A number instead of "there is a size budget", and a line about games instead of a second test pitch.',
+    detail: {
+      why: 'Nam: "Let’s mention the actual size budget here instead of being vague about it", and on the tests line, "remove, not really relevant." He is right about the second one: the tests already have a quip, a panel and a switch that breaks them. Saying it here too is the third pitch for the same feature.',
+      done: [
+        'The budget line says 50 kB gzipped, which is the number in build.mjs',
+        'The measurement line drops its trailing clause, the wrong measurement has its own home in the Spec panel',
+        'The tests line becomes a line about the game layer instead',
+        'The closing line is his: "One person and an agent, one week. The most fun I have had in months"',
+      ],
+      raised: 'Nam, script pass 28 Aug',
+    },
+  },
+  {
+    id: 'N63', col: 'backlog', size: 'M', tag: 'call',
+    title: 'Off the clock is generous with the clips',
+    note: 'It plays every one the visitor has not found, and credits them for it.',
+    detail: {
+      why: 'Nam: "show the achievement as the video plays. We complete these easter eggs for user. We can be generous here, now that we add in the bugs too that we will not be generous about." The two mechanics need different postures. The achievements are a guided walk of the surface and handing them over costs nothing. The bugs are the thing worth hunting, so they are never given away.',
+      done: [
+        'It plays all the unseen clips rather than the first three',
+        'The Off the clock quest unlocks as they play',
+        'The opening line is "And here is how I have fun after work"',
+        'The Hollywood apology is gone',
+      ],
+      raised: 'Nam, script pass 28 Aug',
+    },
+  },
+  {
+    id: 'N64', col: 'backlog', size: 'M', tag: 'call',
+    title: 'The close demonstrates the three things it names',
+    note: 'Open the chat, drag the video, raise your hand: each one is performed, not described.',
+    detail: {
+      why: 'Nam: "Each of these action, we demo it with the mouse. Might need to break it into 3 lines to trigger mouse interaction." A line that says "drag the windows" and then does nothing is the one moment in the script where the demo talks about itself instead of running.',
+      done: [
+        'One line per action, each with its own beat',
+        'The side controls carry a data-ctl so the script can name them',
+        'A drag cue that really drags the video tile to another corner',
+        'The plain-document line becomes "The CV is also available in home screen and after this meeting"',
+      ],
+      raised: 'Nam, script pass 28 Aug',
+      notes: 'The drag is synthetic pointer events along the hand’s own path. The tile’s drag handler already tolerated them, which was luck rather than design: it guards setPointerCapture in a try because a synthetic PointerEvent carries no real pointer. That guard is what makes this two lines instead of a rewrite.',
+    },
+  },
+  {
+    id: 'N65', col: 'backlog', size: 'M', tag: 'content',
+    title: 'The personal segment, rewritten in his voice',
+    note: 'Eight answers, and two of the questions no longer have to be guessed from the answer.',
+    detail: {
+      why: 'Nam rewrote all eight. The strongest note is on the last one: "I dont understand this question. What risk is there in hiring me LOL." He is right that it was a defensive frame borrowed from a hiring conversation he is not having. And on the collaboration answer: "This is one part where the question doesnt appear intuitively from the answer", which is a real failure, the questions are printed in the Scripts panel but they are never spoken.',
+      done: [
+        'Why now, what he likes, strengths, weaknesses, collaboration, being wrong, the hardest thing, and why him',
+        'Two answers now restate their own question in the first clause',
+        '"Why should we take the risk" becomes "Why me"',
+        'The measured-things and getBoundingClientRect boasts go, the page makes that argument by existing',
+      ],
+      raised: 'Nam, script pass 28 Aug',
+      notes: 'The Google line in the second answer is the only company-specific sentence in the whole script, which is what forced N66.',
+    },
+  },
+  {
+    id: 'N66', col: 'backlog', size: 'S', tag: 'trust',
+    title: 'Google is the default, not a code',
+    note: 'The neutral build stays reachable, it just stops being what a stranger gets.',
+    detail: {
+      why: 'Nam: "regarding the company, I think let’s all in for google first, so let’s just treat the default CV (without c parameter as c = 1, so google cv is the default). Lets try our chance with google first before reusing the CV for other job ads." The multi-employer machinery was built for a reuse that has not happened yet, and it was costing the send it was actually built for: the one application in flight was the one rendering a generic heading.',
+      done: [
+        'No code resolves to the Google pitch',
+        '?c=0 resolves to the neutral build, so the reusable version is still one parameter away',
+        'The tab title, the meeting name, the chat opener and the job-ad section all name the employer by default',
+      ],
+      raised: 'Nam, script pass 28 Aug',
+      notes: 'A default is a one-line change and an escape hatch is not. ?c=0 had to become a real code rather than an unknown one, because codeFromUrl treats an unrecognised value as absent, which now means Google.',
+    },
+  },
+  {
+    id: 'N67', col: 'backlog', size: 'M', tag: 'call',
+    title: 'The outro counts what is left, and takes its time',
+    note: 'The tease names the real number of eggs and bugs still out there, and the silences stretch.',
+    detail: {
+      why: 'Nam: "Lets make this dynamic. Not 2 easter eggs, but however many easter eggs left. And we add the remaining bugs too." A hardcoded two was already wrong for anyone who had found one. And on the pacing: "This is the time user is exploring the app, we want to keep the caption on for the commentary messages. Plus, the timing of the call has already finished by the goodbye, so stretching out the after goodbye doesnt cost user anything literally."',
+      done: [
+        'Outro lines are templates, resolved against what this visitor has actually found',
+        'The line is skipped entirely when there is nothing left to tease',
+        'The silences stretch, and the two-minute cap goes up to four with them',
+        'The gaps-only-grow rule and the no-long-bubble rule still hold',
+      ],
+      raised: 'Nam, script pass 28 Aug',
+      notes: 'The cap was never about the outro being too long, it was about a visitor being trapped in something they cannot see the end of. Any input abandons it, so the cap is a promise about the worst case rather than a budget. Doubling it is safe for exactly the reason Nam gives: the interview clock stopped at the goodbye.',
+    },
+  },
+
   /* Flagged rather than done. Still true as of this build. */
   { id: 'T24', col: 'backlog', size: 'M', tag: 'specs', title: 'Initial payload is halfway to the ceiling', note: '24.7 kB of a 50 kB gate, up from 18.2. Still green, and the growth is real, but two deferred chunks are 17 kB and 19 kB and deserve a splitting pass before it becomes urgent.' },
 ];

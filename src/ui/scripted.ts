@@ -101,10 +101,14 @@ export function renderScriptEditor(): HTMLElement {
    * to quickly QA them with another agent."
    *
    * So the payload is written to be pasted into a conversation, not to round-trip
-   * back into the codebase: the segment's name and running time, then one line
-   * per line with its timestamp and its beat. Everything the four columns show,
-   * in the order they show it, because the thing being QA'd is the script as
-   * heard rather than the data as stored.
+   * back into the codebase: the numbered lines of dialogue and nothing else.
+   *
+   * Nam, on the first version, which also carried the segment header, each line's
+   * timestamp, its beats, and the commentary and brief: "it copies too much. I
+   * only want it to copy the lines [...] only the text content, not everything
+   * else." The thing being QA'd is the writing. Timestamps and stage directions
+   * are what the four columns are for, and in a paste they are noise a reader has
+   * to look past to reach the sentence.
    *
    * Plain text rather than JSON for the same reason. A reviewer reading nine
    * lines of dialogue should not have to parse quotes and commas out of them
@@ -115,22 +119,8 @@ export function renderScriptEditor(): HTMLElement {
    * shown on the button rather than thrown. A button that silently does nothing
    * is worse than one that says it could not.
    */
-  const segmentText = (p: Part): string => {
-    const head = `${p.label} (${p.id}) - ${p.lines.length} lines, ${secs(partRuntime(p, 'lines'))}`;
-    const body = p.lines.map((l, i) => {
-      const at = clock(stamps.get(`${p.id}:${i}`) ?? 0);
-      const bs = (p.beats ?? []).filter((b) => b.at === i).map((b) => {
-        const { what, detail } = beatLabel(b);
-        return detail ? `${what} (${detail})` : what;
-      });
-      return `${at}  ${i + 1}. ${l.text}${bs.length ? `\n        [${bs.join('; ')}]` : ''}`;
-    });
-    const alts = [
-      `commentary: ${p.commentary.map((l) => l.text).join(' ')}`,
-      `brief: ${p.brief.map((l) => l.text).join(' ')}`,
-    ];
-    return [head, '', ...body, '', ...alts].join('\n');
-  };
+  const segmentText = (p: Part): string =>
+    p.lines.map((l, i) => `${i + 1}. ${l.text}`).join('\n');
 
   const copyButton = (p: Part): HTMLElement => {
     const btn = h('button', {
