@@ -16,7 +16,15 @@ import {
   readyCardOpens, afterReadyShown, afterReadyClosed, READY_MUTE_MS, READY_MAX_SHOWS,
 } from '../prefs.js';
 import { reduceTour, initialTour, nextScripted, registerFor, QUEUE_BRIEF, type TourState } from '../tour/director.js';
-import { parts as tourParts } from '../data/tour.js';
+import {
+  parts as tourParts, quips as tourQuips, acks as tourAcks, story as tourStory,
+} from '../data/tour.js';
+import {
+  observe, initialVisitor, tier, pace, passive, acknowledge, interests,
+  BAIL_MS, IDLE_MS, type Visitor,
+} from '../tour/profile.js';
+import { readSeenEggs, stillUnseen } from '../prefs.js';
+import { VISIBLE_QUESTS } from '../data/quests.js';
 
 export interface Result {
   suite: string;
@@ -358,6 +366,20 @@ suite("the meeting's ready card", () => {
 });
 
 suite('content integrity', () => {
+  /*
+   * N30. The tour's opening line names a number out loud: "maybe you can
+   * complete all 17 achievements." A number in a script that nothing checks is a
+   * number that goes wrong the first time somebody adds a quest, and it goes
+   * wrong in the worst possible place -- the second sentence a stranger hears.
+   */
+  test('the number of achievements the tour promises is the number there are', () => {
+    const intro = tourParts.find((p) => p.id === 'intro');
+    const line = intro?.lines.map((l) => l.text).join(' ') ?? '';
+    const said = /\ball (\d+) achievements\b/.exec(line);
+    ok(!!said, 'the opening no longer names an achievement count');
+    eq(Number(said![1]), VISIBLE_QUESTS, 'the tour promises a different number of achievements than exist');
+  });
+
   test('the referral blurb carries no superlatives', async () => {
     // Review R5: the friend has to defend every sentence of it.
     const { referralBlurb } = await import('../data/cv.js');
@@ -450,30 +472,31 @@ suite('the guided tour director', () => {
 
   /*
    * Nam's own example, which is the reason the resumption rule is what it is:
-   * interrupted during part 2, the visitor opens part 5, and afterwards the tour
-   * should run 3, 4, SKIP 5, then 6.
+   * interrupted during part 2, the visitor opens a later part, and afterwards
+   * the tour should carry on from the lowest UNPLAYED part and skip the one they
+   * already saw when it reaches it.
    */
-  test("a visited part is skipped when the script reaches it", () => {
+  test('a visited part is skipped when the script reaches it', () => {
     let s = started();
-    s = reduceTour(s, { t: 'partDone' });          // intro done, now on 'cv'
+    s = reduceTour(s, { t: 'partDone' });               // intro done, now on 'cv'
     eq(s.current, 'cv');
-    s = reduceTour(s, { t: 'visit', id: 'desktop' });   // priority 5
-    s = reduceTour(s, { t: 'partDone' });          // cv done -> commentary on desktop
+    s = reduceTour(s, { t: 'visit', id: 'offclock' });  // priority 5
+    s = reduceTour(s, { t: 'partDone' });               // cv done -> commentary on offclock
     eq(s.mode, 'commenting');
-    eq(s.current, 'desktop');
-    s = reduceTour(s, { t: 'partDone' });          // desktop done -> back to script
-    eq(s.current, 'wasabi', 'did not resume at the lowest unplayed part');
+    eq(s.current, 'offclock');
+    s = reduceTour(s, { t: 'partDone' });               // offclock done -> back to script
+    eq(s.current, 'jobreq', 'did not resume at the lowest unplayed part');
     s = reduceTour(s, { t: 'partDone' });
-    eq(s.current, 'build');
+    eq(s.current, 'built');
     s = reduceTour(s, { t: 'partDone' });
-    eq(s.current, 'a11y', 'the visited part was narrated twice');
+    eq(s.current, 'close', 'the visited part was narrated twice');
   });
 
   test('a visitor request outranks the script', () => {
     let s = started();
-    s = reduceTour(s, { t: 'visit', id: 'tests' });
+    s = reduceTour(s, { t: 'visit', id: 'built' });
     s = reduceTour(s, { t: 'partDone' });
-    eq(s.current, 'tests', 'the script carried on instead of following the visitor');
+    eq(s.current, 'built', 'the script carried on instead of following the visitor');
     eq(s.mode, 'commenting');
   });
 
@@ -494,7 +517,7 @@ suite('the guided tour director', () => {
 
   test('a busy queue switches to the brief register', () => {
     let s = started();
-    for (const id of ['cv', 'wasabi', 'build']) s = reduceTour(s, { t: 'visit', id });
+    for (const id of ['cv', 'jobreq', 'built']) s = reduceTour(s, { t: 'visit', id });
     eq(s.queue.length, QUEUE_BRIEF);
     s = reduceTour(s, { t: 'partDone' });
     eq(s.register, 'brief', 'a long queue did not shorten the commentary');
@@ -511,7 +534,7 @@ suite('the guided tour director', () => {
     let s = started();
     // Five, which is QUEUE_HANDOVER. Spelled out so the test fails loudly if
     // the threshold moves rather than silently following it.
-    const ids = ['cv', 'wasabi', 'build', 'desktop', 'a11y'];
+    const ids = ['cv', 'jobreq', 'built', 'offclock', 'close'];
     for (const id of ids) s = reduceTour(s, { t: 'visit', id });
     eq(s.mode, 'handedOver', 'the tour kept narrating a visitor who was clearly exploring');
     eq(s.queue.length, 0, 'a handed-over tour still had work queued');
@@ -519,8 +542,8 @@ suite('the guided tour director', () => {
 
   test('handing over is terminal', () => {
     let s = started();
-    for (const id of ['cv', 'wasabi', 'build', 'desktop', 'a11y']) s = reduceTour(s, { t: 'visit', id });
-    const after = reduceTour(s, { t: 'visit', id: 'tests' });
+    for (const id of ['cv', 'jobreq', 'built', 'offclock', 'close']) s = reduceTour(s, { t: 'visit', id });
+    const after = reduceTour(s, { t: 'visit', id: 'cv' });
     eq(after.mode, 'handedOver', 'the tour came back after handing over');
     eq(reduceTour(s, { t: 'partDone' }).mode, 'handedOver');
   });
@@ -532,6 +555,42 @@ suite('the guided tour director', () => {
     eq(s.mode, 'finished');
     eq(s.queue.length, 0);
     eq(s.current, null);
+  });
+
+  /*
+   * N33. Going quiet drops a BACKLOG. A queue collected while the visitor was
+   * exploring is stale by the time they stop, and narrating it then is answering
+   * a question nobody remembers asking.
+   */
+  test('going quiet drops a stale backlog', () => {
+    let s = started();
+    for (const id of ['cv', 'jobreq', 'built']) s = reduceTour(s, { t: 'visit', id });
+    eq(s.queue.length, QUEUE_BRIEF);
+    s = reduceTour(s, { t: 'settle' });
+    eq(s.queue.length, 0, 'the tour kept a backlog the visitor had moved on from');
+    eq(s.current, 'intro', 'settling stole the floor from the part on air');
+  });
+
+  /*
+   * The bug the rule above shipped with, and the reason it has a threshold.
+   * Clicking one thing and then looking at it for three seconds is not
+   * exploration — it is the most ordinary way anyone uses anything — and the
+   * first version of the settle rule threw that request away.
+   */
+  test('going quiet does NOT drop a single deliberate request', () => {
+    let s = started();
+    s = reduceTour(s, { t: 'visit', id: 'built' });
+    s = reduceTour(s, { t: 'settle' });
+    eq(s.queue, ['built'], 'a visitor request was discarded for the crime of being followed by a pause');
+    s = reduceTour(s, { t: 'partDone' });
+    eq(s.current, 'built', 'the request was kept and then not honoured');
+    eq(s.register, 'commentary');
+  });
+
+  test('settling does not disturb a tour that has handed over', () => {
+    let s = started();
+    for (const id of ['cv', 'jobreq', 'built', 'offclock', 'close']) s = reduceTour(s, { t: 'visit', id });
+    eq(reduceTour(s, { t: 'settle' }).mode, 'handedOver');
   });
 
   test('every part has all three registers', () => {
@@ -555,9 +614,311 @@ suite('the guided tour director', () => {
     eq(seen.size, tourParts.length, 'two parts share a priority');
   });
 
+  test('every beat points at a line that exists', () => {
+    for (const p of tourParts) {
+      for (const b of p.beats ?? []) {
+        ok(b.at >= 0 && b.at < p.lines.length, `${p.id}: a beat fires on line ${b.at}, which is not there`);
+      }
+      if (p.bail) {
+        ok(p.bail.at >= 0 && p.bail.at < p.lines.length,
+          `${p.id}: the bail protects line ${p.bail.at}, which is not there`);
+      }
+    }
+  });
+
   test('nextScripted returns nothing once everything is played', () => {
     const all: TourState = { ...initialTour, played: tourParts.map((p) => p.id) };
     eq(nextScripted(all), null);
+  });
+});
+
+/* ------------------------------------------------------------------------- */
+
+suite('the tour: flow and commentary are separate', () => {
+  /* N43. The whole point of the split is that these two lists never mix. */
+
+  test('a quip fires once, ever', () => {
+    const q = tourQuips[0]!;
+    let s = reduceTour(initialTour, { t: 'start' });
+    s = reduceTour(s, { t: 'quip', id: q.id });
+    eq(s.interject, q.id, 'the quip did not take the floor');
+    s = reduceTour(s, { t: 'quipDone' });
+    const again = reduceTour(s, { t: 'quip', id: q.id });
+    eq(again.interject, null, 'a throwaway line was said twice');
+  });
+
+  test('a quip never enters the queue or changes the register', () => {
+    let s = reduceTour(initialTour, { t: 'start' });
+    const before = { queue: s.queue.length, register: s.register, current: s.current };
+    for (const q of tourQuips.slice(0, 4)) {
+      s = reduceTour(s, { t: 'quip', id: q.id });
+      s = reduceTour(s, { t: 'quipDone' });
+    }
+    eq(s.queue.length, before.queue, 'commentary was queued as if it were a part');
+    eq(s.register, before.register, 'commentary changed the register');
+    eq(s.current, before.current, 'commentary took the floor from the flow');
+  });
+
+  test('an unknown quip id is refused rather than half-played', () => {
+    const s = reduceTour(reduceTour(initialTour, { t: 'start' }), { t: 'quip', id: 'nope' });
+    eq(s.interject, null);
+    eq(s.quipped.length, 0);
+  });
+
+  test('no quip trigger is also a flow trigger', () => {
+    /*
+     * A click that is both would produce two voices at once, and the stage
+     * resolves it in favour of the part — which is right, and also means a
+     * duplicated selector is a quip that can never fire. Better caught here.
+     */
+    const flowTriggers = new Set(tourParts.flatMap((p) => p.triggers ?? []));
+    for (const q of tourQuips) {
+      ok(!flowTriggers.has(q.on), `the quip ${q.id} is shadowed by a flow trigger`);
+    }
+  });
+
+  test('every quip is short enough to be thrown away', () => {
+    // Nam: "Short and punchy, so we can go back to whatever we were talking
+    // about." Five seconds is not punchy.
+    for (const q of tourQuips) {
+      ok(q.ms <= 5000, `the quip ${q.id} holds the floor for ${q.ms}ms`);
+      ok(q.text.length <= 130, `the quip ${q.id} is ${q.text.length} characters`);
+    }
+  });
+
+  test('quip ids are unique, or one of them can never be spent', () => {
+    eq(new Set(tourQuips.map((q) => q.id)).size, tourQuips.length, 'two quips share an id');
+  });
+
+  test('an event quip carries a key and a click quip carries a selector', () => {
+    for (const q of tourQuips) {
+      if (q.kind === 'event') ok(/^[a-z]+:[a-z]+$/.test(q.on), `${q.id}: "${q.on}" is not an event key`);
+      else ok(/^[.[]/.test(q.on), `${q.id}: "${q.on}" does not look like a selector`);
+    }
+  });
+});
+
+/* ------------------------------------------------------------------------- */
+
+suite('the personal segment', () => {
+  test('it waits for the flow to finish', () => {
+    const mid = reduceTour(initialTour, { t: 'start' });
+    eq(reduceTour(mid, { t: 'tell' }).mode, 'playing', 'the story cut in over the demo');
+  });
+
+  test('it runs once the flow is done', () => {
+    let s: TourState = { ...initialTour, mode: 'finished' };
+    s = reduceTour(s, { t: 'tell' });
+    eq(s.mode, 'telling');
+    s = reduceTour(s, { t: 'toldDone' });
+    eq(s.mode, 'finished');
+    ok(s.told);
+  });
+
+  test('it runs at most once', () => {
+    const after: TourState = { ...initialTour, mode: 'finished', told: true };
+    eq(reduceTour(after, { t: 'tell' }).mode, 'finished', 'the story ran twice');
+  });
+
+  test('nothing interrupts it except Stop', () => {
+    const telling: TourState = { ...initialTour, mode: 'telling' };
+    eq(reduceTour(telling, { t: 'visit', id: 'cv' }).mode, 'telling');
+    eq(reduceTour(telling, { t: 'quip', id: tourQuips[0]!.id }).interject, null);
+    eq(reduceTour(telling, { t: 'settle' }).mode, 'telling');
+    eq(reduceTour(telling, { t: 'stop' }).mode, 'finished', 'Stop did not stop it');
+  });
+
+  test('every chapter answers exactly one question', () => {
+    for (const c of tourStory) {
+      ok(c.q.trim().endsWith('?'), `a chapter's question is not a question: "${c.q}"`);
+      ok(c.lines.length > 0, `the chapter "${c.q}" has no answer`);
+    }
+  });
+
+  test('the questions are distinct', () => {
+    eq(new Set(tourStory.map((c) => c.q)).size, tourStory.length, 'two chapters ask the same thing');
+  });
+});
+
+/* ------------------------------------------------------------------------- */
+
+suite('the visitor profile', () => {
+  /* N33. Pure, so every one of these is a fixed clock and an assertion. */
+
+  const fresh = (): Visitor => ({ ...initialVisitor, lastInput: 1000 });
+
+  test('a section left inside three seconds is a bail', () => {
+    let v = fresh();
+    v = observe(v, { t: 'enter', at: 1000, id: 'cv' });
+    v = observe(v, { t: 'leave', at: 1000 + BAIL_MS - 1, id: 'cv' });
+    eq(v.bails, ['cv']);
+    ok(v.restless > 0, 'bolting out of a section moved nothing');
+  });
+
+  test('a section held long enough is a read, and calms them down', () => {
+    let v = { ...fresh(), restless: 0.5 };
+    v = observe(v, { t: 'enter', at: 1000, id: 'cv' });
+    v = observe(v, { t: 'leave', at: 1000 + 12000, id: 'cv' });
+    eq(v.bails, []);
+    ok(v.restless < 0.5, 'reading a section did not settle the score');
+    eq(v.dwell['cv'], 12000);
+  });
+
+  test('an ordinary look is neither', () => {
+    let v = fresh();
+    v = observe(v, { t: 'enter', at: 1000, id: 'cv' });
+    v = observe(v, { t: 'leave', at: 6000, id: 'cv' });
+    eq(v.restless, 0, 'an ordinary look changed the score');
+  });
+
+  test('entering a second section closes the first', () => {
+    let v = fresh();
+    v = observe(v, { t: 'enter', at: 1000, id: 'cv' });
+    v = observe(v, { t: 'enter', at: 5000, id: 'built' });
+    eq(v.dwell['cv'], 4000, 'a dwell was lost when they moved on');
+    eq(v.open, 'built');
+  });
+
+  test('scrolling faster than reading speed reads as skimming', () => {
+    const slow = observe(fresh(), { t: 'scroll', at: 2000, px: 300, ms: 1000 });
+    const fast = observe(fresh(), { t: 'scroll', at: 2000, px: 3000, ms: 1000 });
+    eq(slow.restless, 0, 'reading pace was scored as impatience');
+    ok(fast.restless > 0, 'a skim was scored as reading');
+  });
+
+  test('a scroll sample with no duration carries no verdict', () => {
+    const v = observe(fresh(), { t: 'scroll', at: 2000, px: 9000, ms: 0 });
+    eq(v.restless, 0, 'a zero-length sample produced an infinite speed');
+  });
+
+  test('clicks close together are one impatience, not several decisions', () => {
+    let v = fresh();
+    v = observe(v, { t: 'click', at: 1100 });
+    v = observe(v, { t: 'click', at: 1300 });
+    v = observe(v, { t: 'click', at: 1500 });
+    eq(v.clicks, 3);
+    eq(v.bursty, 3);
+    ok(v.restless > 0);
+  });
+
+  test('clicks spread out are not a burst', () => {
+    let v = fresh();
+    v = observe(v, { t: 'click', at: 3000 });
+    v = observe(v, { t: 'click', at: 9000 });
+    eq(v.bursty, 0);
+    eq(v.restless, 0);
+  });
+
+  test('coming back to something is the strongest interest signal there is', () => {
+    let v = { ...fresh(), restless: 0.4 };
+    v = observe(v, { t: 'enter', at: 1000, id: 'cv' });
+    v = observe(v, { t: 'leave', at: 6000, id: 'cv' });
+    const before = v.restless;
+    v = observe(v, { t: 'enter', at: 9000, id: 'cv' });
+    eq(v.revisits, 1);
+    ok(v.restless < before, 'a revisit did not count in their favour');
+  });
+
+  test('restlessness decays while nothing is happening', () => {
+    const v = observe({ ...fresh(), restless: 0.5, lastInput: 0 }, { t: 'idle', at: 20000 });
+    ok(v.restless < 0.5, 'the score never came back down');
+    ok(v.restless >= 0, 'the score went below zero');
+  });
+
+  test('the score is clamped at both ends', () => {
+    let v = { ...fresh(), restless: 0.95 };
+    for (let i = 0; i < 10; i += 1) {
+      v = observe(v, { t: 'enter', at: 1000 + i * 4000, id: 'x' + i });
+      v = observe(v, { t: 'leave', at: 1001 + i * 4000, id: 'x' + i });
+    }
+    ok(v.restless <= 1, 'the score went above one');
+  });
+
+  test('the tiers are in the right order', () => {
+    eq(tier({ ...fresh(), restless: 0 }), 'settled');
+    eq(tier({ ...fresh(), restless: 0.3 }), 'browsing');
+    eq(tier({ ...fresh(), restless: 0.6 }), 'skimming');
+    eq(tier({ ...fresh(), restless: 0.9 }), 'bolting');
+  });
+
+  test('a restless visitor is talked to faster, but never gabbled at', () => {
+    const calm = pace({ ...fresh(), restless: 0 });
+    const rushed = pace({ ...fresh(), restless: 1 });
+    ok(rushed < calm, 'impatience did not shorten the pauses');
+    ok(rushed >= 0.62, 'the pace floor was breached');
+    ok(calm <= 1.08, 'the pace ceiling was breached');
+  });
+
+  test('passive means no input at all for three seconds', () => {
+    const v = fresh();
+    ok(!passive(v, 1000 + IDLE_MS - 1));
+    ok(passive(v, 1000 + IDLE_MS));
+  });
+
+  test('an acknowledgement is never used twice', () => {
+    let v = { ...fresh(), restless: 0.9 };
+    const said = new Set<string>();
+    for (let i = 0; i < tourAcks.length; i += 1) {
+      const got = acknowledge(v, tourAcks);
+      if (!got) break;
+      ok(!said.has(got.line.id), `the line ${got.line.id} was used twice`);
+      said.add(got.line.id);
+      v = got.next;
+    }
+    eq(said.size, tourAcks.length, 'the pool ran dry before it was empty');
+    eq(acknowledge(v, tourAcks), null, 'an exhausted pool kept handing out lines');
+  });
+
+  test('the acknowledgement matches the tier', () => {
+    const got = acknowledge({ ...fresh(), restless: 0.9 }, tourAcks);
+    eq(got?.line.tier, 'bolting', 'a bolting visitor got a polite line');
+  });
+
+  test('a dry tier falls up, not down', () => {
+    /*
+     * Running out of teasing lines does not mean the visitor became patient
+     * again, so the pool escalates rather than retreating.
+     */
+    const spent = tourAcks.filter((a) => a.tier === 'skimming').map((a) => a.id);
+    const got = acknowledge({ ...fresh(), restless: 0.6, spent }, tourAcks);
+    eq(got?.line.tier, 'bolting', 'an exhausted tier fell back to a softer one');
+  });
+
+  test('interest is ranked by how long they stayed', () => {
+    let v = fresh();
+    v = observe(v, { t: 'enter', at: 0, id: 'a' });
+    v = observe(v, { t: 'leave', at: 5000, id: 'a' });
+    v = observe(v, { t: 'enter', at: 5000, id: 'b' });
+    v = observe(v, { t: 'leave', at: 25000, id: 'b' });
+    eq(interests(v)[0], 'b', 'the section they actually read was not ranked first');
+  });
+
+  test('keyboard beats pointer, because it is the accessible path', () => {
+    let v = observe(fresh(), { t: 'key', at: 1000 });
+    v = observe(v, { t: 'move', at: 2000 });
+    eq(v.modality, 'keyboard', 'a stray pointer move demoted a keyboard visitor');
+  });
+});
+
+/* ------------------------------------------------------------------------- */
+
+suite('the eggs the visitor has found', () => {
+  test('nothing remembered means nothing is skipped', () => {
+    eq(stillUnseen([{ id: 'a' }, { id: 'b' }], []).length, 2);
+  });
+
+  test('a found clip is not offered again', () => {
+    eq(stillUnseen([{ id: 'a' }, { id: 'b' }], ['a']).map((e) => e.id), ['b']);
+  });
+
+  test('a corrupt record reads as a first visit', () => {
+    eq(readSeenEggs('not json'), []);
+    eq(readSeenEggs('{"a":1}'), []);
+    eq(readSeenEggs(null), []);
+  });
+
+  test('only strings survive the record', () => {
+    eq(readSeenEggs('["a", 3, null, "b"]'), ['a', 'b']);
   });
 });
 

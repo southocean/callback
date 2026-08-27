@@ -283,4 +283,127 @@ answer this would have shipped with the only exit being "wait it out".
 
 ## Status
 
-Plan reviewed three times. Ready to implement.
+Plan reviewed three times, implemented, then rewritten. See the second pass below.
+
+---
+
+# Second pass — Nam's QA of 27 August, points 1–10
+
+Everything above describes the tour as first shipped. It survived contact with
+its author for about a day. This section is what changed and why; the sections
+above are left as they were, because a plan that gets quietly rewritten to match
+what happened is not a record of anything.
+
+Board tickets **N27–N43**.
+
+## What the QA actually said
+
+One idea, seen from ten angles: **the tour should behave like a person driving
+the machine, not like a page narrating itself.**
+
+The first version narrated. It moved a marker to things and described them. Nam
+wanted the marker to be a mouse, the description to be a demonstration, and the
+demonstration to include the boring parts — pressing the captions button,
+opening the share picker, choosing Entire Screen. His words for the effect he
+was after: *"It's very trippy yes but thats exactly what I want. It's a mixture
+of familiarity + strange that will scratch their head. Strange enough to be
+fascinated, yet familiar enough not to be overwhelmed."*
+
+The familiar half is load-bearing. It is why the arrow is a real Windows arrow
+and not a highlight ring, and why nothing is skipped.
+
+## 7. The separation [decided]
+
+Two scripts, not one.
+
+**The flow** is the demo: six parts, roughly four minutes, and the thing a
+visitor who does nothing at all will watch. **The commentary** is what the tour
+says back: thirty-odd one-shot lines that never run, only answer.
+
+The desktop, accessibility and the tests all moved out of the flow. Nam, on the
+desktop: *"nothing to introduce here, its self explanatory."* On the panels:
+*"the CV is the main part and the rest should probably be all commentary, short
+and punchy."* He is right, and the evidence is that the flow's running time
+became a meaningful number for the first time once the throwaway lines stopped
+counting toward it.
+
+A quip never enters the queue, never changes the register, and never fires
+twice. Modelling one as a part was tried first and was wrong in both directions:
+a joke about the taskbar clock would push the CV down the running order, and
+clicking the clock twice would tell the joke twice.
+
+## 8. The hand [decided]
+
+The blue dot is gone. `src/tour/cursor.ts` carries the reasoning in full; the
+short version is that aimed pointing is not one movement. It is a ballistic
+throw that overshoots, followed by corrective submovements under visual
+feedback, on a path that arcs, in a time that scales with `log2(distance/width)`
+rather than with distance, and it never holds still.
+
+All six of those are implemented, and the one that matters most is the last: a
+cursor frozen to the pixel reads as a screenshot, and on a page where everything
+else is moving, a frozen cursor is the tell.
+
+It presses things by dispatching a real event sequence at real coordinates
+rather than calling `.click()`, so a control cannot tell it from a person. That
+is not decoration — half the shared desktop's behaviour hangs off `pointerdown`,
+and the `.click()` version would have worked only on the controls we remembered
+to special-case.
+
+## 9. The visitor profile [decided]
+
+New, pure, tested: `src/tour/profile.ts`. Nine raw signals, four derived
+readings, and the module header lists all of them with the reason each one is
+worth collecting.
+
+Nam asked what else could go in. The answer that shaped it: the strongest single
+signal is not dwell, it is **scroll speed**, because dwell cannot separate
+reading from having walked away — and the second strongest is **revisiting**,
+because it costs the visitor effort and nothing else on the list does.
+
+Restlessness drives the acknowledgements and a bar that appears only at the
+moment the score rises. Not a HUD: a dashboard is a thing the visitor has to
+manage, and this is a reaction.
+
+## 10. What QA in a real browser found [risk, retired]
+
+The feature was driven end to end in headless Chrome over the DevTools protocol
+— no dependency added, because Node ships a WebSocket client and Chrome speaks
+CDP. Five faults, and three of them could not have been found any other way:
+
+1. **The bail gag fired on the tour's own scroll.** A programmatic `scrollTop`
+   dispatches a scroll event that is indistinguishable from a wheel, and
+   `isTrusted` does not help — the browser marks scroll events trusted whoever
+   caused them. So the hand rolled the CV down to the Wasabi years, read its own
+   scroll as the visitor bolting out of them, and accused the visitor of
+   skipping a section it was in the middle of scrolling to. It was also scoring
+   every one of its own rolls as a skim, which poisoned the reading-speed
+   estimate the whole profile rests on.
+
+2. **A single click was being discarded.** The settle rule dropped the queue
+   after three seconds of silence, which is correct for a backlog and wrong for
+   one deliberate request — clicking a thing and then looking at it for three
+   seconds is the most ordinary way anyone uses anything. The most engaged
+   action a visitor can take was the one action being ignored.
+
+3. **The Stop control covered the window controls the tour had just opened.** It
+   sat top-right; a maximised window puts close top-right of the shared surface.
+
+4. **The personal segment started four seconds after "thank you for your time".**
+   Silence was measured from the visitor's last input, and a visitor who has
+   touched nothing has been silent all along — so the requirement was vacuous
+   for exactly the visitor it was written for.
+
+5. **A settled visitor got told to take their time** after clicking four times
+   in half a second, because 0.14 is still the calm band. A jump into the calm
+   band is not worth remarking on at all.
+
+One thing found and left alone: the taskbar clock sits under the self-view tile
+in the presenting layout, so its quip is unreachable at some window sizes. That
+is what the real product does with a floating self tile, and the tile is
+draggable. Recorded rather than fixed.
+
+## Status
+
+Shipped. `npm run verify` green — 107 tests, typecheck, CSS structure, dead-CSS,
+and the size budget at 38% of its ceiling.

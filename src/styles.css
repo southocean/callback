@@ -5195,51 +5195,200 @@ body.set-open .cc { bottom: calc(var(--botbar) + 52px + 12px); }
 .sc-aside span { font: 400 12.5px/18px var(--font); color: var(--dp-ink2); }
 .sc-ms { font-variant-numeric: tabular-nums; color: var(--dp-ink3) !important; }
 
+/* --- the separation: flow above, commentary below (N43) ------------------ */
+/* The running order at a glance, so the shape of the demo is readable without
+   scrolling through every register of every part. */
+.sc-flowlist { display: flex; flex-direction: column; gap: 6px; margin-bottom: 4px; }
+.sc-flowrow {
+  display: grid; grid-template-columns: 22px 1fr auto auto; gap: 10px; align-items: center;
+  background-color: var(--dp-surface); border-radius: 8px; padding: 9px 12px;
+}
+.sc-flowrow b { font: 500 13.5px/19px var(--font); color: var(--dp-ink); }
+.sc-flowrow-t { font: 400 12px/17px var(--font); color: var(--dp-ink3); font-variant-numeric: tabular-nums; }
+
+/* The bail script sits under the part it protects, not beside it: it is a
+   branch off one line rather than a fourth register. */
+.sc-bail {
+  margin-top: 10px; padding: 10px 12px; border-radius: 8px;
+  background-color: var(--dp-surface); border-left: 3px solid var(--dp-accent);
+}
+.sc-bail b { display: block; font: 500 12px/17px var(--font); color: var(--dp-accent); }
+.sc-bail > span { display: block; font: 400 12px/17px var(--font); color: var(--dp-ink3); margin-bottom: 6px; }
+
+.sc-quips { margin-bottom: 14px; }
+.sc-quips-h {
+  display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap;
+  margin: 0 0 7px; padding-bottom: 6px; border-bottom: 1px solid var(--dp-line);
+}
+.sc-quips-h b { font: 500 13px/18px var(--font); color: var(--dp-ink); }
+.sc-quips-h span { font: 400 12px/17px var(--font); color: var(--dp-ink3); }
+.sc-quip {
+  display: grid; grid-template-columns: 52px minmax(120px, 200px) 1fr auto;
+  gap: 10px; align-items: baseline; padding: 6px 2px;
+}
+.sc-quip + .sc-quip { border-top: 1px solid var(--dp-line); }
+.sc-quip span { font: 400 12.5px/18px var(--font); color: var(--dp-ink2); }
+.sc-quip code {
+  font: 400 11px/17px ui-monospace, Consolas, monospace; color: var(--dp-ink3);
+  overflow-wrap: anywhere;
+}
+/* One glance tells you whether a quip is waiting on a click or on something the
+   app has to announce, which is the distinction most likely to be got wrong when
+   a new one is written. */
+.sc-quip-k {
+  font: 500 10px/17px var(--font) !important; letter-spacing: .4px;
+  text-transform: uppercase; color: var(--dp-ink3) !important;
+}
+.sc-quip-k.is-event { color: var(--dp-accent) !important; }
+
+/* The questions, with their answers under them. */
+.sc-story { display: flex; flex-direction: column; gap: 10px; }
+.sc-chapter { background-color: var(--dp-surface); border-radius: 8px; padding: 11px 13px; }
+.sc-q { display: flex; align-items: center; gap: 9px; margin-bottom: 8px; }
+.sc-q b { font: 500 13.5px/19px var(--font); color: var(--dp-ink); }
+
 /* ================= THE GUIDED TOUR ======================================= */
-/* Board ticket N24, planned in tools/PLAN-guided-tour.md.
+/* Board tickets N24 and N27-N43, planned in tools/PLAN-guided-tour.md.
  *
- * Two surfaces: a cursor that stands in for Nam's hand, and a caption bar that
- * is the narration. The cursor is decoration and is aria-hidden; the captions
- * carry every word of the meaning, which is why they are a role=status region.
+ * Three surfaces: the hand, a restlessness meter that only appears when it
+ * moves, and a Stop control. The narration is the CALL's caption strip and is
+ * not styled here at all -- see the note at the top of src/tour/stage.ts for why
+ * there is exactly one caption surface.
+ *
+ * All three are decoration in the accessibility sense and are aria-hidden. Every
+ * word of meaning is in the captions, which are already a live region.
  */
-.tour-cursor {
-  position: fixed; left: 0; top: 0; z-index: 200;
+
+/* --- the hand ------------------------------------------------------------ */
+/* N28. Nam: "the mouse should have a mouse icon not the blue dot cause it forces
+ * user to learn something they dont need to."
+ *
+ * A blue dot is a symbol the visitor has to decode. An arrow is one they already
+ * own. It is drawn rather than set as a CSS cursor because a CSS cursor only
+ * exists where a real pointer is, and this one has to exist where nobody is
+ * pointing.
+ *
+ * NO CSS TRANSITION ON THE TRANSFORM. The motion is a per-frame Bezier in
+ * script (src/tour/cursor.ts) so it can overshoot, arc, correct and tremor --
+ * none of which a transition can express. A transition here would fight it and
+ * the visible result is a cursor that lags its own path.
+ */
+.hand {
+  position: fixed; left: 0; top: 0; z-index: 240;
   width: 0; height: 0; pointer-events: none;
-  opacity: 0;
-  /* Overshoot on arrival. A cursor that decelerates smoothly to a stop reads as
-     a slide; a hand arrives slightly past the target and settles back. */
-  transition: transform .42s cubic-bezier(.34, 1.32, .48, 1), opacity .2s linear;
+  opacity: 0; transition: opacity .25s linear;
+  will-change: transform;
 }
-.tour-cursor.is-on { opacity: 1; }
-.tour-cursor-dot {
-  position: absolute; left: -5px; top: -5px; width: 10px; height: 10px;
-  border-radius: 50%; background-color: #1a73e8;
-  box-shadow: 0 0 0 2px #fff, 0 2px 8px rgba(0, 0, 0, .45);
+.hand.is-on { opacity: 1; }
+/* Standing down while the visitor drives: still there, no longer the subject. */
+.hand.is-idle { opacity: .45; }
+.hand-arrow {
+  position: absolute; left: -2px; top: -2px;
+  filter: drop-shadow(0 2px 3px rgba(0, 0, 0, .45));
 }
-/* The ring is what makes a 10px dot legible over a busy screenshot. */
-.tour-cursor-ring {
-  position: absolute; left: -17px; top: -17px; width: 34px; height: 34px;
-  border-radius: 50%; border: 2px solid rgba(26, 115, 232, .45);
-  animation: tour-pulse 1.8s ease-in-out infinite;
+/* The press. A hand does not click without the pointer dipping, and 130ms is
+   about how long a real one is down for. */
+.hand.is-press .hand-arrow { transform: scale(.86); transform-origin: 2px 2px; }
+.hand-arrow { transition: transform .09s ease-out; }
+/* The ring exists for one job: making a 22px arrow findable over a busy screen
+   share at the moment it starts moving. It is not a target reticle -- it never
+   pulses while the hand is still. */
+.hand-ring {
+  position: absolute; left: -19px; top: -19px; width: 38px; height: 38px;
+  border-radius: 50%; border: 2px solid rgba(26, 115, 232, .0);
+  transition: border-color .2s linear, transform .2s ease-out;
 }
-@keyframes tour-pulse {
-  0%, 100% { transform: scale(1); opacity: .8; }
-  50%      { transform: scale(1.22); opacity: .35; }
+.hand.is-press .hand-ring {
+  border-color: rgba(26, 115, 232, .55);
+  transform: scale(.7);
 }
 
-/* The words live in the call's caption surface (see the note in stage.ts), so
-   all this holds is the way out. Top-right, clear of the caption strip and clear
-   of the control bar. */
+/* What the hand is over, since synthetic events do not produce :hover.
+   The browser ties :hover to a real pointer and will not be talked out of it, so
+   the hand paints its own and these mirror each control's own hover rule. */
+.is-hand { position: relative; }
+.cbtn.is-hand { background-color: rgba(255, 255, 255, .1); }
+.sp-row.is-hand, .sp-tab.is-hand { background-color: rgba(60, 64, 67, .08); }
+.wx-cap.is-hand { background-color: rgba(255, 255, 255, .1); }
+.wx-close.is-hand { background-color: #c42b1c; }
+.dk-task.is-hand { background-color: rgba(255, 255, 255, .08); }
+.cb-tab.is-hand { background-color: #333; }
+.sp-share.is-hand { background-color: #185abc; }
+
+/* --- the restlessness meter ---------------------------------------------- */
+/* N32. Nam: "Let's flash a restlessness bar somewhere on the screen whenever
+ * this bar gets increased, only at the moment of the increase, then it fades
+ * away and hidden."
+ *
+ * So it is a reaction, not a HUD. It is invisible and non-interactive at rest,
+ * appears when the score moves UP, holds long enough to be read, and goes.
+ * Showing it while the score decays would turn it into a dashboard, and a
+ * dashboard is a thing the visitor has to manage.
+ *
+ * Bottom left, which is the one corner of the call that holds nothing: the
+ * control bar is centred, the tile is bottom right, the captions sit above the
+ * bar and the Stop control is top right.
+ */
+.rest {
+  position: fixed; left: 18px; bottom: 96px; z-index: 202;
+  display: flex; align-items: center; gap: 8px;
+  padding: 6px 12px 6px 10px; border-radius: 14px;
+  background-color: rgba(32, 33, 36, .86);
+  backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, .4);
+  opacity: 0; transform: translateY(6px); pointer-events: none;
+  transition: opacity .45s ease-out, transform .45s cubic-bezier(0, 0, .2, 1);
+}
+.rest.is-up {
+  opacity: 1; transform: none;
+  /* Fast in, slow out: the arrival is the information and the departure is not. */
+  transition: opacity .16s linear, transform .16s cubic-bezier(0, 0, .2, 1);
+}
+.rest-label {
+  font: 500 10.5px/1 var(--font); letter-spacing: .5px;
+  text-transform: uppercase; color: #9aa0a6;
+}
+.rest-track {
+  width: 92px; height: 5px; border-radius: 3px;
+  background-color: rgba(255, 255, 255, .14); overflow: hidden;
+}
+.rest-fill {
+  display: block; height: 100%; width: 0; border-radius: 3px;
+  background-color: #8ab4f8;
+  transition: width .3s cubic-bezier(0, 0, .2, 1), background-color .3s linear;
+}
+/* The tiers are the same four the profile names, and the colour is the only
+   thing that says which one you are in -- there is no number, because a number
+   invites you to optimise it. */
+.rest[data-tier='browsing'] .rest-fill { background-color: #fdd663; }
+.rest[data-tier='skimming'] .rest-fill { background-color: #fcad70; }
+.rest[data-tier='bolting'] .rest-fill { background-color: #f28b82; }
+
+@media (max-width: 720px) { .rest { left: 10px; bottom: 84px; } }
+
+/* --- the way out --------------------------------------------------------- */
+/* BOTTOM LEFT, and it used to be top right.
+ *
+ * QA in a real browser: the tour maximises the shared browser window, and a
+ * maximised window puts minimise/maximise/close in the top right of the shared
+ * surface -- directly under the Stop control. The tour had covered the close
+ * button of the window it had just opened.
+ *
+ * The bottom-left corner is the one part of the call that holds nothing: the
+ * control bar is centred, the self tile is bottom right, the captions sit above
+ * the bar, and the side-quest line is inside the bar rather than over the stage.
+ * It stacks with the restlessness meter, which is only ever there for a moment.
+ *
+ * Visible from the first frame either way: a tour whose only exit is waiting it
+ * out is a nag, and this one starts on its own -- so the way out cannot hide. */
 .tour-bar {
-  position: fixed; right: 18px; top: 64px; z-index: 201;
+  position: fixed; left: 18px; bottom: 150px; z-index: 201;
   animation: tour-bar-in .22s cubic-bezier(0, 0, .2, 1) both;
 }
 @keyframes tour-bar-in {
-  from { opacity: 0; transform: translateY(-8px); }
+  from { opacity: 0; transform: translateY(8px); }
   to   { opacity: 1; transform: none; }
 }
-/* Visible from the first frame. A tour whose only exit is waiting it out is a
-   nag, and this one starts on its own — so the way out cannot be hidden. */
 .tour-stop {
   height: 32px; padding: 0 15px; border-radius: 16px;
   background-color: rgba(32, 33, 36, .88); border: 0; color: #fff;
@@ -5250,13 +5399,18 @@ body.set-open .cc { bottom: calc(var(--botbar) + 52px + 12px); }
 .tour-stop:hover { background-color: rgba(60, 64, 67, .95); }
 .tour-stop:focus-visible { outline: 2px solid #8ab4f8; outline-offset: 2px; }
 
-@media (max-width: 720px) { .tour-bar { top: 56px; right: 10px; } }
+@media (max-width: 720px) { .tour-bar { bottom: 132px; left: 10px; } }
 
 @media (prefers-reduced-motion: reduce) {
-  /* The cursor teleports and the ring stops breathing. The tour still runs --
-     see the note at the top of src/tour/stage.ts. */
-  .tour-cursor { transition: opacity .2s linear; }
-  .tour-cursor-ring { animation: none; }
+  /* The hand teleports, does not tremor and does not dip on the press. The tour
+     still runs -- see the note at the top of src/tour/stage.ts. Someone who
+     asked for less movement asked for less movement, not for less content. */
+  .hand-arrow { transition: none; }
+  .hand.is-press .hand-arrow { transform: none; }
+  .hand-ring { transition: none; }
+  .hand.is-press .hand-ring { transform: none; }
+  .rest, .rest.is-up { transition: opacity .2s linear; transform: none; }
+  .rest-fill { transition: none; }
   .tour-bar { animation: none; }
 }
 

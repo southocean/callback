@@ -33,6 +33,7 @@ import { eggs } from '../data/eggs.js';
 import { games } from '../data/games.js';
 import { currentPitch } from '../data/companies.js';
 import { buildDoc } from './built.js';
+import { signal } from './signal.js';
 
 export type ShareKind = 'tab' | 'window' | 'screen';
 
@@ -49,6 +50,14 @@ const TABS: Source[] = [
   { id: 'jobad', kind: 'tab', title: 'Google Careers — the posting, line by line', host: 'careers.google.com' },
   { id: 'work', kind: 'tab', title: 'Things I built', host: 'southocean.github.io' },
   { id: 'riichi', kind: 'tab', title: 'Mahjong Stars — the live client', host: 'preview.mahjongstars.com' },
+  /*
+   * N36. Nam: "We actually have a how this was built page that we show in home
+   * screen. We need to show that here in the mock browser." It was reachable —
+   * Explorer opens it — but only if you went looking, and the tour needs a tab
+   * it can flip to. Same document as the home screen's, from buildDoc(), so the
+   * two cannot disagree.
+   */
+  { id: 'built', kind: 'tab', title: 'How this was built', host: 'southocean.github.io' },
 ];
 
 /**
@@ -215,6 +224,9 @@ export function renderPicker(o: { onShare: (s: Source) => void; onCancel: () => 
   const tabBtns = GROUPS.map((g) => {
     const b = h('button', {
       class: 'sp-tab', type: 'button', role: 'tab', 'aria-selected': String(g.key === kind),
+      // The tour presses these itself (N29). Named by what they select rather
+      // than by their label, which is prose and may be reworded.
+      'data-kind': g.key,
     }, g.label) as HTMLButtonElement;
     b.addEventListener('click', () => {
       kind = g.key;
@@ -242,6 +254,7 @@ export function renderPicker(o: { onShare: (s: Source) => void; onCancel: () => 
       const row = h('button', {
         class: 'sp-row', type: 'button', role: 'option',
         'aria-selected': String(picked?.id === src.id),
+        'data-src': src.id,
       },
         h('span', { class: 'sp-fav', 'aria-hidden': 'true' }, favFor(src)),
         h('span', { class: 'sp-row-t' },
@@ -476,24 +489,39 @@ function pageCv(): HTMLElement {
   );
 }
 
+/**
+ * N39. BUG: this page rendered a heading, an apology and nothing else.
+ *
+ * The requirement map was gated on a company code, exactly as the CV's own
+ * section is, and the deployed link carries none. So a tab captioned "Google
+ * Careers — the posting, line by line" opened onto a sentence explaining why
+ * there were no lines. Nam: "this page is empty? It was fine before."
+ *
+ * T7 put that gate there for a real reason and the reason still holds for the
+ * CV: measuring a reader at company X against company Y's posting is a category
+ * error, and the CV is a document they might print and pass on. It does NOT hold
+ * here. This tab is Google-branded in its title, its host and its favicon
+ * whether or not a code is present — the mapping was the only thing hidden, so
+ * hiding it concealed the answer and left the question on screen.
+ *
+ * The fix is to name the posting rather than to hide the answer. With a code the
+ * sub-line is that company's role; without one it says plainly which posting
+ * this was written against, which is the honest version of the same sentence.
+ */
 function pageJobAd(): HTMLElement {
   const pitch = currentPitch();
   return h('div', { class: 'pg' },
     h('h1', { class: 'pg-h' }, 'The posting, line by line'),
-    h('p', { class: 'pg-sub' }, pitch.target),
-    /*
-     * Same gate as the CV's section, for the same reason: the requirement map is
-     * written against one specific posting, and rendering it for a reader at
-     * another company measures them against a job they never advertised.
-     */
-    pitch.named
-      ? h('ul', { class: 'pg-reqs' },
-        ...requirementMap.map((r) => h('li', { class: `pg-req is-${r.strength}` },
-          h('span', { class: 'pg-tick', 'aria-hidden': 'true' }, r.strength === 'honest' ? '–' : '✓'),
-          h('span', {}, h('b', {}, r.req), h('span', {}, r.evidence)))))
-      : h('p', { class: 'pg-note' },
-        'The line-by-line mapping is written against one specific posting, so it appears only when this link ' +
-        'carries the company code for it. Without one, the CV is the whole answer.'),
+    h('p', { class: 'pg-sub' }, pitch.named
+      ? pitch.target
+      : 'Senior Software Engineer, Web Development — the posting this CV was written against'),
+    h('ul', { class: 'pg-reqs' },
+      ...requirementMap.map((r) => h('li', { class: `pg-req is-${r.strength}` },
+        h('span', { class: 'pg-tick', 'aria-hidden': 'true' }, r.strength === 'honest' ? '–' : '✓'),
+        h('span', {}, h('b', {}, r.req), h('span', {}, r.evidence))))),
+    pitch.named ? h('span', {}) : h('p', { class: 'pg-note' },
+      'Every line above is measured against that one posting. If you are reading this from somewhere else, '
+      + 'the requirements will not be yours — but the evidence beside them still is.'),
   );
 }
 
@@ -921,6 +949,7 @@ function win11(o: {
     el.style.width = `${Math.round(host.width * z.w)}px`;
     el.style.height = `${Math.round(host.height * z.h)}px`;
     o.say?.(`${o.title} snapped ${z.name}`);
+    signal('desk:snap');
   };
 
   /* The drag preview. One element per window, made on first use and left in the
@@ -1079,6 +1108,7 @@ function win11(o: {
       const dx = e.clientX - r.left;
       const dy = e.clientY - r.top;
       el.classList.add('is-drag');
+      signal('desk:drag');
       bar.setPointerCapture(e.pointerId);
       // Which edge the POINTER is in, not the window: a window dragged by its
       // right-hand end can have its left edge nowhere near the screen edge while
@@ -1225,6 +1255,7 @@ function win11(o: {
       const left0 = r.left - host.left;
       const top0 = r.top - host.top;
       el.classList.add('is-rz');
+      signal('desk:resize');
       try { grip.setPointerCapture(e.pointerId); } catch { /* not a real pointer */ }
       e.preventDefault();
       e.stopPropagation();
@@ -1786,6 +1817,8 @@ function chromeWindow(o: { onEmpty: () => void }): { body: HTMLElement; select: 
     const el = h('span', {
       class: 'cb-tab', role: 'tab', tabindex: '0', 'aria-selected': 'false',
       title: doc ? doc.title : 'New tab',
+      // So the tour can name a tab it wants without matching on the title.
+      'data-tab-id': id,
     }, h('span', { class: 'cb-tab-ico' }, fav()),
        h('span', { class: 'cb-tab-t' }, doc ? doc.title : 'New tab'),
        shut) as HTMLElement;
@@ -2389,6 +2422,7 @@ function pageDesktop(onQuit: () => void, boot?: { egg?: string; cv?: boolean }):
 
   const minimise = (w: Live): void => {
     say(w.title + ': minimised.');
+    signal('desk:min');
     w.min = true;
     w.el.classList.add('is-min');
     if (focused === w) {
@@ -2413,6 +2447,7 @@ function pageDesktop(onQuit: () => void, boot?: { egg?: string; cv?: boolean }):
     // under it would leave a card that switches to nothing.
     if (taskView) shutTaskView();
     say(w.title + ': closed.');
+    signal('desk:close');
     // Let the exit animation play, then drop the node. The record leaves the
     // list immediately so the taskbar updates on the click rather than 140ms
     // after it.
@@ -2771,7 +2806,11 @@ function pageDesktop(onQuit: () => void, boot?: { egg?: string; cv?: boolean }):
    *   several          -> show the list and let the pointer choose
    */
   const taskBtn = (app: { kind: AppKind; label: string; ico: () => HTMLElement; pinned: boolean }): HTMLElement => {
-    const b = h('button', { class: 'dk-task dk-pin', type: 'button', 'aria-label': app.label }, app.ico()) as HTMLButtonElement;
+    const b = h('button', {
+      class: 'dk-task dk-pin', type: 'button', 'aria-label': app.label,
+      // The tour launches Chrome from here, the way a person would.
+      'data-app': app.kind,
+    }, app.ico()) as HTMLButtonElement;
     b.addEventListener('click', () => {
       const mine = live.filter((w) => w.kind === app.kind);
       if (!mine.length) {

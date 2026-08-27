@@ -31,7 +31,8 @@ import { rovingGrid, trapFocus, announcer } from '../a11y.js';
 import { sample } from '../net/degrade.js';
 import type { Profile } from '../net/degrade.js';
 import type { Quests } from '../achievements.js';
-import { noteReadyShown, noteReadyClosed } from '../prefs.js';
+import { noteReadyShown, noteReadyClosed, markEggSeen } from '../prefs.js';
+import { signal } from './signal.js';
 
 const TITLES: Record<Exclude<Panel, 'none'>, string> = {
   chat: 'In-call messages',
@@ -556,6 +557,9 @@ export function renderCall(store: Store, quests: Quests, deps: CallDeps): HTMLEl
   /** How long the panel takes to leave. Must match `side-out` in styles.css. */
   const SIDE_OUT_MS = 240;
 
+  /** The last drawer the tour was told about, so a re-render is not an opening. */
+  let announcedPanel: Panel | null = null;
+
   const drawPanel = (): void => {
     const s = store.get();
     releaseTrap?.();
@@ -588,6 +592,21 @@ export function renderCall(store: Store, quests: Quests, deps: CallDeps): HTMLEl
         window.setTimeout(() => going.remove(), SIDE_OUT_MS);
       }
       return;
+    }
+
+    /*
+     * Tell the tour which drawer just opened.
+     *
+     * Not a click listener on the buttons that open them: there are eight of
+     * those scattered across the tile, the roster popup and the keyboard
+     * shortcuts, and a panel opened with `p` is not a click on anything at all.
+     * The panel opening is the event; where the press came from is not the
+     * tour's business. Announced only on a CHANGE, so a re-render caused by
+     * something else in the drawer does not re-fire it.
+     */
+    if (s.panel !== announcedPanel) {
+      announcedPanel = s.panel;
+      signal('panel:' + s.panel);
     }
 
     const title = TITLES[s.panel];
@@ -735,7 +754,19 @@ export function renderCall(store: Store, quests: Quests, deps: CallDeps): HTMLEl
   const audioChev = chev('Audio settings', 'audio');
   const videoChev = chev('Video settings', 'video');
 
-  const micBtn = cbtn('Turn on microphone', 'mic_off', 'w48', () => {
+  /*
+   * STABLE NAMES FOR THE CONTROL BAR.
+   *
+   * The guided tour presses these itself (board ticket N29), and it has to find
+   * them by something that does not move. aria-label was the obvious candidate
+   * and is the wrong one: every one of these buttons rewrites its own label when
+   * it toggles, so "Turn on captions" stops existing the moment captions are on.
+   * A data attribute names the CONTROL rather than its current state, which is
+   * the thing that is actually stable.
+   */
+  const named = (b: Btn, ctl: string): Btn => { b.dataset['ctl'] = ctl; return b; };
+
+  const micBtn = named(cbtn('Turn on microphone', 'mic_off', 'w48', () => {
     const on = !store.get().micOn;
     store.dispatch({ t: 'mic', on });
     // Nam: "we should have a small delay after enabling the mic, kinda like the
@@ -755,30 +786,30 @@ export function renderCall(store: Store, quests: Quests, deps: CallDeps): HTMLEl
   }, () => {
     const on = store.get().micOn;
     return { on, icon: on ? 'mic' : 'mic_off', label: on ? 'Turn off microphone' : 'Turn on microphone' };
-  });
+  }), 'mic');
 
-  const camBtn = cbtn('Turn on camera', 'videocam_off', 'w48', () => { deps.toggleCamera(); }, () => {
+  const camBtn = named(cbtn('Turn on camera', 'videocam_off', 'w48', () => { deps.toggleCamera(); }, () => {
     const on = store.get().cameraOn;
     return { on, icon: on ? 'videocam' : 'videocam_off', label: on ? 'Turn off camera' : 'Turn on camera' };
-  });
+  }), 'camera');
 
-  const presentBtn: Btn = cbtn('Share screen', 'present_to_all', '', () => { void openPicker(); },
-    () => ({ on: store.get().panel === 'present' }));
+  const presentBtn: Btn = named(cbtn('Share screen', 'present_to_all', '', () => { void openPicker(); },
+    () => ({ on: store.get().panel === 'present' })), 'present');
 
-  const reactBtn = cbtn('Send a reaction', 'mood', '', () => setTray(!trayOpen),
-    () => ({ on: trayOpen }));
+  const reactBtn = named(cbtn('Send a reaction', 'mood', '', () => setTray(!trayOpen),
+    () => ({ on: trayOpen })), 'react');
 
-  const ccBtn = cbtn('Turn on captions', 'closed_caption', '', () => store.dispatch({ t: 'captions', on: !store.get().captionsOn }),
-    () => ({ on: store.get().captionsOn, label: store.get().captionsOn ? 'Turn off captions' : 'Turn on captions' }));
+  const ccBtn = named(cbtn('Turn on captions', 'closed_caption', '', () => store.dispatch({ t: 'captions', on: !store.get().captionsOn }),
+    () => ({ on: store.get().captionsOn, label: store.get().captionsOn ? 'Turn off captions' : 'Turn on captions' })), 'captions');
 
-  const handBtn = cbtn('Raise hand', 'back_hand', '', () => {
+  const handBtn = named(cbtn('Raise hand', 'back_hand', '', () => {
     const on = !store.get().handRaised;
     store.dispatch({ t: 'hand', on });
     if (on) slap();
     if (on) quests.unlock('hand');
     if (on) replayHand();
 
-  }, () => ({ on: store.get().handRaised, label: store.get().handRaised ? 'Lower hand' : 'Raise hand' }));
+  }, () => ({ on: store.get().handRaised, label: store.get().handRaised ? 'Lower hand' : 'Raise hand' })), 'hand');
 
   const moreBtn = cbtn('More options', 'more_vert', 'w36', () => menu(), () => ({ on: false }));
 
@@ -2004,25 +2035,61 @@ export function renderCall(store: Store, quests: Quests, deps: CallDeps): HTMLEl
    */
   const eggId = store.get().eggPlay;
   /*
-   * N1: an ordinary join opens presenting too, with the CV on screen.
+   * N27 REVERTS N1, and the reason is worth keeping.
    *
-   * Nam wants the reader to land on the work rather than on a tile with an
-   * avatar in it. An egg still wins, because someone who clicked a clip asked
-   * for the clip; anything else gets the document.
+   * N1 made an ordinary join open already presenting, with the CV on screen. It
+   * was right at the time: the alternative was landing on a tile with an avatar
+   * in it, and the work is more interesting than the placeholder.
+   *
+   * What changed is that there is now a tour to do the landing. Nam: "when
+   * joining the call, we shouldnt start in screen sharing. Screensharing should
+   * be triggered by caption script, so we can feature full feature of the CV."
+   * Watching someone share a screen is the familiar half of this whole trick —
+   * everybody has done it, everybody knows what the picker looks like — and
+   * skipping it throws away the thing that earns the strange half.
+   *
+   * An egg still boots straight into the share, because that clip IS the
+   * meeting and there is no tour in front of it to perform anything.
    */
-  void (async () => {
-    const m = await import('./share.js');
-    const src = { id: 'desktop', kind: 'screen' as const, title: 'Screen 1' };
-    const boot = eggId ? { egg: eggId } : { cv: true };
-    startShare(m.renderShared(src, openDoc, () => stopShare(), boot), src.title);
-  })();
+  if (eggId) {
+    // Remember it, so the tour's off-the-clock act does not offer back a clip
+    // they went and found for themselves. See N41.
+    markEggSeen(eggId);
+    void (async () => {
+      const m = await import('./share.js');
+      const src = { id: 'desktop', kind: 'screen' as const, title: 'Screen 1' };
+      startShare(m.renderShared(src, openDoc, () => stopShare(), { egg: eggId }), src.title);
+    })();
+  }
 
   /**
-   * THE GUIDED TOUR (board ticket N24, planned in tools/PLAN-guided-tour.md).
+   * Put a clip on the shared screen, from wherever the call already is.
    *
-   * Started once, after the share has had a moment to mount: the first thing the
-   * script talks about is the CV on the shared screen, and talking before it
-   * exists would narrate an empty stage.
+   * The tour's "off the clock" act uses this to play the easter eggs the visitor
+   * has not found. If nothing is being shared yet it starts a share with the
+   * clip booted into the player; if a share is already running it hands the id
+   * to the desktop, which routes it to the player exactly as a double-click in
+   * Explorer would.
+   */
+  function playEgg(id: string): void {
+    void (async () => {
+      const m = await import('./share.js');
+      const src = { id: 'desktop', kind: 'screen' as const, title: 'Screen 1' };
+      stopShare();
+      startShare(m.renderShared(src, openDoc, () => stopShare(), { egg: id }), src.title);
+      markEggSeen(id);
+      quests.unlock('offclock');
+    })();
+  }
+
+  /**
+   * THE GUIDED TOUR (board tickets N24 and N27–N43, planned in
+   * tools/PLAN-guided-tour.md).
+   *
+   * Started once, shortly after the call mounts. It opens on the call rather
+   * than on a share now, and the first thing it does is press the buttons that
+   * make the share happen — so there is nothing to wait for beyond the control
+   * bar existing.
    *
    * Not for an egg -- someone who clicked a thirty-second clip asked for the
    * clip, not a tour of the CV. And not twice: the call view is kept alive by
@@ -2033,7 +2100,7 @@ export function renderCall(store: Store, quests: Quests, deps: CallDeps): HTMLEl
     tourStarted = true;
     window.setTimeout(() => {
       void import('../tour/stage.js').then((m) => {
-        // The visitor may have left in the 1.6s it took to get here.
+        // The visitor may have left in the second it took to get here.
         if (store.get().screen !== 'call') { tourStarted = false; return; }
         tour = m.startTour(shell, {
           say: (text) => { ccText.textContent = text; announce(text); },
@@ -2044,9 +2111,22 @@ export function renderCall(store: Store, quests: Quests, deps: CallDeps): HTMLEl
             tourHasFloor = false;
             if (store.get().captionsOn) startCC();
           },
+          // The tour presses the captions button itself when they are off. It
+          // asks rather than assuming, because the visitor may have turned them
+          // off between mounting and the tour reaching this line.
+          captionsOn: () => store.get().captionsOn,
+          playEgg,
+          /*
+           * Unlocked at the END, not at the start. Sitting through a
+           * walkthrough that runs itself is the seventeenth quest and its hint
+           * says "let the walkthrough run to the end" — awarding it for merely
+           * being present would make the hint a lie, and the hints are the one
+           * place this build tells the visitor what is true.
+           */
+          finished: () => quests.unlock('tour'),
         });
       });
-    }, 1600);
+    }, 1000);
   }
 
   return shell;

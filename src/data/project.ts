@@ -679,6 +679,289 @@ export const tasks: Task[] = [
     },
   },
 
+
+  /* ------------------------------------------------------------------------
+   * Nam's QA pass of 27 August, second half: ten numbered points about the
+   * guided tour, taken apart into seventeen cards. The through-line is one
+   * idea — the tour should behave like a person driving the machine, not like
+   * a page narrating itself — so most of these are the same feature seen from
+   * different angles.
+   * --------------------------------------------------------------------- */
+  {
+    id: 'N27', col: 'done', size: 'M', tag: 'onboarding',
+    title: "Do not join already sharing",
+    note: "N1 is reverted. The share is something the tour performs, not the state it starts in.",
+    detail: {
+      why: "Nam: \"when joining the call, we shouldnt start in screen sharing. Screensharing should be triggered by caption script, so we can feature full feature of the CV.\" Landing mid-share skips the part that makes the demo land — watching someone share a screen is the familiar bit that earns the strange bits.",
+      done: [
+        'An ordinary join opens on the call, not on a share',
+        'The easter-egg boot still opens already sharing, because that clip is the whole meeting',
+        "The tour's first act performs the share itself",
+      ],
+      raised: 'Nam, QA 27 Aug, point 1',
+      notes: 'N1 shipped the opposite of this and was right at the time — the reader landed on the work instead of an avatar. What changed is that there is now a tour to do the landing for them. QA in a browser: an ordinary join opens on the call, and the first act performs the share.',
+    },
+  },
+  {
+    id: 'N28', col: 'done', size: 'L', tag: 'onboarding',
+    title: 'A real mouse pointer, moving like a hand',
+    note: 'The blue dot becomes an arrow, and it travels, overshoots, settles and fidgets instead of teleporting.',
+    detail: {
+      why: "Nam: \"the mouse should have a mouse icon not the blue dot cause it forces user to learn something they dont need to... as if this is a regular person using the computer. It's very trippy yes but thats exactly what I want. It's a mixture of familiarity + strange.\" A blue dot is a new symbol to decode. An arrow is one everybody already has.",
+      done: [
+        "A real cursor arrow, drawn to match the platform's",
+        "Travel time from Fitts's law, not a fixed duration",
+        'A curved path with an overshoot and a corrective submovement',
+        'Tremor while idle, and an occasional drift',
+        'A visible press on click, and a dwell before it',
+        'It owns the whole screen, not just the shared surface',
+      ],
+      raised: 'Nam, QA 27 Aug, point 2',
+      notes: 'Human pointing is ballistic then corrective: one fast movement that covers most of the distance and overshoots, then slower closed-loop corrections under visual feedback. Copying that shape is most of what makes a synthetic cursor read as a hand. QA in a browser: 5404px of travel across one full run, arcing, overshooting and settling on every target.',
+    },
+  },
+  {
+    id: 'N29', col: 'done', size: 'M', tag: 'onboarding',
+    title: 'The share is performed: captions, picker, Entire Screen, full screen',
+    note: 'The cursor does every step a person would do, in order, with nothing skipped.',
+    detail: {
+      why: "Nam: \"if CC was not on, then the mouse would move to click on CC to enable it, then the script starts. Then on cue to share screen, mouse will move to the screensharing button, then to full screen, then so on.\"",
+      done: [
+        'Captions are switched on by the cursor when they are off, before the first line',
+        'Share screen opens the real picker',
+        'Entire Screen is selected, then Screen 1, then Share',
+        'The browser window is maximised inside the shared desktop',
+        'Every step is a real click on a real control, not a shortcut into state',
+      ],
+      raised: 'Nam, QA 27 Aug, points 1 and 2',
+      notes: 'QA in a browser: captions, picker, Entire Screen, Screen 1, Share, launch Chrome, maximise — every step a real press on a real control.',
+    },
+  },
+  {
+    id: 'N30', col: 'done', size: 'S', tag: 'content',
+    title: 'Rewrite the opening',
+    note: 'Shorter, warmer, and it hands the visitor a goal before it starts talking.',
+    detail: {
+      why: 'The old opening explained the format — "a working rebuild of the Meet web client" — which is the least interesting true thing about it. Nam’s version says hello, offers a game, and moves.',
+      done: [
+        '"Hi, I’m Nam. Thank you for joining me here."',
+        '"Let me walk you through my world."',
+        'The achievement count is named, and it is the real one',
+        '"First, let’s share my screen" is the cue for the share',
+      ],
+      raised: 'Nam, QA 27 Aug, point 3',
+      notes: 'The count is asserted in the test suite against the quest list, so the line cannot quietly become a lie. The count is asserted against the quest list in the test suite, so the line cannot go stale.',
+    },
+  },
+  {
+    id: 'N31', col: 'done', size: 'L', tag: 'onboarding',
+    title: 'The CV act: lines tied to scroll, not to a stopwatch',
+    note: 'The cursor scrolls the document and each section speaks as it arrives. Scroll past it and the short version plays.',
+    detail: {
+      why: "Nam: \"all these texts should have trigger in the CV as we scroll, and they should be queued so that each line has its reading time. If we scroll past a point quickly then we run the short version of the lines to speed it up.\"",
+      done: [
+        'Each line is anchored to a section of the document',
+        'The cursor scrolls; arriving at a section speaks it',
+        'A section reached early plays its short version',
+        'A section already passed is not replayed',
+        'Leaving the CV entirely cuts the losses rather than finishing the script',
+      ],
+      raised: 'Nam, QA 27 Aug, point 4',
+      notes: 'QA in a browser: the CV scrolled 1473px across seven anchored lines.',
+    },
+  },
+  {
+    id: 'N32', col: 'done', size: 'M', tag: 'onboarding',
+    title: 'Restlessness, and the bar that flashes when it moves',
+    note: 'Score the visitor’s impatience, and show the score only at the moment it changes.',
+    detail: {
+      why: "Nam: \"we should score user on their reading speed and restlessness. The higher they score, the more escalated our acknowledgements would be. Let's flash a restlessness bar somewhere on the screen whenever this bar gets increased, only at the moment of the increase, then it fades away.\"",
+      done: [
+        'A 0..1 restlessness score with named tiers',
+        'It rises on fast bails, scroll speed and click bursts, and decays on dwell',
+        'Acknowledgements are drawn from a pool matched to the tier',
+        'The same acknowledgement is never used twice in a run',
+        'A bar appears on increase, holds, and fades',
+        'Nothing is shown while it is merely decaying',
+      ],
+      raised: 'Nam, QA 27 Aug, point 4',
+      notes: 'QA in a browser: the meter stepped 28 → 42 → 56 → 70% through a click burst and hid itself afterwards.',
+    },
+  },
+  {
+    id: 'N33', col: 'done', size: 'L', tag: 'specs',
+    title: 'The visitor profile — a know-your-user model',
+    note: 'One pure module that watches what the visitor does and says what they seem to want.',
+    detail: {
+      why: "Nam: \"Feels like we are essentially building a know your user system, like user profiling. Let me know what else we can add to this system to get a clear image of user intention and interest, so we tailor our script to their interest and in their own pace.\"",
+      done: [
+        'Signals: idle time, click rate, scroll speed, dwell per section, bail rate, backtracking, revisits, depth of navigation, input modality',
+        'Derived: reading speed, restlessness, engagement, and an interest ranking over the parts',
+        'Pure and unit-tested — no DOM, no timers',
+        'The director asks it for pace and register rather than guessing',
+      ],
+      raised: 'Nam, QA 27 Aug, point 4',
+      notes: 'Kept pure for the same reason the tour director is: adaptivity is the part most likely to be subtly wrong and least likely to be noticed. Nineteen unit tests over the model. The two strongest signals turned out to be scroll speed and revisiting — dwell cannot tell reading from having walked away, and a revisit is the only signal that costs the visitor effort.',
+    },
+  },
+  {
+    id: 'N34', col: 'done', size: 'M', tag: 'content',
+    title: 'The desktop is commentary, not narration',
+    note: 'Nothing introduces the shared desktop. It answers back when you touch it.',
+    detail: {
+      why: "Nam: \"nothing to introduce here, its self explanatory. This is more a commentary when player gets curious and clicking around... Short and punchy, so we can go back to whatever we were talking about.\"",
+      done: [
+        'The desktop part leaves the primary flow',
+        'Quips on drag, snap, minimise, the clock, the calendar, wifi and the tray',
+        'Each quip fires once and is never cycled back',
+        'The brief line stays as the first thing said',
+      ],
+      raised: 'Nam, QA 27 Aug, point 5',
+      notes: 'QA in a browser: the Start-menu quip fired once and stayed quiet on the second press.',
+    },
+  },
+  {
+    id: 'N35', col: 'done', size: 'S', tag: 'content',
+    title: 'Wasabi: the pap-pap-pap rewind',
+    note: 'Scroll past seven years of work in under three seconds and the tour scrolls you back.',
+    detail: {
+      why: "Nam: \"I really want to get playful here... Pap pap pap.. 7 years of my life is only worth 3s of your time? Come back! Then we scroll up to the top of the page. Then we go Just kidding and scroll back to the place it was triggered.\"",
+      done: [
+        'A bail under three seconds triggers it',
+        'The document scrolls back to the top',
+        '"Just kidding", and it returns to exactly where it was',
+        'The scroll position is remembered, not guessed',
+        'It fires at most once',
+      ],
+      raised: 'Nam, QA 27 Aug, point 6',
+      notes: 'QA caught it firing at the tour itself: a programmatic scrollTop dispatches a scroll event indistinguishable from a wheel, and isTrusted does not separate them — the browser marks scroll events trusted whoever caused them. The hand rolled to the Wasabi years and then accused the visitor of skipping them.',
+    },
+  },
+  {
+    id: 'N36', col: 'done', size: 'M', tag: 'content',
+    title: '"How this was built" opens the real page',
+    note: 'The mock browser’s tab was a stale drawing. It shows the document the home screen shows.',
+    detail: {
+      why: "Nam: \"Oh damn this page is outdated! We actually have a how this was built page that we show in home screen. We need to show that here in the mock browser.\" Two copies of the same document is how they start disagreeing, and this pair already had.",
+      done: [
+        'The tab frames the real built document',
+        'The tour navigates to it rather than cutting to it',
+        'Banter as the tabs are flipped, one-shot',
+      ],
+      raised: 'Nam, QA 27 Aug, point 6b',
+      notes: 'QA in a browser: the tab is in the default strip, the tour opens it, and it frames the real document rather than a second drawing of it.',
+    },
+  },
+  {
+    id: 'N37', col: 'done', size: 'S', tag: 'content',
+    title: 'Accessibility and tests leave the main flow',
+    note: 'They only speak when the visitor opens them.',
+    detail: {
+      why: "Nam: \"Accessibility and tests are not in the main flow, only triggered when user actually navigate to these in the right panel... look, the CV is the main part and the rest should probably be all commentary, short and punchy.\"",
+      done: [
+        'Neither is reached by the script',
+        'Both keep a commentary register on their triggers',
+        'The primary flow gets shorter, which is the point',
+      ],
+      raised: 'Nam, QA 27 Aug, point 7',
+      notes: 'Neither is reachable from the script any more. Both kept their commentary.',
+    },
+  },
+  {
+    id: 'N38', col: 'done', size: 'M', tag: 'content',
+    title: 'The personal story, and the questions it answers',
+    note: 'One uninterrupted segment on sufficient downtime, answering what a hiring manager actually wants to ask.',
+    detail: {
+      why: "Nam: \"we have some personal storytelling that is triggered during sufficient down time, ideally after we have introduced all the fun part, and once triggered it will run uninterrupted. This will answer the core questions that a hiring manager would have.\"",
+      done: [
+        'Runs only after the flow has covered the demonstrable parts',
+        'Runs only after real downtime, not after a pause',
+        'Uninterruptible once started, except by Stop',
+        'The questions it answers are listed in the script editor beside it',
+      ],
+      raised: 'Nam, QA 27 Aug, point 7',
+      notes: 'QA caught it starting four seconds after the goodbye: silence was measured from the last INPUT, and a visitor who has touched nothing has been silent all along. It is measured from the later of the last input and the flow ending now.',
+    },
+  },
+  {
+    id: 'N39', col: 'done', size: 'S', tag: 'trust',
+    title: 'BUG: "The posting, line by line" renders empty',
+    note: 'The tab in the shared browser shows a heading and a note and nothing else.',
+    detail: {
+      why: 'The requirement map is gated on a company code, and the deployed link carries none — so a tab titled Google Careers opened onto an apology. Nam: "this page is empty? It was fine before."',
+      done: [
+        'The mapping renders without a company code',
+        'The heading names which posting it is measured against',
+        'The gate stays where it is genuinely needed',
+      ],
+      raised: 'Nam, QA 27 Aug, point 8',
+      notes: 'T7 put the gate there for a real reason — measuring a reader against a posting their company never advertised. The tab is Google-branded either way, so the honest fix is to name the posting rather than hide the answer. QA in a browser: the mapping renders with no company code, under a heading that names which posting it is measured against.',
+    },
+  },
+  {
+    id: 'N40', col: 'done', size: 'M', tag: 'content',
+    title: 'The job-requirement act, bridged straight off the CV',
+    note: '"So how do these score against the job requirement? I’ve got you covered." Then it goes and shows you.',
+    detail: {
+      why: "Nam: \"Oh damn I completely forgot the part against the job requirement!... then navigate to the google career tab, then slowly scroll through everything with playful commentary.\" It is the single most load-bearing screen for the actual reader and it was not in the script at all.",
+      done: [
+        'The act follows the CV with no seam',
+        'The cursor opens the Careers tab and scrolls it',
+        'Requirement-by-requirement banter, escalating',
+        '"And you get a check. And everybody gets a check."',
+      ],
+      raised: 'Nam, QA 27 Aug, point 8',
+      notes: 'QA in a browser: the act bridges off the CV with no seam and scrolls the posting 926px.',
+    },
+  },
+  {
+    id: 'N41', col: 'done', size: 'M', tag: 'call',
+    title: 'Off the clock: play the clips they have not found',
+    note: 'Track which eggs the visitor has seen and walk them through the remainder.',
+    detail: {
+      why: "Nam: \"here we need to track which of the easter eggs they have found, then we walk them through the rest, earning them the remaining achievements.\"",
+      done: [
+        'Seen clips are remembered across visits',
+        'The act plays only the ones still unseen',
+        'It says what it is playing and why',
+        'It closes on the corny line, and calls itself corny',
+      ],
+      raised: 'Nam, QA 27 Aug, point 9',
+      notes: 'QA in a browser: three unseen clips played, and a second run said "…which you have already found. All of them." — so the record survives a reload.',
+    },
+  },
+  {
+    id: 'N42', col: 'done', size: 'S', tag: 'content',
+    title: 'The close has to close',
+    note: 'Say the tour is over, hand the machine back, thank them.',
+    detail: {
+      why: "Nam: \"VERY IMPORTANT! Signal to them that this is the end of the tour, they are free to explore the rest, thank them for their time.\" A demo that just stops talking leaves the visitor waiting for the next line instead of exploring.",
+      done: [
+        'It says, in words, that the tour is finished',
+        'It says what is left to look at',
+        'The cursor leaves the screen rather than parking on a control',
+        'Thanks, once, and without a pitch attached',
+      ],
+      raised: 'Nam, QA 27 Aug, point 10',
+      notes: 'QA in a browser: it says in words that the tour is finished, and the hand leaves the screen.',
+    },
+  },
+  {
+    id: 'N43', col: 'done', size: 'M', tag: 'specs',
+    title: 'The script editor separates flow from commentary',
+    note: 'Two lists, not one: what the tour will say, and what it only says back.',
+    detail: {
+      why: "Nam: \"the scripts, I want to see the separation between the primary flow, vs what we do only as commentary.\" With commentary mixed into the same list there was no way to read the running time of the actual demo.",
+      done: [
+        'The primary flow is listed in order with a running time',
+        'Commentary quips are listed separately, by trigger',
+        'The acknowledgement pool is shown by tier',
+        'The hiring-manager questions are listed beside the story segment',
+      ],
+      raised: 'Nam, QA 27 Aug, point 10 ("add all of these to the kanban board")',
+      notes: 'Two lists. The flow has a running time that means something for the first time, because throwaway lines stopped counting toward it.',
+    },
+  },
   /* Flagged rather than done. Still true as of this build. */
   { id: 'T24', col: 'backlog', size: 'M', tag: 'specs', title: 'Initial payload is halfway to the ceiling', note: '24.7 kB of a 50 kB gate, up from 18.2. Still green, and the growth is real, but two deferred chunks are 17 kB and 19 kB and deserve a splitting pass before it becomes urgent.' },
 ];

@@ -21,6 +21,8 @@
 // Nothing here leaves the machine. There is no backend to send it to, which is
 // the same promise the card itself makes in its last line.
 
+import { eggs, type Egg } from './data/eggs.js';
+
 const KEY = 'callback.ready';
 /** The sound choice, which is a different lifetime from the card's mute. */
 const SOUND_KEY = 'callback.sound';
@@ -166,4 +168,60 @@ export function saveSound(p: SoundPref): void {
   } catch {
     /* ignore — the next clip simply opens muted again. */
   }
+}
+
+// ---------------------------------------------------------------------------
+// WHICH CLIPS THEY HAVE FOUND — board ticket N41
+//
+// Nam: "here we need to track which of the easter eggs they have found, then we
+// walk them through the rest, earning them the remaining achievements in finding
+// these videos."
+//
+// So the tour needs to know what NOT to show, which means the eggs have to be
+// remembered between visits. Same shape as everything else in this file: a pure
+// rule that can be tested, and a get and a set that both shrug if storage is
+// gone. A visitor in a private window simply gets shown all of them, which is
+// the correct failure — the alternative is hiding content because we could not
+// remember whether we had already shown it.
+// ---------------------------------------------------------------------------
+
+const EGG_KEY = 'callback.eggs';
+
+/** Anything unparseable reads as a first visit. Ids only, no timestamps to age. */
+export function readSeenEggs(raw: string | null): string[] {
+  if (!raw) return [];
+  try {
+    const v = JSON.parse(raw) as unknown;
+    if (!Array.isArray(v)) return [];
+    return v.filter((x): x is string => typeof x === 'string');
+  } catch {
+    return [];
+  }
+}
+
+/** Which of `all` are still unfound, in the order they were authored. */
+export function stillUnseen<T extends { id: string }>(all: T[], seen: string[]): T[] {
+  return all.filter((e) => !seen.includes(e.id));
+}
+
+export function seenEggs(): string[] {
+  try {
+    return readSeenEggs(localStorage.getItem(EGG_KEY));
+  } catch {
+    return [];
+  }
+}
+
+export function markEggSeen(id: string): void {
+  try {
+    const now = seenEggs();
+    if (now.includes(id)) return;
+    localStorage.setItem(EGG_KEY, JSON.stringify([...now, id]));
+  } catch {
+    /* ignore — the tour will offer it again next time, which is harmless. */
+  }
+}
+
+export function unseenEggs(): Egg[] {
+  return stillUnseen(eggs, seenEggs());
 }

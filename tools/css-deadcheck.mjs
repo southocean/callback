@@ -50,6 +50,8 @@ const DYNAMIC = [
   // ```kb-${t.tag}``` and ```rv-${r.verdict}``` in devportal.ts.
   /^kb-(onboarding|specs|call|trust|content)$/,
   /^rv-(strong|mixed|risk)$/,
+  // ```sc-quip-k is-${qp.kind}``` in scripted.ts -- click quips and event quips.
+  /^is-(click|event)$/,
 ];
 
 const walk = (dir) => readdirSync(dir, { withFileTypes: true })

@@ -1,39 +1,53 @@
 // The guided tour's stage: the only part that touches the document.
 //
-// The director decides WHAT plays (src/tour/director.ts, pure and tested). This
-// puts it on screen: the caption line, the cursor that moves to what is being
-// talked about, and the clicks it performs when it gets there.
+// The director decides WHAT plays (src/tour/director.ts, pure and tested), the
+// profile decides WHO it is playing to (src/tour/profile.ts, also pure and also
+// tested), and the hand does the pointing (src/tour/cursor.ts). This is the part
+// that owns the timing, the DOM and the consequences.
 //
-// See tools/PLAN-guided-tour.md §4. Three decisions from the review passes that
-// are easy to get wrong and expensive to notice:
+// See tools/PLAN-guided-tour.md §4. The decisions that are easy to get wrong and
+// expensive to notice:
 //
-//   · THE CURSOR AND THE NARRATION ARE NOT IN LOCKSTEP. Narration waits for the
-//     queue; the cursor does not. If both waited, a click would look ignored for
-//     several seconds, which is the opposite of the point.
+//   · THE TOUR DRIVES THE APP THROUGH ITS OWN CONTROLS. Sharing a screen means
+//     pressing Share screen, choosing Entire Screen, choosing Screen 1 and
+//     pressing Share — the same four presses a person makes. Nothing here
+//     reaches past the interface into the store. A demo that takes shortcuts
+//     drifts away from the product it is demonstrating, silently, and the first
+//     time anyone finds out is when a control breaks and the demo does not.
 //
 //   · A BEAT WHOSE TARGET IS MISSING IS SILENT. Selectors are resolved at beat
-//     time, never cached. A cursor that travels to where something used to be is
-//     worse than a cursor that stays still.
+//     time, never cached. A hand that travels to where something used to be is
+//     worse than a hand that stays still.
 //
-//   · REDUCED MOTION KEEPS THE TOUR. The cursor teleports instead of travelling
-//     and the captions run as normal. Turning the feature off would deny the
-//     content to the person who asked for less movement, which is not what that
-//     setting means.
+//   · THE VISITOR'S EVENTS AND THE HAND'S ARE TOLD APART BY isTrusted, not by a
+//     flag. Synthetic events are never trusted, real ones always are, and the
+//     browser maintains that for free. The flag version of this had a race: the
+//     hand's click is dispatched inside an await chain and the flag outlived it
+//     by a frame, which ate the visitor's next real click.
+//
+//   · REDUCED MOTION KEEPS THE TOUR. The hand teleports instead of travelling,
+//     does not tremor, and still presses. The captions run as normal. Turning
+//     the feature off would deny the content to the person who asked for less
+//     movement, which is not what that setting means.
 
 import { h } from '../dom.js';
 import { prefersReducedMotion } from '../a11y.js';
-import { parts, asides, type Beat, type Line } from '../data/tour.js';
+import { parts, story, acks, asides, type Bail, type Beat, type Line, type Surface } from '../data/tour.js';
+import { markEggSeen, unseenEggs } from '../prefs.js';
+import { makeHand, type Hand, type Scroller } from './cursor.js';
 import {
-  reduceTour, initialTour, linesFor, partForElement, type TourState,
+  reduceTour, initialTour, linesFor, partForElement, quipForElement, quipForEvent, quipById,
+  type TourState,
 } from './director.js';
-
-/** How long the cursor takes to travel, ms. Must match .tour-cursor in styles.css. */
-const TRAVEL = 420;
+import {
+  observe, initialVisitor, pace, passive, tier, acknowledge, IDLE_MS, BAIL_MS,
+  type Visitor,
+} from './profile.js';
 
 export interface TourHandle {
   stop: () => void;
-  /** For QA: the director state, read-only. */
-  peek: () => TourState;
+  /** For QA: the director state and the visitor model, read-only. */
+  peek: () => { tour: TourState; visitor: Visitor };
 }
 
 /**
@@ -47,8 +61,8 @@ export interface TourHandle {
  * systems that have to be kept in step.
  *
  * So the tour writes into the surface that already exists, and the call keeps
- * owning it. The only thing the tour adds to the DOM is the cursor and a Stop
- * control.
+ * owning it. The only things the tour adds to the DOM are the hand, the
+ * restlessness meter and a Stop control.
  */
 export interface Podium {
   /** Put a line on screen, and announce it. */
@@ -57,166 +71,715 @@ export interface Podium {
   suspendTranscript: () => void;
   /** Hand it back. */
   resumeTranscript: () => void;
+  /** Are the call's captions on? If not, the tour is a silent film. */
+  captionsOn: () => boolean;
+  /** Open an easter-egg clip on the shared screen. */
+  playEgg: (id: string) => void;
+  /** The flow reached its last line. Not called when the visitor stops it. */
+  finished: () => void;
 }
+
+/** How long to keep looking for something the tour has just asked for. */
+const APPEAR_MS = 4000;
+/** Silence after which the tour drops a stale backlog. */
+const SETTLE_MS = IDLE_MS;
+/** Silence after the flow is over before the personal segment starts. */
+const STORY_MS = 9000;
+/** Two acknowledgements closer together than this would be nagging. */
+const ACK_GAP_MS = 9000;
 
 export function startTour(root: HTMLElement, podium: Podium): TourHandle {
   const reduced = prefersReducedMotion();
-  let state = initialTour;
-  let timer = 0;
+  let tour = initialTour;
+  let visitor: Visitor = { ...initialVisitor, lastInput: performance.now() };
   let dead = false;
+  let timer = 0;
 
   /* ---------------------------------------------------------------- chrome -- */
 
-  const cursor = h('div', { class: 'tour-cursor', 'aria-hidden': 'true' },
-    h('span', { class: 'tour-cursor-ring' }),
-    h('span', { class: 'tour-cursor-dot' })) as HTMLElement;
+  const hand: Hand = makeHand(document.body, reduced);
 
-  /*
-   * The only chrome the tour owns: a Stop control. The words go into the call's
-   * caption surface via the podium, which already has the live region and the
-   * measured geometry.
+  /**
+   * The restlessness meter — board ticket N32.
+   *
+   * Nam: "Let's flash a restlessness bar somewhere on the screen whenever this
+   * bar gets increased, only at the moment of the increase, then it fades away
+   * and hidden."
+   *
+   * So it is not a HUD. It appears when the number moves UP, holds long enough
+   * to be read, and goes. Showing it while it decays would turn a reaction into
+   * a dashboard, and a dashboard is a thing the visitor has to manage.
    */
+  const meterFill = h('i', { class: 'rest-fill' }) as HTMLElement;
+  const meter = h('div', { class: 'rest', 'aria-hidden': 'true' },
+    h('span', { class: 'rest-label' }, 'restless'),
+    h('span', { class: 'rest-track' }, meterFill)) as HTMLElement;
+  let meterTimer = 0;
+
+  const flashMeter = (): void => {
+    meterFill.style.width = `${Math.round(visitor.restless * 100)}%`;
+    meter.dataset['tier'] = tier(visitor);
+    meter.classList.add('is-up');
+    window.clearTimeout(meterTimer);
+    meterTimer = window.setTimeout(() => meter.classList.remove('is-up'), 1900);
+  };
+
   const stopBtn = h('button', {
     class: 'tour-stop', type: 'button', 'aria-label': 'Stop the guided tour',
   }, 'Stop the tour') as HTMLButtonElement;
   const bar = h('div', { class: 'tour-bar' }, stopBtn) as HTMLElement;
 
-  const caption = { set textContent(t: string) { podium.say(t); } };
-
-  root.appendChild(cursor);
   root.appendChild(bar);
+  root.appendChild(meter);
   podium.suspendTranscript();
 
+  /* ----------------------------------------------------------------- voice -- */
+
+  /**
+   * The line currently holding the floor.
+   *
+   * A quip cuts in over it and then puts it back, so the flow does not lose its
+   * place to a joke about the taskbar clock.
+   */
+  let floorLine = '';
+  const voice = (text: string): void => { floorLine = text; podium.say(text); };
+
+  /* ----------------------------------------------------------------- timing -- */
+
+  const wait = (ms: number): Promise<void> => new Promise((done) => {
+    if (dead || ms <= 0) { done(); return; }
+    timer = window.setTimeout(done, ms);
+  });
+
+  /** A line's authored duration, scaled by how patient this visitor is being. */
+  const beat = (ms: number): Promise<void> => wait(Math.round(ms * pace(visitor)));
+
+  const frame = (): Promise<void> => new Promise((done) => requestAnimationFrame(() => done()));
+
+  const q = (sel: string): HTMLElement | null => document.querySelector<HTMLElement>(sel);
+
+  /** Poll for something the tour has just caused, and give up rather than hang. */
+  const appears = async (sel: string, ms = APPEAR_MS): Promise<HTMLElement | null> => {
+    const until = performance.now() + ms;
+    for (;;) {
+      const el = q(sel);
+      if (el) return el;
+      if (dead || performance.now() > until) return null;
+      await frame();
+    }
+  };
+
+  /* -------------------------------------------------------------- surfaces -- */
+
+  /**
+   * The two things the tour scrolls.
+   *
+   * `cv` is the REAL CV document, framed same-origin inside the mock browser —
+   * so scrolling it means reaching into the iframe, which is allowed here and
+   * would not be for anything third-party. `page` is the mock browser's own
+   * page area, which is where the authored documents live.
+   *
+   * Both return null when they are not on screen, and every caller treats null
+   * as "skip this beat" rather than as an error. A tour that throws because the
+   * visitor closed a window is a tour that ends on a stack trace.
+   */
+  const scroller = (of: Surface): Scroller | null => {
+    if (of === 'cv') {
+      const f = document.querySelector<HTMLIFrameElement>('.shot .pg-frame');
+      const doc = f?.contentDocument;
+      const el = doc?.scrollingElement as HTMLElement | undefined;
+      if (!f || !el) return null;
+      return {
+        top: () => el.scrollTop,
+        max: () => Math.max(0, el.scrollHeight - el.clientHeight),
+        set: (y) => { el.scrollTop = y; },
+        rect: () => f.getBoundingClientRect(),
+      };
+    }
+    const el = document.querySelector<HTMLElement>('.shot .cb-page');
+    if (!el) return null;
+    return {
+      top: () => el.scrollTop,
+      max: () => Math.max(0, el.scrollHeight - el.clientHeight),
+      set: (y) => { el.scrollTop = y; },
+      rect: () => el.getBoundingClientRect(),
+    };
+  };
+
+  /**
+   * Where a named section starts, inside whichever surface it lives in.
+   *
+   * Headings are matched by their text rather than by an id, because the CV is
+   * one data module rendered into a document that has never needed anchors — and
+   * adding ids to it purely so the tour can find them would be the tour reaching
+   * into the content. If the heading is renamed the beat goes silent, which is
+   * the same failure mode as a missing selector and the same correct answer.
+   */
+  const headingTop = (of: Surface, name: string): number | null => {
+    const doc = of === 'cv'
+      ? document.querySelector<HTMLIFrameElement>('.shot .pg-frame')?.contentDocument
+      : document;
+    const scope: ParentNode | null | undefined = of === 'cv'
+      ? doc
+      : document.querySelector('.shot .cb-page');
+    if (!scope) return null;
+    const want = name.toLowerCase();
+    for (const el of scope.querySelectorAll<HTMLElement>('h1, h2, h3')) {
+      if ((el.textContent ?? '').trim().toLowerCase() === want) {
+        // offsetTop is relative to the offsetParent, which for a section heading
+        // inside a plain document is the document itself. Falling back to the
+        // rect keeps it working when it is not.
+        return el.offsetTop > 0 ? el.offsetTop - 24 : null;
+      }
+    }
+    return null;
+  };
+
+  /**
+   * TRUE WHILE THE HAND IS THE ONE SCROLLING.
+   *
+   * A programmatic scrollTop dispatches a scroll event that is byte-identical
+   * to a wheel, and isTrusted does not help: the browser marks scroll events
+   * trusted whoever caused them. So the listener has to be told.
+   *
+   * QA caught the consequence, and it was the funniest possible one: the hand
+   * rolled the CV down to the Wasabi years, its own scroll registered as the
+   * visitor bolting out of them, and the tour accused the visitor of skipping
+   * a section it was in the middle of scrolling to. Two seconds after the line
+   * it was protecting.
+   *
+   * It also poisoned the reading-speed estimate, which is the profile's most
+   * load-bearing signal: every roll was being scored as a skim.
+   */
+  let rolling = false;
+
+  const roll = async (of: Surface, to: number | string, ms?: number): Promise<void> => {
+    const s = scroller(of);
+    if (!s) return;
+    const target = typeof to === 'number'
+      ? s.max() * to
+      : headingTop(of, to) ?? s.top();
+    rolling = true;
+    try {
+      await hand.roll(s, target, ms ?? 1200);
+    } finally {
+      // A frame's grace: the last scroll event of a roll arrives after the last
+      // scrollTop write, and clearing the flag on the same tick lets it through.
+      window.setTimeout(() => { rolling = false; }, 120);
+    }
+  };
+
+  /* ------------------------------------------------------------------ cues -- */
+
+  /** Travel to a control and press it, if it is there. */
+  const pressSel = async (sel: string): Promise<boolean> => {
+    const el = q(sel);
+    if (!el) return false;
+    await hand.at(el, true);
+    return true;
+  };
+
+  /**
+   * The share, performed — board ticket N29.
+   *
+   * Every step is a real press on a real control: the button, the Entire Screen
+   * tab, the Screen 1 row, Share. Then Chrome is launched from the taskbar the
+   * way a person would launch it, and maximised, because "full screen" is what
+   * Nam asked for and a windowed browser inside a shared desktop is not it.
+   *
+   * Each step gives up quietly if what it needs is not there. The visitor may
+   * have cancelled the picker mid-sequence, and the correct response to that is
+   * to stop performing, not to start guessing.
+   */
+  const doShare = async (): Promise<void> => {
+    if (q('.shot')) return;                      // already sharing
+    if (!await pressSel('[data-ctl="present"]')) return;
+    if (!await appears('.sp')) return;
+    await pressSel('.sp-tab[data-kind="screen"]');
+    await frame();
+    await pressSel('.sp-row[data-src="desktop"]');
+    await frame();
+    await pressSel('.sp-share');
+    if (!await appears('.dk-surface')) return;
+    await wait(reduced ? 0 : 320);
+    // Launch the browser from the taskbar. It opens on the CV, which is the
+    // first tab in the strip — the same tab it would open on for anyone.
+    if (!await pressSel('.dk-task[data-app="chrome"]')) return;
+    if (!await appears('.shot .cb-page')) return;
+    await wait(reduced ? 0 : 260);
+    await doMaximise();
+  };
+
+  const doMaximise = async (): Promise<void> => {
+    // The browser window, specifically — Explorer is behind it and has its own
+    // maximise button, and pressing the wrong one is how a demo ends up
+    // presenting a file listing.
+    const win = document.querySelector<HTMLElement>('.shot .wx:has(.cb-page)')
+      ?? document.querySelector<HTMLElement>('.shot .wx');
+    const btn = win?.querySelector<HTMLElement>('.wx-max');
+    if (!btn || win?.classList.contains('is-max')) return;
+    await hand.at(btn, true);
+    await wait(reduced ? 0 : 240);
+  };
+
+  const doTab = async (id: string): Promise<void> => {
+    const sel = `.shot .cb-tab[data-tab-id="${id}"]`;
+    if (await pressSel(sel)) { await wait(reduced ? 0 : 260); return; }
+    /*
+     * Not open. A person would type the address rather than give up, and the
+     * omnibox is real — but the honest fallback here is the Explorer route,
+     * which is what actually creates the tab. Neither is worth the complexity:
+     * every id the script names is in the default strip, and a missing one is a
+     * script bug that should be visible as silence.
+     */
+  };
+
+  /**
+   * The clips this visitor has not found — board ticket N41.
+   *
+   * Which ones they HAVE found is remembered across visits, so someone who has
+   * hunted half the calendar is not shown their own discoveries back. If they
+   * have found them all, this says so and moves on rather than replaying one.
+   */
+  const doEggs = async (): Promise<void> => {
+    const left = unseenEggs();
+    if (!left.length) {
+      voice('…which you have already found. All of them. Respect.');
+      await beat(3200);
+      return;
+    }
+    for (const egg of left.slice(0, 3)) {
+      if (dead) return;
+      voice(`${egg.title}. ${egg.blurb}`);
+      podium.playEgg(egg.id);
+      markEggSeen(egg.id);
+      await beat(5200);
+    }
+  };
+
+  const runCue = async (cue: string): Promise<void> => {
+    if (cue === 'share') return doShare();
+    if (cue === 'maximise') return doMaximise();
+    if (cue === 'eggs') return doEggs();
+    if (cue === 'park') { await hand.park(); return; }
+    if (cue.startsWith('tab:')) return doTab(cue.slice(4));
+  };
+
+  const runBeats = async (bs: Beat[]): Promise<void> => {
+    for (const b of bs) {
+      if (dead) return;
+      if (b.move) {
+        const el = q(b.move);
+        // A beat whose target is gone is skipped rather than guessed at.
+        if (el) await hand.at(el, !!b.click);
+      }
+      if (b.roll) await roll(b.roll.of, b.roll.to, b.roll.ms);
+      if (b.hold) await wait(b.hold);
+      if (b.cue) await runCue(b.cue);
+    }
+  };
+
+  /* ----------------------------------------------------------------- speaking */
+
+  /** A quip cuts in, then gives the floor straight back. */
+  const sayQuip = async (id: string): Promise<void> => {
+    const quip = quipById(id);
+    tour = reduceTour(tour, { t: 'quipDone' });
+    if (!quip) return;
+    const held = floorLine;
+    podium.say(quip.text);
+    await wait(quip.ms);
+    if (!dead && held && held !== quip.text) podium.say(held);
+  };
+
+  /** Anything waiting to interrupt, said now. */
+  const drain = async (): Promise<void> => {
+    while (!dead && tour.interject) await sayQuip(tour.interject);
+  };
+
+  /**
+   * The bail watch — board ticket N35.
+   *
+   * Armed when a protected line starts, disarmed three seconds later. If the
+   * visitor scrolls the document away inside that window, the gag fires: back to
+   * the top, admit the joke, and return to EXACTLY where they had got to.
+   */
+  let bailArmed: { script: Bail; of: Surface } | null = null;
+
+  const speak = async (lines: Line[], bs: Beat[] | undefined, protect?: Bail): Promise<void> => {
+    for (let i = 0; i < lines.length; i += 1) {
+      if (dead) return;
+      await drain();
+      const line = lines[i]!;
+      voice(line.text);
+      if (protect && i === protect.at) {
+        // Armed for exactly the window in which bolting means something. After
+        // that they have read it, and leaving is just leaving.
+        bailArmed = { script: protect, of: 'cv' };
+        window.setTimeout(() => { bailArmed = null; }, BAIL_MS);
+      }
+      // The beats run WITH the line rather than after it, and the line holds
+      // until both are done. That is what lets one caption cover a sequence that
+      // takes longer to perform than to say — "let's share my screen" is four
+      // presses and a window animation.
+      await Promise.all([
+        beat(line.ms),
+        runBeats((bs ?? []).filter((b) => b.at === i)),
+      ]);
+    }
+  };
+
+  const runBail = async (): Promise<void> => {
+    const armed = bailArmed;
+    bailArmed = null;
+    if (!armed || dead) return;
+    const b = armed.script;
+    const s = scroller(armed.of);
+    const where = s?.top() ?? 0;
+    voice(b.lines[0]?.text ?? '');
+    if (b.rewind && s) await hand.roll(s, 0, 900);
+    await beat(b.lines[0]?.ms ?? 3000);
+    if (b.lines[1]) { voice(b.lines[1].text); await beat(b.lines[1].ms); }
+    if (b.lines[2]) {
+      voice(b.lines[2].text);
+      // Back to where THEY were, not where the script was. Remembering the
+      // position is the whole trick; a gag that loses your place is a bug with
+      // a punchline attached.
+      if (b.rewind && s) await hand.roll(s, where, 800);
+      await beat(b.lines[2].ms);
+    }
+  };
+
+  /* ------------------------------------------------------------ the personal -- */
+
+  /** Board ticket N38. Uninterruptible, except by Stop. */
+  const tell = async (): Promise<void> => {
+    for (const chapter of story) {
+      for (const line of chapter.lines) {
+        if (dead) return;
+        voice(line.text);
+        await beat(line.ms);
+      }
+    }
+    tour = reduceTour(tour, { t: 'toldDone' });
+  };
+
+  /* ------------------------------------------------------------------ the run */
+
+  let announcedShorten = false;
+
+  const run = async (): Promise<void> => {
+    /*
+     * THE PRE-ROLL — board ticket N29.
+     *
+     * The tour speaks through the captions, so a tour that started with them off
+     * would be a silent film. Nam: "if CC was not on, then the mouse would move
+     * to click on CC to enable it, then the script starts." So the hand does
+     * that, first, before there is anything to read — which also happens to be
+     * the clearest possible demonstration of what the hand is for.
+     */
+    hand.show();
+    await wait(reduced ? 0 : 700);
+    if (!podium.captionsOn()) {
+      await pressSel('[data-ctl="captions"]');
+      await wait(reduced ? 0 : 420);
+    }
+
+    tour = reduceTour(tour, { t: 'start' });
+
+    while (!dead) {
+      if (tour.mode === 'handedOver') { voice(asides.handOver.text); await beat(asides.handOver.ms); break; }
+      if (tour.mode === 'telling') { await tell(); continue; }
+      if (tour.mode === 'finished') break;
+      if (!tour.current) break;
+
+      const part = parts.find((p) => p.id === tour.current);
+      const lines = linesFor(tour);
+      const bs = tour.register === 'lines' ? part?.beats : undefined;
+      // Only the full register carries the gag: the brief version does not spend
+      // long enough on the Wasabi years to have earned the complaint.
+      const protect = tour.register === 'lines' ? part?.bail : undefined;
+
+      // The register change is announced once, not every time it applies.
+      if (tour.register === 'brief' && !announcedShorten) {
+        announcedShorten = true;
+        voice(asides.shorten.text);
+        await beat(asides.shorten.ms);
+      }
+
+      await speak(lines, bs, protect);
+      if (dead) return;
+      tour = reduceTour(tour, { t: 'partDone' });
+    }
+
+    if (dead) return;
+    podium.finished();
+    // The clock the story waits on starts HERE, not at the visitor's last input.
+    // See the note on flowEndedAt.
+    flowEndedAt = performance.now();
+    /*
+     * The flow is over, and the tour is not.
+     *
+     * The hand parks and the running order is spent, but the commentary is still
+     * live — a quip fired now still plays — and the personal segment is still
+     * waiting for enough silence to be worth starting. So the Stop control
+     * STAYS. It was tempting to clear it once the script ran out, and that would
+     * have been wrong in the one case that matters: the story is uninterruptible
+     * except by Stop, and removing Stop before the story starts would leave a
+     * ninety-second segment with no way out of it at all.
+     */
+    await hand.park();
+  };
+
+  /* ------------------------------------------------------ watching the visitor */
+
+  /**
+   * Feed one signal to the profile, and react to what it does to the score.
+   *
+   * The comparison is on the RETURNED state rather than on a mutation, which is
+   * why profile.observe always returns a new object: "did that make them more
+   * restless" is not a question you can ask an object that changed underneath
+   * you.
+   */
+  const note = (sig: Parameters<typeof observe>[1]): void => {
+    const before = visitor.restless;
+    visitor = observe(visitor, sig);
+    if (visitor.restless > before + 0.001) {
+      flashMeter();
+      maybeAck(visitor.restless - before);
+    }
+  };
+
+  let lastAck = 0;
+  const maybeAck = (jump: number): void => {
+    // A small drift does not deserve a line. A bail or a burst does.
+    if (jump < 0.1) return;
+    /*
+     * And a jump that lands INSIDE the calm band does not deserve one either.
+     * QA: four fast clicks scored 0.14, which is still 'settled', and the tour
+     * answered "Take your time. It's all there." — which is what you say to
+     * somebody who is reading, not to somebody who has just clicked four times
+     * in half a second. The escalation exists for visitors who are not settled;
+     * a settled one is doing fine and does not need to be told so.
+     */
+    if (tier(visitor) === 'settled') return;
+    const now = performance.now();
+    if (now - lastAck < ACK_GAP_MS) return;
+    if (tour.mode === 'telling' || tour.mode === 'handedOver') return;
+    const got = acknowledge(visitor, acks);
+    if (!got) return;
+    visitor = got.next;
+    lastAck = now;
+    // Spoken like a quip: over the top of whatever is happening, then the floor
+    // goes back. It is a reaction, not a section.
+    const held = floorLine;
+    podium.say(got.line.text);
+    window.setTimeout(() => {
+      // Only if the flow has not moved on underneath it. Restoring a line the
+      // script has already left behind would put a stale caption on screen,
+      // which is worse than the reaction having no ending at all.
+      if (!dead && held && floorLine === held) podium.say(held);
+    }, got.line.ms);
+  };
+
+  function onClick(e: Event): void {
+    if (dead) return;
+    // The hand's own presses are not trusted, which is exactly how they are told
+    // apart from the visitor's.
+    if (!e.isTrusted) return;
+    const el = e.target as Element | null;
+    if (!el || stopBtn.contains(el)) return;
+
+    note({ t: 'click', at: performance.now() });
+    hand.yield(true);
+    window.setTimeout(() => hand.yield(false), 2200);
+
+    const part = partForElement(el);
+    if (part) {
+      note({ t: 'enter', at: performance.now(), id: part.id });
+      note({ t: 'takeover', at: performance.now() });
+      /*
+       * The hand acknowledges immediately even though the narration queues. A
+       * click that produces no visible response for four seconds reads as a
+       * click that did nothing.
+       */
+      const first = part.triggers?.[0];
+      const target = first ? q(first) : null;
+      if (target) void hand.at(target);
+      tour = reduceTour(tour, { t: 'visit', id: part.id });
+      return;
+    }
+
+    const quip = quipForElement(el);
+    if (quip) {
+      tour = reduceTour(tour, { t: 'quip', id: quip.id });
+      if (tour.interject) void drain();
+    }
+  }
+
+  /**
+   * Something the app announced about itself.
+   *
+   * The desktop dispatches `desk:drag`, `desk:snap` and the rest; the call
+   * dispatches `panel:people` and friends. Neither is a click on anything — a
+   * drag is a gesture and a panel can be opened from the keyboard — so they
+   * arrive as announcements rather than as elements. See src/ui/signal.ts.
+   */
+  function onSignal(e: Event): void {
+    if (dead) return;
+    const key = (e as CustomEvent<{ key?: string }>).detail?.key;
+    if (!key) return;
+    const quip = quipForEvent(key);
+    if (!quip) return;
+    tour = reduceTour(tour, { t: 'quip', id: quip.id });
+    if (tour.interject) void drain();
+  }
+
+  /**
+   * Scroll, from the visitor's own hand.
+   *
+   * Sampled rather than counted: one listener firing sixty times a second would
+   * make every scroll look like a skim. Each sample carries how far and how
+   * long, which is what turns a distance into a speed and a speed into a verdict.
+   */
+  let scrollFrom: number | null = null;
+  let scrollAt = 0;
+  let scrollTimer = 0;
+
+  function onScroll(e: Event): void {
+    if (dead || rolling) return;
+    const el = e.target as HTMLElement | Document | null;
+    const top = el instanceof HTMLElement ? el.scrollTop
+      : (el as Document)?.scrollingElement?.scrollTop ?? 0;
+    const now = performance.now();
+    if (scrollFrom === null) { scrollFrom = top; scrollAt = now; }
+    window.clearTimeout(scrollTimer);
+    scrollTimer = window.setTimeout(() => {
+      if (dead || scrollFrom === null) return;
+      const px = Math.abs(top - scrollFrom);
+      const ms = Math.max(1, now - scrollAt);
+      scrollFrom = null;
+      if (px < 8) return;
+      note({ t: 'scroll', at: now, px, ms });
+      // The Wasabi gag: they scrolled away from seven years of work while the
+      // tour was still talking about it.
+      if (bailArmed && px > 120) void runBail();
+    }, 140);
+  }
+
+  /**
+   * THE CV IS IN AN IFRAME, AND ITS SCROLL EVENTS DO NOT COME OUT.
+   *
+   * A scroll inside a frame is dispatched in that frame's document and stops
+   * there — it does not bubble into the parent, capture phase or not. So the
+   * document-level listener above sees every scroll on this page and none of
+   * the ones that matter most: the CV is the part the visitor actually reads,
+   * and reading speed is the single strongest signal the profile has.
+   *
+   * Without this the bail gag (N35) could not fire at all, because the only way
+   * to bolt out of the Wasabi years is to scroll a document we were not
+   * listening to.
+   *
+   * Attached lazily and re-attached on demand: the frame does not exist until
+   * the share has been performed, and it is REPLACED whenever the tab is
+   * repainted, so a one-shot attach at start-up would bind to a document that
+   * gets thrown away. The marker property is on the document rather than in a
+   * set, so a discarded document takes its own bookkeeping with it.
+   */
+  const watchFrame = (): void => {
+    const f = document.querySelector<HTMLIFrameElement>('.shot .pg-frame');
+    const doc = f?.contentDocument as (Document & { tourWatched?: boolean }) | undefined;
+    if (!doc || doc.tourWatched) return;
+    doc.tourWatched = true;
+    doc.addEventListener('scroll', onScroll, true);
+    doc.addEventListener('click', onClick, true);
+    doc.addEventListener('keydown', onKey, true);
+  };
+
+  function onMove(): void { if (!dead) note({ t: 'move', at: performance.now() }); }
+  function onKey(): void { if (!dead) note({ t: 'key', at: performance.now() }); }
+
+  document.addEventListener('click', onClick, true);
+  document.addEventListener('tour:signal', onSignal);
+  document.addEventListener('scroll', onScroll, true);
+  document.addEventListener('pointermove', onMove, { passive: true });
+  document.addEventListener('keydown', onKey, true);
+
+  /**
+   * The idle watch.
+   *
+   * Two thresholds, and they mean different things. At three seconds the visitor
+   * has stopped driving, so a backlog collected while they were exploring is
+   * dropped — narrating it now would be answering a question nobody remembers
+   * asking. At nine seconds, with the flow already finished, there is enough
+   * silence to be worth the personal segment.
+   */
+  let settled = false;
+  /**
+   * When the flow said its last word.
+   *
+   * The story waits for silence, and silence is measured from the last thing
+   * that happened — which is the later of the visitor's last input and this.
+   * Measuring it from input alone made the requirement vacuous for the visitor
+   * it matters most for: someone who has touched nothing has been silent all
+   * along, so the story began four seconds after the tour said goodbye.
+   */
+  let flowEndedAt = 0;
+
+  const idleTimer = window.setInterval(() => {
+    if (dead) return;
+    // Cheap, and the only reliable moment to catch a frame that has just been
+    // repainted. querySelector on a miss is a few microseconds once a second.
+    watchFrame();
+    const now = performance.now();
+    note({ t: 'idle', at: now });
+    const quiet = now - visitor.lastInput;
+    if (quiet >= SETTLE_MS && !settled) {
+      settled = true;
+      tour = reduceTour(tour, { t: 'settle' });
+      hand.yield(false);
+    }
+    if (quiet < SETTLE_MS) settled = false;
+    const still = now - Math.max(visitor.lastInput, flowEndedAt);
+    if (still >= STORY_MS && tour.mode === 'finished' && !tour.told && passive(visitor, now)) {
+      tour = reduceTour(tour, { t: 'tell' });
+      if (tour.mode === 'telling') void tell();
+    }
+  }, 1000);
+
+  /* ---------------------------------------------------------------- teardown -- */
+
   const teardown = (): void => {
+    if (dead) return;
     dead = true;
     window.clearTimeout(timer);
-    cursor.remove();
+    window.clearTimeout(meterTimer);
+    window.clearTimeout(scrollTimer);
+    window.clearInterval(idleTimer);
+    hand.destroy();
+    meter.remove();
     bar.remove();
     document.removeEventListener('click', onClick, true);
+    document.removeEventListener('tour:signal', onSignal);
+    document.removeEventListener('scroll', onScroll, true);
+    document.removeEventListener('pointermove', onMove);
+    document.removeEventListener('keydown', onKey, true);
     // The call's own transcript takes the surface back, so the captions the
     // visitor switched on keep working after the tour is done with them.
     podium.resumeTranscript();
   };
 
-  /* ---------------------------------------------------------------- cursor -- */
-
-  let placed = false;
-  const moveTo = (sel: string): Element | null => {
-    const el = document.querySelector(sel);
-    // A beat whose target is gone is skipped rather than guessed at.
-    if (!el) return null;
-    const r = el.getBoundingClientRect();
-    if (r.width === 0 && r.height === 0) return null;
-    const x = Math.round(r.left + r.width / 2);
-    const y = Math.round(r.top + r.height / 2);
-    // First placement jumps: travelling in from 0,0 looks like a bug.
-    if (!placed || reduced) cursor.style.transition = 'none';
-    else cursor.style.transition = '';
-    cursor.style.transform = `translate(${x}px, ${y}px)`;
-    if (!placed || reduced) {
-      // Force the no-transition frame to land before re-enabling.
-      void cursor.offsetWidth;
-      cursor.style.transition = '';
-    }
-    placed = true;
-    cursor.classList.add('is-on');
-    return el;
-  };
-
-  const runBeat = (b: Beat): void => {
-    if (!b.move) return;
-    const el = moveTo(b.move);
-    if (!el || !b.click) return;
-    // Click AFTER arriving, so the effect follows the cursor rather than
-    // preceding it. The click is real: faking the effect separately is how a
-    // demo drifts away from the app it is demonstrating.
-    window.setTimeout(() => {
-      if (dead) return;
-      (el as HTMLElement).click();
-    }, reduced ? 0 : TRAVEL + 60);
-  };
-
-  /* --------------------------------------------------------------- speaking -- */
-
-  const speak = (lines: Line[], beats: Beat[] | undefined, done: () => void): void => {
-    let i = 0;
-    const next = (): void => {
-      if (dead) return;
-      if (i >= lines.length) { done(); return; }
-      const line = lines[i]!;
-      caption.textContent = line.text;
-      for (const b of beats ?? []) if (b.at === i) runBeat(b);
-      i += 1;
-      timer = window.setTimeout(next, line.ms);
-    };
-    next();
-  };
-
-  /** One aside, then continue. Used for register changes and the hand-over. */
-  const say = (line: Line, done: () => void): void => {
-    caption.textContent = line.text;
-    timer = window.setTimeout(done, line.ms);
-  };
-
-  const pump = (): void => {
-    if (dead) return;
-    if (state.mode === 'handedOver') {
-      say(asides.handOver, teardown);
-      return;
-    }
-    if (state.mode === 'finished') { teardown(); return; }
-    if (!state.current) { teardown(); return; }
-
-    const part = parts.find((p) => p.id === state.current);
-    const lines = linesFor(state);
-    const beats = state.register === 'lines' ? part?.beats : undefined;
-
-    const go = (): void => speak(lines, beats, () => {
-      state = reduceTour(state, { t: 'partDone' });
-      pump();
-    });
-
-    // The register change is announced once, not every time it applies.
-    if (state.register === 'brief' && !announcedShorten) {
-      announcedShorten = true;
-      say(asides.shorten, go);
-      return;
-    }
-    go();
-  };
-  let announcedShorten = false;
-
-  /* ------------------------------------------------------------- the visitor -- */
-
-  function onClick(e: Event): void {
-    if (dead) return;
-    const el = e.target as Element | null;
-    if (!el || stopBtn.contains(el)) return;
-    const part = partForElement(el);
-    if (!part) return;
-    /*
-     * The cursor acknowledges immediately even though the narration queues. This
-     * is the split from review pass 2: a click that produces no visible response
-     * for four seconds reads as a click that did nothing.
-     */
-    const first = part.triggers?.[0];
-    if (first) moveTo(first);
-    state = reduceTour(state, { t: 'visit', id: part.id });
-    if (state.mode === 'handedOver') {
-      window.clearTimeout(timer);
-      pump();
-    }
-  }
-  document.addEventListener('click', onClick, true);
-
   stopBtn.addEventListener('click', () => {
-    state = reduceTour(state, { t: 'stop' });
+    tour = reduceTour(tour, { t: 'stop' });
     window.clearTimeout(timer);
-    say(asides.stopped, teardown);
+    podium.say(asides.stopped.text);
+    window.setTimeout(teardown, asides.stopped.ms);
   });
 
-  state = reduceTour(state, { t: 'start' });
-  pump();
+  void run();
 
-  return { stop: teardown, peek: () => state };
+  return {
+    stop: teardown,
+    peek: () => ({ tour, visitor }),
+  };
 }

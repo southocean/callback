@@ -76,12 +76,12 @@ The typefaces are Google's own — Google Sans, Google Sans Text and Product San
 ## Engineering
 
 ```
-Initial payload   16.0 kB gzipped JavaScript   (budget 50 kB, enforced in CI)
-Dev portal        13.1 kB, a deferred chunk nobody who misses it ever fetches
+Initial payload   19.1 kB gzipped JavaScript   (budget 50 kB, enforced in CI)
+Largest chunk     24.5 kB, deferred — nobody who misses it ever fetches it
 Runtime deps      0
 Third-party       Google Fonts only — the typeface is Google's and is licensed
                   for linking, not redistribution. No analytics, no backend.
-Tests             44, run in CI and in the browser
+Tests             107, run in CI and in the browser
 A11y assertions   13, run against the live DOM
 ```
 
@@ -89,8 +89,9 @@ A11y assertions   13, run against the live DOM
 - **State is a pure reducer**, which is why the router, the timeline geometry, the caption scheduler and the network model can all be unit-tested without a DOM.
 - **The tests run in your browser**, in Meeting tools → Tests. Same file CI runs. There is a chaos switch that injects a real fault so you can watch the suite go red — a runner that cannot fail proves nothing.
 - **Accessibility is asserted, not claimed.** Roving tabindex on the tile grid, focus trapping, polite live regions, reduced-motion honoured, nothing flashing above 3 Hz. The audit panel checks the live document and is allowed to fail; during QA it caught a missing `<main>` landmark.
-- **Complete with zero permissions.** No camera, no microphone, no autoplay. Camera is opt-in behind a click, processed locally, and there is no server for it to reach — the only requests this page makes off-origin are for Google's fonts.
-- **Real-time video work**, because the role is real-time video: a WebGL filter chain capped at 30 fps on a low-power context that suspends on a hidden tab, and a seeded network simulator that degrades the call to hotel wifi and shows what a client should do about it.
+- **It never asks for a permission.** No camera, no microphone, no autoplay. The camera control changes its own icon and nothing else — `getUserMedia` is not in the bundle. A browser permission bar on a page dressed as Meet is the exact shape of the scam a non-technical reader was warned about, and no reassurance arriving after that alarm is worth anything.
+- **It walks you through itself.** A guided tour opens the call: a cursor with a real motion model — Fitts's law timing, a ballistic throw that overshoots, corrective submovements, tremor while it waits — presses the buttons that share the screen, scrolls the CV, and narrates through the caption strip. It watches how you behave while it does it, and gets shorter, or teases you, or gets out of the way.
+- **Real-time constraints**, because the role is real-time: a seeded network simulator that degrades the call to hotel wifi and shows what a client should do about it, driven by the same pure model the tests run against.
 
 ```bash
 npm run verify   # typecheck, tests, build with the size gate
@@ -120,7 +121,8 @@ src/
   a11y.ts           focus trap, roving tabindex, the live audit
   data/spec.ts      the measured Meet spec
   data/cv.ts        all CV content — one source, both views render from it
-  fx/pipeline.ts    WebGL filter chain
+  data/tour.ts      the tour's script: the flow, and the commentary
+  tour/             director, visitor profile, cursor, stage — three of the four pure
   net/degrade.ts    seeded network simulator
   ui/               home · lobby · call · ended · panels · document
   test/suite.ts     the tests, shared by CI and the browser

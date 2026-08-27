@@ -11,38 +11,9 @@
 
 import { h } from './dom.js';
 import { sym } from './ui/icons.js';
+import { quests, type Quest } from './data/quests.js';
 
-export interface Quest {
-  id: string;
-  name: string;
-  hint: string;
-  /** Secret quests are hidden until found. */
-  secret?: boolean;
-}
-
-export const quests: Quest[] = [
-  { id: 'join', name: 'Join the call', hint: 'Press Join.' },
-  { id: 'chat', name: 'Read the messages', hint: 'Open in-call messages.' },
-  { id: 'people', name: 'See who is here', hint: 'Open People.' },
-  { id: 'present', name: 'Watch the screen share', hint: 'Open Presenting.' },
-  { id: 'offclock', name: 'Off the clock', hint: 'Find out what he does when nobody is paying him.' },
-  { id: 'tools', name: 'Open the toolbox', hint: 'Find Meeting tools.' },
-  { id: 'spec', name: 'Read the spec', hint: 'See what this interface was measured from.' },
-  { id: 'tests', name: 'Trust but verify', hint: 'Run the test suite.' },
-  { id: 'chaos', name: 'Break it on purpose', hint: 'Make the tests fail.' },
-  { id: 'collapse', name: 'Hotel wifi', hint: 'Push the network until it gives up.' },
-  // Was "It never leaves your machine", which was true of a real stream. There
-  // is no stream now: the control is cosmetic and the page never asks.
-  { id: 'camera', name: 'Show your face', hint: 'Press the camera button. Nothing is captured — it never asks.' },
-  { id: 'hand', name: 'Raise your hand', hint: 'You know the button.' },
-  { id: 'react', name: 'React to something', hint: 'Send a reaction.' },
-  { id: 'a11y', name: 'No mouse required', hint: 'Move through the tiles with the arrow keys.' },
-  { id: 'host', name: 'Host controls', hint: 'Take something away with you.' },
-  { id: 'plain', name: 'Just give me the CV', hint: 'Read it as a document instead.' },
-  { id: 'konami', name: 'You know the code', hint: '', secret: true },
-  { id: 'patient', name: 'Read the whole spec', hint: '', secret: true },
-  { id: 'slap', name: 'Talk to the hand', hint: '', secret: true },
-];
+export { quests, VISIBLE_QUESTS, type Quest } from './data/quests.js';
 
 const KEY = 'callback.quests';
 const visible = quests.filter((q) => !q.secret);
