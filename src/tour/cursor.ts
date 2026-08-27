@@ -126,6 +126,16 @@ export interface Hand {
   hide: () => void;
   /** Stop tremoring and stand down — the visitor has taken over. */
   yield: (on: boolean) => void;
+  /**
+   * Move at speed, because the visitor has asked to skip a line the hand is
+   * still working through.
+   *
+   * A beat cannot be skipped -- see the cutscene note in tour/stage.ts -- so the
+   * honest response to a skip during one is to get it over with rather than to
+   * ignore it. Everything still happens, and in the same order; it just happens
+   * at about a third of the time.
+   */
+  hurry: (on: boolean) => void;
   pos: () => { x: number; y: number };
   destroy: () => void;
 }
@@ -137,6 +147,15 @@ const FITTS_A = 118;
 const FITTS_B = 152;
 const MIN_MS = 150;
 const MAX_MS = 1150;
+/**
+ * What `hurry` multiplies every duration by.
+ *
+ * 0.35 rather than something smaller: below about a third the throw stops
+ * reading as a movement at all and the arrow appears to teleport, which loses
+ * the one thing the beat is there for -- showing that a control was pressed by
+ * something behaving like a hand.
+ */
+const HASTE = 0.35;
 
 /** How much of the movement the ballistic throw takes. */
 const BALLISTIC = 0.7;
@@ -205,6 +224,9 @@ export function makeHand(root: HTMLElement, reduced: boolean): Hand {
    * a 1px dark outline and a soft drop shadow so it stays legible over both the
    * dark call surface and the white CV underneath it.
    */
+  /** 1 normally, HASTE while the visitor is waiting on a beat they tried to skip. */
+  let haste = 1;
+
   const el = h('div', { class: 'hand', 'aria-hidden': 'true' }) as HTMLElement;
   el.innerHTML = '<span class="hand-ring"></span>'
     + '<svg class="hand-arrow" viewBox="0 0 12 19" width="22" height="35" aria-hidden="true">'
@@ -349,7 +371,7 @@ export function makeHand(root: HTMLElement, reduced: boolean): Hand {
     if (d < 1.5) return [];
 
     const w = Math.max(12, Math.min(width || 40, 96));
-    const ms = Math.max(MIN_MS, Math.min(MAX_MS, FITTS_A + FITTS_B * Math.log2(d / w + 1)));
+    const ms = Math.max(MIN_MS, Math.min(MAX_MS, FITTS_A + FITTS_B * Math.log2(d / w + 1))) * haste;
 
     // Which way the arc bows. Consistent within one reach, random between them,
     // which is what a wrist does.
@@ -712,6 +734,7 @@ export function makeHand(root: HTMLElement, reduced: boolean): Hand {
     show: () => el.classList.add('is-on'),
     hide: () => el.classList.remove('is-on'),
     yield: (on) => { standingDown = on; el.classList.toggle('is-idle', on); },
+    hurry: (on) => { haste = on ? HASTE : 1; },
     pos: () => ({ x, y }),
     destroy: () => {
       dead = true;

@@ -133,6 +133,17 @@ export interface Caption {
    */
   hush: () => void;
   /**
+   * Hold this line open until the caller says otherwise.
+   *
+   * For lines the hand is performing something on (N55). A press still completes
+   * the words -- refusing that would mean a visitor cannot read the sentence they
+   * asked to see -- but it cannot end the line, and neither can the ring running
+   * out. Whichever happens is remembered and applied the moment unlock() comes,
+   * so the line ends as soon as the performance does and not a beat later.
+   */
+  lock: () => void;
+  unlock: () => void;
+  /**
    * End the held line's dwell now, without touching what is on screen.
    *
    * Used when a click jumps the script (N46): the line has been spoken, the
@@ -264,7 +275,15 @@ export function makeCaption(who: string): Caption {
     );
   };
 
+  /**
+   * True while a beat is being performed on this line, and true if a settle was
+   * asked for during it. See lock() on the Caption interface.
+   */
+  let locked = false;
+  let wanted = false;
+
   const settle = (): void => {
+    if (locked) { wanted = true; return; }
     const done = resolve;
     resolve = null;
     if (done) done();
@@ -332,6 +351,10 @@ export function makeCaption(who: string): Caption {
 
   const begin = (text: string, ms: number): void => {
     el.classList.remove('is-hushed');
+    // A lock belongs to one line. Leaking it would hold the next line open with
+    // nothing left to unlock it.
+    locked = false;
+    wanted = false;
     // A line arriving over an unfinished one resolves the old promise rather
     // than dropping it: whoever was awaiting it is moving on either way, and a
     // promise nobody settles is a script that stops mid-sentence.
@@ -369,14 +392,51 @@ export function makeCaption(who: string): Caption {
     if (dwell > 0) settle();
   };
 
+  /*
+   * A PRESS DURING A CUTSCENE IS NOT AN APP INTERACTION — and this was the bug
+   * behind the frozen hand.
+   *
+   * The strip absorbed the press for its own purposes and then let it through to
+   * the page, which is fine on genuinely empty space and disastrous during a
+   * performance: the share opens a real picker, and a press on the stage outside
+   * it is the gesture that dismisses it. So a visitor pressing to skip the share
+   * line cancelled the share, every step after it gave up quietly for want of a
+   * target, and the rest of the script had nothing left to point at.
+   *
+   * While the line is LOCKED the press is swallowed. It still means "hurry up",
+   * which the stage acts on, but it stops being a click on the application. Only
+   * while locked: outside a cutscene, dismissing a picker by pressing beside it is
+   * a real thing a visitor is allowed to do.
+   *
+   * Both events have to go. preventDefault on pointerdown does not stop the click
+   * that follows it, and the picker listens for one of the two.
+   */
+  let swallowUntil = 0;
+
+  const swallow = (e: Event): void => {
+    e.preventDefault();
+    e.stopPropagation();
+    if ('stopImmediatePropagation' in e) (e as Event).stopImmediatePropagation();
+  };
+
   const onDown = (e: Event): void => {
     if (dead || !e.isTrusted) return;
     const target = e.target as Element | null;
     if (!target) return;
-    if (el.contains(target)) { press(); return; }
-    // Anything that is a control, a window or a panel is not empty space.
-    if (target.closest(NOT_EMPTY)) return;
+    const mine = el.contains(target) || !target.closest(NOT_EMPTY);
+    if (!mine) return;
     press();
+    if (locked) {
+      // 400ms covers the pointerup and the click that follow this pointerdown.
+      swallowUntil = performance.now() + 400;
+      swallow(e);
+    }
+  };
+
+  const onClickCapture = (e: Event): void => {
+    if (dead || !e.isTrusted) return;
+    if (performance.now() > swallowUntil) return;
+    swallow(e);
   };
 
   /*
@@ -410,6 +470,8 @@ export function makeCaption(who: string): Caption {
   el.addEventListener('focusout', onLeave);
   el.addEventListener('keydown', onKey);
   document.addEventListener('pointerdown', onDown, true);
+  document.addEventListener('click', onClickCapture, true);
+  document.addEventListener('pointerup', onClickCapture, true);
 
   return {
     el,
@@ -419,6 +481,11 @@ export function makeCaption(who: string): Caption {
       resolve = done;
     }),
     show: (text) => { if (!dead) begin(text, 0); },
+    lock: () => { locked = true; wanted = false; },
+    unlock: () => {
+      locked = false;
+      if (wanted) { wanted = false; settle(); }
+    },
     hush: () => {
       if (dead) return;
       settle();
@@ -452,6 +519,8 @@ export function makeCaption(who: string): Caption {
       el.removeEventListener('focusout', onLeave);
       el.removeEventListener('keydown', onKey);
       document.removeEventListener('pointerdown', onDown, true);
+      document.removeEventListener('click', onClickCapture, true);
+      document.removeEventListener('pointerup', onClickCapture, true);
     },
   };
 }

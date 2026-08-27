@@ -2099,6 +2099,8 @@ export function renderCall(store: Store, quests: Quests, deps: CallDeps): HTMLEl
           show: caption.show,
           skip: caption.skip,
           hush: caption.hush,
+          lock: caption.lock,
+          unlock: caption.unlock,
           absorbed: caption.absorbed,
           // It presses the captions button itself when they are off, and asks
           // rather than assuming — the visitor may have turned them off between

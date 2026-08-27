@@ -1133,6 +1133,71 @@ export const tasks: Task[] = [
     },
   },
 
+  {
+    id: 'N54', col: 'done', size: 'M', tag: 'trust',
+    title: 'The CV always opens as an overlay',
+    note: 'Four of the five ways in were routing to it instead, which replaced the whole screen.',
+    detail: {
+      why: 'Nam: "Everytime we open the CV it should match the same way we show the CV in the home screen: a popup screen, not full screen ... I want you to run a check through out this site." Only the home screen used the overlay; everywhere else dispatched the #plain route, which is the one thing this build claims it never does, since Meet does not navigate away from itself.',
+      done: [
+        'The ended screen, Host controls, the Explorer fallback and the D shortcut all open the overlay',
+        'The #plain route is untouched: recruiters are sent there and the overlay frames it',
+        'Project spec openers were already correct, all four go through openDev()',
+        'Verified in a browser from all five entry points',
+      ],
+      raised: 'Nam, QA 28 Aug',
+      notes: 'The audit turned up a quest that had stopped being reachable properly: "plain" unlocked inside the route, so the home screen overlay never counted it. One registration in main.ts now decides what opening the CV means, wherever it happens.',
+    },
+  },
+  {
+    id: 'N55', col: 'done', size: 'M', tag: 'call',
+    title: 'A line with a mouse interaction is a cutscene',
+    note: 'It cannot be skipped past its beat. The hand hurries instead.',
+    detail: {
+      why: 'Nam: "we cannot skip the line past getting these interactions, cause otherwise we lose the trigger and the mouse is frozen forever ... So mouse interactions are kinda like cutscenes that you cant skip xD." A correctness fix rather than a nicety: the beats are what make the rest of the script possible, and every later segment declares what it needs.',
+      done: [
+        'The caption locks for the duration of a beat, and a press cannot end the line',
+        'A press still completes the words, and is remembered so the line ends the instant the beat does',
+        'A press during a beat makes the hand move at a third of the time',
+        'The press is swallowed rather than passed to the app while locked',
+        'Verified by pressing 32 times through the share: it still completed, all five tabs opened',
+      ],
+      raised: 'Nam, QA 28 Aug',
+      notes: 'Three bugs found in QA, all ordering. The lock was taken before the line was spoken, and speaking a line clears the lock, so it locked nothing. The press was absorbed by the caption and then passed on to the page anyway, which dismissed the share picker: the very press meant to hurry the share was cancelling it. And awaiting the line and the beat together deadlocked, because the line cannot resolve until unlock and unlock came after both.',
+    },
+  },
+  {
+    id: 'N56', col: 'backlog', size: 'M', tag: 'call',
+    title: 'The hand should open the easter-egg clips',
+    note: 'They currently appear on their own, which is the one place the illusion drops.',
+    detail: {
+      why: 'Nam: "when you are showing the easter eggs, you just auto triggering the videos - I dont like that. We should do that with the mouse interaction to keep it consistent. The mouse will open the video, so its really like a real human to the very end." He is right, and it is the same principle as N29: the share is performed through its own four presses rather than switched on, and this is the last thing in the script that cheats.',
+      done: [
+        'The hand opens the Explorer window if it is not already up',
+        'It finds the row for that clip and opens it the way a person would',
+        'The player window opens through the desktop rather than by rebuilding the share',
+        'A clip whose row cannot be found is skipped silently, like any other missing beat',
+      ],
+      raised: 'Nam, QA 28 Aug',
+      notes: 'Not started, and deliberately not half-started. The pieces are in place: the Explorer already lists one row per clip (share.ts, kind: video, tab: vid:<id>) and opening one routes to the player window, so the beat is a press on a row rather than new machinery. What makes it more than a one-liner is that playEgg currently REBUILDS THE WHOLE SHARE with the clip booted, which tears down the desktop the hand is standing on. It wants to become a press on an existing surface, and that needs the Explorer to be open, scrolled to the right row, and the sequence to give up quietly at each step the way doShare does.',
+    },
+  },
+  {
+    id: 'N57', col: 'done', size: 'S', tag: 'content',
+    title: 'No em dashes anywhere, and a gate',
+    note: '153 of them across 26 files, and a build step so the next one cannot land.',
+    detail: {
+      why: 'Nam: "control the whole site to make sure we dont have em dashes thks!" A careful pass cannot hold this. The character is easy to type, easy to paste in from a document, and invisible in a diff unless you are looking for it.',
+      done: [
+        'Em dashes are banned in string literals and allowed in comments',
+        'En dashes are kept in ranges and banned in prose, told apart by whitespace',
+        'tools/no-em-dash.mjs runs in verify beside the CSS gates',
+      ],
+      raised: 'Nam, QA 28 Aug',
+      notes: 'The interesting part was automating the replacement. A blanket comma is grammatical but leaves a splice wherever the dash was doing a colon’s job, and it did that in twenty-one places. Those are colons and full stops now; the fifteen cases of ", which ..." were left alone, since a non-restrictive clause is what a comma is for.',
+    },
+  },
+
   /* Flagged rather than done. Still true as of this build. */
   { id: 'T24', col: 'backlog', size: 'M', tag: 'specs', title: 'Initial payload is halfway to the ceiling', note: '24.7 kB of a 50 kB gate, up from 18.2. Still green, and the growth is real, but two deferred chunks are 17 kB and 19 kB and deserve a splitting pass before it becomes urgent.' },
 ];

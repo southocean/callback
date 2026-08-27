@@ -90,6 +90,9 @@ export interface Podium {
   show: (text: string) => void;
   /** Take the caption strip off screen. Used for the outro's silences (N49). */
   hush: () => void;
+  /** Hold the current line open until unlock(). See the cutscene note below. */
+  lock: () => void;
+  unlock: () => void;
   /** Abandon the line being held, now. Used when a click jumps the script. */
   skip: () => void;
   /** Are the call's captions on? If not, this is a silent film. */
@@ -218,6 +221,11 @@ export function startTour(root: HTMLElement, podium: Podium): TourHandle {
   let heardOut = false;
   /** True once the visitor pressed Stop. There is no outro after a Stop. */
   let stopped = false;
+  /**
+   * True while the hand is performing a beat, which is the window in which a
+   * press hurries it instead of skipping it. See the cutscene note in speak().
+   */
+  let performing = false;
 
   /* ----------------------------------------------------------------- timing -- */
 
@@ -540,14 +548,65 @@ export function startTour(root: HTMLElement, podium: Podium): TourHandle {
         bailArmed = { script: protect, of: 'cv' };
         window.setTimeout(() => { bailArmed = null; }, BAIL_MS);
       }
-      // The beats run WITH the line rather than after it, and the line holds
-      // until both are done. That is what lets one caption cover a sequence that
-      // takes longer to perform than to say — "let me get my screen up" is four
-      // presses and a window animation.
-      await Promise.all([
-        voice(line.text, line.ms),
-        runBeats((bs ?? []).filter((b) => b.at === i)),
-      ]);
+      /*
+       * A LINE WITH A BEAT IS A CUTSCENE — board ticket N55.
+       *
+       * Nam: "some lines have mouse interactions, we cannot skip the line past
+       * getting these interactions, cause otherwise we lose the trigger and the
+       * mouse is frozen forever. what we do when a line with mouse interaction is
+       * skipped? We linger the bubble a bit more, speedup the mouse interaction
+       * then once we finish the mouse interaction, we skip to the next. So mouse
+       * interactions are kinda like cutscenes that you cant skip xD."
+       *
+       * That is the right model and it is a correctness fix, not a nicety. The
+       * beats are what make the rest of the script possible: the share opens the
+       * browser, a tab press puts the document on screen, and every later segment
+       * declares `needs`. A skip that lands mid-performance leaves the hand
+       * halfway through a sequence whose steps each give up quietly when what they
+       * need is missing, and then nothing after it has anywhere to point.
+       *
+       * So the caption is LOCKED for the duration. A press still completes the
+       * words -- refusing that would mean a visitor cannot read a sentence they
+       * asked to see -- and it is remembered, so the line ends the instant the
+       * performance does. What a press does NOT do is jump the beat.
+       *
+       * It does make the hand hurry, though. See onClick: a skip during a
+       * cutscene is a fair request and the honest answer is to get it over with at
+       * a third of the time rather than to ignore it.
+       */
+      const beats = (bs ?? []).filter((b) => b.at === i);
+      /*
+       * THE ORDER HERE IS LOAD-BEARING, and getting it wrong cost a QA round.
+       *
+       * `voice()` puts the line up synchronously before its first await, and
+       * putting a line up CLEARS any lock -- deliberately, so a lock cannot leak
+       * from one line to the next and hold a line open with nothing to unlock it.
+       * Locking first therefore locked nothing: the say that followed threw it
+       * away, the press went through to the app, and the share picker was
+       * dismissed by the very press that was meant to hurry it along.
+       */
+      const said = voice(line.text, line.ms);
+      if (beats.length) {
+        performing = true;
+        podium.lock();
+      }
+      /*
+       * BEATS FIRST, THEN THE LOCK LIFTS, THEN THE LINE.
+       *
+       * Promise.all over both was a deadlock, and QA found it as a caption frozen
+       * on "Let me get my screen up." after the share had visibly finished: the
+       * line's promise cannot resolve until unlock(), and unlock() was waiting on
+       * the line's promise. Awaiting the performance on its own breaks the cycle,
+       * and the line that follows costs nothing when its dwell is already spent --
+       * which after a skip it always is.
+       */
+      await runBeats(beats);
+      if (beats.length) {
+        performing = false;
+        hand.hurry(false);
+        podium.unlock();
+      }
+      await said;
       /*
        * Checked AFTER the line rather than before it, so a click always gets one
        * whole sentence finished before the subject changes. Cutting mid-sentence
@@ -815,7 +874,15 @@ export function startTour(root: HTMLElement, podium: Podium): TourHandle {
      * Podium.absorbed. It is also not a part trigger or a quip, because it landed
      * on the caption or on empty space, so there is nothing else to do with it.
      */
-    if (podium.absorbed(performance.now())) return;
+    if (podium.absorbed(performance.now())) {
+      /*
+       * The press was spent on the caption. If the hand is mid-performance it
+       * cannot be skipped (see speak()), so the answer to "I want to move on" is
+       * to move faster rather than to do nothing. Cleared when the beat finishes.
+       */
+      if (performing) hand.hurry(true);
+      return;
+    }
 
     note({ t: 'click', at: performance.now() });
     hand.yield(true);
