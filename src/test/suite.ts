@@ -1000,93 +1000,38 @@ suite('the eggs the visitor has found', () => {
 
 suite('the caption speaks', () => {
   /*
-   * N47. The tokeniser is the whole of the "sounds like a person" claim, so it is
-   * the part that gets tested. Three properties matter and none of them is how it
-   * looks: the sentence must survive, the hesitation must be repeatable, and the
-   * lines where composure matters must not get one.
+   * N47. The tokeniser is what turns a sentence into the words it arrives in, so
+   * the property that matters is that the sentence survives the trip. It used to
+   * insert hesitations too, and most of this suite was about those; the insertion
+   * is gone (N53) and so are the seven tests that measured its rate, its
+   * determinism and its variety.
+   *
+   * One of them is worth remembering rather than just deleting: it asserted that
+   * the flow hesitated "once or twice, not constantly", and it passed. The rate
+   * was right and the placement was wrong, which is not something a counting test
+   * can see -- both hesitations landed immediately before a punchline. A test that
+   * measures how often a thing happens will happily green-light every instance of
+   * it happening in the worst possible place.
    */
   test('the words survive being cut up', () => {
     const text = 'Four players, four networks, one shared board, no excuses about latency.';
-    const back = tokenise(text).filter((t) => !t.filler).map((t) => t.text).join(' ');
+    const back = tokenise(text).map((t) => t.text).join(' ');
     eq(back, text, 'the sentence did not survive tokenising');
   });
 
-  test('a hesitation lands in the same place every time', () => {
-    // One of the two lines in the flow that actually gets one -- a determinism
-    // test on a line with no filler in it passes by saying nothing.
+  test('nothing is inserted into a line', () => {
+    // The whole script, not a sample: an insertion anywhere would be a word the
+    // Scripts panel and the transcript do not have.
+    for (const t of timeline()) {
+      const back = tokenise(t.line.text).map((x) => x.text).join(' ');
+      eq(back, t.line.text, `a word was added to or lost from "${t.line.text.slice(0, 40)}"`);
+    }
+  });
+
+  test('tokenising is stable', () => {
     const text = 'And the tests are real — they run in your browser, and you can break them.';
-    const shape = (t: string): string => tokenise(t).map((x) => `${x.text}${x.filler ? '*' : ''}`).join(' ');
-    ok(tokenise(text).some((t) => t.filler), 'the line chosen for this test no longer hesitates at all');
-    eq(shape(text), shape(text), 'the same line hesitated in two different places');
-  });
-
-  /*
-   * THE RATE, measured against the real script.
-   *
-   * Nam: "they should be very rare, almost like a nice find. I'd say only 1 or
-   * twice. This is a well edited script and we should treat it that way."
-   *
-   * The first pass put one on every line with a comma in it -- sixteen of the
-   * flow's thirty-four -- which is a tic rather than a joke. A prose comment
-   * cannot hold a rate in place, so this counts. It will fail if the gate is
-   * loosened, and it will also fail if enough lines are added that two becomes
-   * six, which is the case a constant in caption.ts would not have caught.
-   */
-  test('the flow hesitates once or twice, not constantly', () => {
-    const hits = timeline().filter((t) => tokenise(t.line.text).some((x) => x.filler));
-    ok(hits.length >= 1 && hits.length <= 3,
-      `${hits.length} of ${timeline().length} flow lines hesitate; wanted one or two`);
-  });
-
-  test('the two hesitations are not the same word', () => {
-    // Two identical stumbles in one script reads as a pattern, which is the one
-    // thing a joke told twice must not do. See the seed note in caption.ts.
-    const words = timeline()
-      .flatMap((t) => tokenise(t.line.text).filter((x) => x.filler).map((x) => x.text));
-    if (words.length < 2) return;
-    eq(new Set(words).size, words.length, `the flow's hesitations are all "${words[0]}"`);
-  });
-
-  test('a hesitation costs the line no time', () => {
-    /*
-     * Nam: "they should not slow down the conversation." A filler's rest is taken
-     * out of the reveal budget rather than added to the line, so the sum of the
-     * rests must not grow when one is inserted by more than the filler's own --
-     * and the line's dwell, which is the ring, never sees it at all.
-     */
-    const withOne = 'And the tests are real — they run in your browser, and you can break them.';
-    const t = tokenise(withOne);
-    const filler = t.find((x) => x.filler);
-    ok(!!filler, 'the line chosen for this test no longer hesitates');
-    ok(filler!.restMs <= 200, `a hesitation rests ${filler!.restMs}ms, which is a stall rather than a beat`);
-  });
-
-  test('at most one hesitation a line', () => {
-    const lines = [
-      'Thanks for joining. I know a CV that opens a call is a bit much.',
-      'Four players, four networks, one shared board, no excuses about latency.',
-      'Before that, four years of optimisation research — two papers and a book chapter.',
-      'Everything on screen is real and nothing here breaks. Open the panels, drag the windows, run the tests.',
-    ];
-    for (const text of lines) {
-      const n = tokenise(text).filter((t) => t.filler).length;
-      ok(n <= 1, `"${text.slice(0, 34)}" got ${n} hesitations`);
-    }
-  });
-
-  test('the closing lines keep their composure', () => {
-    for (const text of [
-      'Thank you for your time. Genuinely.',
-      'Alright — genuinely, thank you for your time. Good luck with the rest of the pile.',
-    ]) {
-      eq(tokenise(text).filter((t) => t.filler).length, 0, `a hesitation crept into "${text.slice(0, 30)}"`);
-    }
-  });
-
-  test('a short line is left alone', () => {
-    // Nothing to hesitate in the middle of, so nothing is invented.
-    eq(tokenise('Still here?').filter((t) => t.filler).length, 0, 'a three-word line got a filler');
-    eq(tokenise('This is the CV.').filter((t) => t.filler).length, 0, 'a four-word line got a filler');
+    const shape = (v: string): string => tokenise(v).map((x) => `${x.text}:${x.restMs}`).join(' ');
+    eq(shape(text), shape(text), 'the same line tokenised two different ways');
   });
 
   test('punctuation earns a rest and a bare word does not', () => {

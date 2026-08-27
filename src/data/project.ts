@@ -1025,20 +1025,19 @@ export const tasks: Task[] = [
   },
   {
     id: 'N47', col: 'done', size: 'L', tag: 'call',
-    title: 'Captions arrive word by word, with a human in them',
-    note: 'Typed out rather than pasted, with the odd hesitation. Click to see the whole line.',
+    title: 'Captions arrive word by word',
+    note: 'Typed out rather than pasted, paced by punctuation. Click to see the whole line.',
     detail: {
-      why: 'Nam: "I want to display word by word kinda similar to how its capturing real human voice, maybe pausing a little, a little uh, ah." A whole sentence appearing at once is a subtitle file. Live captions arrive as the words do, and the hesitations are what make it sound like somebody talking rather than a document being read.',
+      why: 'Nam: "I want to display word by word kinda similar to how its capturing real human voice." A whole sentence appearing at once is a subtitle file; live captions arrive as the words do.',
       done: [
         'Words appear one at a time, paced by length and punctuation',
-        'Fillers are inserted at clause boundaries, at most one a line, and never in the closing lines',
-        'The insertion is deterministic, so the same line hesitates in the same place every time',
-        'The screen-reader announcement is the clean authored line, with no fillers in it',
+        'A comma rests shorter than a full stop, and an em dash longer than either',
+        'The screen-reader announcement is the authored line, once, not a word at a time',
         'Reduced motion shows the whole line at once',
         'A press on the bubble, or on the empty stage, completes the line',
       ],
       raised: 'Nam, QA 27 Aug, second pass',
-      notes: 'The fillers are a rendering concern and live nowhere near the data. Putting "uh" in the script would put it in the Scripts panel, in the plain-document transcript and in the accessible announcement, none of which should carry it.',
+      notes: 'The hesitations Nam also asked for shipped with this and were then removed — see N53. The reveal itself was never the problem.',
     },
   },
   {
@@ -1120,6 +1119,24 @@ export const tasks: Task[] = [
       ],
       raised: 'Nam, QA 27 Aug, second pass',
       notes: 'Blockers, in order of how hard they are to argue with. (1) The page states "no analytics, no third-party requests and no backend" on the ended screen, in the meeting-ready card, in the Project spec and in the README — a leaderboard makes all four false, and for a CV about trustworthy engineering that is a worse trade than the feature is worth. (2) The CSP is connect-src ‘self’ with no exceptions, so any host would have to be named in the policy, which is exactly where a reader looks to check claim (1). (3) A public leaderboard on a job application collects timings from named hiring managers, which is a data question rather than a feature question. (4) The bot-manager server is on the React client: a different origin with a different lifetime, and if it stops the CV becomes a site with a broken widget on it. If it ships at all it wants a separate endpoint the CV can lose without noticing — and the honest version is a local personal best, which is what N51 shipped.',
+    },
+  },
+
+  {
+    id: 'N53', col: 'backlog', size: 'S', tag: 'content',
+    title: 'REVERTED: the hesitations placed themselves before the punchlines',
+    note: 'Automatic placement is out. Where an "uh" goes is a writing decision, and it is waiting on Nam.',
+    detail: {
+      why: 'Nam asked for "a little uh, ah, and stuff that would be in a normal casual speech", and the first attempt derived the placement from the text: clause boundaries, a rarity gate tuned by counting against the real script, three separate hashes so nothing correlated. It produced exactly two hesitations in thirty-four lines, always in the same place, costing the line no time — and both of them landed immediately before a punchline. Nam: "they are pausing right before the punch line!?! How the heck is that good?"',
+      done: [
+        'The automatic insertion is gone, and the dimmer style with it',
+        'The seven tests that measured its rate, determinism and variety are gone',
+        'The word-by-word reveal, the dwell ring and the press-to-skip are untouched',
+        'Placement, when it returns, is authored per line rather than derived',
+        'And it stays a rendering concern: no "uh" in data/tour.ts',
+      ],
+      raised: 'Nam, QA 28 Aug',
+      notes: 'The lesson is not that the rate was wrong — the rate was right, and a test asserted it. A clause boundary near the end of a sentence is exactly where the setup hands over to the joke, so the better the gate got at finding natural pauses, the more reliably it found the one place a stumble must never go. Punctuation is all an algorithm can see; where the joke is lives in the meaning, and the writer is the only one holding that. A counting test cannot catch this: it will green-light every instance of a thing happening in the worst possible place.',
     },
   },
 

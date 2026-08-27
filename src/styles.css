@@ -604,11 +604,11 @@ button { font: inherit; }
 
 /* A word that has arrived carries no class and no rule: nothing animates per
    word, because sixty spans fading in at once is a shimmer and the effect wanted
-   is speech. Only the hesitations are marked, because only they are styled.
+   is speech.
 
-   The hesitations.  Dimmer, because they are not what he said — they are how he
-   said it, and a reader skimming the line should slide straight past them. */
-.cc-uh { color: var(--on-dark2); }
+   `.cc-uh` used to be here — a dimmer style for an automatically inserted "uh".
+   The insertion is gone (see the note at the top of src/ui/caption.ts) and the
+   style went with it rather than sitting unused waiting to be needed again. */
 
 /* ---- control bar, geometry measured off the live product ----------------- */
 

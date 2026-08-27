@@ -30,34 +30,32 @@
 //     means the line never advances. One clock, in script, that reduced motion
 //     merely coarsens.
 //
-//   · THE FILLERS ARE NOT IN THE SCRIPT. An "uh" authored into data/tour.ts
-//     would appear in the Scripts panel, in the plain-document transcript and in
-//     the screen-reader announcement — three places that should carry the
-//     sentence Nam wrote. So they are inserted here, at render time, and the
-//     announcement is built from the clean text.
+//   · THERE ARE NO HESITATIONS, AND PLACING THEM AUTOMATICALLY IS THE REASON.
 //
-//   · AND THEY ARE DETERMINISTIC. Math.random() would move the hesitation every
-//     time the same line played, which is how you get a caption that looks
-//     broken rather than a person who paused. Same line, same stumble, always.
+//     Nam asked for "a little uh, ah, and stuff that would be in a normal casual
+//     speech", and this file tried to derive the placement: clause boundaries, a
+//     rarity gate tuned by counting against the real script, three separate
+//     hashes so nothing correlated. Two hesitations in thirty-four lines, always
+//     in the same place, costing the line no time.
 //
-//   · AND THEY ARE RARE — twice in the whole flow, which is a measured number
-//     and not a vibe. The first pass put one on every line with a comma in it:
-//     sixteen of thirty-four. Nam: "they should be very rare, almost like a nice
-//     find. I'd say only 1 or twice. This is a well edited script and we should
-//     treat it that way, even the user would expect that, so the uh and ah is
-//     more a meta joke."
+//     It still had to come out, and the reason is worth keeping because it is not
+//     a tuning problem. Both of the two landed IMMEDIATELY BEFORE A PUNCHLINE —
+//     "the tests are real, they run in your browser, uh and you can break them",
+//     "if I'm not, ah throw me out of a plane" — because a clause boundary near
+//     the end of a sentence is exactly where the setup hands over to the joke.
+//     Nam: "they are pausing right before the punch line!?!"
 //
-//     That is the right read, and the failure was a category error rather than a
-//     tuning miss: constant hesitation is a speech-synthesis effect, and what
-//     this wants is an editing joke. A joke told sixteen times is a tic. The rate
-//     is pinned by a test that tokenises the real script and counts, so adding
-//     lines cannot quietly make it chatty again.
+//     A comma is the only thing an algorithm can see. Where the joke is, and
+//     therefore where a stumble would kill it, is not in the punctuation — it is
+//     in the meaning, and the writer is the only one holding that. So placement
+//     is going to be authored, line by line, once Nam has QA'd the script and
+//     said where. Board ticket N53.
 //
-//   · AND THEY COST NO TIME. Nam: "they should not slow down the conversation."
-//     They cannot: a line's dwell is the ring, and the ring runs the authored
-//     duration whatever the words do. A filler's rest is taken OUT of the reveal
-//     budget rather than added to it, so it borrows a few milliseconds from the
-//     words either side and gives the line back unchanged.
+//     What survives here is the shape of the answer: whatever marks them will be
+//     a RENDERING concern, not script data. An "uh" written into data/tour.ts
+//     would show up in the Scripts panel, in the plain-document transcript and in
+//     the screen-reader announcement, and all three should carry the sentence as
+//     written.
 //
 //   · A PRESS IS TWO-STAGE: mid-reveal it finishes the line, and after that it
 //     advances. Anything else means a visitor who presses to see the rest of a
@@ -86,55 +84,9 @@ const MIN_WORD_MS = 26;
 /** And none is slower than this, however long it is. */
 const MAX_WORD_MS = 200;
 
-/**
- * The hesitations.
- *
- * Short, lower case, and none of them a word with meaning — a filler that reads
- * as content ("well", "so") changes the sentence, and this is not allowed to
- * change the sentence.
- *
- * 'mm' was in this pool and came out after QA. Spoken it is a hesitation; set in
- * text after an em dash it reads as a typo rather than a pause, and a caption
- * that looks mistyped undoes the entire point of the effect.
- */
-const FILLERS = ['uh', 'uhm', 'ah'];
-
-/**
- * HOW RARE. One eligible line in this many gets a hesitation.
- *
- * Tuned against the script rather than guessed: at 13 the flow's thirty-four
- * lines carry two, and both land where a person would actually pause — "and the
- * tests are real — uh they run in your browser", "and if I'm not, uh throw me out
- * of a plane". Neighbouring values were measured too; 5 gives five, 7 gives four,
- * 19 gives none at all in the flow.
- *
- * Three decisions — whether, where, and which word — are hashed on three
- * different seeds. Sharing one correlates them, and at this rate the correlation
- * is visible: with the word seeded off the bare text, both of the flow's two
- * hesitations came out as "uhm", and two identical stumbles in one script is a
- * pattern rather than a joke.
- *
- * The 'f:' prefix is doing nothing principled — it is the seed that happened to
- * give "uh" and "ah", the two Nam asked for, on today's script. Any seed is as
- * defensible; this one reads best. If the two lines it lands on are ever
- * reworded the words will move, which is fine: the property being protected is
- * that they differ from each other, and the test checks that rather than the
- * literal choices.
- */
-const STUMBLE_ONE_IN = 13;
-
-/** Stable, tiny, and only ever used to choose the same thing twice. */
-const hash = (s: string): number => {
-  let n = 0;
-  for (let i = 0; i < s.length; i += 1) n = (n * 31 + s.charCodeAt(i)) | 0;
-  return Math.abs(n);
-};
-
 interface Token {
   text: string;
-  /** A filler is rendered dimmer, and is left out of the announcement. */
-  filler?: boolean;
-  /** Extra stillness after this token — punctuation, or a hesitation. */
+  /** Extra stillness after this token, from its punctuation. */
   restMs: number;
 }
 
@@ -146,39 +98,10 @@ interface Token {
  * where somebody changes direction mid-sentence.
  */
 export function tokenise(text: string): Token[] {
-  const words = text.split(/\s+/).filter(Boolean);
-  const out: Token[] = [];
-
-  /*
-   * Where the hesitation goes, if this line gets one.
-   *
-   * Only at a clause boundary — after a comma or a dash — because that is where
-   * a person actually hesitates. Mid-clause it reads as a rendering fault. A
-   * line with no clause boundary gets no filler rather than an invented one.
-   *
-   * And never in a line that is saying thank you or goodbye. The closing lines
-   * are the two places in this whole script where sounding composed matters
-   * more than sounding casual.
-   */
-  const composed = /thank you|good luck|genuinely/i.test(text);
-  const breaks = words
-    .map((w, i) => (/[,—–-]$/.test(w) ? i : -1))
-    .filter((i) => i >= 0 && i < words.length - 2);
-  const eligible = !composed && words.length >= 7 && breaks.length > 0;
-  // Eligible is not enough — see STUMBLE_ONE_IN. Most eligible lines get nothing.
-  const rare = hash(`stumble:${text}`) % STUMBLE_ONE_IN === 0;
-  const at = eligible && rare ? breaks[hash(text) % breaks.length]! : -1;
-
-  words.forEach((w, i) => {
-    const rest = /[.!?]$/.test(w) ? 260 : /[—–]$/.test(w) ? 220 : /[,;:]$/.test(w) ? 150 : 0;
-    out.push({ text: w, restMs: rest });
-    if (i === at) {
-      // 140, not the 340 this shipped with. A third of a second of nothing is a
-      // stall the eye reads as a stutter in the page; this is a beat.
-      out.push({ text: FILLERS[hash(`f:${text}${w}`) % FILLERS.length]!, filler: true, restMs: 140 });
-    }
-  });
-  return out;
+  return text.split(/\s+/).filter(Boolean).map((w) => ({
+    text: w,
+    restMs: /[.!?]$/.test(w) ? 260 : /[—–]$/.test(w) ? 220 : /[,;:]$/.test(w) ? 150 : 0,
+  }));
 }
 
 export interface Caption {
@@ -322,7 +245,7 @@ export function makeCaption(who: string): Caption {
 
   const paint = (): void => {
     textEl.replaceChildren(
-      ...tokens.slice(0, shown).map((t) => h('span', t.filler ? { class: 'cc-uh' } : {}, `${t.text} `)),
+      ...tokens.slice(0, shown).map((t) => h('span', {}, `${t.text} `)),
     );
   };
 
