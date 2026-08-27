@@ -575,6 +575,41 @@ button { font: inherit; }
 .cc-who { font: 500 13px/18px var(--font); color: var(--on-dark2); margin-bottom: 2px; }
 .cc-text { font: 400 18px/26px var(--font); min-height: 26px; }
 
+/* --- the caption speaks, and holds for as long as you need (N47, N48) ----- */
+/* The label and the dwell ring share a row, so the ring reads as belonging to
+   this bubble rather than floating over the stage beside it. */
+.cc-head { display: flex; align-items: center; gap: 8px; }
+.cc-who { margin-bottom: 0; }
+.cc-text { margin-top: 2px; }
+
+/* Hidden until there is a dwell to report. A ring at zero on a line that is
+   waiting for nothing is a control that looks broken. */
+.cc-ring { display: none; margin-left: auto; width: 24px; height: 24px; flex: 0 0 auto; }
+.cc.is-timed .cc-ring { display: block; }
+.cc-ring svg { width: 24px; height: 24px; display: block; transform: rotate(-90deg); }
+/* Same arc-as-dashoffset idiom as the ready card and the ended screen, third
+   use. Driven from script here rather than by a keyframe — see the note at the
+   top of src/ui/caption.ts for why that difference is load-bearing. */
+.cc-arc {
+  fill: none; stroke: var(--on-dark2); stroke-width: 2; stroke-linecap: butt;
+  transition: stroke .15s linear;
+}
+/* Held under the pointer: the ring stops, and says so. */
+.cc.is-held .cc-arc { stroke: #8ab4f8; }
+.cc.is-held { cursor: default; }
+.cc.is-timed { cursor: pointer; }
+/* It is in the tab order now, so it needs to look like it when it is reached.
+   Held and focused are the same state, so they share the accent. */
+.cc:focus-visible { outline: 2px solid #8ab4f8; outline-offset: 2px; }
+
+/* A word that has arrived carries no class and no rule: nothing animates per
+   word, because sixty spans fading in at once is a shimmer and the effect wanted
+   is speech. Only the hesitations are marked, because only they are styled.
+
+   The hesitations.  Dimmer, because they are not what he said — they are how he
+   said it, and a reader skimming the line should slide straight past them. */
+.cc-uh { color: var(--on-dark2); }
+
 /* ---- control bar, geometry measured off the live product ----------------- */
 
 .bar {
@@ -5241,11 +5276,36 @@ body.set-open .cc { bottom: calc(var(--botbar) + 52px + 12px); }
 }
 .sc-quip-k.is-event { color: var(--dp-accent) !important; }
 
+/* --- the clock down the left of the script (N46) ------------------------- */
+/* One row per line, and the part label only on the row that starts a part: a
+   label repeated down every row of a nine-line segment is nine chances to read
+   it as nine segments. */
+.sc-clock { display: flex; flex-direction: column; }
+.sc-tick {
+  display: grid; grid-template-columns: 42px 1fr auto; gap: 4px 12px;
+  align-items: baseline; padding: 7px 12px;
+  border-left: 2px solid var(--dp-line);
+}
+/* The first line of a part gets the rule and the label, which is what turns a
+   flat list of forty lines back into six segments. */
+.sc-tick.is-partstart { border-left-color: var(--dp-accent); margin-top: 10px; }
+.sc-tick-at { font: 400 11px/19px var(--font); }
+/* Its own row, full width. `display: none` when empty takes it out of the grid
+   entirely, so a mid-part line falls back to the plain three-column row. */
+.sc-tick-p {
+  grid-column: 1 / -1; font: 500 12px/17px var(--font); color: var(--dp-accent);
+  margin-bottom: 2px;
+}
+.sc-tick-p:empty { display: none; }
+.sc-tick-t { grid-column: 2; font: 400 13px/19px var(--font); color: var(--dp-ink); }
+.sc-tick-b { grid-column: 2 / -1; }
+
 /* The questions, with their answers under them. */
 .sc-story { display: flex; flex-direction: column; gap: 10px; }
 .sc-chapter { background-color: var(--dp-surface); border-radius: 8px; padding: 11px 13px; }
 .sc-q { display: flex; align-items: center; gap: 9px; margin-bottom: 8px; }
 .sc-q b { font: 500 13.5px/19px var(--font); color: var(--dp-ink); }
+
 
 /* ================= THE GUIDED TOUR ======================================= */
 /* Board tickets N24 and N27-N43, planned in tools/PLAN-guided-tour.md.
@@ -6297,6 +6357,20 @@ body.presenting .shot { min-width: 0; }
   .side, .side.is-out { animation: none; transition: none; }
   .end-ring .end-arc { animation: none; }
 }
+
+/* --- the spec as a page, not a dialog (N50) ------------------------------ */
+/* The same body the Project spec dialog mounts, inside the emulated browser's
+   page area. It needs the panel's own palette variables, which the dialog gets
+   from .dp-light on its root — so the page host declares them itself rather than
+   the rules being loosened to work without a mode.
+
+   Scrolling belongs to the browser's page area, not to a nested body, so the
+   inner body's own max-height is released here. Two scrollbars inside a fake
+   window is the tell that a dialog has been dropped somewhere it does not go. */
+.pg-spec { padding: 0; }
+.pg-spec .dp-inner { display: block; }
+.pg-spec .dp-body { max-height: none; overflow: visible; padding: 0 4px; }
+.pg-spec .dp-tabs { position: sticky; top: 0; z-index: 2; background-color: var(--pg-bg, #fff); }
 
 /* ============== ROUND 4: THE PANEL, AND THE TILE'S CONTROLS ============== */
 /* Measured on a live call at 2560x1215. See tools/PLAN-call-view.md, Round 4. */

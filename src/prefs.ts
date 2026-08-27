@@ -225,3 +225,101 @@ export function markEggSeen(id: string): void {
 export function unseenEggs(): Egg[] {
   return stillUnseen(eggs, seenEggs());
 }
+
+// ---------------------------------------------------------------------------
+// HOW LONG THE INTERVIEW TOOK — board ticket N51
+// ---------------------------------------------------------------------------
+
+/**
+ * The clock on the conversation, and the best one so far.
+ *
+ * Nam: "I want to capture the time user spent on the call such that they finish
+ * the whole conversation ... This is to add gamification to this CV which is my
+ * expertise."
+ *
+ * WHAT IS AND IS NOT TIMED. The clock starts on the first spoken line and stops
+ * at the goodbye. It does not include the outro, because the outro is a joke
+ * about not leaving and timing it would reward leaving. It does not include a run
+ * that was stopped or handed over either: a partial hearing is not a completion,
+ * and a leaderboard whose top entry is "pressed Stop immediately" is not a
+ * leaderboard.
+ *
+ * The interesting number is not the time itself but the time against the
+ * benchmark the script derives from its own dwells (`runtimeMs` in data/tour.ts).
+ * Beating it is genuinely skilful: every line can be skipped with a press, and
+ * triggering a segment early cuts the one being spoken short, so the running
+ * order can be played in a way that spends fewer lines than the authored path.
+ *
+ * Nothing here leaves the machine, which is the same promise the rest of this
+ * module makes — and the reason the leaderboard is a backlog ticket (N52) rather
+ * than a feature.
+ */
+const INTERVIEW_KEY = 'callback.interview';
+
+export interface Interview {
+  /** The most recent completed run, ms. */
+  lastMs: number;
+  /** The fastest completed run, ms. */
+  bestMs: number;
+  /** How many times the conversation has been heard out. */
+  runs: number;
+}
+
+/** A run shorter than this did not happen. Guards a clock that went backwards. */
+export const INTERVIEW_MIN_MS = 1000;
+/** And nor did one longer than this — a tab left open overnight is not a run. */
+export const INTERVIEW_MAX_MS = 4 * 60 * 60 * 1000;
+
+/**
+ * Parse, and treat anything malformed as no record at all.
+ *
+ * Same reasoning as freshGate above: this comes out of localStorage, which
+ * anybody can hand-edit, and a hand-edited `bestMs: 0` should read as a fresh
+ * visitor rather than print "your best: 0:00" on the ended screen forever.
+ */
+export function readInterview(raw: string | null): Interview | null {
+  if (!raw) return null;
+  try {
+    const v = JSON.parse(raw) as Partial<Interview>;
+    if (!v || typeof v !== 'object') return null;
+    const ok = (n: unknown): n is number =>
+      typeof n === 'number' && Number.isFinite(n) && n >= INTERVIEW_MIN_MS && n <= INTERVIEW_MAX_MS;
+    if (!ok(v.lastMs) || !ok(v.bestMs)) return null;
+    const runs = typeof v.runs === 'number' && Number.isFinite(v.runs) && v.runs > 0 ? Math.floor(v.runs) : 1;
+    // A best slower than the last is a record that has been edited or a bug.
+    // Repairing it is safe and silent; trusting it would print a lie.
+    return { lastMs: v.lastMs, bestMs: Math.min(v.bestMs, v.lastMs), runs };
+  } catch {
+    return null;
+  }
+}
+
+/** Fold a finished run into the record. Pure, so the rule is testable. */
+export function afterInterview(prev: Interview | null, ms: number): Interview | null {
+  if (!Number.isFinite(ms) || ms < INTERVIEW_MIN_MS || ms > INTERVIEW_MAX_MS) return prev;
+  if (!prev) return { lastMs: ms, bestMs: ms, runs: 1 };
+  return { lastMs: ms, bestMs: Math.min(prev.bestMs, ms), runs: prev.runs + 1 };
+}
+
+export function loadInterview(): Interview | null {
+  try {
+    return readInterview(localStorage.getItem(INTERVIEW_KEY));
+  } catch {
+    return null;
+  }
+}
+
+export function recordInterview(ms: number): void {
+  try {
+    const next = afterInterview(loadInterview(), ms);
+    if (next) localStorage.setItem(INTERVIEW_KEY, JSON.stringify(next));
+  } catch {
+    /* ignore — a time nobody can store is still a time they just experienced. */
+  }
+}
+
+/** m:ss, for the one place this is read out loud. */
+export function clockMs(ms: number): string {
+  const total = Math.round(ms / 1000);
+  return `${Math.floor(total / 60)}:${String(total % 60).padStart(2, '0')}`;
+}

@@ -25,14 +25,26 @@
 //     hand's click is dispatched inside an await chain and the flag outlived it
 //     by a frame, which ate the visitor's next real click.
 //
-//   · REDUCED MOTION KEEPS THE TOUR. The hand teleports instead of travelling,
-//     does not tremor, and still presses. The captions run as normal. Turning
-//     the feature off would deny the content to the person who asked for less
-//     movement, which is not what that setting means.
+//   · REDUCED MOTION KEEPS THE WHOLE THING. The hand teleports instead of
+//     travelling, does not tremor, and still presses. The captions run as
+//     normal. Turning the feature off would deny the content to the person who
+//     asked for less movement, which is not what that setting means.
+//
+//   · NOTHING HERE MEASURES A LINE'S DURATION any more. After N48 the caption
+//     owns the clock: it reveals the words, fills its ring over the authored
+//     dwell, pauses on hover and jumps on a press, and `podium.say` resolves
+//     when it is done. So a line's length is a request, and the reader answers.
+//
+//   · THE DIRECTORY IS STILL CALLED tour/. N44 took the word off every surface a
+//     visitor can see and deliberately left the internals alone — renaming a
+//     pure module that nothing reads out loud costs a diff and buys nothing.
 
 import { h } from '../dom.js';
 import { prefersReducedMotion } from '../a11y.js';
-import { parts, story, acks, asides, type Bail, type Beat, type Line, type Surface } from '../data/tour.js';
+import {
+  parts, story, acks, asides, outro,
+  type Bail, type Beat, type Line, type Surface,
+} from '../data/tour.js';
 import { markEggSeen, unseenEggs } from '../prefs.js';
 import { makeHand, type Hand, type Scroller } from './cursor.js';
 import {
@@ -65,18 +77,39 @@ export interface TourHandle {
  * restlessness meter and a Stop control.
  */
 export interface Podium {
-  /** Put a line on screen, and announce it. */
-  say: (text: string) => void;
-  /** Stop the call's own scripted transcript while the tour is talking. */
-  suspendTranscript: () => void;
-  /** Hand it back. */
-  resumeTranscript: () => void;
-  /** Are the call's captions on? If not, the tour is a silent film. */
+  /**
+   * Put a line on screen and hold it.
+   *
+   * Resolves when the line's dwell is spent — which is NOT the same as the
+   * authored duration elapsing. The visitor can press past it, or hover to hold
+   * it indefinitely, and the caption is the thing that decides (N48). Awaiting
+   * this rather than a setTimeout is what handed the pacing to the reader.
+   */
+  say: (text: string, ms: number) => Promise<void>;
+  /** A line with no dwell contract — a quip putting back what it cut over. */
+  show: (text: string) => void;
+  /** Abandon the line being held, now. Used when a click jumps the script. */
+  skip: () => void;
+  /** Are the call's captions on? If not, this is a silent film. */
   captionsOn: () => boolean;
+  /**
+   * Was the visitor's press spent skipping a caption?
+   *
+   * A press that advances a line is somebody reading faster than the script
+   * talks. Scoring it as restlessness makes the narration apologise for the
+   * visitor keeping up, and then offer to talk faster, which it already is.
+   */
+  absorbed: (now: number) => boolean;
   /** Open an easter-egg clip on the shared screen. */
   playEgg: (id: string) => void;
-  /** The flow reached its last line. Not called when the visitor stops it. */
-  finished: () => void;
+  /**
+   * The conversation reached its last line, in `ms`. Not called when the
+   * visitor stops it, and not called when it gives up and hands over — neither
+   * is a completed hearing, so neither is timed.
+   */
+  finished: (ms: number) => void;
+  /** The outro was sat through to its final word. */
+  stayed: () => void;
 }
 
 /** How long to keep looking for something the tour has just asked for. */
@@ -87,6 +120,14 @@ const SETTLE_MS = IDLE_MS;
 const STORY_MS = 9000;
 /** Two acknowledgements closer together than this would be nagging. */
 const ACK_GAP_MS = 9000;
+/**
+ * Silence after everything else is spent before the outro starts.
+ *
+ * Longer than the story's wait, because this one has to read as the conversation
+ * genuinely having ended. Come back too soon and it is not banter about nobody
+ * leaving — it is the script still going.
+ */
+const OUTRO_WAIT_MS = 14_000;
 
 export function startTour(root: HTMLElement, podium: Podium): TourHandle {
   const reduced = prefersReducedMotion();
@@ -124,14 +165,17 @@ export function startTour(root: HTMLElement, podium: Podium): TourHandle {
     meterTimer = window.setTimeout(() => meter.classList.remove('is-up'), 1900);
   };
 
+  /*
+   * N44. Was "Stop the tour", which was the last visitor-facing use of the word
+   * and the one that mattered most: it told the visitor what they were in.
+   */
   const stopBtn = h('button', {
-    class: 'tour-stop', type: 'button', 'aria-label': 'Stop the guided tour',
-  }, 'Stop the tour') as HTMLButtonElement;
+    class: 'tour-stop', type: 'button', 'aria-label': 'Stop him talking',
+  }, 'Stop talking') as HTMLButtonElement;
   const bar = h('div', { class: 'tour-bar' }, stopBtn) as HTMLElement;
 
   root.appendChild(bar);
   root.appendChild(meter);
-  podium.suspendTranscript();
 
   /* ----------------------------------------------------------------- voice -- */
 
@@ -142,7 +186,36 @@ export function startTour(root: HTMLElement, podium: Podium): TourHandle {
    * place to a joke about the taskbar clock.
    */
   let floorLine = '';
-  const voice = (text: string): void => { floorLine = text; podium.say(text); };
+
+  /**
+   * Say a line and hold it for as long as the visitor wants it.
+   *
+   * The dwell is authored, then scaled by how patient they are being, then
+   * handed to the caption — which may cut it short on a press, stretch it
+   * indefinitely on a hover, or end it early because the script jumped. All
+   * three arrive here as the promise resolving, which is why nothing in this
+   * file measures a line's duration any more.
+   */
+  const voice = async (text: string, ms: number): Promise<void> => {
+    floorLine = text;
+    await podium.say(text, Math.max(0, Math.round(ms * pace(visitor))));
+  };
+
+  /* -------------------------------------------------------- the interview -- */
+
+  /**
+   * When the first word was said, and whether the whole thing was heard.
+   *
+   * Board ticket N51. The clock starts on the first line rather than on mount,
+   * because the pre-roll includes pressing the captions button and waiting for a
+   * window animation — time the visitor spends watching, but not time spent in
+   * the conversation.
+   */
+  let startedAt = 0;
+  /** True once the conversation reached its own last line under its own steam. */
+  let heardOut = false;
+  /** True once the visitor pressed Stop. There is no outro after a Stop. */
+  let stopped = false;
 
   /* ----------------------------------------------------------------- timing -- */
 
@@ -151,8 +224,12 @@ export function startTour(root: HTMLElement, podium: Podium): TourHandle {
     timer = window.setTimeout(done, ms);
   });
 
-  /** A line's authored duration, scaled by how patient this visitor is being. */
-  const beat = (ms: number): Promise<void> => wait(Math.round(ms * pace(visitor)));
+  /*
+   * There used to be a `beat(ms)` here — a pause scaled by how patient the
+   * visitor was being — and every line in the script was spoken as voice() then
+   * beat(). After N48 the caption owns every duration in this file and `voice`
+   * does the scaling on the way in, so there was nothing left for it to pace.
+   */
 
   const frame = (): Promise<void> => new Promise((done) => requestAnimationFrame(() => done()));
 
@@ -368,16 +445,14 @@ export function startTour(root: HTMLElement, podium: Podium): TourHandle {
   const doEggs = async (): Promise<void> => {
     const left = unseenEggs();
     if (!left.length) {
-      voice('…which you have already found. All of them. Respect.');
-      await beat(3200);
+      await voice('…which you have already found. All of them. Respect.', 3200);
       return;
     }
     for (const egg of left.slice(0, 3)) {
       if (dead) return;
-      voice(`${egg.title}. ${egg.blurb}`);
       podium.playEgg(egg.id);
       markEggSeen(egg.id);
-      await beat(5200);
+      await voice(`${egg.title}. ${egg.blurb}`, 5200);
     }
   };
 
@@ -405,15 +480,22 @@ export function startTour(root: HTMLElement, podium: Podium): TourHandle {
 
   /* ----------------------------------------------------------------- speaking */
 
-  /** A quip cuts in, then gives the floor straight back. */
+  /**
+   * A quip cuts in, then gives the floor straight back.
+   *
+   * `show` rather than `say`: a quip has no dwell contract and must not be
+   * skippable-into-the-next-line, because there is no next line — it is a second
+   * of borrowed floor on its own timer, and the line it interrupted goes back up
+   * afterwards with the same call.
+   */
   const sayQuip = async (id: string): Promise<void> => {
     const quip = quipById(id);
     tour = reduceTour(tour, { t: 'quipDone' });
     if (!quip) return;
     const held = floorLine;
-    podium.say(quip.text);
+    podium.show(quip.text);
     await wait(quip.ms);
-    if (!dead && held && held !== quip.text) podium.say(held);
+    if (!dead && held && held !== quip.text) podium.show(held);
   };
 
   /** Anything waiting to interrupt, said now. */
@@ -430,12 +512,26 @@ export function startTour(root: HTMLElement, podium: Podium): TourHandle {
    */
   let bailArmed: { script: Bail; of: Surface } | null = null;
 
+  /**
+   * THE FAST-FORWARD — board ticket N46.
+   *
+   * Nam: "the same mouse event will trigger a fast forward of whatever the script
+   * was and move on to the new segment that the mouse event just triggered."
+   *
+   * Set when the visitor clicks something that maps to a part. The line being
+   * spoken finishes its beats and the segment then ENDS, rather than talking on
+   * to the bottom of a section the visitor has visibly left. The director already
+   * had the queue to put the clicked part next; what it did not have was any way
+   * to stop the part in front of it.
+   */
+  let cut = false;
+
   const speak = async (lines: Line[], bs: Beat[] | undefined, protect?: Bail): Promise<void> => {
+    cut = false;
     for (let i = 0; i < lines.length; i += 1) {
       if (dead) return;
       await drain();
       const line = lines[i]!;
-      voice(line.text);
       if (protect && i === protect.at) {
         // Armed for exactly the window in which bolting means something. After
         // that they have read it, and leaving is just leaving.
@@ -444,12 +540,18 @@ export function startTour(root: HTMLElement, podium: Podium): TourHandle {
       }
       // The beats run WITH the line rather than after it, and the line holds
       // until both are done. That is what lets one caption cover a sequence that
-      // takes longer to perform than to say — "let's share my screen" is four
+      // takes longer to perform than to say — "let me get my screen up" is four
       // presses and a window animation.
       await Promise.all([
-        beat(line.ms),
+        voice(line.text, line.ms),
         runBeats((bs ?? []).filter((b) => b.at === i)),
       ]);
+      /*
+       * Checked AFTER the line rather than before it, so a click always gets one
+       * whole sentence finished before the subject changes. Cutting mid-sentence
+       * is how a demo starts looking broken rather than responsive.
+       */
+      if (cut) { cut = false; return; }
     }
   };
 
@@ -460,18 +562,74 @@ export function startTour(root: HTMLElement, podium: Podium): TourHandle {
     const b = armed.script;
     const s = scroller(armed.of);
     const where = s?.top() ?? 0;
-    voice(b.lines[0]?.text ?? '');
-    if (b.rewind && s) await hand.roll(s, 0, 900);
-    await beat(b.lines[0]?.ms ?? 3000);
-    if (b.lines[1]) { voice(b.lines[1].text); await beat(b.lines[1].ms); }
+    await Promise.all([
+      voice(b.lines[0]?.text ?? '', b.lines[0]?.ms ?? 3000),
+      (async () => { if (b.rewind && s) await hand.roll(s, 0, 900); })(),
+    ]);
+    if (b.lines[1]) await voice(b.lines[1].text, b.lines[1].ms);
     if (b.lines[2]) {
-      voice(b.lines[2].text);
       // Back to where THEY were, not where the script was. Remembering the
       // position is the whole trick; a gag that loses your place is a bug with
       // a punchline attached.
-      if (b.rewind && s) await hand.roll(s, where, 800);
-      await beat(b.lines[2].ms);
+      await Promise.all([
+        voice(b.lines[2].text, b.lines[2].ms),
+        (async () => { if (b.rewind && s) await hand.roll(s, where, 800); })(),
+      ]);
     }
+  };
+
+  /* --------------------------------------------------------------- the outro -- */
+
+  /**
+   * WHAT HE SAYS WHEN YOU DO NOT LEAVE — board ticket N49.
+   *
+   * Nam: "we should have some post end banter, like why are you still here? ...
+   * There is nothing more to see here. I swear. some more stuff like this, spacing
+   * out more and more, but no longer than 2min. If player sits through all of that,
+   * they earn another achievement."
+   *
+   * Three things make it work, and all three are about restraint:
+   *
+   *   · IT IS NOT TIMED. The interview clock stopped at the goodbye. Timing the
+   *     banter would mean the fastest completion was the one that left fastest,
+   *     which is the opposite of what an outro is for.
+   *
+   *   · ANY INPUT ENDS IT, silently and with no penalty beyond not getting the
+   *     achievement. The first line asks why they are still here; clicking
+   *     something is a perfectly good answer and does not deserve a reaction.
+   *
+   *   · IT TURNS THE CAPTIONS OFF ON THE WAY OUT. Nam: "once its truly done, we
+   *     say goodbye and thanks them for their time, then close the caption (with
+   *     mouse movement) so they are free to do whatever they want in the call."
+   *     The hand presses the same control it pressed to turn them on in the
+   *     pre-roll, which is the only way to say "I have actually stopped now"
+   *     without saying it a seventh time.
+   */
+  let outroRan = false;
+
+  const runOutro = async (): Promise<void> => {
+    outroRan = true;
+    const at = visitor.lastInput;
+    for (const line of outro) {
+      if (dead || stopped) return;
+      // Abandoned by anything at all. Checked before the line rather than after,
+      // so a visitor who clicks during a twenty-second gap is not talked at once
+      // more before being let go.
+      if (visitor.lastInput !== at) return;
+      await voice(line.text, line.ms);
+      if (visitor.lastInput !== at) return;
+    }
+    if (dead) return;
+    podium.stayed();
+    /*
+     * And then the captions go off, by hand, from the control. Mirrors the
+     * pre-roll exactly — which is deliberate: the visitor watched the hand press
+     * this button to start the conversation, so watching it press the same button
+     * is legible without a caption explaining it.
+     */
+    await wait(reduced ? 0 : 900);
+    if (podium.captionsOn()) await pressSel('[data-ctl="captions"]', true);
+    await hand.park();
   };
 
   /* ------------------------------------------------------------ the personal -- */
@@ -481,8 +639,7 @@ export function startTour(root: HTMLElement, podium: Podium): TourHandle {
     for (const chapter of story) {
       for (const line of chapter.lines) {
         if (dead) return;
-        voice(line.text);
-        await beat(line.ms);
+        await voice(line.text, line.ms);
       }
     }
     tour = reduceTour(tour, { t: 'toldDone' });
@@ -510,9 +667,12 @@ export function startTour(root: HTMLElement, podium: Podium): TourHandle {
     }
 
     tour = reduceTour(tour, { t: 'start' });
+    // The clock starts on the first word, not on mount. See the note on
+    // startedAt: the pre-roll is time spent watching, not time spent listening.
+    startedAt = performance.now();
 
     while (!dead) {
-      if (tour.mode === 'handedOver') { voice(asides.handOver.text); await beat(asides.handOver.ms); break; }
+      if (tour.mode === 'handedOver') { await voice(asides.handOver.text, asides.handOver.ms); break; }
       if (tour.mode === 'telling') { await tell(); continue; }
       if (tour.mode === 'finished') break;
       if (!tour.current) break;
@@ -527,8 +687,7 @@ export function startTour(root: HTMLElement, podium: Podium): TourHandle {
       // The register change is announced once, not every time it applies.
       if (tour.register === 'brief' && !announcedShorten) {
         announcedShorten = true;
-        voice(asides.shorten.text);
-        await beat(asides.shorten.ms);
+        await voice(asides.shorten.text, asides.shorten.ms);
       }
 
       await speak(lines, bs, protect);
@@ -537,7 +696,14 @@ export function startTour(root: HTMLElement, podium: Podium): TourHandle {
     }
 
     if (dead) return;
-    podium.finished();
+    /*
+     * A completed hearing, and the only kind that gets timed. `handedOver` broke
+     * out of the loop above without reaching here, and Stop tears the whole thing
+     * down — so neither can record a time, which is what stops the fastest
+     * possible "run" being a press on Stop.
+     */
+    heardOut = true;
+    podium.finished(performance.now() - startedAt);
     // The clock the story waits on starts HERE, not at the visitor's last input.
     // See the note on flowEndedAt.
     flowEndedAt = performance.now();
@@ -597,12 +763,12 @@ export function startTour(root: HTMLElement, podium: Podium): TourHandle {
     // Spoken like a quip: over the top of whatever is happening, then the floor
     // goes back. It is a reaction, not a section.
     const held = floorLine;
-    podium.say(got.line.text);
+    podium.show(got.line.text);
     window.setTimeout(() => {
       // Only if the flow has not moved on underneath it. Restoring a line the
       // script has already left behind would put a stale caption on screen,
       // which is worse than the reaction having no ending at all.
-      if (!dead && held && floorLine === held) podium.say(held);
+      if (!dead && held && floorLine === held) podium.show(held);
     }, got.line.ms);
   };
 
@@ -613,6 +779,13 @@ export function startTour(root: HTMLElement, podium: Podium): TourHandle {
     if (!e.isTrusted) return;
     const el = e.target as Element | null;
     if (!el || stopBtn.contains(el)) return;
+
+    /*
+     * A press the caption spent on itself is not restlessness — see the note on
+     * Podium.absorbed. It is also not a part trigger or a quip, because it landed
+     * on the caption or on empty space, so there is nothing else to do with it.
+     */
+    if (podium.absorbed(performance.now())) return;
 
     note({ t: 'click', at: performance.now() });
     hand.yield(true);
@@ -630,7 +803,22 @@ export function startTour(root: HTMLElement, podium: Podium): TourHandle {
       const first = part.triggers?.[0];
       const target = first ? q(first) : null;
       if (target) void hand.at(target);
+      const before = tour;
       tour = reduceTour(tour, { t: 'visit', id: part.id });
+      /*
+       * N46, the arrow running the other way. If that visit actually queued
+       * something new, cut the segment being spoken rather than letting it talk
+       * on to the end of a section the visitor has left. `skip` ends the line's
+       * dwell now; `cut` stops the loop after it.
+       *
+       * Guarded on the queue having grown, so clicking around inside a part that
+       * is already playing or already covered does not chop the narration for a
+       * visit the director correctly ignored.
+       */
+      if (tour.queue.length > before.queue.length && tour.mode === 'playing') {
+        cut = true;
+        podium.skip();
+      }
       return;
     }
 
@@ -769,6 +957,19 @@ export function startTour(root: HTMLElement, podium: Podium): TourHandle {
       tour = reduceTour(tour, { t: 'tell' });
       if (tour.mode === 'telling') void tell();
     }
+    /*
+     * The outro, last of all — after the goodbye AND after the personal segment,
+     * because that segment is content and this is banter, and banter does not go
+     * in front of content.
+     *
+     * `heardOut` rather than `mode === 'finished'`: a run that handed over never
+     * said goodbye, so there is nothing for an outro to come after. `!stopped`
+     * because somebody who asked for silence has asked for silence.
+     */
+    if (heardOut && !stopped && !outroRan && tour.told && tour.mode === 'finished'
+        && still >= OUTRO_WAIT_MS && passive(visitor, now)) {
+      void runOutro();
+    }
   }, 1000);
 
   /* ---------------------------------------------------------------- teardown -- */
@@ -788,15 +989,24 @@ export function startTour(root: HTMLElement, podium: Podium): TourHandle {
     document.removeEventListener('scroll', onScroll, true);
     document.removeEventListener('pointermove', onMove);
     document.removeEventListener('keydown', onKey, true);
-    // The call's own transcript takes the surface back, so the captions the
-    // visitor switched on keep working after the tour is done with them.
-    podium.resumeTranscript();
+    /*
+     * Nothing to hand the caption strip back TO any more.
+     *
+     * There used to be a second script — the call's own eleven-line loop — and
+     * teardown restored it, which is how a visitor who had heard the goodbye
+     * ended up being talked at again from the top. N45 folded that loop into this
+     * script, so when this stops, the talking stops.
+     */
   };
 
   stopBtn.addEventListener('click', () => {
+    stopped = true;
     tour = reduceTour(tour, { t: 'stop' });
     window.clearTimeout(timer);
-    podium.say(asides.stopped.text);
+    // show() rather than say(): this line is the last thing that happens and
+    // nothing is awaiting it, so it wants no dwell contract and no ring counting
+    // down to a next line that is never coming.
+    podium.show(asides.stopped.text);
     window.setTimeout(teardown, asides.stopped.ms);
   });
 

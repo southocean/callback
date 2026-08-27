@@ -11,10 +11,22 @@ import { sym } from './icons.js';
 import type { Store } from '../state.js';
 import { profile } from '../data/cv.js';
 import type { Quests } from '../achievements.js';
+import { loadInterview, clockMs } from '../prefs.js';
+import { runtimeMs } from '../data/tour.js';
 
 export function renderEnded(store: Store, quests: Quests): HTMLElement {
   const address = `${profile.emailUser}@${profile.emailHost}`;
   const { got, total } = quests.count();
+  /*
+   * HOW LONG IT TOOK — board ticket N51.
+   *
+   * Read, not measured, here: the clock is kept by the conversation and written
+   * to storage the moment it reaches its last line, so this screen can be arrived
+   * at by any route — Rejoin, an easter egg, a reload — without the number
+   * changing meaning. Null for anybody who has not heard the whole thing, and the
+   * card is simply absent for them rather than showing a zero.
+   */
+  const run = loadInterview();
 
   /*
    * THE REFERRAL CARD IS GONE. Its copy button went first, then the card with
@@ -212,6 +224,41 @@ export function renderEnded(store: Store, quests: Quests): HTMLElement {
           ),
         ),
       ),
+
+      /*
+       * Only for somebody who actually finished it. Nam wanted the gamification
+       * and this is the honest version of it: a time, their own best, and the
+       * authored benchmark to measure both against — which is the number that
+       * makes the first two interesting, because beating it takes knowing that
+       * lines can be skipped and that triggering a segment early cuts the one
+       * being spoken short.
+       *
+       * No leaderboard. See board ticket N52 for why: this page promises no
+       * backend in four separate places, and its own CSP forbids the request.
+       */
+      run
+        ? h(
+          'div',
+          { class: 'safe' },
+          // 'speed' rather than a stopwatch: the subset has no timer glyph, and
+          // this card is about how fast rather than how long anyway.
+          sym('speed', 24),
+          h(
+            'div',
+            {},
+            h('h2', {}, `You did the interview in ${clockMs(run.lastMs)}`),
+            h(
+              'p',
+              { style: 'margin:0' },
+              run.lastMs <= run.bestMs
+                ? `That is your best of ${run.runs} ${run.runs === 1 ? 'run' : 'runs'}. `
+                : `Your best is ${clockMs(run.bestMs)}, over ${run.runs} runs. `,
+              `Unhurried, it runs ${clockMs(runtimeMs())} — every line can be skipped with a click, so `
+              + 'faster than that is a choice rather than a glitch.',
+            ),
+          ),
+        )
+        : h('span', {}),
 
       h(
         'div',

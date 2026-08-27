@@ -32,7 +32,7 @@ import { profile, pitch, roles, caseStudies, requirementMap, offstage, skills, s
 import { eggs } from '../data/eggs.js';
 import { games } from '../data/games.js';
 import { currentPitch } from '../data/companies.js';
-import { buildDoc } from './built.js';
+import { specBody } from './devportal.js';
 import { signal } from './signal.js';
 
 export type ShareKind = 'tab' | 'window' | 'screen';
@@ -105,7 +105,20 @@ const DOCS: Record<string, Doc> = {
   tools: { title: 'Internal tooling — a bot controller', host: 'southocean.github.io', page: () => pageTools() },
   hobby: { title: 'Off the clock', host: 'southocean.github.io', page: () => pageHobby() },
 };
-DOCS['built'] = { title: 'How this was built', host: 'southocean.github.io', page: () => buildDoc() };
+/*
+ * N50. Was `buildDoc()` — one section of the spec's Overview, rendered alone, so
+ * the shared screen presented a near-copy of a panel that has five tabs. It is
+ * the panel itself now, chromeless, in a page. See specBody() in devportal.ts.
+ *
+ * The tab keeps its title and its file name in Explorer: "how-this-is-built.html"
+ * is what a person would have called the file, and the spec is the answer to that
+ * question rather than a different subject.
+ */
+DOCS['built'] = {
+  title: 'How this was built',
+  host: 'southocean.github.io',
+  page: () => h('div', { class: 'pg pg-spec' }, specBody()),
+};
 /* 'side' is an alias for 'work' now: the two pages were answering one question
    and have been merged (see pageWork). The id survives so side-projects.html in
    Explorer still opens something, rather than becoming a file that does nothing. */

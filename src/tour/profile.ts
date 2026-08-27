@@ -242,9 +242,19 @@ export function tier(v: Visitor): Tier {
  * Floored at 0.62 so it never becomes unreadable, and capped just above 1 so a
  * very settled reader gets a little more room rather than a lot.
  */
+/**
+ * The bounds, named rather than inline, because something else now depends on
+ * them: the outro promises to fit inside two minutes (N49) and every duration in
+ * it is scaled by this function on the way out. A cap checked against the
+ * authored sum alone would be a cap on paper only, so the test multiplies by
+ * PACE_MAX -- which it can only do if PACE_MAX is a thing with a name.
+ */
+export const PACE_MIN = 0.62;
+export const PACE_MAX = 1.08;
+
 export function pace(v: Visitor): number {
   const p = 1 - 0.38 * v.restless;
-  return p < 0.62 ? 0.62 : p > 1.08 ? 1.08 : p;
+  return p < PACE_MIN ? PACE_MIN : p > PACE_MAX ? PACE_MAX : p;
 }
 
 /** 0..1 the other way: how much of themselves they have put into this. */

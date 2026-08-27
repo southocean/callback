@@ -43,14 +43,29 @@ export const quests: Quest[] = [
   { id: 'plain', name: 'Just give me the CV', hint: 'Read it as a document instead.' },
   /*
    * The seventeenth, and the reason the count in the opening line is what it is.
-   * Sitting through a tour that runs itself is a real thing the visitor can do
-   * and the only one of these that costs them nothing but attention — which
-   * makes it the right one to name in the sentence that asks for their attention.
+   * Hearing him out is a real thing the visitor can do and the only one of these
+   * that costs them nothing but attention — which makes it the right one to name
+   * in the sentence that asks for their attention.
+   *
+   * The id stays `tour` after N44 renamed everything a visitor can see. It is a
+   * localStorage key: renaming it would silently take the achievement back off
+   * everybody who already had it, which is a worse outcome than an internal name
+   * that has gone slightly out of date.
    */
-  { id: 'tour', name: 'Take the tour', hint: 'Let the walkthrough run to the end.' },
+  { id: 'tour', name: 'Hear him out', hint: 'Let the conversation run to the end.' },
   { id: 'konami', name: 'You know the code', hint: '', secret: true },
   { id: 'patient', name: 'Read the whole spec', hint: '', secret: true },
   { id: 'slap', name: 'Talk to the hand', hint: '', secret: true },
+  /*
+   * N49. Sitting through the whole outro, which spaces out to nearly two minutes
+   * and is abandoned by any input at all.
+   *
+   * Secret, and for the same reason as the other three: a listed hint reading
+   * "sit still for two minutes after the goodbye" turns a joke into a chore, and
+   * spoils the joke on the way. Secrets are not counted in the total, so the
+   * seventeen the opening line promises is still seventeen.
+   */
+  { id: 'stayed', name: 'Last one out', hint: '', secret: true },
 ];
 
 /** What "all of them" means in the opening line. Secrets are not advertised. */

@@ -138,11 +138,21 @@ export const parts: Part[] = [
      * The achievement count is asserted against the quest list in the test suite,
      * so the line cannot quietly become a lie when a quest is added.
      */
+    /*
+     * N45. The first two lines are the caption loop's, verbatim, because the
+     * loop opened better than the script did. "Thank you for joining me here"
+     * was a host greeting a guest; "I know a CV that opens a call is a bit much"
+     * is a person acknowledging the room, which is the only way the rest of this
+     * earns a hearing.
+     *
+     * "Let me walk you through my world" went with the word tour. Nobody says
+     * that in a call.
+     */
     lines: [
-      L("Hi, I'm Nam. Thank you for joining me here.", 3000),
-      L('Let me walk you through my world.', 2600),
-      L('Feel free to play around — maybe you can complete all 17 achievements.', 4200),
-      L("First, let's share my screen.", 2400),
+      L('Thanks for joining. I know a CV that opens a call is a bit much.', 3600),
+      L("So let me be quick about why I'm in your applicant pool.", 3000),
+      L('Click around while I talk — you could even complete all 17 achievements.', 4200),
+      L('Let me get my screen up.', 2400),
     ],
     beats: [
       // The share is PERFORMED, not switched on: the hand goes to the button,
@@ -151,7 +161,7 @@ export const parts: Part[] = [
       { at: 3, cue: 'share' },
     ],
     commentary: [L('Starting from the top, then.', 2000)],
-    brief: [L("I'm Nam. Let me share my screen.", 2400)],
+    brief: [L("I'm Nam. Let me get my screen up.", 2400)],
   },
 
   {
@@ -169,22 +179,44 @@ export const parts: Part[] = [
      * Scroll past a section yourself and its short version plays instead; scroll
      * past it having already heard it and nothing plays at all.
      */
+    /*
+     * N45. Four of the caption loop's lines land here, which is why this part
+     * grew from seven lines to nine.
+     *
+     * The two about the current job are the reason the merge was worth doing at
+     * all. "Four players, four networks, one shared board" is the closest either
+     * script came to naming what this job is — a video call is four clients on
+     * four networks agreeing about one surface — and it was sitting in a loop
+     * that only ever played when nobody was being talked to. The platform line
+     * beside it is the three migrations, which the document has and the script
+     * used to walk straight past.
+     *
+     * The loop's own "seven years leading the front end of a real-time
+     * multiplayer client" is gone: it was this part's second line with the
+     * product's name removed, and the name is the better half.
+     *
+     * The research line is the loop's, with the award swapped for the book
+     * chapter on Nam's instruction. Both are in the CV. The chapter is the less
+     * familiar claim, which makes it the harder one to have made up.
+     */
     lines: [
       L('This is the CV.', 1800),
       L('Seven years leading the front end of an online Mahjong client.', 4000),
+      L('Four players, four networks, one shared board, no excuses about latency.', 4600),
+      L('Desktop, then web, then a Unity renderer embedded in a React app.', 4400),
       L('Working cross-team with basically everyone — design, server, QA, and the people who get the call when a table breaks at midnight.', 5600),
-      L('Background in algorithm research. Published, and close enough to a PhD to have thought hard about it.', 4800),
+      L('Before that, four years of optimisation research — two papers and a book chapter.', 4800),
+      L('And before that, C++ on signing hardware. Correctness was the product.', 4400),
       L("Here are my tech skills. Claude made this whole section redundant, LOL.", 4200),
       L('Education: Vietnam, Japan, Sweden. I love tonkotsu.', 3600),
-      L("After work I do a lot of wild stuff. We'll get to that later.", 3400),
     ],
     beats: [
       { at: 0, roll: { of: 'cv', to: 0, ms: 500 } },
       { at: 1, roll: { of: 'cv', to: 'Experience', ms: 1400 } },
-      { at: 3, roll: { of: 'cv', to: 0.42, ms: 1600 } },
-      { at: 4, roll: { of: 'cv', to: 'Skills', ms: 1500 } },
-      { at: 5, roll: { of: 'cv', to: 'Education', ms: 1400 } },
-      { at: 6, roll: { of: 'cv', to: 'Off the clock', ms: 1400 } },
+      { at: 5, roll: { of: 'cv', to: 0.42, ms: 1600 } },
+      { at: 6, roll: { of: 'cv', to: 0.55, ms: 1400 } },
+      { at: 7, roll: { of: 'cv', to: 'Skills', ms: 1500 } },
+      { at: 8, roll: { of: 'cv', to: 'Education', ms: 1400 } },
     ],
     /*
      * N35, armed on line 1 — the Wasabi years. Three seconds is Nam's number and
@@ -255,14 +287,19 @@ export const parts: Part[] = [
       L('Now let me show you how this was built.', 2800),
       L('No framework. No runtime dependency. One stylesheet and a reducer.', 4400),
       L('The interface was measured off the real product, not eyeballed. The measurements are in there, including the one that was wrong.', 5600),
-      L('There is a size budget the CI fails on, and a test suite you can run from inside this call.', 4600),
+      L('There is a size budget that fails the build.', 3000),
+      /* N45, the loop's line 9. The flow already said the tests were real; what
+         it never did was tell anyone to go and break them, which is the half
+         that turns a claim into an invitation. */
+      L('And the tests are real — they run in your browser, and you can break them.', 4600),
       L('One person and an agent, one week. The retractions are in the commit log with everything else.', 4800),
     ],
     beats: [
       { at: 0, cue: 'tab:built' },
       { at: 2, roll: { of: 'page', to: 0.35, ms: 1600 } },
-      { at: 3, roll: { of: 'page', to: 0.7, ms: 1600 } },
-      { at: 4, roll: { of: 'page', to: 1, ms: 1400 } },
+      { at: 3, roll: { of: 'page', to: 0.6, ms: 1400 } },
+      { at: 4, roll: { of: 'page', to: 0.8, ms: 1400 } },
+      { at: 5, roll: { of: 'page', to: 1, ms: 1400 } },
     ],
     commentary: [L('The build: no dependencies, measured rather than eyeballed, budget enforced in CI.', 4400)],
     brief: [L('No framework, no dependencies, measured off the real product.', 3000)],
@@ -309,7 +346,14 @@ export const parts: Part[] = [
      * which says the same thing again without a caption.
      */
     lines: [
-      L("And that's the tour. It's finished — the rest is yours.", 3800),
+      /*
+       * QA: this said "And that's the whole pitch", and so does the LAST LINE OF
+       * THE PERSONAL SEGMENT ("That's the whole pitch. Thanks for listening to
+       * it."), which plays about a hundred seconds later. Hearing the same
+       * sentence twice makes the second one sound like a loop rather than an
+       * ending -- which is the exact failure the caption loop used to cause.
+       */
+      L("And that's everything I came here to show you. The rest is yours.", 3800),
       L('Everything on screen is real and nothing here breaks. Open the panels, drag the windows, run the tests.', 5000),
       L("The plain document is top left if you'd rather just read it, and there's a PDF next to it.", 4600),
       L('Thank you for your time. Genuinely.', 3000),
@@ -318,7 +362,7 @@ export const parts: Part[] = [
       { at: 3, cue: 'park' },
     ],
     commentary: [L('The plain document is top left, and there is a PDF beside it.', 3600)],
-    brief: [L("That's the tour. Plain document top left, PDF beside it. Thanks for the time.", 3400)],
+    brief: [L("That's me. Plain document top left, PDF beside it. Thanks for the time.", 3400)],
   },
 ];
 
@@ -565,3 +609,120 @@ export const asides = {
   /** The visitor went quiet mid-tour and the script takes the wheel back. */
   resume: L('Still here? I will carry on then.', 2600),
 };
+
+// ---------------------------------------------------------------------------
+// AFTER THE GOODBYE — board ticket N49
+// ---------------------------------------------------------------------------
+
+/**
+ * What he says when you do not leave.
+ *
+ * Nam: "we should have some post end banter, like why are you still here? ...
+ * There is nothing more to see here. I swear. some more stuff like this, spacing
+ * out more and more, but no longer than 2min."
+ *
+ * THE GAPS ARE THE JOKE. A run of lines at an even four seconds is a script that
+ * has not finished; the same lines at six, then nine, then thirteen is somebody
+ * who has genuinely run out of things to say and keeps thinking of one more. So
+ * the dwell on each line is the silence AFTER it, and it grows every time.
+ *
+ * Two rules this has to obey, and the test suite holds both:
+ *
+ *   · the gaps only ever grow, because a gap that shrinks reads as a new
+ *     section starting rather than a conversation winding down;
+ *   · the whole thing fits inside two minutes, because the visitor cannot see
+ *     how much is left and an outro with no visible end is a hostage situation.
+ *
+ * It is abandoned by any input at all. Someone who starts clicking has answered
+ * the question in the first line, and the achievement for sitting through it is
+ * only worth having because leaving is this easy.
+ */
+export const OUTRO_CAP_MS = 120_000;
+
+export const outro: Line[] = [
+  L('Still here?', 6000),
+  L('The call does not actually end, by the way. Sit as long as you like.', 9000),
+  L('Questions? My email is on the way out. Or the referral note, if you know somebody. 🙏', 13_000),
+  L('There is nothing more to see here. I swear.', 17_000),
+  L('…okay. There are two easter eggs. That is all I am saying.', 21_000),
+  L('You are unusually patient. That is a promising sign for a code review.', 26_000),
+  /* The last thing said. The captions go off after it — see the note on the
+     outro in src/tour/stage.ts — which is the only way to signal "I have
+     actually stopped now" without saying it a seventh time. */
+  L('Alright — genuinely, thank you for your time. Good luck with the rest of the pile. 👋', 5000),
+];
+
+// ---------------------------------------------------------------------------
+// THE CLOCK — board ticket N46
+// ---------------------------------------------------------------------------
+
+/**
+ * Every line of the flow, with the second it is due.
+ *
+ * Nam: "timestamp when the text is shown ... This is so that we have some kind
+ * of bench mark of how long the conversation is."
+ *
+ * DERIVED, NOT AUTHORED, and that is the whole design. An authored `at` sitting
+ * beside an authored `ms` is two ways to say one thing, and they drift the first
+ * time a line's dwell is tuned without its neighbours being renumbered — in a
+ * panel whose entire job is to be checkable. So the timestamp is the running sum
+ * of the dwells before it, in priority order, and it cannot be wrong.
+ *
+ * What it is a benchmark OF is the uninterrupted run: nobody clicks, nobody
+ * skips, every line holds for its authored dwell. A real visit is almost always
+ * shorter, because skipping a line with a press is free and the register drops to
+ * `brief` the moment somebody starts exploring. That gap is the point — it is
+ * what makes the interview timer (N51) worth reading.
+ */
+export interface Stamped {
+  /** Seconds from the first word to this line. */
+  at: number;
+  /** Which part it belongs to, and where in that part. */
+  part: Part;
+  index: number;
+  line: Line;
+  /** The beats that fire on this line. */
+  beats: Beat[];
+}
+
+export function timeline(): Stamped[] {
+  const out: Stamped[] = [];
+  let ms = 0;
+  for (const part of [...parts].sort((a, b) => a.priority - b.priority)) {
+    part.lines.forEach((line, index) => {
+      out.push({
+        at: Math.round(ms / 1000),
+        part,
+        index,
+        line,
+        beats: (part.beats ?? []).filter((b) => b.at === index),
+      });
+      ms += line.ms;
+    });
+  }
+  return out;
+}
+
+/** The benchmark: how long the conversation runs if nobody touches it. */
+export function runtimeMs(): number {
+  return parts.reduce((a, p) => a + p.lines.reduce((b, l) => b + l.ms, 0), 0);
+}
+
+/**
+ * The conversation as a readable transcript.
+ *
+ * One script, one transcript. This used to be a separate eleven-line array in
+ * data/cv.ts that the panel rendered and the call played on a loop behind
+ * everything else; after N45 there is only the script, so the panel renders the
+ * script. Which means the transcript can no longer disagree with what is
+ * actually said — it is the same data, stamped by the same clock.
+ */
+export interface TranscriptLine {
+  at: number;
+  speaker: string;
+  text: string;
+}
+
+export function transcriptLines(speaker: string): TranscriptLine[] {
+  return timeline().map((t) => ({ at: t.at, speaker, text: t.line.text }));
+}

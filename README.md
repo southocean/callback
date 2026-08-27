@@ -90,7 +90,7 @@ A11y assertions   13, run against the live DOM
 - **The tests run in your browser**, in Meeting tools → Tests. Same file CI runs. There is a chaos switch that injects a real fault so you can watch the suite go red — a runner that cannot fail proves nothing.
 - **Accessibility is asserted, not claimed.** Roving tabindex on the tile grid, focus trapping, polite live regions, reduced-motion honoured, nothing flashing above 3 Hz. The audit panel checks the live document and is allowed to fail; during QA it caught a missing `<main>` landmark.
 - **It never asks for a permission.** No camera, no microphone, no autoplay. The camera control changes its own icon and nothing else — `getUserMedia` is not in the bundle. A browser permission bar on a page dressed as Meet is the exact shape of the scam a non-technical reader was warned about, and no reassurance arriving after that alarm is worth anything.
-- **It walks you through itself.** A guided tour opens the call: a cursor with a real motion model — Fitts's law timing, a ballistic throw that overshoots, corrective submovements, tremor while it waits — presses the buttons that share the screen, scrolls the CV, and narrates through the caption strip. It watches how you behave while it does it, and gets shorter, or teases you, or gets out of the way.
+- **It talks to you.** The call opens on a conversation rather than a walkthrough: a cursor with a real motion model — Fitts's law timing, a ballistic throw that overshoots, corrective submovements, tremor while it waits — presses the buttons that share the screen, scrolls the CV, and speaks through the caption strip. The captions arrive word by word with the odd hesitation, each one holds behind a filling ring you can pause by hovering or skip with a click, and clicking ahead to a section cuts the one being spoken short instead of queueing behind it. It watches how you behave while it does it, and gets shorter, or teases you, or gets out of the way. Hear the whole thing out and it tells you how long you took.
 - **Real-time constraints**, because the role is real-time: a seeded network simulator that degrades the call to hotel wifi and shows what a client should do about it, driven by the same pure model the tests run against.
 
 ```bash
@@ -121,7 +121,7 @@ src/
   a11y.ts           focus trap, roving tabindex, the live audit
   data/spec.ts      the measured Meet spec
   data/cv.ts        all CV content — one source, both views render from it
-  data/tour.ts      the tour's script: the flow, and the commentary
+  data/tour.ts      the script: the flow, the commentary, and the outro
   tour/             director, visitor profile, cursor, stage — three of the four pure
   net/degrade.ts    seeded network simulator
   ui/               home · lobby · call · ended · panels · document

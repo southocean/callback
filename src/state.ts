@@ -391,14 +391,16 @@ export function layoutTimeline(spans: Span[], now: number): Placed[] {
 // Caption scheduling
 // ---------------------------------------------------------------------------
 
-export function captionAt<T extends { at: number }>(lines: T[], t: number): T | null {
-  let found: T | null = null;
-  for (const l of lines) {
-    if (l.at <= t) found = l;
-    else break;
-  }
-  return found;
-}
+/*
+ * `captionAt(lines, t)` used to live here: given a list of timestamped lines and
+ * a time, which one is showing. It existed for the call's own caption loop, which
+ * walked an array on a wall clock and wrapped around forever.
+ *
+ * That loop is gone (N45) and the conversation is event-driven — a line ends when
+ * the visitor is done with it, not when a clock says so (N48) — so there is no
+ * longer any question of "which line is due right now". Removed rather than left
+ * exported and unused, along with its five tests.
+ */
 
 /** Clamp a shader parameter into range. Only NaN is refused (review Q4). */
 export function clamp01(n: number): number {

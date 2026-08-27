@@ -42,15 +42,34 @@ const TABS: { id: Tab; label: string }[] = [
   { id: 'process', label: 'Process' },
   { id: 'reviews', label: 'Design reviews' },
   { id: 'board', label: 'Kanban board' },
-  /* N26. The guided tour is only maintainable if its branching is visible. */
-  { id: 'script', label: 'Tour script' },
+  /*
+   * N26. The guided tour is only maintainable if its branching is visible. Named
+   * "Scripts", plural, since it also carries the call's own caption loop — a
+   * script the tour suspends and hands back, and the one Nam wants to fold in.
+   */
+  { id: 'script', label: 'Scripts' },
 ];
 
 export type PortalMode = 'light' | 'dark';
 
-export function openDevPortal(reducedMotion: boolean, mode: PortalMode = 'light'): void {
-  if (document.getElementById('devportal')) return;
-
+/**
+ * THE SPEC ITSELF — tabs and body, with no chrome around it.
+ *
+ * Board ticket N50. Nam: "how this was built was still the wrong page, it should
+ * open the project spec that we are already showing in home screen."
+ *
+ * It was a second copy. The browser tab inside the shared screen rendered
+ * `buildDoc()` on its own, which is ONE SECTION of this panel's Overview — so the
+ * screen being presented showed something that looked like the spec, was missing
+ * four of its five tabs, and was free to drift from it.
+ *
+ * Extracted rather than duplicated, and the split is where the chrome starts: the
+ * dialog below adds the scrim, the header, the close button and a focus trap; the
+ * page inside the share adds nothing. That asymmetry is deliberate — a modal with
+ * a focus trap, rendered inside a fake browser window inside a screen share, would
+ * capture the keyboard for a window that is a drawing.
+ */
+export function specBody(): HTMLElement {
   let tab: Tab = 'overview';
   const body = h('div', { class: 'dp-body' });
 
@@ -64,6 +83,28 @@ export function openDevPortal(reducedMotion: boolean, mode: PortalMode = 'light'
       }, t.label),
     ),
   );
+
+  function draw(): void {
+    for (const b of tabs.querySelectorAll('button')) {
+      b.setAttribute('aria-selected', b.getAttribute('data-t') === tab ? 'true' : 'false');
+    }
+    clear(body);
+    body.appendChild(
+      tab === 'overview' ? overviewView()
+      : tab === 'process' ? processView()
+      : tab === 'reviews' ? reviewsView()
+      : tab === 'script' ? renderScriptEditor()
+      : boardView(),
+    );
+    body.scrollTop = 0;
+  }
+
+  draw();
+  return h('div', { class: 'dp-inner' }, tabs, body);
+}
+
+export function openDevPortal(reducedMotion: boolean, mode: PortalMode = 'light'): void {
+  if (document.getElementById('devportal')) return;
 
   let release: (() => void) | null = null;
   const close = (): void => {
@@ -91,24 +132,8 @@ export function openDevPortal(reducedMotion: boolean, mode: PortalMode = 'light'
         h('button', {
           class: 'icon-btn dp-close', type: 'button', 'aria-label': 'Close project spec', onclick: close,
         }, sym('close', 22))),
-      tabs,
-      body),
+      specBody()),
   ) as HTMLElement;
-
-  function draw(): void {
-    for (const b of tabs.querySelectorAll('button')) {
-      b.setAttribute('aria-selected', b.getAttribute('data-t') === tab ? 'true' : 'false');
-    }
-    clear(body);
-    body.appendChild(
-      tab === 'overview' ? overviewView()
-      : tab === 'process' ? processView()
-      : tab === 'reviews' ? reviewsView()
-      : tab === 'script' ? renderScriptEditor()
-      : boardView(),
-    );
-    body.scrollTop = 0;
-  }
 
   /*
    * A press on the dimmed ground closes it. Nam: "clicking the dimmed background
@@ -118,7 +143,6 @@ export function openDevPortal(reducedMotion: boolean, mode: PortalMode = 'light'
    */
   portal.addEventListener('pointerdown', (e) => { if (e.target === portal) close(); });
 
-  draw();
   document.body.appendChild(portal);
   release = trapFocus(portal, close);
   portal.querySelector<HTMLElement>('.dp-close')?.focus();

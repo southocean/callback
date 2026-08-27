@@ -33,7 +33,8 @@
 
 import { h } from '../dom.js';
 import {
-  parts, quips, acks, story, asides, type Part, type Quip, type Beat,
+  parts, quips, acks, story, asides, outro, timeline, runtimeMs, OUTRO_CAP_MS,
+  type Part, type Quip, type Beat,
 } from '../data/tour.js';
 import { QUEUE_BRIEF, QUEUE_HANDOVER } from '../tour/director.js';
 import { BAIL_MS, IDLE_MS } from '../tour/profile.js';
@@ -44,6 +45,10 @@ const secs = (ms: number): string => `${(ms / 1000).toFixed(1)}s`;
 
 const partRuntime = (p: Part, key: 'lines' | 'commentary' | 'brief'): number =>
   p[key].reduce((a, l) => a + l.ms, 0);
+
+/** mm:ss, for the running clock down the left of the timeline. */
+const clock = (sec: number): string =>
+  `${Math.floor(sec / 60)}:${String(sec % 60).padStart(2, '0')}`;
 
 /** What a beat does, in words, since half of them are no longer selectors. */
 const beatLabel = (b: Beat): { what: string; detail: string } => {
@@ -91,14 +96,21 @@ export function renderScriptEditor(): HTMLElement {
 
   return h('div', { class: 'dp-col dp-col-wide' },
     h('p', { class: 'dp-lead' },
-      `Two scripts. The FLOW is ${flow.length} parts and ${secs(total)} if it runs start to finish uninterrupted — `
-      + `that is the demo. The COMMENTARY is ${quips.length} throwaway lines that never run, only answer: one shot `
-      + 'each, never queued, never repeated. Keeping them apart is what makes the first number mean anything.'),
+      `One script, in two registers. The FLOW is ${flow.length} parts and ${secs(total)} if it runs start to finish `
+      + `uninterrupted, which is the benchmark rather than a promise. The COMMENTARY is ${quips.length} throwaway `
+      + 'lines that never run, only answer: one shot each, never queued, never repeated. Keeping them apart is what '
+      + 'makes the first number mean anything.'),
+    h('p', { class: 'dp-note' },
+      'It is not a tour and the word is gone from everywhere a visitor can see it (N44). It was not a labelling '
+      + "problem: a script that thinks of itself as a tour writes lines that introduce sections, and the call's own "
+      + 'caption loop — written to be walked into cold, so no line could lean on the one before — sounded more like '
+      + 'a person than the thing narrating over it did. The loop is folded in (N45); there is no second script left '
+      + 'to play behind this one.'),
 
     /* --- the flow -------------------------------------------------------- */
     h('h2', { class: 'dp-head2' }, 'The primary flow'),
     h('p', { class: 'dp-note' },
-      'Order is priority, not the order they appear in the file. Every part carries three registers — the tour '
+      'Order is priority, not the order they appear in the file. Every part carries three registers — it '
       + 'picks a tone rather than a length, which is what stops an interrupted run reading as a truncated one. '
       + 'Durations are authored and then scaled at run time by how patient the visitor is being.'),
     h('div', { class: 'sc-flowlist' },
@@ -120,7 +132,7 @@ export function renderScriptEditor(): HTMLElement {
       h('div', { class: 'sc-flow-b is-end' }, h('b', {}, 'handed over'), h('span', {}, 'Says one line and stops. Terminal — it does not come back.'))),
     h('p', { class: 'dp-note' },
       'Every path converges on the same queue: after any commentary the director returns to the lowest-priority '
-      + 'part that has not been covered, whether the tour reached it or the visitor did. That single rule is what '
+      + 'part that has not been covered, whether the script reached it or the visitor did. That single rule is what '
       + 'makes a part visited out of turn get skipped later rather than replayed. '
       + `Going quiet for ${IDLE_MS / 1000}s drops the backlog instead of working through it — a question nobody `
       + 'remembers asking is not worth answering.'),
@@ -206,5 +218,49 @@ export function renderScriptEditor(): HTMLElement {
     h('div', { class: 'sc-asides' },
       ...Object.entries(asides).map(([k, l]) => h('div', { class: 'sc-aside' },
         h('b', {}, k), h('span', {}, l.text), h('span', { class: 'sc-ms' }, secs(l.ms))))),
+
+    /* --- the clock -------------------------------------------------------- */
+    h('h2', { class: 'dp-head2' }, 'The clock'),
+    h('p', { class: 'dp-note' },
+      `Every line with the second it is due, and the beat it fires. ${secs(runtimeMs())} end to end if nobody `
+      + 'touches it. The timestamps are DERIVED — the running sum of the dwells before them, in priority order — so '
+      + 'they cannot drift from the durations they are made of. A real visit is almost always shorter: skipping a '
+      + 'line with a press is free, and a visitor who starts exploring drops the register to brief.'),
+    h('p', { class: 'dp-note' },
+      'The arrow runs both ways (N46). A beat is what the script does to the screen; the same selector clicked by '
+      + 'the visitor cuts the line being spoken short and jumps to that part, rather than queueing behind a segment '
+      + 'they have already left.'),
+    h('div', { class: 'sc-clock' },
+      /*
+       * The part label goes FIRST and spans the row, so it sits above its segment
+       * rather than beside the first line of it. QA caught what the other order
+       * costs: a label spanning columns 2-3 fills row one, which pushes the line
+       * text down to row two COLUMN ONE -- a 42px timestamp column -- so the
+       * first line of every segment rendered as one clipped word.
+       */
+      ...timeline().map((t) => h('div', { class: `sc-tick${t.index === 0 ? ' is-partstart' : ''}` },
+        h('span', { class: 'sc-tick-p' }, t.index === 0 ? t.part.label : ''),
+        h('span', { class: 'sc-ms sc-tick-at' }, clock(t.at)),
+        h('span', { class: 'sc-tick-t' }, t.line.text),
+        h('span', { class: 'sc-ms' }, secs(t.line.ms)),
+        ...t.beats.map((b) => {
+          const { what, detail } = beatLabel(b);
+          return h('span', { class: 'sc-beat sc-tick-b' }, what, detail ? h('code', {}, detail) : h('span', {}));
+        })))),
+
+    /* --- after the goodbye ------------------------------------------------ */
+    h('h2', { class: 'dp-head2' }, 'After the goodbye'),
+    h('p', { class: 'dp-note' },
+      `${outro.length} lines that only play if the visitor does not leave, and the gaps are the joke: `
+      + `${outro.map((l) => `${Math.round(l.ms / 1000)}s`).join(' → ')}. A run of lines at an even four seconds is `
+      + 'a script that has not finished. The same lines spacing out is somebody who has genuinely run out and keeps '
+      + `thinking of one more. Capped at ${OUTRO_CAP_MS / 1000}s, currently `
+      + `${Math.round(outro.reduce((a, l) => a + l.ms, 0) / 1000)}s. Any input at all abandons it, which is what `
+      + 'makes the achievement for sitting through it worth having.'),
+    h('div', { class: 'sc-asides' },
+      ...outro.map((l, i) => h('div', { class: 'sc-aside' },
+        h('b', {}, i === outro.length - 1 ? 'and then silence' : `+${Math.round(l.ms / 1000)}s`),
+        h('span', {}, l.text),
+        h('span', { class: 'sc-ms' }, secs(l.ms))))),
   );
 }

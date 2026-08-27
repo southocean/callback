@@ -45,12 +45,6 @@ export interface ChatMessage {
   text: string;
 }
 
-export interface TranscriptLine {
-  at: number;
-  speaker: string;
-  text: string;
-}
-
 export const profile = {
   name: 'Nam Nguyen',
   headline: 'Lead front-end developer',
@@ -329,20 +323,22 @@ export const chat: ChatMessage[] = [
   },
 ];
 
-/** Labelled as scripted. Nothing here pretends to be live speech (review T11). */
-export const transcript: TranscriptLine[] = [
-  { at: 0, speaker: 'Nam', text: 'Thanks for joining. I know a CV that opens a call is a bit much.' },
-  { at: 4, speaker: 'Nam', text: "So let me be quick about why I'm in your applicant pool." },
-  { at: 8, speaker: 'Nam', text: 'Seven years leading the front end of a real-time multiplayer client.' },
-  { at: 13, speaker: 'Nam', text: 'Four players, four networks, one shared board, no excuses about latency.' },
-  { at: 18, speaker: 'Nam', text: 'Desktop, then web, then a Unity renderer embedded in a React app.' },
-  { at: 23, speaker: 'Nam', text: 'A team of five, and the design reviews to go with it.' },
-  { at: 27, speaker: 'Nam', text: 'Before that, C++ on signing hardware. Correctness was the product.' },
-  { at: 32, speaker: 'Nam', text: 'Before that, four years of optimisation research and a best-paper award.' },
-  { at: 37, speaker: 'Nam', text: 'This page is TypeScript, no framework, no dependencies, under budget.' },
-  { at: 42, speaker: 'Nam', text: 'The tests are real, they run in your browser, and you can break them.' },
-  { at: 47, speaker: 'Nam', text: 'I live 38 minutes away and I speak Swedish. Your move.' },
-];
+/*
+ * THE SECOND SCRIPT USED TO LIVE HERE.
+ *
+ * Eleven lines with second offsets, which the call played on a 900ms tick, on a
+ * loop, forever — and which the conversation suspended while it talked and handed
+ * back when it finished. Two consequences, and Nam hit both: a visitor who had
+ * just been thanked for their time got talked at again from the top, and the loop
+ * sounded BETTER than the script interrupting it.
+ *
+ * The second one is why this is a deletion rather than a bug fix. Every line in
+ * the loop had to survive being walked into cold, so none of them could lean on
+ * the line before — and that constraint is exactly what made them sound offhand.
+ * N45 folded them into the one script in data/tour.ts, line by line, on Nam's
+ * own call; the merge is minuted on board ticket N45 and the transcript panel now
+ * renders the script itself via `transcriptLines`.
+ */
 
 /**
  * TWO COLUMNS, NO DUPLICATES.

@@ -962,6 +962,167 @@ export const tasks: Task[] = [
       notes: 'Two lists. The flow has a running time that means something for the first time, because throwaway lines stopped counting toward it.',
     },
   },
+  /* ---------------------------------------------------------------------
+   * Nam's QA of 27 August, second pass: the tour stops being a tour.
+   *
+   * The whole batch comes from one observation. He watched the call's own
+   * caption loop resume after the tour said goodbye and liked it BETTER than the
+   * script it interrupted -- "sounds very casual actually" -- and the diagnosis
+   * followed: the thing narrating his CV had been written as a guided tour, and a
+   * guided tour is not what a call is. So the loop is not a second script to be
+   * tidied away. It is the register the first one should have had.
+   * ------------------------------------------------------------------- */
+  {
+    id: 'N44', col: 'done', size: 'M', tag: 'content',
+    title: 'It is a conversation, not a tour',
+    note: 'Rename it everywhere the visitor can see, because the word was shaping the writing.',
+    detail: {
+      why: 'Nam: "I actually dont like that it was a tour, no this is a real attempt at talking to the user." The word was not only in the labels — it was in the prose, and a script that thinks of itself as a tour writes lines that introduce sections instead of lines that talk to somebody.',
+      done: [
+        'No visitor-facing string says "tour"',
+        'The Stop control says what it actually stops',
+        'The achievement and its hint are about hearing him out, not about a walkthrough',
+        'The Scripts panel describes one script, not a tour script plus a loop',
+      ],
+      raised: 'Nam, QA 27 Aug, second pass',
+      notes: 'The internals keep the tour/ directory and the TourState type: renaming a pure module nothing reads out loud costs a diff and buys nothing. The line between them is whether a stranger can see the word.',
+    },
+  },
+  {
+    id: 'N45', col: 'done', size: 'M', tag: 'content',
+    title: 'Fold the caption loop into the one script',
+    note: 'Line by line, on Nam’s own call: keep, merge, drop, rewrite.',
+    detail: {
+      why: 'Two scripts on one surface meant the better-sounding one only ever played when nobody was being talked to. The verdict column in the Scripts panel existed to make the merge decidable; this is the merge.',
+      done: [
+        'Lines 0 and 1 open the conversation, before the share',
+        'Lines 3 and 4 merged into the current-position segment; line 2 dropped as a duplicate',
+        'Line 5 dropped, line 10 dropped',
+        'Lines 6 and 7 kept, with the award replaced by the book chapter',
+        'Line 8 dropped as a duplicate; line 9 kept and placed in the build segment',
+        'The standalone loop is gone, and nothing plays behind the script any more',
+      ],
+      raised: 'Nam, QA 27 Aug, second pass',
+      notes: 'Line 7 was "a best-paper award" and is now the book chapter, on his instruction. Both are in the CV; the chapter is the less familiar claim and the harder one to have made up.',
+    },
+  },
+  {
+    id: 'N46', col: 'done', size: 'L', tag: 'call',
+    title: 'The script has a clock, and a click moves it',
+    note: 'Every line carries the second it is due. A trigger cuts the current segment short instead of queueing behind it.',
+    detail: {
+      why: 'Nam: "timestamp when the text is shown, and what mouse event it triggers, which would also work the other way around." Without a clock there was no way to say how long the conversation is; without the fast-forward, clicking ahead meant waiting for the segment you had just left to finish talking.',
+      done: [
+        'Every flow line has a derived timestamp, shown in the Scripts panel',
+        'The panel states the total running time from the same numbers',
+        'A visitor trigger cuts the current segment at the line it is on',
+        'The cut segment counts as covered, so it is not re-narrated later',
+        'The timestamps are derived, not authored, so they cannot drift from the dwells',
+      ],
+      raised: 'Nam, QA 27 Aug, second pass',
+      notes: 'Derived rather than authored on purpose. An authored `at` beside an authored `ms` is two sources of truth for one fact, and the panel exists to be trusted.',
+    },
+  },
+  {
+    id: 'N47', col: 'done', size: 'L', tag: 'call',
+    title: 'Captions arrive word by word, with a human in them',
+    note: 'Typed out rather than pasted, with the odd hesitation. Click to see the whole line.',
+    detail: {
+      why: 'Nam: "I want to display word by word kinda similar to how its capturing real human voice, maybe pausing a little, a little uh, ah." A whole sentence appearing at once is a subtitle file. Live captions arrive as the words do, and the hesitations are what make it sound like somebody talking rather than a document being read.',
+      done: [
+        'Words appear one at a time, paced by length and punctuation',
+        'Fillers are inserted at clause boundaries, at most one a line, and never in the closing lines',
+        'The insertion is deterministic, so the same line hesitates in the same place every time',
+        'The screen-reader announcement is the clean authored line, with no fillers in it',
+        'Reduced motion shows the whole line at once',
+        'A press on the bubble, or on the empty stage, completes the line',
+      ],
+      raised: 'Nam, QA 27 Aug, second pass',
+      notes: 'The fillers are a rendering concern and live nowhere near the data. Putting "uh" in the script would put it in the Scripts panel, in the plain-document transcript and in the accessible announcement, none of which should carry it.',
+    },
+  },
+  {
+    id: 'N48', col: 'done', size: 'M', tag: 'trust',
+    title: 'The caption holds for as long as you need it',
+    note: 'A filling ring on the bubble. Hover pauses it, a press skips it.',
+    detail: {
+      why: 'Nam: "player can read fast, slow, whatever and we can accommodate for it." Authored durations are a guess at one reading speed. This makes the guess a default rather than a rule, which is an accessibility fix wearing a game mechanic’s clothes.',
+      done: [
+        'The end screen’s ring motif is reused rather than a second progress idiom invented',
+        'The ring fills over the line’s authored dwell and advances at full',
+        'Hovering the caption pauses the ring, leaving restores it',
+        'A press on the bubble or the empty stage advances immediately',
+        'The same mechanism drives every line, so nothing is on a separate clock',
+      ],
+      raised: 'Nam, QA 27 Aug, second pass',
+      notes: 'The dwell became the only clock the script runs on, which is why N46 could derive a timeline from it at all.',
+    },
+  },
+  {
+    id: 'N49', col: 'done', size: 'M', tag: 'content',
+    title: 'Post-conversation banter, and then real silence',
+    note: 'Why are you still here. Spacing out, under two minutes, with an achievement for sitting through it.',
+    detail: {
+      why: 'Nam: "There is nothing more to see here. I swear ... some more stuff like this, spacing out more and more, but no longer than 2min." The goodbye is the correct place to stop talking, so anything after it has to earn the attention — which is exactly what a joke that keeps getting further apart does.',
+      done: [
+        'The gaps grow, and the whole outro fits inside two minutes',
+        'Sitting through all of it unlocks a secret achievement',
+        'It ends with a real goodbye and thanks',
+        'The hand turns the captions off, mirroring the press that turned them on',
+        'Any input abandons it without penalty',
+      ],
+      raised: 'Nam, QA 27 Aug, second pass',
+      notes: 'Secret rather than listed. A hint reading "sit still for two minutes after the end" spoils the joke and reads as a chore; the other three secrets are hidden for the same reason.',
+    },
+  },
+  {
+    id: 'N50', col: 'done', size: 'S', tag: 'specs',
+    title: 'BUG: "How this was built" was a second copy of the spec',
+    note: 'The browser tab now opens the Project spec itself, tabs and all.',
+    detail: {
+      why: 'Nam: "how this was built was still the wrong page, it should open the project spec that we are already showing in home screen." The tab rendered buildDoc() alone, which is one section of the spec’s Overview — so the shared screen showed a document that looked like the spec, was missing four of its five tabs, and could drift from it.',
+      done: [
+        'The tab renders the same tabbed spec the home screen opens',
+        'One component, two hosts: a dialog from the chrome, a page inside the share',
+        'The script segment about the build still scrolls and still lands',
+      ],
+      raised: 'Nam, QA 27 Aug, second pass',
+      notes: 'Extracted rather than duplicated. The dialog keeps the focus trap and the scrim; the page gets the body and nothing else, because a modal inside a fake browser window would trap focus in a screenshot.',
+    },
+  },
+  {
+    id: 'N51', col: 'done', size: 'M', tag: 'call',
+    title: 'Time the interview, and say so at the end',
+    note: 'The clock runs from the first line to the goodbye. The outro does not count.',
+    detail: {
+      why: 'Nam: "I want to capture the time user spent on the call such that they finish the whole conversation. This is to add gamification to this CV which is my expertise." It also makes the derived timeline of N46 checkable against reality rather than only against itself.',
+      done: [
+        'The clock starts on the first spoken line and stops at the goodbye',
+        'The outro is excluded, so banter cannot inflate it',
+        'Only a run that heard the whole conversation is recorded',
+        'The ended screen reports the time, and the personal best beside it',
+        'Nothing leaves the machine',
+      ],
+      raised: 'Nam, QA 27 Aug, second pass',
+      notes: 'The personal best is in localStorage next to the quests. Comparing against the derived benchmark is the interesting number: skipping every line with a press is genuinely faster than the authored clock.',
+    },
+  },
+  {
+    id: 'N52', col: 'backlog', size: 'L', tag: 'trust',
+    title: 'A leaderboard for the interview time',
+    note: 'Wanted, and blocked on a promise this build makes in four places. The bot-manager server is the wrong shape for it.',
+    detail: {
+      why: 'Nam: "Would be awesome if we have a way to have a leaderboard here, who is fastest to complete the interview LOL." And there is real depth under the joke: fast-forwarding lines, and triggering a segment early so the one before it gets cut, are both genuine strategies that lower the total.',
+      done: [
+        'A decision on the no-backend promise, made deliberately rather than by accident',
+        'If it ships: a submit that is opt-in, carries no identifier the visitor did not type, and is rate-limited',
+        'If it ships: the four places that promise no backend are corrected in the same commit',
+      ],
+      raised: 'Nam, QA 27 Aug, second pass',
+      notes: 'Blockers, in order of how hard they are to argue with. (1) The page states "no analytics, no third-party requests and no backend" on the ended screen, in the meeting-ready card, in the Project spec and in the README — a leaderboard makes all four false, and for a CV about trustworthy engineering that is a worse trade than the feature is worth. (2) The CSP is connect-src ‘self’ with no exceptions, so any host would have to be named in the policy, which is exactly where a reader looks to check claim (1). (3) A public leaderboard on a job application collects timings from named hiring managers, which is a data question rather than a feature question. (4) The bot-manager server is on the React client: a different origin with a different lifetime, and if it stops the CV becomes a site with a broken widget on it. If it ships at all it wants a separate endpoint the CV can lose without noticing — and the honest version is a local personal best, which is what N51 shipped.',
+    },
+  },
+
   /* Flagged rather than done. Still true as of this build. */
   { id: 'T24', col: 'backlog', size: 'M', tag: 'specs', title: 'Initial payload is halfway to the ceiling', note: '24.7 kB of a 50 kB gate, up from 18.2. Still green, and the growth is real, but two deferred chunks are 17 kB and 19 kB and deserve a splitting pass before it becomes urgent.' },
 ];

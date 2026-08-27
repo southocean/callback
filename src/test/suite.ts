@@ -9,19 +9,22 @@
 // Review T9 added the chaos flag: passing `true` injects a genuine fault so the
 // suite can be watched going red. A runner that cannot fail proves nothing.
 
-import { reduce, initial, parseRoute, routeToHash, layoutTimeline, overlaps, captionAt, clamp01, clock } from '../state.js';
+import { reduce, initial, parseRoute, routeToHash, layoutTimeline, overlaps, clamp01, clock } from '../state.js';
+import { tokenise } from '../ui/caption.js';
 import type { State } from '../state.js';
 import { sample, policy, rng, profiles } from '../net/degrade.js';
 import {
   readyCardOpens, afterReadyShown, afterReadyClosed, READY_MUTE_MS, READY_MAX_SHOWS,
+  readInterview, afterInterview, clockMs, INTERVIEW_MIN_MS, INTERVIEW_MAX_MS,
 } from '../prefs.js';
 import { reduceTour, initialTour, nextScripted, registerFor, QUEUE_BRIEF, type TourState } from '../tour/director.js';
 import {
   parts as tourParts, quips as tourQuips, acks as tourAcks, story as tourStory,
+  outro, timeline, runtimeMs, transcriptLines, OUTRO_CAP_MS,
 } from '../data/tour.js';
 import {
   observe, initialVisitor, tier, pace, passive, acknowledge, interests,
-  BAIL_MS, IDLE_MS, type Visitor,
+  BAIL_MS, IDLE_MS, PACE_MAX, type Visitor,
 } from '../tour/profile.js';
 import { readSeenEggs, stillUnseen } from '../prefs.js';
 import { VISIBLE_QUESTS } from '../data/quests.js';
@@ -194,29 +197,13 @@ suite('timeline geometry', () => {
   });
 });
 
-suite('captions', () => {
-  const lines = [
-    { at: 0, text: 'a' },
-    { at: 5, text: 'b' },
-    { at: 9, text: 'c' },
-  ];
-
-  test('picks the line that is current, not the next one', () => {
-    eq(captionAt(lines, 6)?.text, 'b');
-  });
-  test('exact boundary belongs to the new line', () => {
-    eq(captionAt(lines, 5)?.text, 'b');
-  });
-  test('before the first line there is no caption', () => {
-    eq(captionAt(lines, -1), null);
-  });
-  test('after the last line the last line holds', () => {
-    eq(captionAt(lines, 999)?.text, 'c');
-  });
-  test('an empty script does not throw', () => {
-    eq(captionAt([], 4), null);
-  });
-
+suite('the call clock', () => {
+  /*
+   * The five captionAt tests that used to open this suite went with the function
+   * -- see the note in src/state.ts. What replaced them is not here but in the
+   * caption suite below, which tests the thing that actually decides when a line
+   * ends now: how a sentence is cut into the words it arrives in.
+   */
   test('the clock matches Meet\'s format', () => {
     eq(clock(new Date(2026, 7, 20, 9, 2)), '9:02 AM');
     eq(clock(new Date(2026, 7, 20, 0, 5)), '12:05 AM');
@@ -372,12 +359,12 @@ suite('content integrity', () => {
    * number that goes wrong the first time somebody adds a quest, and it goes
    * wrong in the worst possible place -- the second sentence a stranger hears.
    */
-  test('the number of achievements the tour promises is the number there are', () => {
+  test('the number of achievements the script promises is the number there are', () => {
     const intro = tourParts.find((p) => p.id === 'intro');
     const line = intro?.lines.map((l) => l.text).join(' ') ?? '';
     const said = /\ball (\d+) achievements\b/.exec(line);
     ok(!!said, 'the opening no longer names an achievement count');
-    eq(Number(said![1]), VISIBLE_QUESTS, 'the tour promises a different number of achievements than exist');
+    eq(Number(said![1]), VISIBLE_QUESTS, 'the script promises a different number of achievements than exist');
   });
 
   test('the referral blurb carries no superlatives', async () => {
@@ -448,14 +435,14 @@ suite('content integrity', () => {
 });
 
 
-suite('the guided tour director', () => {
+suite('the conversation director', () => {
   /* A tour that has been started, for the tests that do not care how. */
   const started = (): TourState => reduceTour(initialTour, { t: 'start' });
 
   test('starts on the lowest-priority part', () => {
     const s = started();
     eq(s.mode, 'playing');
-    eq(s.current, 'intro', 'the tour did not open on the introduction');
+    eq(s.current, 'intro', 'it did not open on the introduction');
   });
 
   test('plays the script in priority order', () => {
@@ -536,15 +523,15 @@ suite('the guided tour director', () => {
     // the threshold moves rather than silently following it.
     const ids = ['cv', 'jobreq', 'built', 'offclock', 'close'];
     for (const id of ids) s = reduceTour(s, { t: 'visit', id });
-    eq(s.mode, 'handedOver', 'the tour kept narrating a visitor who was clearly exploring');
-    eq(s.queue.length, 0, 'a handed-over tour still had work queued');
+    eq(s.mode, 'handedOver', 'it kept narrating a visitor who was clearly exploring');
+    eq(s.queue.length, 0, 'a handed-over run still had work queued');
   });
 
   test('handing over is terminal', () => {
     let s = started();
     for (const id of ['cv', 'jobreq', 'built', 'offclock', 'close']) s = reduceTour(s, { t: 'visit', id });
     const after = reduceTour(s, { t: 'visit', id: 'cv' });
-    eq(after.mode, 'handedOver', 'the tour came back after handing over');
+    eq(after.mode, 'handedOver', 'it came back after handing over');
     eq(reduceTour(s, { t: 'partDone' }).mode, 'handedOver');
   });
 
@@ -567,7 +554,7 @@ suite('the guided tour director', () => {
     for (const id of ['cv', 'jobreq', 'built']) s = reduceTour(s, { t: 'visit', id });
     eq(s.queue.length, QUEUE_BRIEF);
     s = reduceTour(s, { t: 'settle' });
-    eq(s.queue.length, 0, 'the tour kept a backlog the visitor had moved on from');
+    eq(s.queue.length, 0, 'it kept a backlog the visitor had moved on from');
     eq(s.current, 'intro', 'settling stole the floor from the part on air');
   });
 
@@ -587,7 +574,7 @@ suite('the guided tour director', () => {
     eq(s.register, 'commentary');
   });
 
-  test('settling does not disturb a tour that has handed over', () => {
+  test('settling does not disturb a run that has handed over', () => {
     let s = started();
     for (const id of ['cv', 'jobreq', 'built', 'offclock', 'close']) s = reduceTour(s, { t: 'visit', id });
     eq(reduceTour(s, { t: 'settle' }).mode, 'handedOver');
@@ -614,6 +601,93 @@ suite('the guided tour director', () => {
     eq(seen.size, tourParts.length, 'two parts share a priority');
   });
 
+  /*
+   * N46. The timeline is derived from the dwells, so the two cannot disagree by
+   * construction -- but "by construction" is a claim about code that gets
+   * refactored. These pin the construction itself: the stamps are the running sum
+   * and nothing else, and the benchmark the Scripts panel prints is the same
+   * number the last stamp implies.
+   */
+  test('the timeline is the running sum of the dwells', () => {
+    const t = timeline();
+    ok(t.length > 0, 'the timeline is empty');
+    eq(t[0]!.at, 0, 'the first line is not at zero');
+    let ms = 0;
+    for (const stamp of t) {
+      eq(stamp.at, Math.round(ms / 1000), `the stamp on "${stamp.line.text.slice(0, 30)}" is not the running sum`);
+      ms += stamp.line.ms;
+    }
+    eq(ms, runtimeMs(), 'the benchmark disagrees with the timeline it is made of');
+  });
+
+  test('the timeline covers every line of every part, in priority order', () => {
+    const t = timeline();
+    eq(t.length, tourParts.reduce((a, p) => a + p.lines.length, 0), 'the timeline lost or gained a line');
+    const order = [...tourParts].sort((a, b) => a.priority - b.priority).map((p) => p.id);
+    // Each part appears as one unbroken run, and the runs are in priority order.
+    const runs: string[] = [];
+    for (const stamp of t) if (runs[runs.length - 1] !== stamp.part.id) runs.push(stamp.part.id);
+    eq(runs.join(','), order.join(','), 'the timeline is not in priority order, or a part is split across runs');
+  });
+
+  test('the transcript is the script, stamped by the same clock', () => {
+    const lines = transcriptLines('Nam');
+    const t = timeline();
+    eq(lines.length, t.length, 'the transcript and the timeline are different lengths');
+    for (let i = 0; i < lines.length; i += 1) {
+      eq(lines[i]!.text, t[i]!.line.text, `transcript line ${i} is not the script's`);
+      eq(lines[i]!.at, t[i]!.at, `transcript line ${i} carries a different timestamp`);
+    }
+  });
+
+  /*
+   * N49. Two properties, and the outro is only funny if both hold. Gaps that
+   * grow read as somebody running out of things to say; a gap that shrinks reads
+   * as a new section starting, which is the opposite of an ending. And the cap
+   * exists because the visitor cannot see how much is left.
+   */
+  test('the outro gaps only ever grow', () => {
+    for (let i = 1; i < outro.length - 1; i += 1) {
+      ok(outro[i]!.ms > outro[i - 1]!.ms,
+        `outro line ${i} comes sooner than the one before it, so the winding-down reads as a restart`);
+    }
+  });
+
+  /*
+   * QA caught that the authored sum is not the number Nam's two minutes applies
+   * to: every duration is scaled by pace() on the way to the caption, and a
+   * visitor sitting perfectly still is the SLOWEST case rather than the fastest.
+   * So the cap is checked at the worst pace the profile can produce.
+   */
+  test('the outro fits inside its cap even at the slowest pace', () => {
+    const total = outro.reduce((a, l) => a + l.ms, 0);
+    ok(total <= OUTRO_CAP_MS, `the outro runs ${Math.round(total / 1000)}s, over its ${OUTRO_CAP_MS / 1000}s cap`);
+    const worst = total * PACE_MAX;
+    ok(worst <= OUTRO_CAP_MS,
+      `at the slowest pace the outro runs ${Math.round(worst / 1000)}s, over its ${OUTRO_CAP_MS / 1000}s cap`);
+  });
+
+  test('the outro ends on the goodbye, not on a joke', () => {
+    const last = outro[outro.length - 1]?.text ?? '';
+    ok(/thank you/i.test(last), 'the last thing said after the goodbye is not a thank you');
+  });
+
+  /*
+   * N44. The word was the problem, not the label -- so this checks the SCRIPT,
+   * which is the place it would come back. A line calling the conversation a
+   * tour is a line written by somebody thinking of it as one.
+   */
+  test('nothing in the script calls itself a tour', () => {
+    const spoken = [
+      ...tourParts.flatMap((p) => [...p.lines, ...p.commentary, ...p.brief, ...(p.bail?.lines ?? [])]),
+      ...tourQuips, ...tourAcks, ...outro,
+      ...tourStory.flatMap((c) => c.lines),
+    ].map((l) => l.text);
+    for (const text of spoken) {
+      ok(!/\btour\b/i.test(text), `a spoken line still calls this a tour: "${text.slice(0, 48)}"`);
+    }
+  });
+
   test('every beat points at a line that exists', () => {
     for (const p of tourParts) {
       for (const b of p.beats ?? []) {
@@ -634,7 +708,7 @@ suite('the guided tour director', () => {
 
 /* ------------------------------------------------------------------------- */
 
-suite('the tour: flow and commentary are separate', () => {
+suite('the script: flow and commentary are separate', () => {
   /* N43. The whole point of the split is that these two lists never mix. */
 
   test('a quip fires once, ever', () => {
@@ -923,6 +997,128 @@ suite('the eggs the visitor has found', () => {
 });
 
 // ---------------------------------------------------------------------------
+
+suite('the caption speaks', () => {
+  /*
+   * N47. The tokeniser is the whole of the "sounds like a person" claim, so it is
+   * the part that gets tested. Three properties matter and none of them is how it
+   * looks: the sentence must survive, the hesitation must be repeatable, and the
+   * lines where composure matters must not get one.
+   */
+  test('the words survive being cut up', () => {
+    const text = 'Four players, four networks, one shared board, no excuses about latency.';
+    const back = tokenise(text).filter((t) => !t.filler).map((t) => t.text).join(' ');
+    eq(back, text, 'the sentence did not survive tokenising');
+  });
+
+  test('a hesitation lands in the same place every time', () => {
+    const text = 'Seven years leading the front end of an online Mahjong client, more or less.';
+    const a = tokenise(text).map((t) => `${t.text}${t.filler ? '*' : ''}`).join(' ');
+    const b = tokenise(text).map((t) => `${t.text}${t.filler ? '*' : ''}`).join(' ');
+    eq(a, b, 'the same line hesitated in two different places');
+  });
+
+  test('at most one hesitation a line', () => {
+    const lines = [
+      'Thanks for joining. I know a CV that opens a call is a bit much.',
+      'Four players, four networks, one shared board, no excuses about latency.',
+      'Before that, four years of optimisation research — two papers and a book chapter.',
+      'Everything on screen is real and nothing here breaks. Open the panels, drag the windows, run the tests.',
+    ];
+    for (const text of lines) {
+      const n = tokenise(text).filter((t) => t.filler).length;
+      ok(n <= 1, `"${text.slice(0, 34)}" got ${n} hesitations`);
+    }
+  });
+
+  test('the closing lines keep their composure', () => {
+    for (const text of [
+      'Thank you for your time. Genuinely.',
+      'Alright — genuinely, thank you for your time. Good luck with the rest of the pile.',
+    ]) {
+      eq(tokenise(text).filter((t) => t.filler).length, 0, `a hesitation crept into "${text.slice(0, 30)}"`);
+    }
+  });
+
+  test('a short line is left alone', () => {
+    // Nothing to hesitate in the middle of, so nothing is invented.
+    eq(tokenise('Still here?').filter((t) => t.filler).length, 0, 'a three-word line got a filler');
+    eq(tokenise('This is the CV.').filter((t) => t.filler).length, 0, 'a four-word line got a filler');
+  });
+
+  test('punctuation earns a rest and a bare word does not', () => {
+    const t = tokenise('One, two three.');
+    eq(t[0]!.text, 'One,');
+    ok(t[0]!.restMs > 0, 'a comma bought no pause');
+    eq(t[1]!.restMs, 0, 'a bare word bought a pause it had not earned');
+    ok(t[2]!.restMs > t[0]!.restMs, 'a full stop is not a longer pause than a comma');
+  });
+
+  test('an empty line does not throw', () => {
+    eq(tokenise('').length, 0);
+    eq(tokenise('   ').length, 0);
+  });
+});
+
+suite('how long the interview took', () => {
+  /*
+   * N51. The rules that are worth pinning are the defensive ones. This is read
+   * out loud on the last screen a visitor sees, so a hand-edited or corrupt
+   * record has to read as "no record" rather than print a number that is wrong.
+   */
+  test('a first run is its own best', () => {
+    const r = afterInterview(null, 90_000);
+    eq(r?.lastMs, 90_000);
+    eq(r?.bestMs, 90_000);
+    eq(r?.runs, 1);
+  });
+
+  test('a slower run keeps the old best', () => {
+    const r = afterInterview({ lastMs: 90_000, bestMs: 90_000, runs: 1 }, 120_000);
+    eq(r?.lastMs, 120_000, 'the last run was not recorded');
+    eq(r?.bestMs, 90_000, 'a slower run overwrote the best');
+    eq(r?.runs, 2);
+  });
+
+  test('a faster run takes the best', () => {
+    const r = afterInterview({ lastMs: 120_000, bestMs: 120_000, runs: 3 }, 61_000);
+    eq(r?.bestMs, 61_000);
+    eq(r?.runs, 4);
+  });
+
+  test('an impossible time is not recorded at all', () => {
+    const prev = { lastMs: 90_000, bestMs: 90_000, runs: 1 };
+    // A clock that went backwards, and a tab left open for a week.
+    eq(afterInterview(prev, 0), prev, 'a zero-length run was recorded');
+    eq(afterInterview(prev, -5), prev, 'a negative run was recorded');
+    eq(afterInterview(prev, INTERVIEW_MAX_MS + 1), prev, 'an overnight tab was recorded as a run');
+    eq(afterInterview(null, INTERVIEW_MIN_MS - 1), null, 'a sub-second run became a record');
+  });
+
+  test('junk in storage reads as no record rather than throwing', () => {
+    eq(readInterview(null), null);
+    eq(readInterview(''), null);
+    eq(readInterview('not json'), null);
+    eq(readInterview('{}'), null);
+    eq(readInterview('[1,2,3]'), null);
+    eq(readInterview('{"lastMs":0,"bestMs":0,"runs":1}'), null, 'a zeroed record was trusted');
+    eq(readInterview('{"lastMs":"fast","bestMs":1000,"runs":1}'), null);
+  });
+
+  test('a best slower than the last is repaired, not printed', () => {
+    // Only reachable by hand-editing, and printing it would show a "best" that
+    // is worse than the run beside it.
+    const r = readInterview('{"lastMs":60000,"bestMs":90000,"runs":2}');
+    eq(r?.bestMs, 60_000, 'an impossible best survived the read');
+  });
+
+  test('the time reads as minutes and seconds', () => {
+    eq(clockMs(0), '0:00');
+    eq(clockMs(9_000), '0:09');
+    eq(clockMs(69_000), '1:09');
+    eq(clockMs(600_000), '10:00');
+  });
+});
 
 export async function run(withChaos = false): Promise<Result[]> {
   chaos = withChaos;

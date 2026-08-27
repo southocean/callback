@@ -1,1 +1,0 @@
-import{a,b,c,d,e,f,g,h,i,j,k,l,m,n,o,p}from"./chunk-BOXAWVPS.js";export{c as SITE,b as START,f as caseStudies,g as chat,j as education,p as meta,l as offstage,d as pitch,a as profile,o as referralBlurb,n as requirementMap,e as roles,m as segments,i as skills,k as teaching,h as transcript};

@@ -10,7 +10,8 @@ import { ripple } from './gm3.js';
 import { layoutTimeline, overlaps } from '../state.js';
 import { currentPitch } from '../data/companies.js';
 import type { Store } from '../state.js';
-import { chat, roles, caseStudies, transcript, profile } from '../data/cv.js';
+import { chat, roles, caseStudies, profile } from '../data/cv.js';
+import { transcriptLines } from '../data/tour.js';
 
 /** 2026-08-20 as a decimal year, for timeline geometry. */
 export const NOW = 2026.63;
@@ -338,8 +339,17 @@ export function renderPresent(store: Store): HTMLElement {
 }
 
 export function renderTranscript(): HTMLElement {
-  // Review T11 and A1: labelled as scripted, and rendered as a static list
-  // rather than a live region that floods a screen reader.
+  /*
+   * Review T11 and A1: labelled as scripted, and rendered as a static list
+   * rather than a live region that floods a screen reader.
+   *
+   * N45. This used to render an eleven-line array of its own from data/cv.ts,
+   * which was a second script — the one the call played on a loop behind
+   * everything else. Now it renders the conversation itself, stamped by the same
+   * derived clock the Scripts panel prints, so a transcript that disagrees with
+   * what is actually said is no longer a thing that can happen.
+   */
+  const transcript = transcriptLines(profile.name);
   return h(
     'div',
     {},
@@ -348,7 +358,7 @@ export function renderTranscript(): HTMLElement {
       { class: 'pnote' },
       'Transcript. Scripted, not recognised — there is no audio track here, and pretending otherwise would be a lie ' +
         'told in a job application. Live recognition is a separate, optional thing: turn on your microphone and it ' +
-        'transcribes you.',
+        'transcribes you. The timestamps are where each line falls if nobody interrupts; you almost certainly did.',
     ),
     ...transcript.map((l) =>
       h(

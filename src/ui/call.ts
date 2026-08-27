@@ -22,16 +22,17 @@ import { tipAll, tip } from './tooltip.js';
 import type { MenuItem } from './gm3.js';
 import type { IconName } from './icons.js';
 import type { Store, Panel } from '../state.js';
-import { captionAt, clock } from '../state.js';
-import { profile, pitch, roles, transcript, referralBlurb, SITE } from '../data/cv.js';
+import { clock } from '../state.js';
+import { profile, pitch, roles, referralBlurb, SITE } from '../data/cv.js';
 import { renderChat, renderPeople, renderPresent, renderAbout } from './panels.js';
 import { renderOffClock } from './offclock.js';
 import { renderEng } from './eng.js';
-import { rovingGrid, trapFocus, announcer } from '../a11y.js';
+import { rovingGrid, trapFocus } from '../a11y.js';
+import { makeCaption } from './caption.js';
 import { sample } from '../net/degrade.js';
 import type { Profile } from '../net/degrade.js';
 import type { Quests } from '../achievements.js';
-import { noteReadyShown, noteReadyClosed, markEggSeen } from '../prefs.js';
+import { noteReadyShown, noteReadyClosed, markEggSeen, recordInterview } from '../prefs.js';
 import { signal } from './signal.js';
 
 const TITLES: Record<Exclude<Panel, 'none'>, string> = {
@@ -499,37 +500,26 @@ export function renderCall(store: Store, quests: Quests, deps: CallDeps): HTMLEl
 
   // -------------------------------------------------------------- captions --
 
-  const ccText = h('div', { class: 'cc-text' });
-  const ccLive = h('div', { class: 'sr', 'aria-live': 'polite' });
-  const cc = h(
-    'div',
-    { class: 'cc' },
-    h('div', { class: 'cc-who' }, 'Nam Nguyen · scripted transcript, no audio'),
-    ccText,
-    ccLive,
-  );
-  const announce = announcer(ccLive, 1400);
-  let t0 = performance.now();
-  let ccTimer = 0;
-  /* True while the guided tour is speaking through this surface. */
-  let tourHasFloor = false;
-
-  const startCC = (): void => {
-    // Refuse the floor rather than fight for it: sync() calls startCC on every
-    // state change, and without this the transcript would talk over the tour
-    // roughly once a second.
-    if (ccTimer || tourHasFloor) return;
-    t0 = performance.now();
-    ccTimer = window.setInterval(() => {
-      const span = (transcript[transcript.length - 1]?.at ?? 40) + 6;
-      const line = captionAt(transcript, ((performance.now() - t0) / 1000) % span);
-      if (line) {
-        ccText.textContent = line.text;
-        announce(line.text);
-      }
-    }, 900);
-  };
-  const stopCC = (): void => { clearInterval(ccTimer); ccTimer = 0; };
+  /*
+   * ONE SCRIPT, AND IT IS NOT ON A TIMER HERE ANY MORE.
+   *
+   * This used to be a div and a 900ms interval walking an eleven-line array from
+   * data/cv.ts on a loop, with the conversation suspending it and handing it
+   * back. Two consequences, both of which Nam hit:
+   *
+   *   - the loop resumed the moment the conversation said goodbye, so a visitor
+   *     who had just been thanked for their time got talked at again from the top;
+   *   - the loop sounded BETTER than the script interrupting it, because every
+   *     line had to be walkable-into cold and so none of them leaned on the one
+   *     before.
+   *
+   * N45 folded the loop into the script and N47/N48 moved the strip into its own
+   * module, which now owns the reveal, the dwell ring, the hover-pause and the
+   * press-to-skip. There is nothing to start or stop from here.
+   */
+  const caption = makeCaption('Nam Nguyen · scripted transcript, no audio');
+  const cc = caption.el;
+  const announce = caption.announce;
 
   // ----------------------------------------------------------------- panel --
 
@@ -1980,7 +1970,8 @@ export function renderCall(store: Store, quests: Quests, deps: CallDeps): HTMLEl
     cc.style.display = s.captionsOn ? '' : 'none';
     // Captions reserve 216px and the tile refits, exactly as the tray does.
     document.body.classList.toggle('cc-on', s.captionsOn);
-    if (s.captionsOn) startCC(); else stopCC();
+    // No loop to start: the script drives the strip, and turning captions off
+    // hides it rather than silencing a second voice. See the note above.
 
     if (s.chaos) quests.unlock('chaos');
     drawReady();
@@ -2103,27 +2094,28 @@ export function renderCall(store: Store, quests: Quests, deps: CallDeps): HTMLEl
         // The visitor may have left in the second it took to get here.
         if (store.get().screen !== 'call') { tourStarted = false; return; }
         tour = m.startTour(shell, {
-          say: (text) => { ccText.textContent = text; announce(text); },
-          // The call's transcript loops a scripted conversation. Two voices on
-          // one surface is worse than either alone, so the tour takes the floor.
-          suspendTranscript: () => { tourHasFloor = true; stopCC(); },
-          resumeTranscript: () => {
-            tourHasFloor = false;
-            if (store.get().captionsOn) startCC();
-          },
-          // The tour presses the captions button itself when they are off. It
-          // asks rather than assuming, because the visitor may have turned them
-          // off between mounting and the tour reaching this line.
+          say: caption.say,
+          show: caption.show,
+          skip: caption.skip,
+          absorbed: caption.absorbed,
+          // It presses the captions button itself when they are off, and asks
+          // rather than assuming — the visitor may have turned them off between
+          // mounting and the script reaching that line.
           captionsOn: () => store.get().captionsOn,
           playEgg,
           /*
-           * Unlocked at the END, not at the start. Sitting through a
-           * walkthrough that runs itself is the seventeenth quest and its hint
-           * says "let the walkthrough run to the end" — awarding it for merely
-           * being present would make the hint a lie, and the hints are the one
-           * place this build tells the visitor what is true.
+           * Unlocked at the END, not at the start. Hearing him out is the
+           * seventeenth quest and its hint says "let the conversation run to the
+           * end" — awarding it for merely being present would make the hint a
+           * lie, and the hints are the one place this build tells the visitor
+           * what is true.
+           *
+           * The time comes with it (N51). Recorded here rather than in the stage
+           * because the stage is the part that knows WHEN, and this is the part
+           * that is allowed to touch storage.
            */
-          finished: () => quests.unlock('tour'),
+          finished: (ms) => { quests.unlock('tour'); recordInterview(ms); },
+          stayed: () => quests.unlock('stayed'),
         });
       });
     }, 1000);

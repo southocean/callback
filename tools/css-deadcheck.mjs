@@ -52,6 +52,9 @@ const DYNAMIC = [
   /^rv-(strong|mixed|risk)$/,
   // ```sc-quip-k is-${qp.kind}``` in scripted.ts -- click quips and event quips.
   /^is-(click|event)$/,
+  // ```sc-tick${... ' is-partstart' : ''}``` in scripted.ts -- the first line of
+  // a part, which is the row that carries the segment's label and rule.
+  /^is-partstart$/,
 ];
 
 const walk = (dir) => readdirSync(dir, { withFileTypes: true })
