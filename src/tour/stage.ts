@@ -62,10 +62,42 @@ import {
   type Visitor,
 } from './profile.js';
 
+/** Where the interview clock is, for anything that wants to show it. */
+export interface Clock {
+  /** Elapsed interview time, with paused time already taken off. */
+  ms: number;
+  /** Counting right now. False when finished, and false while paused. */
+  running: boolean;
+  /**
+   * The conversation reached its own last line.
+   *
+   * Separate from `running` because "stopped" has two causes and a readout that
+   * conflated them would say the interview was over to somebody who had merely
+   * asked for quiet and can ask him back.
+   */
+  done: boolean;
+}
+
 export interface TourHandle {
   stop: () => void;
   /** For QA: the director state and the visitor model, read-only. */
   peek: () => { tour: TourState; visitor: Visitor };
+  /**
+   * THE CLOCK, PULLED RATHER THAN PUSHED -- board ticket N132.
+   *
+   * Null until the first line is spoken, because that is when the interview
+   * starts (N51): the pre-roll is time the visitor spends watching, not time
+   * spent in the conversation.
+   *
+   * A getter and not an event, because the only consumer is a readout that
+   * repaints once a second anyway. Pushing would mean the stage knowing that
+   * somebody is watching, and a second thing to tear down when nobody is.
+   *
+   * It reports the same number `finished` reports, computed the same way, which
+   * is the point of it living here: a clock in the panel that disagreed with the
+   * time on the ended screen would be worse than no clock.
+   */
+  clock: () => Clock | null;
 }
 
 /**
@@ -326,6 +358,17 @@ export function startTour(root: HTMLElement, podium: Podium): TourHandle {
   let paused = false;
   /** Total ms spent paused, taken off the interview clock. See finished(). */
   let pausedMs = 0;
+  /**
+   * When the CURRENT pause began, or 0.
+   *
+   * pausedMs is only credited when a pause ends, which is right for the recorded
+   * time and wrong for a clock somebody is watching: without this the readout
+   * would keep counting through the silence and then jump backwards on the way
+   * out. N132.
+   */
+  let pauseSince = 0;
+  /** The final figure, once there is one. A finished clock stops moving. */
+  let finalMs = 0;
   /**
    * True while the hand is performing a beat, which is the window in which a
    * press hurries it instead of skipping it. See the cutscene note in speak().
@@ -682,7 +725,21 @@ export function startTour(root: HTMLElement, podium: Podium): TourHandle {
         if (dead) return;
         podium.playEgg(egg.id);
         markEggSeen(egg.id);
-        await voice(`${egg.title}. ${egg.blurb}`, 5200);
+      /*
+       * THE BLURB IS THE WHOLE LINE NOW.
+       *
+       * It used to be spoken as "title. blurb", which read as a slide caption:
+       * "Falling out of a plane. Tandem jump. The face at second four is the
+       * honest one." Nam rewrote all seven as single lines in his own voice
+       * ("very corny now"), and each one is complete on its own, so announcing
+       * the title first would put a label in front of a sentence that does not
+       * need one.
+       *
+       * The title has not gone anywhere: it is the player window's title bar, the
+       * calendar entry and the heading on the Off the clock page. It is just not
+       * said out loud, because the picture is already on screen.
+       */
+        await voice(egg.blurb, 5200);
       }
       podium.quest('offclock');
       return;
@@ -724,7 +781,7 @@ export function startTour(root: HTMLElement, podium: Podium): TourHandle {
        * false, and machinery kept after its reason has expired is the kind of
        * thing nobody dares delete later.
        */
-      await voice(`${egg.title}. ${egg.blurb}`, 4000);
+      await voice(egg.blurb, 4000);
     }
     // And they are credited for it, which is the half the first version missed.
     podium.quest('offclock');
@@ -849,13 +906,24 @@ export function startTour(root: HTMLElement, podium: Podium): TourHandle {
    */
   const delivering = (): boolean => tour.mode !== 'finished' && tour.mode !== 'handedOver';
 
+  /**
+   * TRUE WHEN A REACTION WOULD BE SAID OVER SOMETHING, OR INTO A SILENCE SOMEBODY
+   * ASKED FOR.
+   *
+   * Two reasons to keep quiet, one predicate, because the bookkeeping is
+   * identical either way and only the reason differs: N108 for talking over
+   * himself, N127 for talking after being asked to stop.
+   */
+  const hushed = (): boolean => delivering() || paused;
+
   const drain = async (): Promise<void> => {
-    // Nothing is drained while he is talking. The quip stays marked as found,
-    // which is what N118 counts; it just never gets said.
+    // Nothing is drained while he is talking, or while he has been asked to stop.
+    // The quip stays marked as found, which is what N118 counts; it just never
+    // gets said.
     while (!dead && tour.interject) {
-      // Found is found, whether or not it gets said (N118).
+      // Found is found, whether or not it gets said (N118, N127).
       markQuipFound(tour.interject);
-      if (delivering()) { tour = reduceTour(tour, { t: 'quipDone' }); continue; }
+      if (hushed()) { tour = reduceTour(tour, { t: 'quipDone' }); continue; }
       await sayQuip(tour.interject);
     }
   };
@@ -964,7 +1032,7 @@ export function startTour(root: HTMLElement, podium: Podium): TourHandle {
        * middle of a mouse interaction, or a line that triggers mouse interaction,
        * finish it."
        */
-      if (pauseWanted) { pauseWanted = false; await pauseHere(); }
+      await takePause();
       /*
        * Checked AFTER the line rather than before it, so a click always gets one
        * whole sentence finished before the subject changes. Cutting mid-sentence
@@ -1013,6 +1081,30 @@ export function startTour(root: HTMLElement, podium: Podium): TourHandle {
   });
 
   /**
+   * THE SAFE POINT, and it is shared now -- board ticket N127.
+   *
+   * A requested pause is taken here and nowhere else: after a line, and after any
+   * beat on it. This used to be four lines inlined in speak(), which meant the
+   * personal segment could not take a pause at all. Nam had been told the opposite
+   * -- the comment at the end of the flow says in as many words that the segment
+   * "is uninterruptible except by Stop" -- and it was not true. tell() says its
+   * lines with voice() directly and never looked at pauseWanted, so pressing Stop
+   * during the segment skipped exactly one line and then carried on talking for up
+   * to ninety seconds. The press did something, which is the worst version of this
+   * bug: it looked like the control worked.
+   *
+   * hurry is cleared here as well as after a beat, because a line with no beats
+   * never reaches that call and would otherwise carry the haste into pauseHere,
+   * whose travel is timed against its acknowledgement to the millisecond.
+   */
+  const takePause = async (): Promise<void> => {
+    if (!pauseWanted || dead) return;
+    pauseWanted = false;
+    hand.hurry(false);
+    await pauseHere();
+  };
+
+  /**
    * Go quiet, and come back when asked.
    *
    * The acknowledgement and the press OVERLAP on purpose. Nam: "try to time the
@@ -1028,6 +1120,7 @@ export function startTour(root: HTMLElement, podium: Podium): TourHandle {
   const pauseHere = async (): Promise<void> => {
     paused = true;
     const since = performance.now();
+    pauseSince = since;
     bar.classList.add('is-away');
 
     const ack = voice(asides.stopped.text, asides.stopped.ms);
@@ -1042,11 +1135,22 @@ export function startTour(root: HTMLElement, podium: Podium): TourHandle {
     await Promise.all([ack, off]);
     if (dead) return;
     podium.hush();
+    /*
+     * N127. park() takes the arrow off the right-hand edge and drops `is-on`, so
+     * it is already invisible; yield(true) is what stops it tremoring behind the
+     * scenes, and hide() states the intent rather than relying on park's last
+     * line to keep doing it. Somebody who asked for quiet gets a still screen.
+     */
     await hand.park();
+    hand.yield(true);
+    hand.hide();
 
     await captionsBack();
     if (dead) return;
+    hand.yield(false);
+    hand.show();
     pausedMs += performance.now() - since;
+    pauseSince = 0;
     paused = false;
     bar.classList.remove('is-away');
 
@@ -1055,6 +1159,15 @@ export function startTour(root: HTMLElement, podium: Podium): TourHandle {
      * silence would be a worse resumption than not asking.
      */
     await voice(asides.missed.text, asides.missed.ms);
+    /*
+     * The "back to X" line names a part of the FLOW, so it is only right while the
+     * flow is what was interrupted. N127 made the pause reachable from the
+     * personal segment too, and there `tour.current` still holds whichever part
+     * the flow ended on: announcing a return to it would be a confident, wrong
+     * sentence about where the conversation is. The missed line stands alone
+     * there, which is all the resumption that segment needs.
+     */
+    if (!delivering()) return;
     const here = parts.find((p) => p.id === tour.current);
     if (here && !dead) {
       const line = backTo(here.label);
@@ -1258,14 +1371,17 @@ export function startTour(root: HTMLElement, podium: Podium): TourHandle {
     const left = story.filter((c) => !heard.has(c.id));
 
     await voice(words(opener.stillHere), opener.stillHere.ms);
+    await takePause();
     if (dead) return;
 
     if (!left.length) {
       // The tease: same shape, and then he lets them off.
       await voice(words(opener.again), opener.again.ms);
+      await takePause();
       for (const line of opener.allHeard) {
         if (dead) return;
         await voice(words(line), line.ms);
+        await takePause();
       }
       tour = reduceTour(tour, { t: 'toldDone' });
       dropBar();
@@ -1273,6 +1389,7 @@ export function startTour(root: HTMLElement, podium: Podium): TourHandle {
     }
 
     await voice(words(opener.more), opener.more.ms);
+    await takePause();
     if (dead) return;
 
     /*
@@ -1283,6 +1400,7 @@ export function startTour(root: HTMLElement, podium: Podium): TourHandle {
     if (heard.size > 0) {
       const line = resumeAt(first + 1, left[0]!.q);
       await voice(words(line), line.ms);
+      await takePause();
       if (dead) return;
     }
 
@@ -1291,9 +1409,11 @@ export function startTour(root: HTMLElement, podium: Podium): TourHandle {
       const n = story.indexOf(chapter) + 1;
       const ask = askQuestion(n, chapter.q);
       await voice(words(ask), ask.ms);
+      await takePause();
       for (const line of chapter.lines) {
         if (dead) return;
         await voice(words(line), line.ms);
+        await takePause();
       }
       // After the LAST line, which is the only honest place to credit it.
       markAnswerHeard(chapter.id);
@@ -1380,7 +1500,8 @@ export function startTour(root: HTMLElement, podium: Podium): TourHandle {
      * did not spend an hour in the interview, and a timer that says they did is
      * measuring the wrong thing -- the same reason the outro is excluded.
      */
-    podium.finished(performance.now() - startedAt - pausedMs);
+    finalMs = performance.now() - startedAt - pausedMs;
+    podium.finished(finalMs);
     // The clock the story waits on starts HERE, not at the visitor's last input.
     // See the note on flowEndedAt.
     flowEndedAt = performance.now();
@@ -1439,6 +1560,23 @@ export function startTour(root: HTMLElement, podium: Podium): TourHandle {
     if (!got) return;
     visitor = got.next;
     lastAck = now;
+    /*
+     * SPENT, AND NOT SPOKEN -- board ticket N127.
+     *
+     * The line is drawn and consumed before this check on purpose, which is the
+     * whole of what Nam asked for: "the acknowledgement text system should work
+     * the same, except for showing the text - if they found something, they found
+     * something, we dont acknowledge it again cause showing it the second time
+     * theyve done it would be very werid - the surprise was gone so our
+     * acknowledgement falls flat."
+     *
+     * So this is a display rule and not a bookkeeping one, and it is one-way: the
+     * line is dropped rather than queued. Holding it back would mean saying "you
+     * are moving fast" about something the visitor did minutes ago, to a visitor
+     * who has since asked for silence. N118 settled the same question the same
+     * way for quips, which stay marked as found and never get said.
+     */
+    if (paused) return;
     // Spoken like a quip: over the top of whatever is happening, then the floor
     // goes back. It is a reaction, not a section.
     const held = floorLine;
@@ -1668,7 +1806,7 @@ export function startTour(root: HTMLElement, podium: Podium): TourHandle {
     }
     if (quiet < SETTLE_MS) settled = false;
     const still = now - Math.max(visitor.lastInput, flowEndedAt);
-    if (!paused && still >= STORY_MS && tour.mode === 'finished' && !tour.told && passive(visitor, now)) {
+    if (!paused && !pauseWanted && still >= STORY_MS && tour.mode === 'finished' && !tour.told && passive(visitor, now)) {
       tour = reduceTour(tour, { t: 'tell' });
       if (tour.mode === 'telling') void tell();
     }
@@ -1696,7 +1834,10 @@ export function startTour(root: HTMLElement, podium: Podium): TourHandle {
      * nothing they click has anything left to say, the room is still silent.
      */
     const silence = now - Math.max(spokeAt, flowEndedAt);
-    if (heardOut && !paused && !outroRan && tour.told && tour.mode === 'finished'
+    // N127. `pauseWanted` as well as `paused`: a press is a request, and the gap
+    // between the request and the safe point that takes it is exactly long enough
+    // for a one-second interval to start a ninety-second segment inside it.
+    if (heardOut && !paused && !pauseWanted && !outroRan && tour.told && tour.mode === 'finished'
         && silence >= OUTRO_WAIT_MS && !performing) {
       void runOutro();
     }
@@ -1738,7 +1879,23 @@ export function startTour(root: HTMLElement, podium: Podium): TourHandle {
      * while a cutscene is locked and applied the moment it unlocks (N55), which
      * is exactly the behaviour wanted here: the visitor stops waiting for the
      * sentence, and the hand still finishes what it started.
+     *
+     * AND IT FINISHES IT FAST -- board ticket N127. Nam: "when I press stop
+     * talking, the script stops, but I think the mouse interaction continues."
+     * It did, and it was the design: N98 deliberately let the beat run to the end
+     * on his own instruction, "if we are in the middle of a mouse interaction, or
+     * a line that triggers mouse interaction, finish it." The two requests only
+     * look contradictory. What is wrong is not that the gesture completes, it is
+     * that the captions go quiet while it does, so for several seconds the cursor
+     * is moving, opening windows and clicking with nothing explaining it. That is
+     * not a demo finishing a thought, that is a haunted room.
+     *
+     * hurry() is the answer that keeps both promises: everything still happens,
+     * in the same order, at about a third of the time. The gesture is not
+     * abandoned mid-flight -- which is what left the hand frozen before N98 -- and
+     * the silence arrives close enough to the press to read as caused by it.
      */
+    hand.hurry(true);
     podium.skip();
   });
 
@@ -1747,5 +1904,15 @@ export function startTour(root: HTMLElement, podium: Podium): TourHandle {
   return {
     stop: teardown,
     peek: () => ({ tour, visitor }),
+    clock: () => {
+      if (!startedAt) return null;
+      if (finalMs) return { ms: finalMs, running: false, done: true };
+      const open = pauseSince ? performance.now() - pauseSince : 0;
+      return {
+        ms: Math.max(0, performance.now() - startedAt - pausedMs - open),
+        running: !paused,
+        done: false,
+      };
+    },
   };
 }
