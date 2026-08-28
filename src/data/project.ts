@@ -2220,6 +2220,47 @@ export const tasks: Task[] = [
     },
   },
 
+  {
+    id: 'N113', col: 'done', size: 'S', tag: 'specs',
+    title: 'The milestones heading was never the same heading',
+    note: 'A duplicate class instead of a shared container. Wrong left edge, and no top margin at all.',
+    detail: {
+      why: 'Nam: "the milestones is out of placement compared to the rest, and no top padding ... Is the milestone not having the exact same css styling as the other two? Why not?" It was not, and the answer is that it was given a `bd-h2` class on the assumption that matching the font matched the heading.',
+      done: [
+        'The milestones live in a .bd like the other two sections, under a bare h2',
+        'The duplicate class is deleted rather than fixed',
+      ],
+      raised: 'Nam, 28 Aug',
+      notes: 'Two failures from one cause. The container was different, so .bd at 820 centred inside an 860 column started 20px right of where .dp-col started, and the heading sat at the column edge instead. And the class lost outright to `.cb-page h2 { margin: 0 0 10px }` on specificity, (0,1,1) against (0,1,0), so inside the browser it had no top margin -- while `.bd h2` beats that same rule only because it ties on specificity and comes later in the file. Headings that must be identical should be identical by construction: one container, one selector, nothing to keep in step by hand.',
+    },
+  },
+  {
+    id: 'N114', col: 'done', size: 'S', tag: 'call',
+    title: 'The sticky tab strip sits flush',
+    note: 'A sticky offset resolves against the scrollport’s padding box, so top: 0 left a 26px window.',
+    detail: {
+      why: 'Nam: "the tab bar in the project spec is sticky, I like that, but problem is that it has empty space on top which is showing stuff as we scroll pass."',
+      done: ['The strip cancels .cb-page’s top padding, so its top edge is the scrollport’s', 'Measured gap: 26px before, 0 after'],
+      raised: 'Nam, 28 Aug',
+      notes: 'Worth knowing because it looks like a bug in the sticky and is not: `top: 0` is relative to the scrollport’s PADDING box, not its border box. The scroller here is .cb-page with 26px of top padding, so the strip parked 26px down and content slid through the gap above it. The offset is written against the same custom property the padding uses, so the two cannot drift apart.',
+    },
+  },
+  {
+    id: 'N115', col: 'done', size: 'M', tag: 'trust',
+    title: 'Layout assertions for the spec panel',
+    note: 'Both of the above shipped past a visual QA that only looked at the host where they were invisible.',
+    detail: {
+      why: 'Nam: "Just be more thorough with your QA can you, how can these things slip through the QA ... why the heck didnt you QA visually as well? Very big problem here, how can I trust you when you say stuff are done again?" The honest answer is that it WAS checked visually, in the dialog, where .bd is clamped to the column width and the misalignment does not exist, and in the browser only at the top of the page, above the fold the milestones sit below. A screenshot proves what is on screen when it is taken.',
+      done: [
+        'tools/spec-layout.mjs, run as npm run qa',
+        '17 assertions across both hosts: heading geometry, the sticky offset, the rail, the measure',
+        'Verified to fail: reintroducing the sticky bug produces "gap 26px" and exit 1',
+      ],
+      raised: 'Nam, 28 Aug',
+      notes: 'The same answer print-cv.mjs gives for the PDF, and for the same reason the README already gives about the test runner: a check that cannot fail proves nothing, so this one was run against the reintroduced bug before being trusted. It is deliberately NOT in `npm run verify`: it needs a browser, and a gate that cannot run on a machine without Chrome is a gate that gets deleted. It skips with exit 0 when no Chrome is found, and it checks docs/ rather than src, so it measures what people actually load.',
+    },
+  },
+
   /* Flagged rather than done. Still true as of this build. */
   { id: 'T24', col: 'backlog', size: 'M', tag: 'specs', title: 'Initial payload is halfway to the ceiling', note: '24.7 kB of a 50 kB gate, up from 18.2. Still green, and the growth is real, but two deferred chunks are 17 kB and 19 kB and deserve a splitting pass before it becomes urgent.' },
 ];

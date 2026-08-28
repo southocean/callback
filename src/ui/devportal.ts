@@ -414,7 +414,7 @@ function heatmap(): HTMLElement {
      */
     h('div', { class: 'hm-foot' },
       h('span', { class: 'hm-total' }, `${total} commits in ${span} days`),
-      h('span', { class: 'hm-tickets' }, `${tasks.length} tickets on the board`)),
+      h('span', { class: 'hm-tickets' }, `${tasks.length} tickets on the kanban board`)),
   );
 }
 
@@ -451,8 +451,25 @@ function overviewView(): HTMLElement {
      * and because a week reads better along one. The last day's node is live,
      * since the most recent thing is the one a reader is looking for.
      */
-    h('h2', { class: 'bd-h2' }, 'The milestones'),
-    railStrip(days),
+    /*
+     * INSIDE .bd, like the two headings above it, and with a bare h2.
+     *
+     * This shipped as a `bd-h2` class on an h2 sitting in .dp-col, on the
+     * assumption that matching the font matched the heading. It did not, twice
+     * over. The container is a different width -- .bd is 820 centred inside an
+     * 860 column, so the heading started 20px left of the other two -- and the
+     * class lost outright to `.cb-page h2 { margin: 0 0 10px }`, specificity
+     * (0,1,1) against (0,1,0), so inside the browser it had no top margin at
+     * all. `.bd h2` beats that same rule only because it matches the specificity
+     * and comes later in the file.
+     *
+     * A parallel class kept in step by hand was the bug. One container and one
+     * selector is the fix: three headings identical by construction rather than
+     * by somebody remembering to update both.
+     */
+    h('div', { class: 'bd' },
+      h('h2', {}, 'The milestones'),
+      railStrip(days)),
   );
 }
 

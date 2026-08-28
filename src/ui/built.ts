@@ -81,7 +81,7 @@ export function buildDoc(afterLead?: HTMLElement): HTMLElement {
       'the interface measured off the real product rather than eyeballed. The corrections are in the commit ' +
       'log along with the retractions.'),
 
-    h('h2', { class: 'bd-h2' }, 'The spec'),
+    h('h2', {}, 'The spec'),
     h('dl', { class: 'bd-rows' },
       ...SPECS.flatMap((r) => [h('dt', {}, r.k), h('dd', {}, r.v)])),
 
@@ -95,7 +95,7 @@ export function buildDoc(afterLead?: HTMLElement): HTMLElement {
      * documents the artefact, not its author. What is left is what this build
      * actually uses, and every line of it is checkable against the source.
      */
-    h('h2', { class: 'bd-h2' }, 'The stack'),
+    h('h2', {}, 'The stack'),
     h('ul', { class: 'bd-stack' },
       ...THIS_BUILD.map((s) => h('li', {}, h('b', {}, s.k), ', ', h('span', {}, s.v)))),
 

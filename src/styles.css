@@ -4952,7 +4952,13 @@ body.set-open .cc { bottom: calc(var(--botbar) + 52px + 12px); }
   flex: 1 1 auto; height: 28px; border-radius: 14px; background-color: #202124;
   display: flex; align-items: center; padding: 0 14px; color: #c5c5c5; font-size: 12px;
 }
-.cb-page { flex: 1 1 auto; overflow: auto; padding: 26px 30px; background-color: #fff; color: #202124; }
+/* The top padding is a variable because a sticky child has to cancel it. See
+   .pg-spec .dp-tabs. */
+.cb-page {
+  --cb-pad-top: 26px;
+  flex: 1 1 auto; overflow: auto; padding: var(--cb-pad-top) 30px;
+  background-color: #fff; color: #202124;
+}
 .cb-page h2 { font: 400 22px/1.3 var(--font-title); margin: 0 0 10px; }
 .cb-page p { font: 400 14px/1.6 var(--font); color: #444746; margin: 0; max-width: 62ch; }
 
@@ -6703,7 +6709,26 @@ body.presenting .shot {
 .pg-spec .dp-body { max-height: none; overflow: visible; padding: 18px 24px 40px; }
 /* Sticky, and opaque now that the palette resolves -- it was falling back to a
    bare #fff over content that is also nearly white. */
-.pg-spec .dp-tabs { position: sticky; top: 0; z-index: 2; background-color: var(--dp-bg); }
+/*
+ * FLUSH WITH THE TOP, which `top: 0` does not give you here.
+ *
+ * Nam: "it has empty space on top which is showing stuff as we scroll pass,
+ * doesnt look very nice."
+ *
+ * A sticky offset resolves against the scrollport's PADDING box, not its border
+ * box. The scroller is .cb-page and it has 26px of top padding, so `top: 0`
+ * parked the strip 26px down and left a 26px window above it with live content
+ * sliding through. Measured: strip at 221, scrollport at 195.
+ *
+ * Cancelling the padding puts the strip's top edge on the scrollport's border
+ * edge, so there is no window left to show through. Expressed against the same
+ * custom property the padding uses, so the two cannot drift apart, and with a 0
+ * fallback for any host that has no such padding.
+ */
+.pg-spec .dp-tabs {
+  position: sticky; top: calc(-1 * var(--cb-pad-top, 0px)); z-index: 2;
+  background-color: var(--dp-bg);
+}
 
 /* ============== ROUND 4: THE PANEL, AND THE TILE'S CONTROLS ============== */
 /* Measured on a live call at 2560x1215. See tools/PLAN-call-view.md, Round 4. */
@@ -7617,9 +7642,11 @@ body.tray-open.cc-on .react-clip { bottom: calc(var(--botbar) + 268px); }
  * 538px, which is centred and still narrow, and narrow was the complaint.
  */
 .bd { max-width: 820px; margin: 0 auto; }
-/* The section headings the spec, the stack and the milestones share. They were
-   three different rules for three headings doing one job. */
-.bd-h2 { font: 400 20px/1.3 var(--font-title); margin: 26px 0 8px; color: var(--dp-ink); }
+/* The spec, the stack and the milestones are all `.bd h2` and all inside a .bd.
+   There is deliberately no second class for this: one existed for a while, lost
+   to `.cb-page h2` on specificity, and left one of the three headings with no
+   top margin and a different left edge. Headings that must match should match
+   because they are the same selector in the same box. */
 .bd-lead { font: 400 16px/1.55 var(--font); color: #2b2f36; margin: 0 0 22px; }
 .bd h2 { font: 400 20px/1.3 var(--font-title); margin: 26px 0 8px; color: #1f2328; }
 .bd p { margin: 0 0 10px; }

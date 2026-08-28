@@ -11,7 +11,8 @@
     "deadcss": "node tools/css-deadcheck.mjs",
     "cssstruct": "node tools/css-structure.mjs",
     "dashes": "node tools/no-em-dash.mjs",
-    "pdf": "node tools/print-cv.mjs"
+    "pdf": "node tools/print-cv.mjs",
+    "qa": "node tools/spec-layout.mjs"
   },
   "type": "module",
   "devDependencies": {
