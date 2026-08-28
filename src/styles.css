@@ -8298,3 +8298,196 @@ body.tray-open.cc-on .react-clip { bottom: calc(var(--botbar) + 268px); }
   .dp-in { animation: none; }
   .dp-tab, .kb-col, .kb-card { transition: none; }
 }
+
+/* ================= THE ADMIN GATE (N60) =================================== */
+/* The gesture on the home avatar, the numbers it drops, and the dialog that
+ * asks the wrong question on purpose. The content and the reasoning are in
+ * data/admin.ts; this is only what it looks like.
+ *
+ * Nam: "you click on the avatar G in the home screen 11 times, and from the 4th
+ * click we will get a falling number coming out of the click as a click effect."
+ */
+
+/* --- the avatar, once it is an A ----------------------------------------- */
+/* The one visible reward, so it has to read at 32px and from across the bar.
+   A different gradient rather than a badge or a dot: the letter has already
+   changed, and a second signal on a 32px circle is clutter. */
+.avatar-btn.is-admin > span {
+  background: linear-gradient(145deg, #fbbc04, #ea4335);
+  color: #2b1400;
+}
+
+/* --- the falling number --------------------------------------------------- */
+/* Fixed to the viewport and parented to <body>, because the avatar sits in a
+   top bar with its own stacking and overflow and a child of the button gets
+   clipped by it. translate(-50%, -50%) puts it on the pointer rather than
+   beside it, so it reads as coming out of the click.
+
+   pointer-events: none matters more than it looks: these live for 900ms
+   directly under a control the reader is in the middle of pressing eleven
+   times, and one swallowed click is a cheat code that does not work. */
+.admin-drop {
+  position: fixed; z-index: 90; pointer-events: none;
+  /* The number reads on the home screen's white top bar, which is the only place
+     this ever appears. The first version was #8ab4f8 on white, which Nam could
+     barely see. Google blue 600 clears 4.5:1 there, and the coloured glow under
+     it is what makes it feel lit rather than printed. */
+  font: 700 22px/1 var(--font-title); color: #1a73e8;
+  text-shadow: 0 2px 8px rgba(26, 115, 232, .4);
+  will-change: transform, opacity;
+  animation: admin-drop .85s both;
+}
+
+/* THE ARC. --dx and --rot come from admingate.ts, one pair per number, so no two
+   drops travel the same path. x moves steadily across the whole flight while y
+   pops up and then falls, which is what makes it a throw rather than a drop.
+
+   The per-keyframe easing is where the weight comes from: fast out of the click,
+   slow at the apex, then accelerating down. A single easing across the whole
+   animation cannot do that, and the version that tried it looked like the number
+   was being lowered on a string. */
+@keyframes admin-drop {
+  0% {
+    opacity: 0;
+    transform: translate(-50%, -50%) scale(.55) rotate(0deg);
+    animation-timing-function: cubic-bezier(.12, .85, .3, 1);
+  }
+  14% {
+    opacity: 1;
+    transform: translate(calc(-50% + var(--dx, 0px) * .18), calc(-50% - 11px)) scale(1.28) rotate(calc(var(--rot, 0deg) * .2));
+    animation-timing-function: cubic-bezier(.3, .4, .5, 1);
+  }
+  /* The apex, and the top of the bump Nam asked for. Kept to 16px because the
+     avatar sits 32px down a 56px bar: the first cut rose 27 and the numbers
+     clipped straight off the top of the viewport. The pop is carried by the
+     scale overshoot and the easing more than by the height anyway. */
+  40% {
+    opacity: 1;
+    transform: translate(calc(-50% + var(--dx, 0px) * .48), calc(-50% - 16px)) scale(1) rotate(calc(var(--rot, 0deg) * .5));
+    animation-timing-function: cubic-bezier(.55, 0, .8, .45);
+  }
+  72% { opacity: .85; }
+  100% {
+    opacity: 0;
+    transform: translate(calc(-50% + var(--dx, 0px)), calc(-50% + 70px)) scale(.82) rotate(var(--rot, 0deg));
+  }
+}
+
+/* --- already admin, pressing it again ------------------------------------- */
+.admin-toast {
+  position: fixed; z-index: 90; left: 50%; top: 72px; transform: translateX(-50%);
+  max-width: min(92vw, 460px);
+  background-color: #202124; color: #e3e3e3;
+  font: 400 13px/19px var(--font); padding: 10px 16px; border-radius: 8px;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, .35);
+  animation: admin-toast .24s cubic-bezier(0, 0, 0.2, 1) both;
+}
+@keyframes admin-toast { from { opacity: 0; transform: translate(-50%, -8px); } }
+
+/* --- the dialog ----------------------------------------------------------- */
+/* Straight-faced on purpose. It is dressed as a password prompt and the joke is
+   that it is asking about hexagons, so the moment the chrome winks the turn is
+   gone. Same scrim and card language as the CV overlay. */
+.ag-back {
+  position: fixed; inset: 0; z-index: 95;
+  background-color: rgba(0, 0, 0, .6);
+  display: grid; place-items: center; padding: 20px;
+  animation: ag-fade .18s linear both;
+}
+@keyframes ag-fade { from { opacity: 0; } }
+
+.ag-panel {
+  position: relative;
+  width: min(100%, 460px);
+  background-color: #202124; color: #e3e3e3;
+  border-radius: 16px; padding: 24px 24px 22px;
+  box-shadow: 0 12px 40px rgba(0, 0, 0, .5);
+  animation: ag-rise .2s cubic-bezier(0, 0, 0.2, 1) both;
+}
+@keyframes ag-rise { from { opacity: 0; transform: translateY(10px); } }
+
+/* The right padding is the close button's business: it is absolutely positioned
+   in the corner, so without this the kind chip slides under the x. */
+.ag-head { display: flex; align-items: center; gap: 10px; margin-bottom: 6px; padding-right: 34px; }
+.ag-lock { font-size: 18px; line-height: 1; }
+.ag-title { font: 500 18px/24px var(--font-title); color: #e3e3e3; }
+.ag-kind {
+  margin-left: auto; font: 400 11px/16px var(--font);
+  color: #9aa0a6; border: 1px solid #3c4043; border-radius: 10px; padding: 1px 8px;
+}
+.ag-lead { font: 400 13px/19px var(--font); color: #9aa0a6; margin-bottom: 16px; }
+.ag-q { font: 400 16px/23px var(--font-title); color: #e3e3e3; margin-bottom: 16px; }
+
+.ag-form { display: flex; gap: 8px; }
+.ag-input {
+  flex: 1 1 auto; min-width: 0;
+  background-color: #131314; color: #e3e3e3;
+  border: 1px solid #3c4043; border-radius: 8px;
+  font: 400 14px/20px var(--font); padding: 9px 12px;
+}
+.ag-input:focus-visible { outline: 2px solid #8ab4f8; outline-offset: -1px; border-color: transparent; }
+.ag-input:disabled { opacity: .5; }
+.ag-go {
+  flex: 0 0 auto; border: 0; border-radius: 8px; cursor: pointer;
+  background-color: #8ab4f8; color: #062e6f;
+  font: 500 14px/20px var(--font); padding: 9px 18px;
+}
+.ag-go:hover { background-color: #aecbfa; }
+.ag-go:focus-visible { outline: 2px solid #e3e3e3; outline-offset: 2px; }
+
+/* The verdict. Colour carries which of the three it is, and the text carries
+   the rest, so this never depends on colour alone to be understood. */
+.ag-say { font: 400 13.5px/20px var(--font); margin-top: 14px; min-height: 20px; }
+.ag-say.is-wrong { color: #f28b82; }
+.ag-say.is-right { color: #fdd663; }
+.ag-say.is-granted { color: #81c995; }
+
+.ag-close {
+  position: absolute; top: 10px; right: 12px;
+  width: 32px; height: 32px; border: 0; border-radius: 50%;
+  background: none; color: #9aa0a6; cursor: pointer;
+  font: 400 20px/1 var(--font); display: grid; place-items: center;
+}
+.ag-close:hover { background-color: #3c4043; color: #e3e3e3; }
+.ag-close:focus-visible { outline: 2px solid #8ab4f8; outline-offset: 2px; }
+
+@media (prefers-reduced-motion: reduce) {
+  .admin-drop, .admin-toast, .ag-back, .ag-panel { animation: none; }
+  /* The number still has to leave, and animationend never fires without an
+     animation. Opacity 0 with the setTimeout in admingate.ts removing the node
+     is the reduced-motion version of the same effect. */
+  .admin-drop { opacity: 0; }
+}
+
+/* --- the gate's own page in the spec -------------------------------------- */
+/* Inside .dp, so it reads the panel's palette tokens and works in both modes. */
+.ag-h {
+  font: 500 15px/21px var(--font-title); color: var(--dp-ink);
+  margin: 26px 0 10px;
+}
+.ag-bank { margin-bottom: 14px; }
+.ag-bank-h {
+  font: 500 11px/16px var(--font); color: var(--dp-ink3);
+  letter-spacing: .06em; text-transform: uppercase; margin-bottom: 6px;
+}
+.ag-rows { display: flex; flex-direction: column; gap: 1px; }
+.ag-row {
+  display: flex; gap: 14px; align-items: baseline;
+  background-color: var(--dp-surface); border-radius: 6px; padding: 8px 11px;
+}
+.ag-row-q { flex: 1 1 auto; font: 400 13px/19px var(--font); color: var(--dp-ink); }
+/* The answers are the point of the table, so they are not dimmed into a note. */
+.ag-row-a {
+  flex: 0 0 auto; font: 500 12.5px/19px var(--font); color: var(--dp-accent);
+  text-align: right; max-width: 44%;
+}
+.ag-list {
+  margin: 0; padding-left: 22px;
+  font: 400 13px/20px var(--font); color: var(--dp-ink2);
+}
+.ag-list li { margin-bottom: 7px; }
+
+@media (max-width: 560px) {
+  .ag-row { flex-direction: column; gap: 3px; }
+  .ag-row-a { text-align: left; max-width: none; }
+}

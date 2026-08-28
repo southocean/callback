@@ -31,8 +31,9 @@ import { bugArt } from './bugart.js';
 import { isAdmin } from '../prefs.js';
 import {
   challenges, wrongRoasts, rightRoasts, grantedLines, alreadyAdminLines,
-  KIND_LABEL, ADMIN_PASSWORD, ADMIN_CLICKS, ADMIN_HINT_FROM, type ChallengeKind,
+  KIND_LABEL, ADMIN_PASSWORD, type ChallengeKind,
 } from '../data/admin.js';
+import { ADMIN_CLICKS, ADMIN_HINT_FROM } from './admingate.js';
 
 type Tab = 'overview' | 'process' | 'reviews' | 'board' | 'script' | 'bugs' | 'gate';
 

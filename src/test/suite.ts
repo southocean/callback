@@ -16,8 +16,14 @@ import { sample, policy, rng, profiles } from '../net/degrade.js';
 import {
   readyCardOpens, afterReadyShown, afterReadyClosed, READY_MUTE_MS, READY_MAX_SHOWS,
   readInterview, afterInterview, clockMs, INTERVIEW_MIN_MS, INTERVIEW_MAX_MS,
+  readAdmin,
 } from '../prefs.js';
 import { reduceTour, initialTour, nextScripted, registerFor, QUEUE_BRIEF, type TourState } from '../tour/director.js';
+import {
+  challenges, wrongRoasts, rightRoasts, grantedLines, judge, normalise, pick,
+  ADMIN_PASSWORD,
+} from '../data/admin.js';
+import { ADMIN_CLICKS, ADMIN_HINT_FROM } from '../ui/admingate.js';
 import {
   parts as tourParts, quips as tourQuips, acks as tourAcks, story as tourStory,
   asides, timeline, runtimeMs, transcriptLines, OUTRO_CAP_MS,
@@ -1376,3 +1382,95 @@ export async function run(withChaos = false): Promise<Result[]> {
 }
 
 export const total = cases.length;
+
+suite('the admin gate', () => {
+  const q = challenges[0]!;
+
+  test('the password opens it, whatever the question was', () => {
+    for (const c of challenges) eq(judge(c, 'konami'), 'password', `${c.id} refused the password`);
+  });
+
+  test('the password is forgiving about case and stray spacing', () => {
+    eq(judge(q, 'KONAMI'), 'password');
+    eq(judge(q, '  Konami  '), 'password');
+    eq(judge(q, 'kOnAmI'), 'password');
+  });
+
+  test('a right answer to the decoy is right, and still not the password', () => {
+    eq(judge(q, q.answers[0]!), 'right');
+  });
+
+  test('anything else is wrong', () => {
+    eq(judge(q, 'no idea'), 'wrong');
+    eq(judge(q, 'password'), 'wrong');
+    eq(judge(q, 'admin'), 'wrong');
+  });
+
+  /*
+   * The data test that matters. Every listed answer has to survive its own
+   * normalisation, or the bank ships a question whose printed answer the dialog
+   * rejects -- which reads as the joke being broken rather than as a typo.
+   */
+  test('every listed answer is accepted by its own question', () => {
+    for (const c of challenges) {
+      for (const a of c.answers) {
+        eq(judge(c, a), 'right', `${c.id} rejected its own answer "${a}"`);
+      }
+    }
+  });
+
+  test('answers survive the spacing and casing a person would actually type', () => {
+    for (const c of challenges) {
+      const a = c.answers[0]!;
+      eq(judge(c, ` ${a.toUpperCase()} `), 'right', `${c.id} failed on padded uppercase`);
+      eq(judge(c, `${a}.`), 'right', `${c.id} failed on a trailing full stop`);
+    }
+  });
+
+  /* If a question ever grew the password as an answer the door would open for a
+     reason nobody intended. judge() checks the lock first, so it would still be
+     a 'password', but the bank should not be quietly carrying the word. */
+  test('no question accidentally carries the password as an answer', () => {
+    for (const c of challenges) {
+      ok(!c.answers.some((a) => normalise(a) === ADMIN_PASSWORD), `${c.id} lists the password`);
+    }
+  });
+
+  test('every question is non-empty and has at least one answer', () => {
+    for (const c of challenges) {
+      ok(c.q.trim().length > 0, `${c.id} has no question`);
+      ok(c.answers.length > 0, `${c.id} has no answer`);
+    }
+  });
+
+  test('question ids are unique', () => {
+    eq(new Set(challenges.map((c) => c.id)).size, challenges.length, 'two questions share an id');
+  });
+
+  test('there is a roast for every outcome', () => {
+    ok(wrongRoasts.length > 0, 'no roast for a wrong answer');
+    ok(rightRoasts.length > 0, 'no roast for a right answer');
+    ok(grantedLines.length > 0, 'nothing to say when the password lands');
+  });
+
+  test('pick wraps rather than running off the end', () => {
+    const xs = ['a', 'b', 'c'];
+    eq(pick(xs, 0), 'a');
+    eq(pick(xs, 4), 'b');
+    eq(pick(xs, -1), 'c', 'a negative index fell off the front');
+  });
+
+  test('the counter opens the box on the eleventh press, not before', () => {
+    ok(ADMIN_CLICKS === 11, 'the gesture is no longer eleven presses');
+    ok(ADMIN_HINT_FROM < ADMIN_CLICKS, 'the hint starts after the box already opened');
+    ok(ADMIN_HINT_FROM > 1, 'the very first press gives the gesture away');
+  });
+
+  test('a stored grant reads back, and anything else reads as locked', () => {
+    ok(readAdmin('1'), 'a granted flag did not read back');
+    ok(!readAdmin(null), 'a missing flag granted admin');
+    ok(!readAdmin(''), 'an empty flag granted admin');
+    ok(!readAdmin('0'), 'a zero granted admin');
+    ok(!readAdmin('true'), 'a hand-edited flag granted admin');
+  });
+});

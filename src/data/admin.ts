@@ -27,19 +27,6 @@
 /** The word that actually opens it. Never printed in the dialog. */
 export const ADMIN_PASSWORD = 'konami';
 
-/** Clicks on the avatar before the dialog opens. */
-export const ADMIN_CLICKS = 11;
-
-/**
- * The click the falling numbers start on.
- *
- * Three clicks of nothing is deliberate. An avatar that reacts on the first
- * press is a button with a bug; one that stays inert and then starts counting is
- * a thing that has noticed you. The numbers are the only signal that the gesture
- * exists, so they carry the whole of the discovery.
- */
-export const ADMIN_HINT_FROM = 4;
-
 export type ChallengeKind = 'math' | 'history' | 'sense';
 
 export interface Challenge {
