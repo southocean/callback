@@ -1837,6 +1837,60 @@ export const tasks: Task[] = [
     },
   },
 
+  {
+    id: 'N98', col: 'done', size: 'L', tag: 'call',
+    title: 'Stop is a pause, not a kill',
+    note: 'He acknowledges it, turns the captions off himself, and waits to be asked back.',
+    detail: {
+      why: 'Nam: "When clicking stop talking, the script literally freezes in place and caption doesnt close. We should acknowledge this instead of abruptly stopping." The freeze was the honest symptom of the design: the handler tore everything down mid-sentence, so whatever the hand was doing stayed half done and the strip kept the last line it had been given. Stop meant die, and dying inside a gesture looks exactly like a hang.',
+      done: [
+        'A Stop pressed during a beat lets the beat finish first',
+        'He says "I hear you. The rest is yours to discover now."',
+        'The hand turns the captions off, timed to land as that line ends',
+        'The Stop control goes away with him and comes back with him',
+        'Nothing at all is said until the visitor turns the captions back on',
+        'He returns with "Oh, you missed me. Where were we again?" and names the segment',
+        'Pressing Stop again does the same thing, any number of times',
+        'Time spent paused is taken off the interview clock',
+      ],
+      raised: 'Nam, QA 29 Aug',
+      notes: 'The press ends the LINE but not the BEAT, which is exactly what the cutscene lock from N55 already does: skip() is refused while locked and applied the moment it unlocks. The acknowledgement and the press overlap deliberately, since saying a line, then pausing, then reaching for a button is three beats where the visitor is owed one. Coming back is polled off podium.captionsOn() rather than given its own event: the captions control belongs to the call, and one listener does not justify a second way to know one thing.',
+    },
+  },
+  {
+    id: 'N99', col: 'done', size: 'S', tag: 'call',
+    title: 'Three clips again, and the new filenames',
+    note: 'N63 showed all of them. There are seven now, which is too many.',
+    detail: {
+      why: 'Nam: "I want to revert back to only showing max 3 videos instead of all the videos here." Seven clips at five seconds each is a minute and a half of somebody else’s home video in the middle of a job application, and the segment stops being a flourish and becomes the show. The rest stay findable in the calendar, which is where they always were.',
+      done: [
+        'The offclock segment opens at most three',
+        'Both routes honour the cap, the performed one and the fallback',
+        'The new filenames all resolve, verified against Explorer in a browser',
+        'A row below the fold is rolled into view before the hand reaches for it',
+      ],
+      raised: 'Nam, QA 29 Aug',
+      notes: 'Nothing went stale in N56, and that is worth writing down: Explorer builds its rows from the same eggs array the script reads, and both derive the file name the same way, so a rename lands in both places at once. What DID need fixing was scrolling. Hobby now holds eight rows and shows seven, so the last one is below the fold. A first-time visitor never sees it, because their three unseen clips are the first three; somebody who has already found a few gets a list that starts further down, and the hand would have travelled to a box clipped out of its own container.',
+    },
+  },
+  {
+    id: 'N100', col: 'done', size: 'M', tag: 'call',
+    title: 'Catching a bug is a moment',
+    note: 'It lingers, it blooms, the room takes a knock, and he stops talking over it.',
+    detail: {
+      why: 'Nam: "when we found it, it should linger a bit more, a bit more exciting, maybe some light glow and a light camera shake, kinda like hallelujah, and then if the script is running, then we should pause just a little bit for the bug to land then we continue." The wiggle finished in 900ms and the drawing left immediately after, so the one moment the animal is big enough to look at was over before you had looked at it.',
+      done: [
+        'The hold is 1500ms, and the extra 600 is stillness at full size rather than more animation',
+        'A halo blooms behind the animal as it lands',
+        'The room takes a short knock, three pixels and a fifth of a degree',
+        'The conversation holds for it and picks up afterwards',
+        'Reduced motion gets none of the shake and none of the bloom',
+      ],
+      raised: 'Nam, QA 29 Aug',
+      notes: 'The shake is on the body rather than on the bug, and that is the whole difference: a bug that shakes is a bug that is moving, a ROOM that shakes is something having landed in it. Kept small on purpose, since the amounts that read as impressive in isolation read as a fault in a page pretending to be a video call. The hold reaches the script as a dispatched event rather than a call, for the same reason as ui/signal.ts: bugs.ts knows nothing about the conversation and has to keep working when it is not running. It is a timestamp rather than a lock, so a holder that forgets to release cannot wedge the script, and it is capped at four seconds and taken between sentences rather than inside one.',
+    },
+  },
+
   /* Flagged rather than done. Still true as of this build. */
   { id: 'T24', col: 'backlog', size: 'M', tag: 'specs', title: 'Initial payload is halfway to the ceiling', note: '24.7 kB of a 50 kB gate, up from 18.2. Still green, and the growth is real, but two deferred chunks are 17 kB and 19 kB and deserve a splitting pass before it becomes urgent.' },
 ];

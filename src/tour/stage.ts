@@ -286,7 +286,7 @@ export function startTour(root: HTMLElement, podium: Podium): TourHandle {
   /** True once the conversation reached its own last line under its own steam. */
   let heardOut = false;
   /**
-   * STOP IS A PAUSE NOW, NOT AN ENDING — board ticket N84.
+   * STOP IS A PAUSE NOW, NOT AN ENDING — board ticket N98.
    *
    * Nam: "When clicking stop talking, the script literally freezes in place and
    * caption doesnt close. We should acknowledge this instead of abruptly
@@ -808,7 +808,7 @@ export function startTour(root: HTMLElement, podium: Podium): TourHandle {
       if (dead) return;
       await drain();
       // Between sentences, never inside one: a hold taken mid-line would leave a
-      // half-typed caption sitting there, which reads as the hang N84 just fixed.
+      // half-typed caption sitting there, which reads as the hang N98 just fixed.
       await heldOut();
       if (dead) return;
       const line = lines[i]!;
@@ -1371,7 +1371,7 @@ export function startTour(root: HTMLElement, podium: Podium): TourHandle {
   /**
    * SOMETHING ELSE WANTS THE FLOOR FOR A MOMENT.
    *
-   * Board ticket N85. Nam, on catching a bug: "if the script is running, then we
+   * Board ticket N100. Nam, on catching a bug: "if the script is running, then we
    * should pause just a little bit for the bug to land then we continue." A
    * beetle blooming in the middle of the screen while he carries on describing
    * the CV is two things asking for the same attention, and the bug loses.
