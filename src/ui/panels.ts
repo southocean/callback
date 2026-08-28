@@ -47,8 +47,15 @@ export function renderChat(): HTMLElement {
     clear(trans);
     trans.appendChild(renderTranscript());
     /* Anchored to the bottom while it is a record, because the interesting end of
-       a record is the recent end. The running order reads from the top. */
-    if (on) trans.scrollTop = trans.scrollHeight;
+       a record is the recent end. The running order reads from the top.
+     *
+     * ON `list`, NOT ON `trans` -- board ticket N141. The transcript used to be a
+     * scrollport of its own, capped at 46vh so it could not push the nine authored
+     * messages above it off the panel. Those messages went in N138 and the cap
+     * went with them, so `trans` scrolls nothing and setting its scrollTop is a
+     * no-op that would have quietly stopped anchoring the record. .msg-list is the
+     * scroller now, and it is the one that has to move. */
+    if (on) list.scrollTop = list.scrollHeight;
   };
 
   const list = h('div', { class: 'msg-list' },

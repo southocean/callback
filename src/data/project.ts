@@ -2457,6 +2457,18 @@ export const tasks: Task[] = [
     },
   },
 
+  {
+    id: 'N141', col: 'review', size: 'S', tag: 'call',
+    title: 'The transcript fills the panel it is the only thing in',
+    note: 'A height cap written to protect the cover letter outlived the cover letter by one ticket.',
+    detail: {
+      why: 'Nam: "the transcript in chat doesnt extend to full chat panel, looking very weird." It stopped at 46% of the window with dead panel under it, its last bubble sliced off mid-sentence, and two scrollbars side by side.',
+      done: ['The 46vh cap and the second scrollport are gone', 'The record anchors on .msg-list, which is the element that actually scrolls', 'Measured in a live call: the full script grows to 4000px and the panel scrolls once, not twice'],
+      raised: 'Nam, 28 Aug',
+      notes: 'The comment above the rule named its own cause and nobody read it on the way past: "Capping it keeps the cover letter reachable without a second scrollbar fighting the first." That was correct while nine authored messages sat above the transcript, which a full-height record would have pushed out of reach. N138 cut those messages, and the cap became the exact failure it had been written to prevent, pointed the other way. Worth keeping as a pattern: a constraint whose justification names another feature is dead the moment that feature is, and the comment is the thing that tells you so.',
+    },
+  },
+
   /* Flagged rather than done. Still true as of this build. */
   { id: 'T24', col: 'backlog', size: 'M', tag: 'specs', title: 'Initial payload is halfway to the ceiling', note: '24.7 kB of a 50 kB gate, up from 18.2. Still green, and the growth is real, but two deferred chunks are 17 kB and 19 kB and deserve a splitting pass before it becomes urgent.' },
 ];

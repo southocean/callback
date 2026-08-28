@@ -899,13 +899,23 @@ button { font: inherit; }
    Read off the live switch as `rgb(0, 99, 155) 0px 0px 0px 3px`. */
 .lt-sw:focus-visible { outline: none; box-shadow: 0 0 0 3px #00639b; }
 
-/* The record can get long, and it is inside a panel that already scrolls. Capping
-   it keeps the cover letter reachable without a second scrollbar fighting the
-   first: this one only appears once there is more than a screenful. */
-.tr-body { max-height: 46vh; overflow-y: auto; }
-.tr-body::-webkit-scrollbar { width: 8px; }
-.tr-body::-webkit-scrollbar-track { background: transparent; }
-.tr-body::-webkit-scrollbar-thumb { background-color: #5f6368; border-radius: 4px; }
+/* NO CAP, AND NO SCROLLER OF ITS OWN -- board ticket N141.
+   Nam: "the transcript in chat doesnt extend to full chat panel, looking very
+   weird."
+
+   This used to read `max-height: 46vh; overflow-y: auto`, and the comment that
+   sat here named its own cause: "Capping it keeps the cover letter reachable
+   without a second scrollbar fighting the first." That was true while the
+   transcript was the LAST of several blocks in this panel -- nine authored
+   messages above it, which a full-height transcript would have pushed out of
+   reach. N138 deleted the cover letter, and the cap outlived the thing it was
+   protecting by exactly one ticket.
+
+   What was left was the failure it had been written to avoid, pointed the other
+   way: the transcript stopped at 46% of the window with dead panel below it, its
+   last bubble sliced off mid-sentence, and two scrollbars side by side because
+   .msg-list scrolls too. It is the only content in this panel now, so it does not
+   get to be a scrollport -- .msg-list is the scrollport, and this just grows. */
 
 @media (prefers-reduced-motion: reduce) {
   /* The states still differ in colour, size and glyph. Only the tweening goes. */
