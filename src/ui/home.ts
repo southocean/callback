@@ -16,7 +16,6 @@ import type { Bugs } from '../bugs.js';
 import { currentPitch } from '../data/companies.js';
 
 import { openPlain } from './plainoverlay.js';
-import { progressNow } from './progress.js';
 import { loadInterview } from '../prefs.js';
 import { gatePressed, onAdminGranted } from './admingate.js';
 import { isAdmin } from '../prefs.js';
@@ -426,18 +425,33 @@ export function renderHome(store: Store, reducedMotion = false, body?: HTMLEleme
    * Same shape as the Bugs item above, for the same reason: it opens a dialog
    * rather than changing screen, so all four rail items behave alike.
    */
-  {
-    const p = progressNow();
-    if (p.pct > 0 && loadInterview()) {
+  /*
+   * FETCHED, NOT IMPORTED, and the size gate is why.
+   *
+   * completion.ts reads all four collections, and one of them is `quips` out of
+   * data/tour.ts -- which is the entire script, the banter and the personal
+   * segment. A static import here pulls all of that into the INITIAL bundle,
+   * because home.ts is the first screen and is not deferred. The build measured
+   * it: 28.9 kB to 36.2 kB gzip, a quarter of the budget for a rail item that
+   * most visitors never see.
+   *
+   * So the rail is built without it and the item arrives when the chunk does.
+   * `loadInterview` is checked first, synchronously and cheaply, so a visitor who
+   * has never finished a call does not fetch the chunk at all.
+   */
+  if (loadInterview()) {
+    void import('./progress.js').then((m) => {
+      const p = m.progressNow();
+      if (p.pct <= 0 || !rail.isConnected) return;
       const item = h(
         'button',
         { class: 'rail-item', type: 'button', 'aria-current': 'false' },
         h('span', { class: 'rail-pill rail-pct' }, `${p.pct}%`),
         h('span', { class: 'rail-label' }, 'Progress'),
       ) as HTMLButtonElement;
-      item.addEventListener('click', () => { void import('./progressframe.js').then((m) => m.openProgress()); });
+      item.addEventListener('click', () => { void import('./progressframe.js').then((f) => f.openProgress()); });
       rail.appendChild(item);
-    }
+    });
   }
 
   // --- main ----------------------------------------------------------------

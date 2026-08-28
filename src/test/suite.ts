@@ -1588,8 +1588,11 @@ suite('completion', () => {
   test('the ends are exact and the middle is rounded', () => {
     eq(percent(0, 52), 0, 'nothing found should read zero');
     eq(percent(52, 52), 100, 'everything found should read one hundred');
-    eq(percent(1, 52), 1, 'one find rounds to zero without the clamp');
-    eq(percent(51, 52), 99, 'one missing rounds to a hundred without the clamp');
+    eq(percent(1, 52), 2, 'one of fifty-two is two percent');
+    // The clamps only bite where rounding would reach an end it has not earned.
+    eq(percent(1, 500), 1, 'one find rounded down to nothing');
+    eq(percent(499, 500), 99, 'one missing rounded up to everything');
+    eq(percent(51, 52), 98);
     eq(percent(26, 52), 50);
     eq(percent(13, 52), 25);
   });

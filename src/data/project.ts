@@ -2038,7 +2038,7 @@ export const tasks: Task[] = [
     },
   },
   {
-    id: 'N110', col: 'backlog', size: 'L', tag: 'content',
+    id: 'N110', col: 'done', size: 'L', tag: 'content',
     title: 'The questions are asked out loud, and remembered',
     note: 'Each answer gets its question first, and leaving halfway is resumable.',
     detail: {
@@ -2131,7 +2131,7 @@ export const tasks: Task[] = [
     },
   },
   {
-    id: 'N118', col: 'backlog', size: 'L', tag: 'trust',
+    id: 'N118', col: 'done', size: 'L', tag: 'trust',
     title: 'One number for all of it: completion',
     note: 'Achievements, commentary, bugs and clips, as a single percentage.',
     detail: {
