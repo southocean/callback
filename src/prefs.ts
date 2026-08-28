@@ -413,6 +413,60 @@ export function readAdmin(raw: string | null): boolean {
   return raw === '1';
 }
 
+/* ---------------------------------------------------------------- forget it */
+
+/**
+ * EVERY FIRST-VISIT EXPERIENCE, ERASABLE -- board ticket N80.
+ *
+ * Nam: "add a new settings tab, where we have a button to clear out achivements
+ * and clear out bugs, just so we can test out the onboarding behavior."
+ *
+ * The problem it solves is real and gets worse the longer the project runs.
+ * Almost everything interesting here happens once: the quest toasts, the empty
+ * drawer, the clips you have not seen, the four post-credit lines you have not
+ * heard. Anybody who has worked on it has spent all of that, and the visitor it
+ * was designed for has not spent any of it. Without a reset the only way to
+ * check the first minute is a private window, which loses the devtools you were
+ * about to use.
+ *
+ * A list rather than four exported functions, because the Settings tab wants to
+ * SAY what each one is about to forget and how much of it there is, and that is
+ * an awkward thing to keep in step across two modules.
+ */
+export interface Forgettable {
+  key: string;
+  label: string;
+  what: string;
+}
+
+export const FORGETTABLE: Forgettable[] = [
+  { key: 'callback.quests', label: 'Side quests', what: 'the achievements, and the toasts that announce them' },
+  { key: 'callback.bugs', label: 'The collection', what: 'every bug caught, so the case is twelve silhouettes again' },
+  { key: EGG_KEY, label: 'Clips found', what: 'which of the calendar clips have been watched' },
+  { key: BANTER_KEY, label: 'Post-credit lines', what: 'which of the after-the-goodbye lines have been heard' },
+  { key: INTERVIEW_KEY, label: 'Interview times', what: 'the run count and the best time on the ended screen' },
+];
+
+/** How many entries a record holds, for the button that is about to delete it. */
+export function storedCount(key: string): number {
+  try {
+    const raw = localStorage.getItem(key);
+    if (!raw) return 0;
+    const v = JSON.parse(raw) as unknown;
+    return Array.isArray(v) ? v.length : 1;
+  } catch {
+    return 0;
+  }
+}
+
+export function forget(key: string): void {
+  try {
+    localStorage.removeItem(key);
+  } catch {
+    /* ignore */
+  }
+}
+
 export function isAdmin(): boolean {
   try {
     return readAdmin(localStorage.getItem(ADMIN_KEY));

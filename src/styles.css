@@ -5505,11 +5505,12 @@ body.set-open .cc { bottom: calc(var(--botbar) + 52px + 12px); }
    about how long a real one is down for. */
 .hand.is-press .hand-arrow { transform: scale(.86); transform-origin: 2px 2px; }
 .hand-arrow { transition: transform .09s ease-out; }
-/* The ring exists for one job: making a 22px arrow findable over a busy screen
+/* The ring exists for one job: making a small arrow findable over a busy screen
    share at the moment it starts moving. It is not a target reticle -- it never
-   pulses while the hand is still. */
+   pulses while the hand is still. Scaled down with the arrow in N77: it is
+   centred on the tip, so its offsets are half its size. */
 .hand-ring {
-  position: absolute; left: -19px; top: -19px; width: 38px; height: 38px;
+  position: absolute; left: -13px; top: -13px; width: 28px; height: 28px;
   border-radius: 50%; border: 2px solid rgba(26, 115, 232, .0);
   transition: border-color .2s linear, transform .2s ease-out;
 }
@@ -7213,6 +7214,11 @@ body.tray-open.cc-on .react-clip { bottom: calc(var(--botbar) + 268px); }
 }
 .dk-peek-card {
   width: 168px; cursor: pointer; border-radius: 6px; padding: 4px;
+  /* The list itself is pointer-events: none so it cannot swallow a press aimed
+     at the taskbar behind it. The cards have to opt back in, or clicking one to
+     raise its window does nothing and the hover state never paints. Found while
+     chasing N81, since both bugs look like "the desktop stopped responding". */
+  pointer-events: auto;
 }
 .dk-peek-card:hover { background-color: rgba(255, 255, 255, .1); }
 .dk-peek-card:focus-visible { outline: 2px solid #4cc2ff; outline-offset: -2px; }
@@ -7563,6 +7569,25 @@ body.tray-open.cc-on .react-clip { bottom: calc(var(--botbar) + 268px); }
   .qt-x::after { transition: none; }
 }
 
+/* --- the reset bench, in the spec (N80) ---------------------------------- */
+/* One row per thing the page remembers. The count is the whole design: a button
+   labelled Clear with no number beside it is a button nobody presses twice. */
+.set-rows { display: flex; flex-direction: column; gap: 2px; margin-top: 4px; }
+.set-row {
+  display: grid; grid-template-columns: 1fr auto auto; gap: 14px; align-items: center;
+  padding: 12px 4px; border-bottom: 1px solid var(--dp-line);
+}
+.set-row:last-child { border-bottom: 0; }
+.set-txt { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.set-txt b { font: 500 14px/20px var(--font-title); color: var(--dp-ink); }
+.set-txt span { font: 400 12.5px/18px var(--font); color: var(--dp-ink3); }
+.set-n {
+  font: 500 12px/16px var(--font); font-variant-numeric: tabular-nums;
+  color: var(--dp-ink3); min-width: 42px; text-align: right;
+}
+.set-clear { flex: 0 0 auto; }
+.set-clear:disabled { opacity: .45; cursor: default; }
+
 /* ==================== THE BUG COLLECTION (N59) =========================== */
 /* Rebuilt after Nam's review: "I want this collection frame to be BEAUTIFUL,
    and in the same design language as google meet."
@@ -7844,13 +7869,35 @@ body.tray-open.cc-on .react-clip { bottom: calc(var(--botbar) + 268px); }
   from { opacity: 1; transform: none; }
   to   { opacity: 0; transform: scale(.96); }
 }
-.wx.is-out { animation: wx-out .14s cubic-bezier(0.4, 0, 1, 1) both; pointer-events: none; }
+/* THE STATE HIDES IT. THE ANIMATION ONLY SHOWS IT LEAVING.
+ *
+ * Board ticket N81, and the bug is worth the paragraph because the shape of it
+ * recurs. Both of these used to hide the window ONLY through the final keyframe
+ * of their animation, held there by fill-mode: both. That works right up until
+ * something cancels the animation, and something does:
+ *
+ *     .wx.is-max { animation: none; }
+ *
+ * Same specificity, later in the file, so it wins. A maximised window that is
+ * minimised therefore had its hiding animation switched off, and stayed fully
+ * painted with pointer-events: none, sitting over the desktop. Nam: "a stale
+ * version of the mock chrome remain on screen, not actually interactable, maybe
+ * because in reality its in minimized state." Exactly that. The conversation
+ * maximises Chrome, so it reproduced after every guided share.
+ *
+ * So the hidden state is declared here, where the state is, and the keyframes
+ * are decoration that happens on the way. An animation is how a thing gets
+ * somewhere; it must never be the only reason it is there. */
+.wx.is-out {
+  opacity: 0; visibility: hidden; pointer-events: none;
+  animation: wx-out .14s cubic-bezier(0.4, 0, 1, 1) both;
+}
 /* Minimise travels toward the taskbar rather than just vanishing, which is the
    cue that tells you where the window went. */
 .wx.is-min {
   display: block;
+  opacity: 0; visibility: hidden; pointer-events: none;
   animation: wx-min .14s cubic-bezier(0.4, 0, 1, 1) both;
-  pointer-events: none;
 }
 /* visibility is the load-bearing part, not the fade. Animating only opacity
    left the minimised window at display:block and opacity:0 — still in the tab

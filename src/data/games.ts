@@ -6,11 +6,18 @@
 // get what you need."
 //
 // So this was read off that page rather than invented: every title, URL and
-// tagline below is the one the profile shows. Thirteen are listed there; these
-// are the six worth a reader's time, chosen for what they demonstrate rather
-// than for polish — two rhythm games because the timing problem is the
-// interesting one, a jam entry to show the constraint, and the mahjong prototype
-// because it is the day job in miniature.
+// tagline below is the one the profile shows.
+//
+// THREE, DOWN FROM SIX (board ticket N83). Nam: "in Games section, we can remove
+// mahjong star, rhymshoot 2.0 and lostsoulv2. We are keeping ryhtm shoot, molt
+// and space invasion." The three that went were the three that overlapped
+// something else on the page: the mahjong prototype sits under a live production
+// client three sections up, and the two sequels were listed beside their own
+// first versions to make a point about iteration that the section did not need
+// two entries to make.
+//
+// What is left is one game about timing, one jam entry about constraint, and one
+// written to a theme in a weekend. Three arguments, three games.
 //
 // The rest are still one click away: the profile link stays at the bottom of the
 // list. What is gone is the version of this page that offered ONLY that link and
@@ -29,20 +36,6 @@ export interface Game {
 
 export const games: Game[] = [
   {
-    title: 'Mahjong Star',
-    url: 'https://southocean.itch.io/mstar',
-    tagline: 'The day job, in prototype form.',
-    why: 'The same game the production client ships, small enough to read in one sitting.',
-    playable: true,
-  },
-  {
-    title: 'RhythmShoot 2.0',
-    url: 'https://southocean.itch.io/rhythmshoot',
-    tagline: 'A perfectly synced rhythm-based top-down shooter',
-    why: 'Audio-clock sync, which is the same class of problem as a video call: two streams that must not drift.',
-    playable: true,
-  },
-  {
     title: 'Rhythm Shoot',
     url: 'https://southocean.itch.io/rhythm-shoot',
     tagline: 'Rhythm-based top down shooter done in 10 minutes',
@@ -54,13 +47,6 @@ export const games: Game[] = [
     url: 'https://southocean.itch.io/moult',
     tagline: 'Feed yourself with your own flesh and drown in your greed',
     why: 'A jam entry for #6 Jim Jam. Constraint, deadline, and a mechanic that had to be explained without words.',
-    playable: true,
-  },
-  {
-    title: 'LostSoul v2',
-    url: 'https://southocean.itch.io/lostsoul-v2',
-    tagline: 'Capturing ghosts with your camera in a peaceful cemetery',
-    why: 'A camera as the whole interface. The second version exists because the first one taught what was wrong with it.',
     playable: true,
   },
   {

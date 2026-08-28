@@ -59,10 +59,16 @@ export type Cue =
   /** Maximise the browser window inside the shared desktop. */
   | 'maximise'
   | 'tab:cv' | 'tab:jobad' | 'tab:built' | 'tab:work'
-  /** Drag the self tile a little, and let it spring back. */
-  | 'drag'
-  /** Ctrl-wheel the mock browser out a couple of notches, so the page fits. */
-  | 'zoom'
+  /** Open the reaction tray and send the heart. */
+  | 'heart'
+  /**
+   * Ctrl-wheel the mock browser out, `zoom:<notches>` of them.
+   *
+   * A number rather than a fixed amount because the two documents need
+   * different ones: the CV wants a single notch and the spec, which is wider,
+   * wants two. See N78.
+   */
+  | 'zoom:1' | 'zoom:2'
   /** Play the easter-egg clips this visitor has not found yet. */
   | 'eggs'
   /** The hand drifts off the edge and stops. */
@@ -230,6 +236,10 @@ export const parts: Part[] = [
       L('I love tonkotsu! Three countries, and that is the strongest opinion I brought home.', 4600),
     ],
     beats: [
+      // N78. The document is laid out for a full screen and arrives inside a
+      // window inside a screen share, so it opens one notch out. The spec, which
+      // is wider still, takes two.
+      { at: 0, cue: 'zoom:1' },
       { at: 0, roll: { of: 'cv', to: 0, ms: 500 } },
       { at: 1, roll: { of: 'cv', to: 'Experience', ms: 1400 } },
       { at: 5, roll: { of: 'cv', to: 0.42, ms: 1600 } },
@@ -319,7 +329,7 @@ export const parts: Part[] = [
       { at: 0, cue: 'tab:built' },
       // The spec is a wide document and the shared screen is not. It fits at
       // 80 per cent, so the hand ctrl-wheels it there before talking about it.
-      { at: 1, cue: 'zoom' },
+      { at: 1, cue: 'zoom:2' },
       { at: 2, roll: { of: 'page', to: 0.35, ms: 1600 } },
       { at: 3, roll: { of: 'page', to: 0.6, ms: 1400 } },
       { at: 4, roll: { of: 'page', to: 0.8, ms: 1400 } },
@@ -389,14 +399,26 @@ export const parts: Part[] = [
        */
       L('Everything on screen is real and nothing here breaks.', 3000),
       L('Open the chat.', 2200),
-      L('Drag the video.', 2600),
+      /*
+       * N79. This was "Drag the video." and it dragged the wrong thing: the beat
+       * measured the tile as the beat began, and the line before it had just
+       * opened the chat, which narrows the stage and moves the tile. Nam: "it was
+       * dragging the old position of the video tile ... overall dragging is hard
+       * to demo, lets change that ... we could do send a heart."
+       *
+       * A press on a control cannot have that defect, because the hand resolves
+       * the selector at beat time rather than carrying a rectangle across a
+       * layout change. Which is the argument for preferring selectors over
+       * coordinates everywhere in this script.
+       */
+      L('Send a heart.', 2400),
       L('Raise your hand.', 2400),
       L('The CV is also available in home screen and after this meeting.', 4400),
       L('Thank you for your time. Genuinely.', 3000),
     ],
     beats: [
       { at: 2, move: '[data-ctl="chat"]', click: true },
-      { at: 3, cue: 'drag' },
+      { at: 3, cue: 'heart' },
       { at: 4, move: '[data-ctl="hand"]', click: true },
       { at: 6, cue: 'park' },
     ],
@@ -581,7 +603,6 @@ export const quips: Quip[] = [
   Q('cb-tab', 'browser', '.cb-tab', 'Tabs open, tabs close. A browser inside a browser.', 2800),
   Q('cb-new', 'browser', '.cb-new', 'Go on then. Open a new one.', 2200),
   Q('cb-omni', 'browser', '.cb-omni-in', 'You can type a real URL in there. It will actually go.', 3000),
-  Q('cb-riichi', 'browser', '.cb-tab[data-tab-id="riichi"]', "That tab is the live client. Not a screenshot of it. The actual client.", 3400),
   Q('cb-work', 'browser', '.cb-tab[data-tab-id="work"]', 'Everything I have built that I am allowed to show you.', 3000),
 
   /* --- the call's own panels --------------------------------------------- */

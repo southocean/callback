@@ -28,14 +28,14 @@ import {
 import { START } from '../data/cv.js';
 import { bugs as collection, RARITY_LABEL } from '../data/bugs.js';
 import { bugArt } from './bugart.js';
-import { isAdmin } from '../prefs.js';
+import { isAdmin, FORGETTABLE, storedCount, forget } from '../prefs.js';
 import {
   challenges, wrongRoasts, rightRoasts, grantedLines, alreadyAdminLines,
   KIND_LABEL, ADMIN_PASSWORD, type ChallengeKind,
 } from '../data/admin.js';
 import { ADMIN_CLICKS, ADMIN_HINT_FROM } from './admingate.js';
 
-type Tab = 'overview' | 'process' | 'reviews' | 'board' | 'script' | 'bugs' | 'gate';
+type Tab = 'overview' | 'process' | 'reviews' | 'board' | 'script' | 'bugs' | 'gate' | 'settings';
 
 /*
  * Timeline is gone as a tab and lives inside Overview instead. Nam: "I actually
@@ -85,6 +85,17 @@ const TABS: { id: Tab; label: string; admin?: true }[] = [
    */
   { id: 'bugs', label: 'Collection', admin: true },
   { id: 'gate', label: 'The gate', admin: true },
+  /*
+   * N80. Nam: "add a new settings tab, where we have a button to clear out
+   * achivements and clear out bugs, just so we can test out the onboarding
+   * behavior."
+   *
+   * Behind the gate for the obvious reason and one less obvious one: it is not
+   * only a developer convenience, it is a set of buttons that quietly delete a
+   * visitor's progress, and the last thing this drawer should offer a stranger
+   * who wandered into the spec is a way to lose their collection.
+   */
+  { id: 'settings', label: 'Settings', admin: true },
 ];
 
 export type PortalMode = 'light' | 'dark';
@@ -162,6 +173,7 @@ export function specBody(): { tabs: HTMLElement; body: HTMLElement } {
       : tab === 'script' ? renderScriptEditor()
       : tab === 'bugs' ? collectionView()
       : tab === 'gate' ? gateView()
+      : tab === 'settings' ? settingsView()
       : boardView(),
     );
     body.scrollTop = 0;
@@ -436,6 +448,61 @@ function collectionView(): HTMLElement {
  * this one must: the decoy's whole risk is that a question turns out to be
  * ambiguous or wrong, and a table nobody can read is a table nobody can check.
  */
+/**
+ * The reset bench -- board ticket N80.
+ *
+ * Every row says what it is about to forget and how much of it it is holding,
+ * because a button labelled Clear with no number beside it is a button nobody
+ * presses twice. Pressing one wipes the record and rewrites its own row, so the
+ * count going to zero IS the confirmation and there is no toast about it.
+ *
+ * The problem it solves gets worse the longer the project runs. Almost
+ * everything interesting here happens once: the quest toasts, the empty drawer,
+ * the clips you have not seen, the four post-credit lines you have not heard.
+ * Anybody who has worked on this has spent all of it, and the visitor it was
+ * designed for has spent none. Without a reset the only way to check the first
+ * minute is a private window, which loses the devtools you were about to use.
+ *
+ * NO "CLEAR EVERYTHING" BUTTON. It would be one press away from a state nobody
+ * asked for, and the point of the tab is to reach a SPECIFIC first-visit
+ * experience: usually the drawer, occasionally the clips, rarely both.
+ */
+function settingsView(): HTMLElement {
+  const list = h('div', { class: 'set-rows' }) as HTMLElement;
+
+  const paintRow = (row: HTMLElement, f: typeof FORGETTABLE[number]): void => {
+    clear(row);
+    const n = storedCount(f.key);
+    const btn = h('button', {
+      class: 'm-btn m-outlined set-clear', type: 'button',
+    }, n ? 'Clear' : 'Empty') as HTMLButtonElement;
+    btn.disabled = n === 0;
+    btn.addEventListener('click', () => { forget(f.key); paintRow(row, f); });
+    row.append(
+      h('div', { class: 'set-txt' }, h('b', {}, f.label), h('span', {}, f.what)),
+      h('span', { class: 'set-n' }, n ? String(n) : 'none'),
+      btn,
+    );
+  };
+
+  for (const f of FORGETTABLE) {
+    const row = h('div', { class: 'set-row' }) as HTMLElement;
+    paintRow(row, f);
+    list.appendChild(row);
+  }
+
+  return h('div', { class: 'dp-col' },
+    h('p', { class: 'dp-lead' },
+      'Everything this page remembers about you, and a way to make it forget. Clearing a record and '
+      + 'reloading gives you the visit a stranger gets, which is the only way to check the first minute '
+      + 'once you have already spent it.'),
+    h('p', { class: 'dp-note' },
+      'Nothing here leaves your machine, which is the same promise the rest of the site makes: these are '
+      + 'localStorage keys, and this reads and deletes them.'),
+    list,
+  );
+}
+
 function gateView(): HTMLElement {
   const kinds: ChallengeKind[] = ['math', 'history', 'sense'];
 

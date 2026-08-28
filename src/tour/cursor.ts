@@ -229,7 +229,17 @@ export function makeHand(root: HTMLElement, reduced: boolean): Hand {
 
   const el = h('div', { class: 'hand', 'aria-hidden': 'true' }) as HTMLElement;
   el.innerHTML = '<span class="hand-ring"></span>'
-    + '<svg class="hand-arrow" viewBox="0 0 12 19" width="22" height="35" aria-hidden="true">'
+    /*
+     * N77. This was 22x35 against a real Windows pointer's 12x19, which is
+     * nearly double. Nam: "the mock cursor is gigantic now, we need to bring it
+     * down a bit in size."
+     *
+     * It was oversized on purpose, to stay findable over a busy screen share.
+     * That is a real problem and the ring below already solves it, so the arrow
+     * was paying for the same thing twice. 15x24 is a shade over life size,
+     * which reads as a pointer rather than as a graphic of one.
+     */
+    + '<svg class="hand-arrow" viewBox="0 0 12 19" width="15" height="24" aria-hidden="true">'
     + '<path d="M1 1.2 L1 15.6 L4.6 12.4 L7 17.9 L9.6 16.8 L7.2 11.4 L11.6 11.1 Z"'
     + ' fill="#fff" stroke="#111" stroke-width="1.1" stroke-linejoin="round"/></svg>';
   root.appendChild(el);

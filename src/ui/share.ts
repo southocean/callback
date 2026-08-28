@@ -49,7 +49,6 @@ const TABS: Source[] = [
   { id: 'cv', kind: 'tab', title: 'Nam Nguyen. Senior SWE, Web Development', host: 'southocean.github.io' },
   { id: 'jobad', kind: 'tab', title: 'Google Careers, the posting, line by line', host: 'careers.google.com' },
   { id: 'work', kind: 'tab', title: 'Things I built', host: 'southocean.github.io' },
-  { id: 'riichi', kind: 'tab', title: 'Mahjong Stars, the live client', host: 'preview.mahjongstars.com' },
   /*
    * N36. Nam: "We actually have a how this was built page that we show in home
    * screen. We need to show that here in the mock browser." It was reachable —
@@ -101,7 +100,6 @@ const DOCS: Record<string, Doc> = {
   jobad: { title: 'Google Careers, the posting, line by line', host: 'careers.google.com', page: () => pageJobAd() },
   /* N3: one list, and it is not "four" any more. */
   work: { title: 'Things I built', host: 'southocean.github.io', page: () => pageWork() },
-  riichi: { title: 'Mahjong Stars, the live client', host: 'preview.mahjongstars.com', page: () => pageRiichi() },
   tools: { title: 'Internal tooling, a bot controller', host: 'southocean.github.io', page: () => pageTools() },
   hobby: { title: 'Off the clock', host: 'southocean.github.io', page: () => pageHobby() },
 };
@@ -419,7 +417,6 @@ function contentFor(src: Source, onOpen: (id: string) => void, onClose: () => vo
     case 'work': return pageWork();
     // Authored, because the original refuses to be framed.
     case 'jobad': return pageJobAd();
-    case 'riichi': return pageRiichi();
     // 'browser', not 'files': Window mode offers the browser now (see WINDOWS).
     // The id and the case have to move together -- renaming only the id sent this
     // straight past to the default branch, which is the desktop, so the Window
@@ -592,11 +589,19 @@ function pageWork(): HTMLElement {
         h('span', {}, c.problem)))),
 
     h('h2', { class: 'pg-h2' }, 'Tooling'),
+    /*
+     * THE BOT CONTROLLER IS GONE, and it was the strongest claim here.
+     *
+     * Nam: "We can remove the bot controller too cause now I realize without
+     * whitelisting your ip, you wont be able to sit the bots on tables." Which
+     * makes it a link that cannot work for any reader, and a link that cannot
+     * work is worse than no link: it spends the credibility the rest of the page
+     * is building. The test-automation line stays on the CV, where it is a claim
+     * about work done rather than an invitation to go and watch it.
+     */
     h('div', { class: 'pg-roles' },
       ext('Mahjong Stars, the live client', 'https://preview.mahjongstars.com/',
-        'The production client itself, seven years and three platform generations of it. Public preview.'),
-      ext('Bot controller', 'https://game.mstardev.com/bot.html',
-        'Drives bots onto live tables so a real-time client can be tested without four colleagues. The test-automation line on the CV is this.')),
+        'The production client itself, seven years and three platform generations of it. Public preview.')),
 
     h('h2', { class: 'pg-h2' }, 'Games'),
     h('div', { class: 'pg-games' },
@@ -616,27 +621,17 @@ function pageWork(): HTMLElement {
         b.dataset.ext = 'https://southocean.itch.io';
         return b;
       })(),
-      '. Clicking any title opens it in a tab. Some sites refuse to be framed, and this browser says so when they do.'),
+      '. Every link on this page opens in your own browser rather than in this one.'),
   );
 }
 
-/**
- * THE REAL CLIENT. Nam: "the riichi mahjong, you just put there some sloppy
- * riichi, looks very ugly and not up to code at all. Use our actual product:
- * https://preview.mahjongstars.com/. this is a public url so its all good if we
- * disclose it."
- *
- * He is right and it was the worst thing on the site: a hand-drawn mahjong board,
- * on the CV of someone who builds mahjong clients for a living. The drawing was
- * a stand-in from before there was a public URL to point at. There is one now.
- *
- * Framed with the same honest fallback as everything else — if the preview
- * refuses to be embedded, pageExternal says so and offers the link rather than
- * leaving a grey rectangle.
+/*
+ * THE REAL CLIENT USED TO BE A TAB HERE, and pageRiichi() rendered it framed.
+ * Board ticket N82 took it out: the preview would not load reliably inside a
+ * frame, and an unreliable embed of the product is a worse advert for seven
+ * years of work than a link that opens. The Explorer row survives and opens the
+ * public preview in the visitor's own browser, which is where it works.
  */
-function pageRiichi(): HTMLElement {
-  return pageExternal('https://preview.mahjongstars.com/');
-}
 
 /**
  * The Explorer window. Nam's note was blunt and correct: ours looked like macOS.
@@ -793,14 +788,9 @@ const icFavWork = (): HTMLElement => svg('0 0 20 20', `
   <rect x="2.5" y="5" width="15" height="11" rx="2" fill="#8ab4f8"/>
   <path d="M7.5 5V3.8A1.3 1.3 0 0 1 8.8 2.5h2.4A1.3 1.3 0 0 1 12.5 3.8V5h-1.8V4.3h-1.4V5z" fill="#5f88c8"/>
   <rect x="2.5" y="9.4" width="15" height="1.5" fill="#5f88c8" opacity=".5"/>`);
-const icFavMahjong = (): HTMLElement => svg('0 0 20 20', `
-  <rect x="4" y="2.5" width="12" height="15" rx="1.8" fill="#f5f5f5"/>
-  <rect x="5.4" y="4" width="9.2" height="12" rx="1.2" fill="#fff"/>
-  <path d="M10 5.6l2.6 4.4h-5.2z" fill="#1a8f4a"/>
-  <rect x="7.4" y="11" width="5.2" height="1.5" rx=".7" fill="#c5221f"/>
-  <rect x="7.4" y="13.2" width="5.2" height="1.5" rx=".7" fill="#c5221f"/>`);
+/* The mahjong favicon went with the tab it labelled. See N82. */
 const FAVICONS: Record<string, () => HTMLElement> = {
-  cv: icFavCv, jobad: icFavGoogle, work: icFavWork, riichi: icFavMahjong,
+  cv: icFavCv, jobad: icFavGoogle, work: icFavWork,
 };
 
 /* The desktop background.
@@ -1360,7 +1350,7 @@ function explorerBody(onOpen: (id: string) => void, onFolder?: (f: string) => vo
   const BUILT: Entry = { name: 'four-things-i-built.html', kind: 'html', tab: 'work' };
   const HOWBUILT: Entry = { name: 'how-this-is-built.html', kind: 'html', tab: 'built' };
   const SIDE: Entry = { name: 'side-projects.html', kind: 'html', tab: 'side' };
-  const MAHJONG: Entry = { name: 'mahjong-client.html', kind: 'html', tab: 'ext:https://game.mstardev.com/' };
+  const MAHJONG: Entry = { name: 'mahjong-stars.html', kind: 'html', tab: 'ext:https://preview.mahjongstars.com/' };
   const OFFCLOCK: Entry = { name: 'off-the-clock.html', kind: 'html', tab: 'hobby' };
   /* The six easter-egg clips, from src/data/eggs.ts — the real files in
      docs/media, named exactly as they are on disk. */
@@ -1882,10 +1872,26 @@ function chromeWindow(o: { onEmpty: () => void }): { body: HTMLElement; select: 
     applyZoom();
     if (doc) page.appendChild(doc.page());
     else page.appendChild(h('div', { class: 'pg cb-newtab' }, h('h1', { class: 'pg-h' }, 'New tab')));
-    // A page may carry outward links (see pageSide). They open in this browser
-    // rather than the host one, which is the whole point of the emulation.
+    /*
+     * OUTWARD LINKS LEAVE THIS BROWSER -- board ticket N83.
+     *
+     * They used to open in a tab here, which was the more charming answer and
+     * the wrong one. Nam: "all the urls here on this Things I built site should
+     * open an external browser tab too." Two reasons, and the second is the real
+     * one. Half of these sites refuse to be framed, so the emulation's answer to
+     * a third of its own links was an error page. And a visitor who clicks
+     * through to somebody's itch.io page wants it in their own browser, with
+     * their own history and their own back button, not nested two windows deep
+     * inside a CV.
+     *
+     * noopener because these are third-party pages and window.opener is a
+     * capability nothing here has any reason to hand out.
+     */
     for (const b of page.querySelectorAll<HTMLElement>('[data-ext]')) {
-      b.addEventListener('click', () => { const u = b.dataset.ext; if (u) goTo('ext:' + u, true); });
+      b.addEventListener('click', () => {
+        const u = b.dataset.ext;
+        if (u) window.open(u, '_blank', 'noopener,noreferrer');
+      });
     }
   };
 
@@ -2614,6 +2620,25 @@ function pageDesktop(onQuit: () => void, boot?: { egg?: string; cv?: boolean }):
   /* Explorer routes clips to the player and everything else to Chrome. */
   const openFile = (id: string): void => {
     if (id.startsWith('vid:')) { route('player', id); return; }
+    /*
+     * An outward row leaves for the real browser -- board ticket N82. Nam: "we
+     * are removing the mahjong stars tab since it doesnt load very consistently.
+     * Clicking that on the explorer will open a new real tab on your real
+     * browser going to the site."
+     *
+     * A framed preview that loads about half the time is worse than no preview:
+     * it puts the flakiest thing on the page directly in front of the strongest
+     * claim on it, which is seven years of the product it is failing to show.
+     *
+     * The omnibox is deliberately NOT routed through here. Typing an address
+     * into the emulated browser and having it go is the emulation's own trick
+     * and it still works; what changed is that a FILE which names an outside
+     * site opens where outside sites belong.
+     */
+    if (id.startsWith('ext:')) {
+      window.open(id.slice(4), '_blank', 'noopener,noreferrer');
+      return;
+    }
     route('chrome', id);
   };
 

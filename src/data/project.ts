@@ -1519,7 +1519,7 @@ export const tasks: Task[] = [
    * conversation that stops mid-sentence (N84).
    * --------------------------------------------------------------------- */
   {
-    id: 'N77', col: 'backlog', size: 'S', tag: 'call',
+    id: 'N77', col: 'done', size: 'S', tag: 'call',
     title: 'The mock cursor is too big',
     note: 'It was drawn at 22x35 against a real pointer’s 12x19.',
     detail: {
@@ -1529,7 +1529,7 @@ export const tasks: Task[] = [
     },
   },
   {
-    id: 'N78', col: 'backlog', size: 'S', tag: 'call',
+    id: 'N78', col: 'done', size: 'S', tag: 'call',
     title: 'The browser opens the CV zoomed out too',
     note: 'One notch for the CV, two for the spec, both performed with the wheel.',
     detail: {
@@ -1539,7 +1539,7 @@ export const tasks: Task[] = [
     },
   },
   {
-    id: 'N79', col: 'backlog', size: 'M', tag: 'call',
+    id: 'N79', col: 'done', size: 'M', tag: 'call',
     title: 'Send a heart instead of dragging the video',
     note: 'The drag measured a stale rect, and the gesture was never the right one to demonstrate anyway.',
     detail: {
@@ -1554,7 +1554,7 @@ export const tasks: Task[] = [
     },
   },
   {
-    id: 'N80', col: 'backlog', size: 'M', tag: 'specs',
+    id: 'N80', col: 'done', size: 'M', tag: 'specs',
     title: 'A Settings tab in the spec, behind the admin gate',
     note: 'Clear the achievements, clear the bugs, and see the onboarding as a stranger does.',
     detail: {
@@ -1569,7 +1569,7 @@ export const tasks: Task[] = [
     },
   },
   {
-    id: 'N81', col: 'backlog', size: 'M', tag: 'call',
+    id: 'N81', col: 'done', size: 'M', tag: 'call',
     title: 'BUG: a maximised window that is minimised stays on screen, inert',
     note: 'is-max sets animation:none, and the animation was the only thing hiding a minimised window.',
     detail: {
@@ -1585,7 +1585,7 @@ export const tasks: Task[] = [
     },
   },
   {
-    id: 'N82', col: 'backlog', size: 'S', tag: 'content',
+    id: 'N82', col: 'done', size: 'S', tag: 'content',
     title: 'The live client leaves the mock browser',
     note: 'It did not load reliably framed. Explorer now opens it in a real tab.',
     detail: {
@@ -1595,7 +1595,7 @@ export const tasks: Task[] = [
     },
   },
   {
-    id: 'N83', col: 'backlog', size: 'S', tag: 'content',
+    id: 'N83', col: 'done', size: 'S', tag: 'content',
     title: 'Things I built opens real tabs, and the list gets shorter',
     note: 'Three games and the bot controller come off it.',
     detail: {
@@ -1610,7 +1610,7 @@ export const tasks: Task[] = [
     },
   },
   {
-    id: 'N84', col: 'backlog', size: 'S', tag: 'call',
+    id: 'N84', col: 'done', size: 'S', tag: 'call',
     title: 'BUG: abandoning the post-credits left the caption on screen',
     note: 'Any input ends the segment, and the return left the last line up with nothing to take it down.',
     detail: {

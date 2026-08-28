@@ -529,74 +529,24 @@ export function startTour(root: HTMLElement, podium: Podium): TourHandle {
   };
 
   /**
-   * DRAG THE VIDEO, for real -- board ticket N64.
+   * SEND A HEART -- board ticket N79.
    *
-   * The close says "Drag the video" and then drags it. Synthetic PointerEvents
-   * along the hand's own path, which works only because the tile's drag handler
-   * already tolerates them: it wraps setPointerCapture in a try precisely
-   * because a synthetic pointer has no capture to take (see wireDrag in
-   * ui/call.ts). That guard was written for a different reason and is what makes
-   * this a cue rather than a rewrite.
+   * Two presses, both on real controls: the reaction button opens the tray, and
+   * the first swatch in it is the heart. It replaces a drag, which was the one
+   * beat in the script that carried a measurement across a layout change and
+   * therefore the one that could aim at where something used to be.
    *
-   * Six steps rather than a per-frame stream. The handler only reads clientX and
-   * clientY, so the intermediate points exist to make the tile follow the hand
-   * rather than teleport; the snap at the end is the product's own transition
-   * and needs no help.
-   *
-   * It gives up quietly at every step, like doShare: the tile is only draggable
-   * while presenting and unpinned, and a visitor who has pinned something has
-   * said what they want more clearly than the script has.
+   * It gives up quietly at each step like every other cue. And the visitor gets
+   * the reaction quest out of it, which is the same generosity the rest of the
+   * close already shows.
    */
-  const dragTile = async (): Promise<void> => {
-    const tile = document.querySelector<HTMLElement>('.solo');
-    const host = document.querySelector<HTMLElement>('.grid-wrap');
-    if (!tile || !host || !document.body.classList.contains('presenting')) return;
-
-    const b = tile.getBoundingClientRect();
-    const hb = host.getBoundingClientRect();
-    const from = { x: b.left + b.width / 2, y: b.top + b.height / 2 };
-    /*
-     * A NUDGE, AND THEN IT SNAPS BACK. Nam: "when we are moving the video tile,
-     * don't move it all the way, we can just move a little bit then release, so
-     * it should snap back to place."
-     *
-     * He is right, and it is not only about restraint. Carrying the tile to the
-     * far corner LEAVES it there, so a line meant to demonstrate that the tile
-     * moves ends by rearranging the visitor's screen for them. A short pull that
-     * springs back shows the same two things, the drag and the latch, and gives
-     * the corner back.
-     *
-     * The distance is bounded by how far the tile's centre can travel while
-     * staying in its own quadrant, because the handler latches to the nearest
-     * corner by centre. Eighty pixels or a third of the way to the middle,
-     * whichever is smaller: big enough to read as a drag, never big enough to
-     * cross the line that would make it a move.
-     */
-    const midX = hb.left + hb.width / 2;
-    const pull = Math.min(80, Math.abs(from.x - midX) / 3);
-    const to = { x: from.x + (from.x < midX ? pull : -pull), y: from.y - Math.min(28, pull / 2) };
-
-    const send = (type: string, x: number, y: number): void => {
-      tile.dispatchEvent(new PointerEvent(type, {
-        pointerId: 1, bubbles: true, cancelable: true, clientX: x, clientY: y,
-      }));
-    };
-
-    await hand.to(from.x, from.y);
-    send('pointerdown', from.x, from.y);
-    const STEPS = 6;
-    for (let i = 1; i <= STEPS; i += 1) {
-      if (dead) { send('pointercancel', from.x, from.y); return; }
-      const x = from.x + (to.x - from.x) * (i / STEPS);
-      const y = from.y + (to.y - from.y) * (i / STEPS);
-      await hand.to(x, y);
-      send('pointermove', x, y);
-    }
-    send('pointerup', to.x, to.y);
-    // The snap is a 300ms transition on the tile. Standing on top of it while it
-    // moves is the one thing that would make the gesture read as a glitch.
-    await wait(reduced ? 0 : 360);
-    await hand.retreat(tile);
+  const sendHeart = async (): Promise<void> => {
+    if (!await pressSel('[data-ctl="react"]')) return;
+    if (!await appears('.tray-btn')) return;
+    await wait(reduced ? 0 : 220);
+    // The first swatch, which is the heart. Named by position because the tray
+    // is authored as a list of emoji and none of them carries an id.
+    await pressSel('.tray-btn', true);
   };
 
   /**
@@ -614,7 +564,7 @@ export function startTour(root: HTMLElement, podium: Podium): TourHandle {
    * Two notches, which is Chrome's 90 then 80 per cent. Three would be 75 and
    * start to look like a problem with the page rather than a choice about it.
    */
-  const doZoom = async (notches = 2): Promise<void> => {
+  const doZoom = async (notches: number): Promise<void> => {
     const page = document.querySelector<HTMLElement>('.shot .cb-page');
     if (!page) return;
     const r = page.getBoundingClientRect();
@@ -634,8 +584,8 @@ export function startTour(root: HTMLElement, podium: Podium): TourHandle {
 
   const runCue = async (cue: string): Promise<void> => {
     if (cue === 'share') return doShare();
-    if (cue === 'drag') return dragTile();
-    if (cue === 'zoom') return doZoom();
+    if (cue === 'heart') return sendHeart();
+    if (cue.startsWith('zoom:')) return doZoom(Number(cue.slice(5)) || 1);
     if (cue === 'maximise') return doMaximise();
     if (cue === 'eggs') return doEggs();
     if (cue === 'park') { await hand.park(); return; }
@@ -905,14 +855,33 @@ export function startTour(root: HTMLElement, podium: Podium): TourHandle {
   const runOutro = async (): Promise<void> => {
     outroRan = true;
     const at = visitor.lastInput;
+    /*
+     * WALKING AWAY HAS TO TAKE THE CAPTION WITH IT -- board ticket N84.
+     *
+     * Any input abandons this segment, silently and with no penalty, and that
+     * part was right. What was missing is that the ORDINARY ending was the only
+     * path that ever took the strip down, so leaving early left whichever line
+     * was up sitting on screen for ever. Nam: "somehow we are stuck in this
+     * caption there are still ten bugs out there. Then nothing progresses
+     * anymore."
+     *
+     * N67 did not cause it and did make it unmissable: the silences are 32 and
+     * 41 seconds now, so most of the segment is time in which somebody can
+     * reasonably wander off.
+     */
+    const abandon = (): void => {
+      podium.hush();
+      teardown();
+    };
+
     for (const { line, gap } of buildOutro()) {
       if (dead || stopped) return;
       // Abandoned by anything at all. Checked before the line rather than after,
       // so a visitor who clicks during a twenty-second gap is not talked at once
       // more before being let go.
-      if (visitor.lastInput !== at) return;
+      if (visitor.lastInput !== at) { abandon(); return; }
       await voice(line.text, line.ms);
-      if (visitor.lastInput !== at) return;
+      if (visitor.lastInput !== at) { abandon(); return; }
       /*
        * THE STRIP GOES AWAY, and then the silence. This is the whole fix for
        * N49's first version: a bubble left on screen with its ring filling for
