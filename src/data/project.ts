@@ -1624,6 +1624,21 @@ export const tasks: Task[] = [
     },
   },
 
+  {
+    id: 'N85', col: 'done', size: 'S', tag: 'trust',
+    title: 'The CSP stops claiming a directive it cannot deliver',
+    note: 'frame-ancestors is header-only, so in a meta tag it did nothing except log an error on every load.',
+    detail: {
+      why: 'Nam opened the console on a stale tab and asked whether any of it mattered. Almost none of it did, one line was ours: "The Content Security Policy directive frame-ancestors is ignored when delivered via a <meta> element." Chrome is right, and it had been saying so on every page load since the policy was written.',
+      done: [
+        'frame-ancestors is out of the meta policy, with the reasoning where the directive was',
+        'A fresh load of the call now logs nothing at all and fails no requests',
+      ],
+      raised: 'Nam, 28 Aug morning',
+      notes: 'Header-only by spec, and the reason is worth knowing: a document cannot be trusted to say who may frame it once it has already been framed. This site is on GitHub Pages, which sets no headers we control, so the directive was never available to us in the first place. The actual defence is in main.ts and it works: a framed copy detects it and coerces itself to the plain document, so the clone cannot render inside somebody else’s page. Deleting the line loses nothing except the error. Everything else in that console was the browser’s own extensions, and the failed chunk was a tab left open overnight asking for a hash that a rebuild had replaced.',
+    },
+  },
+
   /* Flagged rather than done. Still true as of this build. */
   { id: 'T24', col: 'backlog', size: 'M', tag: 'specs', title: 'Initial payload is halfway to the ceiling', note: '24.7 kB of a 50 kB gate, up from 18.2. Still green, and the growth is real, but two deferred chunks are 17 kB and 19 kB and deserve a splitting pass before it becomes urgent.' },
 ];

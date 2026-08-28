@@ -12,8 +12,21 @@
 <!-- The only third-party origins on this page are Google's own font CDN, and
      the policy allows exactly those two and nothing else. Google Sans, Google
      Sans Text and Product Sans are not open source and cannot be redistributed,
-     so they are linked from the API rather than copied. -->
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; img-src 'self' data: blob:; media-src 'self' blob: mediastream:; font-src 'self' https://fonts.gstatic.com; connect-src 'self'; frame-src 'self' https:; base-uri 'none'; form-action 'none'; frame-ancestors 'none'">
+     so they are linked from the API rather than copied.
+
+     NO frame-ancestors HERE, and that is not an omission. The directive is
+     ignored when the policy arrives in a <meta> element -- it is header-only by
+     spec, because a document cannot be trusted to say who may frame it after it
+     has already been framed. Chrome logs an error about it on every single load,
+     which is the whole visible effect it ever had.
+
+     This site is served by GitHub Pages, which sets no response headers we
+     control, so the directive is not available to us at all. What actually
+     defends against being framed is in main.ts: a framed copy detects it and
+     coerces itself to the plain document, so the clone can never render inside
+     somebody else's page. That is a real defence rather than a line in a
+     policy, and it is the one doing the work. -->
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; img-src 'self' data: blob:; media-src 'self' blob: mediastream:; font-src 'self' https://fonts.gstatic.com; connect-src 'self'; frame-src 'self' https:; base-uri 'none'; form-action 'none'">
 
 <meta property="og:type" content="profile">
 <meta property="og:title" content="Meet Nam Nguyen">
