@@ -505,22 +505,101 @@ export function startTour(root: HTMLElement, podium: Podium): TourHandle {
    * hunted half the calendar is not shown their own discoveries back. If they
    * have found them all, this says so and moves on rather than replaying one.
    */
+  /**
+   * A row in one of Explorer's two panes, found by the name on it.
+   *
+   * By TEXT rather than by a data attribute, for the same reason headingTop()
+   * matches headings by text: the file list is content, and adding ids to it so
+   * the script can find them would be the script reaching into the content. A
+   * renamed file makes the beat go silent, which is the same failure mode as a
+   * missing selector and has the same correct answer.
+   */
+  const rowNamed = (pane: string, name: string): HTMLElement | null => {
+    for (const r of document.querySelectorAll<HTMLElement>(`.shot ${pane} .wx-row`)) {
+      if ((r.querySelector('.wx-name')?.textContent ?? '').trim() === name) return r;
+    }
+    return null;
+  };
+
+  /**
+   * THE CLIPS, OPENED BY HAND — board ticket N56.
+   *
+   * Nam: "when you are showing the easter eggs, you just auto triggering the
+   * videos - I dont like that. We should do that with the mouse interaction to
+   * keep it consistent. The mouse will open the video, so its really like a real
+   * human to the very end."
+   *
+   * This was the last thing in the script that cheated. Everything else is
+   * performed through the product's own controls -- the share is four presses on
+   * the real picker, a document arrives because a tab was clicked -- and the
+   * clips simply appeared, because `playEgg` REBUILT THE WHOLE SHARE with one
+   * booted into it. That is also why it could not just be swapped for a press:
+   * rebuilding tears down the desktop the hand is standing on.
+   *
+   * So it goes through Explorer, which already lists every clip as a real file in
+   * the Hobby folder and already routes a video to the player window. The
+   * sequence is what a person would do: raise Explorer, go to Hobby, open the
+   * file. The player is REUSED for each clip after the first, which is the
+   * product's own behaviour rather than something arranged for this.
+   *
+   * Each step gives up quietly, the way doShare does. If the desktop is not being
+   * shared there is nothing to press at all, and the old direct route runs
+   * instead -- stated rather than papered over, because a visitor who reached
+   * this segment without a share should still see the clips.
+   */
   const doEggs = async (): Promise<void> => {
     const left = unseenEggs();
     if (!left.length) {
       await voice('…which you have already found. All of them. Respect.', 3200);
       return;
     }
+
+    /* No desktop, nothing to press. Fall back to the direct route. */
+    const performing_ = !!q('.shot .dk-surface');
+    if (!performing_) {
+      for (const egg of left) {
+        if (dead) return;
+        podium.playEgg(egg.id);
+        markEggSeen(egg.id);
+        await voice(`${egg.title}. ${egg.blurb}`, 5200);
+      }
+      podium.quest('offclock');
+      return;
+    }
+
     /*
-     * ALL OF THEM, not the first three -- board ticket N63. Nam: "We can be
-     * generous here, now that we add in the bugs too that we will not be
-     * generous about." The two mechanics want opposite postures, and this is
-     * the generous one: the achievements are a walk around the surface, and
-     * withholding half of it to save ninety seconds buys nothing.
+     * Explorer, raised rather than launched when it is already running.
+     *
+     * The taskbar button is a toggle: with one window open it focuses an
+     * unfocused app and MINIMISES a focused one, which is correct Windows and
+     * would be a coin flip here. Pressing the title bar only ever raises.
      */
+    const win = document.querySelector<HTMLElement>('.shot .wx:has(.wx-list)');
+    if (win) {
+      await pressSel('.shot .wx:has(.wx-list) .wx-bar');
+    } else if (await pressSel('.dk-task[data-app="explorer"]', true)) {
+      await appears('.shot .wx-list');
+    }
+    if (!q('.shot .wx-list')) return;
+
+    /* Into Hobby, where the clips are. One click in the tree navigates. */
+    const hobby = rowNamed('.wx-tree', 'Hobby');
+    if (hobby) {
+      await hand.at(hobby, true);
+      await wait(reduced ? 0 : 260);
+    }
+
     for (const egg of left) {
       if (dead) return;
-      podium.playEgg(egg.id);
+      const file = egg.clip.replace('media/', '');
+      const row = rowNamed('.wx-list', file);
+      // A clip whose row is not there is skipped rather than guessed at, and the
+      // line still plays: the blurb is worth hearing even when the picture is not
+      // there to go with it.
+      if (row) {
+        await hand.open(row);
+        await appears('.shot .wx video', 2000);
+      }
       markEggSeen(egg.id);
       await voice(`${egg.title}. ${egg.blurb}`, 5200);
     }

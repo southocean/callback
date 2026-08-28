@@ -2440,7 +2440,9 @@ function pageDesktop(onQuit: () => void, boot?: { egg?: string; cv?: boolean }):
     min: boolean;
     title: string;
     select?: (id: string) => void;
-    setTitle?: (t: string) => void;
+    /* Re-read the title from the app after its contents changed. Takes nothing:
+       the window is the only one who knows what it is showing now. */
+    setTitle?: () => void;
     /** Explorer only: navigate its file pane. */
     go?: (folder: string) => void;
   }
@@ -2611,7 +2613,7 @@ function pageDesktop(onQuit: () => void, boot?: { egg?: string; cv?: boolean }):
     if (existing) {
       focus(existing);
       existing.select?.(id);
-      if (kind === 'player') existing.setTitle?.(existing.title);
+      if (kind === 'player') existing.setTitle?.();
       return;
     }
     openWindow(kind, id);
@@ -2689,7 +2691,21 @@ function pageDesktop(onQuit: () => void, boot?: { egg?: string; cv?: boolean }):
       bodyEl = made.body;
       select = made.select;
       title = made.title();
-      rec.setTitle = () => { rec.title = made.title(); };
+      /*
+       * AND INTO THE TITLE BAR, not just the record.
+       *
+       * This updated rec.title, which the taskbar reads, and never touched the
+       * .wx-title span, which is the thing on screen. Invisible while every clip
+       * rebuilt the whole share and arrived in a fresh window; the moment the
+       * player started being REUSED (N56) it showed as a window captioned
+       * "Falling out of a plane" playing the Robinson tape, with the right blurb
+       * underneath it. Explorer already does both, a few lines up.
+       */
+      rec.setTitle = () => {
+        rec.title = made.title();
+        const t = rec.el?.querySelector('.wx-title');
+        if (t) t.textContent = rec.title;
+      };
     }
 
     rec.select = select;

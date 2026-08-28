@@ -54,7 +54,7 @@ const clock = (sec: number): string =>
 /** What a beat does, in words, since half of them are no longer selectors. */
 const beatLabel = (b: Beat): { what: string; detail: string } => {
   if (b.cue === 'share') return { what: 'performs the share', detail: 'picker → Entire Screen → Screen 1 → Share → launch Chrome → maximise' };
-  if (b.cue === 'eggs') return { what: 'plays the unseen clips', detail: 'whatever this visitor has not found' };
+  if (b.cue === 'eggs') return { what: 'opens the unseen clips', detail: 'Explorer → Hobby → double-click each file' };
   if (b.cue === 'park') return { what: 'the hand leaves', detail: 'off the right edge' };
   if (b.cue === 'maximise') return { what: 'maximises', detail: 'the browser window' };
   if (b.cue?.startsWith('tab:')) return { what: 'opens a tab', detail: b.cue.slice(4) };

@@ -111,6 +111,16 @@ export interface Hand {
   /** Press whatever is under the hand right now. */
   press: (el: Element) => Promise<void>;
   /**
+   * Travel to an element and OPEN it, the way Explorer means open.
+   *
+   * Board ticket N56. A single press on a file row selects it, and a second
+   * press on an already-selected row starts a rename after 260ms -- that is
+   * Windows, and this build mirrors it deliberately. So a hand that wants to open
+   * a file has to produce a real double click: two presses close together, then
+   * the dblclick that cancels the pending rename and acts.
+   */
+  open: (el: Element) => Promise<void>;
+  /**
    * Get out of the way of something that was just opened, then rest there.
    *
    * Called after a press that changed what is on screen. See `clearOf`.
@@ -551,6 +561,29 @@ export function makeHand(root: HTMLElement, reduced: boolean): Hand {
     cast('verify', rand(260, 620));
   };
 
+  /**
+   * The second half of a double click.
+   *
+   * `strike` sends one press. Explorer's row listens for `dblclick` and uses it
+   * to cancel the rename its second `click` just scheduled, so the event has to
+   * follow the two presses rather than replace them -- dispatching dblclick alone
+   * would open the file AND leave a rename field opening behind it.
+   *
+   * 90ms between them is inside the platform double-click threshold and inside
+   * the 260ms the row waits before it commits to renaming.
+   */
+  const strikeTwice = async (el2: Element): Promise<void> => {
+    strike(el2);
+    await wait(reduced ? 0 : 90);
+    if (dead) return;
+    strike(el2);
+    el2.dispatchEvent(new MouseEvent('dblclick', {
+      bubbles: true, cancelable: true, composed: true,
+      clientX: Math.round(x), clientY: Math.round(y),
+      view: window, button: 0, detail: 2,
+    }));
+  };
+
   const press = async (target: Element): Promise<void> => {
     if (dead) return;
     // The confirmation pause. Arriving and clicking in one frame is the other
@@ -743,6 +776,22 @@ export function makeHand(root: HTMLElement, reduced: boolean): Hand {
 
     show: () => el.classList.add('is-on'),
     hide: () => el.classList.remove('is-on'),
+    open: async (target) => {
+      // Same travel as at(), including the refusal to move toward a box that is
+      // not there any more.
+      const c = centreOf(target);
+      if (!c) return;
+      await go(c.x, c.y, c.w);
+      setHot(target);
+      if (dead) return;
+      await wait(rand(90, 200));
+      if (dead) return;
+      el.classList.add('is-press');
+      window.setTimeout(() => el.classList.remove('is-press'), 130);
+      await strikeTwice(target);
+      await wait(reduced ? 0 : 120);
+      await verify();
+    },
     yield: (on) => { standingDown = on; el.classList.toggle('is-idle', on); },
     hurry: (on) => { haste = on ? HASTE : 1; },
     pos: () => ({ x, y }),
