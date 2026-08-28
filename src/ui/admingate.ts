@@ -174,8 +174,8 @@ function fallingNumber(n: number, x: number, y: number): void {
    * The direction alternates (see dropDir). The distance is what stays random, and
    * the range it is drawn from is squeezed into the room actually available on that
    * side. That squeeze is the guard which replaced a bug: the old code flipped the
-   * sign whenever a throw would have landed off screen, and on the avatar â€” three
-   * buttons further right, ~34px from the window edge â€” that test failed on every
+   * sign whenever a throw would have landed off screen, and on the avatar — three
+   * buttons further right, ~34px from the window edge — that test failed on every
    * single throw, so every number fell left and nothing ever went right. The help
    * button has ~134px either side of it and never trips the guard. It stays for the
    * narrow window and the wrapped mobile bar, where it still can.
