@@ -6175,7 +6175,21 @@ body.presenting .shot { min-width: 0; }
  * insets .shot-wrap's right edge to carve out the panel column. cqw has to
  * resolve against the space the share actually has, not the space the stage
  * has, or the pinned share is sized for a column that is not there. */
-body.presenting .shot-wrap { container-type: size; display: grid; place-items: center; }
+body.presenting .shot-wrap {
+  container-type: size; display: grid; place-items: center;
+  /* THE WRAP IS A MEASURING FRAME, NOT A SURFACE.
+   *
+   * It still spans the whole area the share is allowed, because that is what the
+   * cq units above have to resolve against. But it carries #202124, and once the
+   * share stopped filling it that paint became two grey panels flanking the
+   * share. Nam: "what's that gray parts on two sides? ... there shouldnt be gray
+   * empty space on both sides like that."
+   *
+   * The share's own surface is on .shot, so the wrap has nothing left to paint.
+   * Dropping it puts the capped share straight onto the call canvas, which is
+   * what the live product shows around a letterboxed share. */
+  background-color: transparent;
+}
 body.presenting .shot {
   width: min(100cqw, calc(100cqh * 2));
   height: min(100cqh, calc(100cqw * 3 / 4));
