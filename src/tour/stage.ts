@@ -556,6 +556,40 @@ export function startTour(root: HTMLElement, podium: Podium): TourHandle {
   };
 
   /**
+   * Roll a row into view before reaching for it.
+   *
+   * QA found this with seven clips in Hobby and a list that shows eight rows:
+   * the last one sits below the fold. A fresh visitor never notices, because the
+   * three unseen clips are the first three -- but somebody who has already found
+   * a few gets an unseen list that starts further down, and hand.open() would
+   * have travelled to a box clipped out of its own scroll container.
+   *
+   * Rolled rather than scrollIntoView'd, and the `rolling` flag goes up around
+   * it for the same reason every other roll in this file does: a programmatic
+   * scroll is byte-identical to a wheel, and without the flag the profile scores
+   * the hand's own scrolling as the visitor skimming.
+   */
+  const revealRow = async (row: HTMLElement): Promise<void> => {
+    const list = document.querySelector<HTMLElement>('.shot .wx-list');
+    if (!list) return;
+    const lb = list.getBoundingClientRect();
+    const rb = row.getBoundingClientRect();
+    if (rb.top >= lb.top && rb.bottom <= lb.bottom) return;
+    const to = list.scrollTop + (rb.top - lb.top) - 8;
+    rolling = true;
+    try {
+      await hand.roll({
+        top: () => list.scrollTop,
+        max: () => Math.max(0, list.scrollHeight - list.clientHeight),
+        set: (y) => { list.scrollTop = y; },
+        rect: () => list.getBoundingClientRect(),
+      }, to, 600);
+    } finally {
+      window.setTimeout(() => { rolling = false; }, 120);
+    }
+  };
+
+  /**
    * THE CLIPS, OPENED BY HAND — board ticket N56.
    *
    * Nam: "when you are showing the easter eggs, you just auto triggering the
@@ -627,6 +661,7 @@ export function startTour(root: HTMLElement, podium: Podium): TourHandle {
       if (dead) return;
       const file = egg.clip.replace('media/', '');
       const row = rowNamed('.wx-list', file);
+      if (row) await revealRow(row);
       // A clip whose row is not there is skipped rather than guessed at, and the
       // line still plays: the blurb is worth hearing even when the picture is not
       // there to go with it.
@@ -772,6 +807,10 @@ export function startTour(root: HTMLElement, podium: Podium): TourHandle {
     for (let i = 0; i < lines.length; i += 1) {
       if (dead) return;
       await drain();
+      // Between sentences, never inside one: a hold taken mid-line would leave a
+      // half-typed caption sitting there, which reads as the hang N84 just fixed.
+      await heldOut();
+      if (dead) return;
       const line = lines[i]!;
       if (protect && i === protect.at) {
         // Armed for exactly the window in which bolting means something. After
@@ -1329,6 +1368,33 @@ export function startTour(root: HTMLElement, podium: Podium): TourHandle {
    * drag is a gesture and a panel can be opened from the keyboard — so they
    * arrive as announcements rather than as elements. See src/ui/signal.ts.
    */
+  /**
+   * SOMETHING ELSE WANTS THE FLOOR FOR A MOMENT.
+   *
+   * Board ticket N85. Nam, on catching a bug: "if the script is running, then we
+   * should pause just a little bit for the bug to land then we continue." A
+   * beetle blooming in the middle of the screen while he carries on describing
+   * the CV is two things asking for the same attention, and the bug loses.
+   *
+   * A timestamp rather than a lock, because the holder is not on this clock and
+   * must not be able to wedge the script by forgetting to release it. The worst a
+   * bad `ms` can do is delay one line.
+   */
+  let holdUntil = 0;
+
+  const heldOut = async (): Promise<void> => {
+    while (!dead && performance.now() < holdUntil) {
+      await wait(Math.min(240, holdUntil - performance.now()));
+    }
+  };
+
+  function onHold(e: Event): void {
+    if (dead) return;
+    const ms = (e as CustomEvent<{ ms?: number }>).detail?.ms ?? 0;
+    // Capped, so a stray dispatch cannot silence him for a minute.
+    holdUntil = Math.max(holdUntil, performance.now() + Math.min(4000, Math.max(0, ms)));
+  }
+
   function onSignal(e: Event): void {
     if (dead) return;
     const key = (e as CustomEvent<{ key?: string }>).detail?.key;
@@ -1405,6 +1471,7 @@ export function startTour(root: HTMLElement, podium: Podium): TourHandle {
 
   document.addEventListener('click', onClick, true);
   document.addEventListener('tour:signal', onSignal);
+  document.addEventListener('tour:hold', onHold);
   document.addEventListener('scroll', onScroll, true);
   document.addEventListener('pointermove', onMove, { passive: true });
   document.addEventListener('keydown', onKey, true);
@@ -1478,6 +1545,7 @@ export function startTour(root: HTMLElement, podium: Podium): TourHandle {
     bar.remove();
     document.removeEventListener('click', onClick, true);
     document.removeEventListener('tour:signal', onSignal);
+    document.removeEventListener('tour:hold', onHold);
     document.removeEventListener('scroll', onScroll, true);
     document.removeEventListener('pointermove', onMove);
     document.removeEventListener('keydown', onKey, true);

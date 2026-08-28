@@ -7623,22 +7623,36 @@ body.tray-open.cc-on .react-clip { bottom: calc(var(--botbar) + 268px); }
 
 /* --- the reset bench, in the spec (N80) ---------------------------------- */
 /* One row per thing the page remembers. The count is the whole design: a button
-   labelled Clear with no number beside it is a button nobody presses twice. */
-.set-rows { display: flex; flex-direction: column; gap: 2px; margin-top: 4px; }
-.set-row {
+   labelled Clear with no number beside it is a button nobody presses twice.
+ *
+ * PREFIXED rb-, NOT set-, AND THAT IS THE BUG THIS BLOCK ONCE WAS.
+ *
+ * These rules used to be called .set-row and friends, which is also the name of
+ * the device-settings row that floats over the call. That rule is `position:
+ * fixed`, 576x56, radius 36, #202124, `overflow: hidden`. This block only ever
+ * overrode display, padding and the border, so every row on the reset bench
+ * inherited the rest: five identical dark pills stacked on the same fixed spot
+ * at the bottom of the viewport, each clipping its own text, all but the last
+ * invisible underneath the others. It read as a dark-mode panel that had come
+ * loose, which is exactly what Nam saw.
+ *
+ * A component prefix is not decoration. Two unrelated components sharing one is
+ * a bug waiting for whichever one is written second. */
+.rb-rows { display: flex; flex-direction: column; gap: 2px; margin-top: 4px; }
+.rb-row {
   display: grid; grid-template-columns: 1fr auto auto; gap: 14px; align-items: center;
   padding: 12px 4px; border-bottom: 1px solid var(--dp-line);
 }
-.set-row:last-child { border-bottom: 0; }
-.set-txt { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
-.set-txt b { font: 500 14px/20px var(--font-title); color: var(--dp-ink); }
-.set-txt span { font: 400 12.5px/18px var(--font); color: var(--dp-ink3); }
-.set-n {
+.rb-row:last-child { border-bottom: 0; }
+.rb-txt { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.rb-txt b { font: 500 14px/20px var(--font-title); color: var(--dp-ink); }
+.rb-txt span { font: 400 12.5px/18px var(--font); color: var(--dp-ink3); }
+.rb-n {
   font: 500 12px/16px var(--font); font-variant-numeric: tabular-nums;
   color: var(--dp-ink3); min-width: 42px; text-align: right;
 }
-.set-clear { flex: 0 0 auto; }
-.set-clear:disabled { opacity: .45; cursor: default; }
+.rb-clear { flex: 0 0 auto; }
+.rb-clear:disabled { opacity: .45; cursor: default; }
 
 /* ==================== THE BUG COLLECTION (N59) =========================== */
 /* Rebuilt after Nam's review: "I want this collection frame to be BEAUTIFUL,
@@ -7688,7 +7702,25 @@ body.tray-open.cc-on .react-clip { bottom: calc(var(--botbar) + 268px); }
 /* In the middle it is lit from underneath, which is what separates a specimen
    being presented from one merely passing through. */
 .bug-fly.is-mid { filter: drop-shadow(0 0 18px rgba(255, 214, 102, .85)) drop-shadow(0 8px 18px rgba(0, 0, 0, .45)); }
+/* The wiggle runs for its old 900ms inside a 1500ms hold, so the drawing is
+   still at full size and still for the last 600. See BEAT_MS in src/bugs.ts. */
 .bug-fly.is-beat .bug-art { animation: bug-beat 900ms cubic-bezier(0.36, 0.07, 0.19, 0.97) both; }
+/* The halo: a bloom behind the animal at the moment it lands, on a pseudo so it
+   sits under the drawing and needs no second node threading through the flight
+   code. Radial rather than a drop-shadow, because a shadow follows the silhouette
+   and what is wanted here is light coming off it. */
+.bug-fly.is-beat::before {
+  content: ''; position: absolute; inset: -40%;
+  border-radius: 50%; pointer-events: none;
+  background: radial-gradient(circle, rgba(255, 214, 102, .55) 0%, rgba(255, 214, 102, .22) 42%, transparent 68%);
+  animation: bug-halo 1500ms cubic-bezier(0.2, 0.8, 0.2, 1) both;
+}
+@keyframes bug-halo {
+  0%   { opacity: 0; transform: scale(.5); }
+  18%  { opacity: 1; transform: scale(1.06); }
+  46%  { opacity: .75; transform: scale(1); }
+  100% { opacity: 0; transform: scale(1.12); }
+}
 @keyframes bug-beat {
   0%   { transform: rotate(0deg) scale(1); }
   12%  { transform: rotate(-7deg) scale(1.1); }
@@ -7698,6 +7730,40 @@ body.tray-open.cc-on .react-clip { bottom: calc(var(--botbar) + 268px); }
   60%  { transform: rotate(-2deg) scale(1.04); }
   100% { transform: rotate(0deg) scale(1); }
 }
+/* THE ROOM TAKES A KNOCK.
+ *
+ * On the body rather than on the bug: a bug that shakes is a bug that is moving,
+ * and a room that shakes is something having landed in it.
+ *
+ * Small numbers on purpose. Three pixels and a fifth of a degree is a knock; the
+ * amounts that read as impressive in isolation read as a fault in a page that is
+ * pretending to be a video call, and they make people queasy. It decays to
+ * nothing rather than stopping, so the last frame is the resting position and no
+ * layout is left a pixel off.
+ *
+ * A wrapper would be cleaner than transforming the body, but the body is already
+ * the positioning context for the fixed overlays, and moving that to a child
+ * would reparent every one of them. */
+body.bug-struck { animation: bug-shake 520ms cubic-bezier(0.36, 0.07, 0.19, 0.97) both; }
+/* Belt and braces. announce() returns before the beat under reduced motion, so
+   the class is never added there -- but a camera shake is the single most
+   literal thing this setting exists to prevent, and it should not depend on one
+   early return in a file that could be refactored. */
+@media (prefers-reduced-motion: reduce) {
+  body.bug-struck { animation: none; }
+  .bug-fly.is-beat::before { animation: none; opacity: 0; }
+}
+@keyframes bug-shake {
+  0%   { transform: translate3d(0, 0, 0) rotate(0deg); }
+  14%  { transform: translate3d(-3px, 2px, 0) rotate(-.2deg); }
+  28%  { transform: translate3d(3px, -2px, 0) rotate(.2deg); }
+  42%  { transform: translate3d(-2px, 1px, 0) rotate(-.14deg); }
+  56%  { transform: translate3d(2px, -1px, 0) rotate(.14deg); }
+  70%  { transform: translate3d(-1px, 1px, 0) rotate(-.07deg); }
+  84%  { transform: translate3d(1px, 0, 0) rotate(.04deg); }
+  100% { transform: translate3d(0, 0, 0) rotate(0deg); }
+}
+
 /* Flat, and it stays flat. A bug that springs back has not been smashed. */
 .bug-fly.is-flat .bug-art {
   transform: scale(1.55, .14);

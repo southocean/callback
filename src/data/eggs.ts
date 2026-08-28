@@ -22,12 +22,17 @@
 // the honest place to put a film premiere and a tandem jump.
 //
 // The premiere takes a weekend day of the visitor's own week, never today, so
-// there is always exactly one mark on the first screen. The jump takes the
-// weekend before, which is off the edge of the strip: Nam accepted that cost
-// rather than crowd one week with both. "Now it will be off screen
-// unfortunately, but lets hope the movie premier is enough to teach user about
-// these easter eggs." It is one press of the back arrow away, which is the first
-// thing anyone does once they know the dots mean something.
+// there is always exactly one mark on the first screen. The jump takes the OTHER
+// weekend day, one week back. Nam: "say movie is on sat, then tandem on sun last
+// week, and vice versa. We change it up a little bit." Which it does: the pair
+// lands on Saturday-then-Sunday or Sunday-then-Saturday depending on the day you
+// arrive, so two visitors on different days do not see the same arrangement.
+//
+// The jump is off the edge of the strip either way, and Nam accepted that rather
+// than crowd one week with both marks. "Now it will be off screen unfortunately,
+// but lets hope the movie premier is enough to teach user about these easter
+// eggs." It is one press of the back arrow away, which is the first thing anyone
+// does once they know the dots mean something.
 //
 // The rest are on real dates -- the zombie walk on Halloween, the parade on the
 // day of the parade, the competition on the night it ran. Finding those is the
@@ -194,6 +199,24 @@ export function weekendMark(today: Date): Date {
   return d;
 }
 
+/**
+ * And the second one: the OTHER weekend day, a week earlier.
+ *
+ * Nam: "say movie is on sat, then tandem on sun last week, and vice versa."
+ * Derived from where the first mark landed rather than computed independently,
+ * so the two can never drift into agreeing. Saturday's counterpart is the
+ * previous week's Sunday, which is eight days back; Sunday's is the previous
+ * week's Saturday, which is one day back and still a week apart on the strip.
+ */
+export function lastWeekendMark(today: Date): Date {
+  const first = weekendMark(today);
+  const d = new Date(first);
+  // Saturday pairs with the Sunday that opened the week before it; Sunday pairs
+  // with the Saturday that closed it.
+  d.setDate(first.getDate() - (first.getDay() === 6 ? 13 : 1));
+  return d;
+}
+
 export function eggMap(today: Date): Map<string, Egg[]> {
   const out = new Map<string, Egg[]>();
   const put = (k: string, e: Egg): void => {
@@ -203,9 +226,7 @@ export function eggMap(today: Date): Map<string, Egg[]> {
   };
   for (const e of eggs) {
     if (e.roams) {
-      const d = weekendMark(today);
-      if (e.roams === 'lastWeekend') d.setDate(d.getDate() - 7);
-      put(key(d), e);
+      put(key(e.roams === 'lastWeekend' ? lastWeekendMark(today) : weekendMark(today)), e);
       continue;
     }
     if (!e.on) continue;

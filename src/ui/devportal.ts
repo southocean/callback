@@ -468,25 +468,25 @@ function collectionView(): HTMLElement {
  * experience: usually the drawer, occasionally the clips, rarely both.
  */
 function settingsView(): HTMLElement {
-  const list = h('div', { class: 'set-rows' }) as HTMLElement;
+  const list = h('div', { class: 'rb-rows' }) as HTMLElement;
 
   const paintRow = (row: HTMLElement, f: typeof FORGETTABLE[number]): void => {
     clear(row);
     const n = storedCount(f.key);
     const btn = h('button', {
-      class: 'm-btn m-outlined set-clear', type: 'button',
+      class: 'm-btn m-outlined rb-clear', type: 'button',
     }, n ? 'Clear' : 'Empty') as HTMLButtonElement;
     btn.disabled = n === 0;
     btn.addEventListener('click', () => { forget(f.key); paintRow(row, f); });
     row.append(
-      h('div', { class: 'set-txt' }, h('b', {}, f.label), h('span', {}, f.what)),
-      h('span', { class: 'set-n' }, n ? String(n) : 'none'),
+      h('div', { class: 'rb-txt' }, h('b', {}, f.label), h('span', {}, f.what)),
+      h('span', { class: 'rb-n' }, n ? String(n) : 'none'),
       btn,
     );
   };
 
   for (const f of FORGETTABLE) {
-    const row = h('div', { class: 'set-row' }) as HTMLElement;
+    const row = h('div', { class: 'rb-row' }) as HTMLElement;
     paintRow(row, f);
     list.appendChild(row);
   }

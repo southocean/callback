@@ -1814,10 +1814,26 @@ export const tasks: Task[] = [
         'The strip is Sunday to Saturday again, whatever day is selected',
         'The premiere takes a weekend day of the visitor’s own week, and never today',
         'Saturday, unless today is Saturday, and then the Sunday that opened the same week',
-        'The jump takes the weekend before, one press of the back arrow away',
+        'The jump takes the OTHER weekend day of the week before, one press of the back arrow away',
+        'So the pair reads Saturday then Sunday, or Sunday then Saturday, depending on the day you arrive',
       ],
       raised: 'Nam, 28 Aug, with a screenshot of the live product',
-      notes: 'The eggs had to move because the thing that broke them is back: against a fixed week, a placement counted in days from today falls off one end or the other depending on which day the page is opened. Three days before a Monday is last week. So the anchor is no longer a number of days but a weekend, which is the one part of the current strip that is always in view, is never today for five days in seven, and is where a film premiere and a tandem jump actually happen. The Saturday-unless-today-is-Saturday branch is what keeps the last two days honest. Nam took the cost on the second egg with his eyes open: "Now it will be off screen unfortunately, but lets hope the movie premier is enough to teach user about these easter eggs." One visible mark on the first screen is the requirement; two was a luxury that cost the week its shape. The test asserts the jump is OFF the strip, so that stays a decision rather than becoming a bug somebody fixes by accident.',
+      notes: 'The eggs had to move because the thing that broke them is back: against a fixed week, a placement counted in days from today falls off one end or the other depending on which day the page is opened. Three days before a Monday is last week. So the anchor is no longer a number of days but a weekend, which is the one part of the current strip that is always in view, is never today for five days in seven, and is where a film premiere and a tandem jump actually happen. The Saturday-unless-today-is-Saturday branch is what keeps the last two days honest. Nam took the cost on the second egg with his eyes open: "Now it will be off screen unfortunately, but lets hope the movie premier is enough to teach user about these easter eggs." One visible mark on the first screen is the requirement; two was a luxury that cost the week its shape. The test asserts the jump is OFF the strip, so that stays a decision rather than becoming a bug somebody fixes by accident. A later note from Nam put the jump on the opposite weekend day rather than the same one a week back: "say movie is on sat, then tandem on sun last week, and vice versa. We change it up a little bit." It is derived from where the first mark landed rather than computed separately, so the two cannot drift into agreeing, and the arithmetic is asymmetric because the calendar is: Saturday pairs with the Sunday thirteen days back, Sunday with the Saturday one day back, and both are the same week apart on the strip.',
+    },
+  },
+
+  {
+    id: 'N97', col: 'done', size: 'S', tag: 'specs',
+    title: 'The reset bench was five dark pills stacked in the corner',
+    note: 'Two unrelated components both called their rows .set-row. The second one inherited the first one’s position.',
+    detail: {
+      why: 'Nam, with a screenshot: "the settings in the project spec, why is it sitting so low, and why dark mode?" Both symptoms, one cause. The device-settings row that floats over the call is .set-row, and it is position: fixed, 576x56, radius 36, #202124, overflow: hidden. The reset bench added its own .set-row a thousand lines further down and overrode display, padding and the border. Everything it did not name, it inherited.',
+      done: [
+        'The bench is prefixed rb-, so nothing it declares can collide with the call',
+        'Five rows in normal flow, static, transparent, under the text that introduces them',
+      ],
+      raised: 'Nam, 28 Aug',
+      notes: 'Worth reading the screenshot again, because it explains itself once you know: five rows all fixed to the same spot at the bottom of the viewport, so four were invisible under the fifth, and the one you could see was clipping its own text against a 56px height it never asked for. It looked like a dark-mode panel that had come loose from the dialog. Renamed rather than patched with overrides, because resetting position, width, height, radius, background, overflow and two animations is a list that only stays correct until somebody adds a ninth property to the other rule. A component prefix is not decoration: two unrelated components sharing one is a bug waiting for whichever is written second, and this one waited about a day.',
     },
   },
 

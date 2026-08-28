@@ -35,7 +35,7 @@ import {
   BAIL_MS, IDLE_MS, PACE_MAX, type Visitor,
 } from '../tour/profile.js';
 import { readSeenEggs, stillUnseen, chooseBanter } from '../prefs.js';
-import { eggs, eggMap, weekendMark, key as dayKey, type Egg } from '../data/eggs.js';
+import { eggs, eggMap, weekendMark, lastWeekendMark, key as dayKey, type Egg } from '../data/eggs.js';
 import { VISIBLE_QUESTS } from '../data/quests.js';
 import { bugs as bugList, bugById, BUG_COUNT } from '../data/bugs.js';
 import { codeFromUrl, pitchFor, DEFAULT_CODE, NEUTRAL_CODE } from '../data/companies.js';
@@ -1289,6 +1289,22 @@ suite('where the marks land', () => {
       eq(at(marks, on, 'skydive'), -1);
       const back = strip(new Date(new Date(today).setDate(today.getDate() - 7)));
       ok(at(marks, back, 'skydive') >= 0, `not reachable one week back on ${dayKey(today)}`);
+    }
+  });
+
+  test('the two roamers never share a weekday', () => {
+    // Nam: "say movie is on sat, then tandem on sun last week, and vice versa.
+    // We change it up a little bit." So the pair reads Saturday-then-Sunday or
+    // Sunday-then-Saturday depending on the day the visitor arrives, and two
+    // people opening the page on different days do not see the same arrangement.
+    for (const today of year()) {
+      const first = weekendMark(today);
+      const back = lastWeekendMark(today);
+      ok(back.getDay() === 0 || back.getDay() === 6, `not a weekend on ${dayKey(today)}`);
+      ok(first.getDay() !== back.getDay(), `both on the same weekday on ${dayKey(today)}`);
+      // A week apart on the strip, whichever way round they fall.
+      const days = Math.round((first.getTime() - back.getTime()) / 86400000);
+      ok(days === 13 || days === 1, `${days} days apart on ${dayKey(today)}`);
     }
   });
 

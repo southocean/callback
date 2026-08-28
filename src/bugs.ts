@@ -58,10 +58,21 @@ export { bugs, bugById, BUG_COUNT, RARITY_LABEL, type Bug, type Rarity } from '.
  *   flies to a real position rather than to an estimate of one.
  */
 const FLY_MS = 620;
-const BEAT_MS = 900;
+/**
+ * How long the bug holds the middle of the screen.
+ *
+ * 900 to 1500 on Nam's note: "it should linger a bit more, a bit more exciting."
+ * The wiggle finished in 900 and the drawing left immediately after it, so the
+ * one moment the animal is big enough to actually look at was over before you
+ * had looked at it. The extra 600 is stillness at full size rather than more
+ * animation, which is the difference between a reward and a fidget.
+ */
+const BEAT_MS = 1500;
 const DELIVER_MS = 460;
 /** The hand's own impact, read off slap-rush in styles.css: 46% of 1.25s. */
 const SMASH_MS = 575;
+/** The room's knock. Short: a long camera shake is nausea, not celebration. */
+const SHAKE_MS = 520;
 
 const KEY = 'callback.bugs';
 
@@ -230,9 +241,31 @@ export class Bugs {
         await hold(420);
       } else {
         opts.onArrive?.();
-        // The shake and the glow are one animation on a class, so the transform
-        // set above has to be left alone while it runs.
+        /*
+         * THE HALLELUJAH. Nam: "maybe some light glow and a light camera shake,
+         * kinda like hallelujah."
+         *
+         * Three things at once, on three different elements, because they are
+         * three different scales of the same moment: the bug wiggles, a halo
+         * blooms behind it, and the room itself takes a knock. The shake is on
+         * the page rather than on the bug -- a bug that shakes is a bug that is
+         * moving, and a ROOM that shakes is something having landed in it.
+         *
+         * The shake and the glow are one animation each on a class, so the
+         * transform set above has to be left alone while they run.
+         */
         fly.classList.add('is-beat');
+        document.body.classList.add('bug-struck');
+        window.setTimeout(() => document.body.classList.remove('bug-struck'), SHAKE_MS);
+        /*
+         * And the conversation waits. Nam: "if the script is running, then we
+         * should pause just a little bit for the bug to land then we continue."
+         * Announced rather than called: bugs.ts knows nothing about the script
+         * and must keep working when it is not running at all, which is the same
+         * reasoning as ui/signal.ts. A hold nobody is listening for costs one
+         * dispatch.
+         */
+        document.dispatchEvent(new CustomEvent('tour:hold', { detail: { ms: BEAT_MS } }));
         await hold(BEAT_MS);
         fly.classList.remove('is-beat');
       }
