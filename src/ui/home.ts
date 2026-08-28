@@ -517,6 +517,10 @@ export function renderHome(store: Store, reducedMotion = false, body?: HTMLEleme
     if (!btn) return;
     const { calendar } = await import('./calendar.js');
     const pop = calendar({
+      // Handed the button so a press on it is not treated as a press outside,
+      // which is what let the popup dismiss itself a beat before this handler
+      // reopened it. calendar.ts.
+      anchor: btn,
       selected: viewing,
       marks,
       onPick: (d) => switchDay(d),
@@ -643,7 +647,10 @@ export function renderHome(store: Store, reducedMotion = false, body?: HTMLEleme
       h(
         'button',
         { class: 'icon-btn cal-btn', type: 'button', 'aria-label': 'Open calendar', onclick: () => void toggleCal() },
-        sym('calendar_month', 20),
+        // 24, not 20. Meet renders every icon in this row at 24px with opsz 24
+        // (icons.ts read it off the live DOM), and the two week arrows beside it
+        // already do. This one was the odd size out and read visibly small.
+        sym('calendar_month', 24),
       ),
       // Only exists when you have wandered off today, which is exactly when it
       // is useful. Meet does the same.

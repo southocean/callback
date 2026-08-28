@@ -42,6 +42,16 @@ const MONTHS = [
 ];
 
 export interface CalendarOpts {
+  /**
+   * The button that opened it.
+   *
+   * Needed because dismiss-on-outside-press and toggle-on-the-button are two
+   * rules that fight: a press on the button IS outside the popup, so the popup
+   * dismissed itself, and the button's own click then found no popup and opened
+   * a fresh one. Three presses, three popups, never a close. As far as dismissal
+   * is concerned the anchor is not outside: the button owns the toggle.
+   */
+  anchor: HTMLElement;
   /** The day currently shown by the page. */
   selected: Date;
   /** Marks. A day in here gets a dot, which is the whole easter-egg mechanic. */
@@ -163,10 +173,16 @@ export function calendar(o: CalendarOpts): HTMLElement {
   };
   const onDown = (e: Event): void => {
     const t = e.target;
-    if (t instanceof Node && !pop.contains(t)) o.onClose();
+    if (!(t instanceof Node)) return;
+    // The anchor counts as part of the popup here. Leaving that press alone for
+    // the button's own click handler is what makes a second press close it.
+    if (pop.contains(t) || o.anchor.contains(t)) return;
+    o.onClose();
   };
   document.addEventListener('keydown', onKey);
-  // Deferred a frame, or the click that opened the popup closes it again.
+  // Deferred a frame as well. The anchor check above is what stops the opening
+  // click from closing the popup; this only keeps anything else that shares the
+  // opening frame from doing it.
   requestAnimationFrame(() => document.addEventListener('pointerdown', onDown));
   (pop as HTMLElement & { dispose?: () => void }).dispose = () => {
     document.removeEventListener('keydown', onKey);
