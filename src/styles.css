@@ -365,7 +365,11 @@ button { font: inherit; }
 /* Meet's main is a flex row with justify-content:center around a 1052px
    column. Ours was left-aligned, which was the single most visible miss. */
 .home-main { flex: 1 1 auto; display: flex; justify-content: center; padding: 22px 24px 60px; min-width: 0; }
-.home-col { width: 100%; max-width: 1052px; min-width: 0; }
+/* Positioned, because the month picker anchors to the calendar button in THIS
+   column's coordinates. Without it the popup's absolute box resolved against
+   the document and it landed at the far left of the page, unattached to the
+   button that opened it. */
+.home-col { position: relative; width: 100%; max-width: 1052px; min-width: 0; }
 .date-row { display: flex; align-items: center; padding: 0 16px; }
 .date-title { font: 400 22px/28px var(--font-title); color: var(--ink); }
 .week { margin-left: auto; display: flex; align-items: center; gap: 10px; }
@@ -1944,9 +1948,11 @@ body.plain { background: #fff; color: #16181c; }
 }
 
 /* ============================================================================
-   The month picker, measured. Notable: no shadow at all — it separates from the
-   page by colour alone, which is unusual enough that copying it is most of what
-   makes it read as Meet's. ============================================ */
+   The month picker, measured. It is a raised surface: #f0f4f9 at radius 28 with
+   a Material 3 level-3 shadow under it. An earlier pass here recorded "no
+   shadow, it separates by colour alone" and that was simply wrong — side by
+   side with the real popup, the flat version reads as a painted rectangle
+   rather than something sitting above the page. ======================== */
 .cal-pop {
   position: absolute; z-index: 50;
   width: 368px;
@@ -1954,6 +1960,7 @@ body.plain { background: #fff; color: #16181c; }
   border-radius: 28px;
   padding: 16px;
   box-sizing: border-box;
+  box-shadow: 0 1px 3px 0 rgba(0, 0, 0, .3), 0 4px 8px 3px rgba(0, 0, 0, .15);
 }
 .cal-head { display: flex; align-items: center; gap: 4px; height: 40px; margin-bottom: 12px; }
 .cal-title {

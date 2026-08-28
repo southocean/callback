@@ -1,14 +1,24 @@
 // The month picker, measured off meet.google.com.
 //
-//   surface        368x404, #f0f4f9, radius 28, NO shadow — it sits on the page
-//                  by colour alone, which is unusual and worth copying exactly
-//   anchor         left-aligned with the calendar button, 8px below it
+//   surface        368x404, #f0f4f9, radius 28, raised on a Material 3 level-3
+//                  shadow. An earlier pass here wrote down "no shadow, it sits
+//                  on the page by colour alone" and that was a misreading: the
+//                  popup is a raised surface and the flat copy read as a
+//                  painted rectangle.
+//   anchor         left-aligned with the calendar button, 8px below it. The
+//                  caller mounts it inside the day column, which must be
+//                  positioned or the popup detaches from its button.
 //   header         month and year, 500 16px/24px, with Previous/Next month as
 //                  40x40 icon buttons pushed to the right of the row
 //   weekday row    S M T W T F S, 48px columns, 16px/24px, #1f1f1f
 //   day cells      48x48
 //   selected day   a 40x40 circle at radius 20 filled #0b57d0, centred in its
 //                  cell — so the fill is smaller than the hit area
+//   weekday tips   each header letter tips its full name. Two Ts and two Ss
+//                  are ambiguous on their own; only the column order tells them
+//                  apart, and a tooltip saves you counting columns.
+//   month paging   Page Up and Page Down, hinted on the two chevrons as
+//                  "Previous month (Page Up)"
 //
 // Loaded on demand: nobody who never opens the calendar pays for it.
 
@@ -18,6 +28,14 @@ import { tip } from './tooltip.js';
 import { key, type Egg } from '../data/eggs.js';
 
 const WEEKDAYS = ['S', 'M', 'T', 'W', 'T', 'F', 'S'];
+// The header letters are ambiguous on their own: two Ts and two Ss, and the
+// column order is the only thing telling them apart. The real picker tips each
+// one with its full name, so hovering resolves the ambiguity without making you
+// count columns. Parallel to WEEKDAYS by index, not derived from it, because
+// the initials are not recoverable from the names in every locale.
+const WEEKDAY_NAMES = [
+  'Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday',
+];
 const MONTHS = [
   'January', 'February', 'March', 'April', 'May', 'June',
   'July', 'August', 'September', 'October', 'November', 'December',
@@ -48,9 +66,14 @@ export function calendar(o: CalendarOpts): HTMLElement {
     title.textContent = `${MONTHS[view.getMonth()]} ${view.getFullYear()}`;
     clear(grid);
 
-    for (const w of WEEKDAYS) {
-      grid.appendChild(h('div', { class: 'cal-wd', 'aria-hidden': 'true' }, w));
-    }
+    WEEKDAYS.forEach((w, i) => {
+      // Still aria-hidden: every day cell already carries its own full weekday
+      // in its label, so announcing the header as well reads the word twice.
+      // The tooltip is for the eye only, which is exactly what it is for here.
+      const wd = h('div', { class: 'cal-wd', 'aria-hidden': 'true' }, w);
+      tip(wd, WEEKDAY_NAMES[i], 'above');
+      grid.appendChild(wd);
+    });
 
     // Start on the Sunday of the week containing the 1st, and always draw six
     // rows, so the popup never changes height as you page through months.
@@ -97,14 +120,24 @@ export function calendar(o: CalendarOpts): HTMLElement {
     build();
   };
 
+  // data-key, not a longer aria-label: the tooltip reads "Previous month (Page
+  // Up)" while a screen reader hears "Previous month", which is how every other
+  // shortcut in this build is labelled. See tooltip.ts. The keys are handled in
+  // onKey below, because a hint for a key that does nothing is a lie.
   const prev = h(
     'button',
-    { class: 'icon-btn cal-nav', type: 'button', 'aria-label': 'Previous month', onclick: () => step(-1) },
+    {
+      class: 'icon-btn cal-nav', type: 'button', 'aria-label': 'Previous month',
+      'data-key': 'Page Up', onclick: () => step(-1),
+    },
     sym('chevron_left', 24),
   );
   const next = h(
     'button',
-    { class: 'icon-btn cal-nav', type: 'button', 'aria-label': 'Next month', onclick: () => step(1) },
+    {
+      class: 'icon-btn cal-nav', type: 'button', 'aria-label': 'Next month',
+      'data-key': 'Page Down', onclick: () => step(1),
+    },
     sym('chevron_right', 24),
   );
   tip(prev, undefined, 'above');
@@ -121,7 +154,13 @@ export function calendar(o: CalendarOpts): HTMLElement {
 
   // Escape closes, and so does a click anywhere else. Both are attached for the
   // life of the popup and removed with it.
-  const onKey = (e: KeyboardEvent): void => { if (e.key === 'Escape') o.onClose(); };
+  const onKey = (e: KeyboardEvent): void => {
+    if (e.key === 'Escape') { o.onClose(); return; }
+    // Paging, as advertised on the two chevrons. preventDefault, or Page Up
+    // scrolls the page underneath while the month changes.
+    if (e.key === 'PageUp') { e.preventDefault(); step(-1); return; }
+    if (e.key === 'PageDown') { e.preventDefault(); step(1); }
+  };
   const onDown = (e: Event): void => {
     const t = e.target;
     if (t instanceof Node && !pop.contains(t)) o.onClose();
