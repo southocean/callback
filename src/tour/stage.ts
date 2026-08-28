@@ -705,26 +705,26 @@ export function startTour(root: HTMLElement, podium: Podium): TourHandle {
       }
       markEggSeen(egg.id);
       /*
-       * HOW LONG TO STAY ON IT — N116, then N117.
+       * HOW LONG TO STAY ON IT — N116, then N117, and a correction.
        *
        * 5200 first, because the blurb took most of that window and the clip got a
        * second or two. Nam: "at least give it 3 4 sec in each video so we know
-       * what its about." So it went to a flat 7000.
+       * what its about." So it went to 7000.
        *
-       * A flat number turned out to be the wrong shape, and the recut is what
-       * exposed it. The winner clip is thirteen seconds and its whole point is a
-       * reveal about eight seconds in, so a seven second hold cut away one second
-       * before the thing the clip exists for -- the same complaint that prompted
-       * the recut, moved rather than fixed.
+       * Then I made it follow the clip's own length, on the theory that the recut
+       * winner clip needed thirteen seconds to reach its reveal. That was wrong,
+       * and wrong in a way worth recording: I read the timing off extracted STILLS
+       * rather than watching the clip, saw the prize change hands at eight seconds
+       * and took that for the reveal. Nam, who has watched it: "the reveal is
+       * actually already at second 3 or 4 I think, so 7s for each vid is a lot, I
+       * think you can lower it to 4s."
        *
-       * So it follows the clip: long enough to reach the end of a short one,
-       * capped for the thirty second ones, floored at Nam's number. Read off the
-       * element rather than authored in eggs.ts, because a duration written next
-       * to a file is a duration that goes stale the next time the file is recut.
+       * So it is a flat 4000, and the adaptive version is gone rather than
+       * retuned. Its only justification was the premise that turned out to be
+       * false, and machinery kept after its reason has expired is the kind of
+       * thing nobody dares delete later.
        */
-      const vid = q('.shot .wx video') as HTMLVideoElement | null;
-      const len = vid && Number.isFinite(vid.duration) ? vid.duration * 1000 : 0;
-      await voice(`${egg.title}. ${egg.blurb}`, Math.min(14_000, Math.max(7000, len + 900)));
+      await voice(`${egg.title}. ${egg.blurb}`, 4000);
     }
     // And they are credited for it, which is the half the first version missed.
     podium.quest('offclock');
