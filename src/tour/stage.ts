@@ -136,6 +136,19 @@ export interface Podium {
   bugsLeft: () => number;
 }
 
+/**
+ * How many clips the offclock segment opens.
+ *
+ * N63 raised this to "all of them" on the grounds that the achievements are a
+ * walk around the surface and withholding half of it buys nothing. Nam has taken
+ * it back to three now that there are seven: seven clips at five seconds each is
+ * a minute and a half of somebody else's home video in the middle of a job
+ * application, and the segment stops being a flourish and becomes the show.
+ *
+ * The rest stay findable in the calendar, which is where they always were.
+ */
+const EGGS_SHOWN = 3;
+
 /** How long to keep looking for something the tour has just asked for. */
 const APPEAR_MS = 4000;
 /** Silence after which the tour drops a stale backlog. */
@@ -578,7 +591,7 @@ export function startTour(root: HTMLElement, podium: Podium): TourHandle {
     /* No desktop, nothing to press. Fall back to the direct route. */
     const performing_ = !!q('.shot .dk-surface');
     if (!performing_) {
-      for (const egg of left) {
+      for (const egg of left.slice(0, EGGS_SHOWN)) {
         if (dead) return;
         podium.playEgg(egg.id);
         markEggSeen(egg.id);
@@ -610,7 +623,7 @@ export function startTour(root: HTMLElement, podium: Podium): TourHandle {
       await wait(reduced ? 0 : 260);
     }
 
-    for (const egg of left) {
+    for (const egg of left.slice(0, EGGS_SHOWN)) {
       if (dead) return;
       const file = egg.clip.replace('media/', '');
       const row = rowNamed('.wx-list', file);
@@ -1169,7 +1182,12 @@ export function startTour(root: HTMLElement, podium: Podium): TourHandle {
      * possible "run" being a press on Stop.
      */
     heardOut = true;
-    podium.finished(performance.now() - startedAt);
+    /*
+     * Minus the pauses. A visitor who pressed Stop, went to lunch and came back
+     * did not spend an hour in the interview, and a timer that says they did is
+     * measuring the wrong thing -- the same reason the outro is excluded.
+     */
+    podium.finished(performance.now() - startedAt - pausedMs);
     // The clock the story waits on starts HERE, not at the visitor's last input.
     // See the note on flowEndedAt.
     flowEndedAt = performance.now();

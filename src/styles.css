@@ -5619,6 +5619,9 @@ body.set-open .cc { bottom: calc(var(--botbar) + 52px + 12px); }
  *
  * Visible from the first frame either way: a tour whose only exit is waiting it
  * out is a nag, and this one starts on its own -- so the way out cannot hide. */
+/* Away while he is paused (N84). It offers to stop something that is not
+   happening, and it comes back when he does. */
+.tour-bar.is-away { display: none; }
 .tour-bar {
   position: fixed; left: 18px; bottom: 150px; z-index: 201;
   animation: tour-bar-in .22s cubic-bezier(0, 0, .2, 1) both;
