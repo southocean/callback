@@ -146,6 +146,21 @@ export class Bugs {
     return bugs.map((bug) => ({ bug, got: this.got.has(bug.id) }));
   }
 
+  /**
+   * The most recently caught bug, or undefined on an empty case.
+   *
+   * A Set iterates in insertion order and this one is persisted with
+   * `JSON.stringify([...got])` and re-added in that same order on load, so catch
+   * order is preserved across reloads without a second field to keep in sync.
+   * That is a property of Set rather than an accident, but it is the kind of
+   * thing worth writing down next to the code that leans on it.
+   */
+  latest(): string | undefined {
+    let last: string | undefined;
+    for (const id of this.got) last = id;
+    return last;
+  }
+
   subscribe(fn: () => void): void {
     this.onChange.push(fn);
   }

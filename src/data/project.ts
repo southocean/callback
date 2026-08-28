@@ -21,15 +21,28 @@ export { START } from './cv.js';
  * the view." So `thin` marks them and the view filters on it, which keeps the two
  * concerns apart and means the totals stay true.
  */
-export const commitsPerDay: { day: string; n: number; label: string; thin?: boolean }[] = [
+/*
+ * Read off `git log --date=short --format=%ad | uniq -c`, never estimated, and
+ * re-read rather than appended to: the 27th was recorded as 17 while the day was
+ * still running and finished on 26, which is the failure mode of writing a
+ * number down before the day is over.
+ *
+ * `thin` is gone with the bar chart that needed it. A bar two pixels tall is
+ * noise, so the quiet days used to be dropped from the chart and kept in the
+ * total, with a footnote admitting it. A heatmap has no such problem: an empty
+ * cell is a legible value, and the two quiet days are part of the shape rather
+ * than an asterisk under it.
+ */
+export const commitsPerDay: { day: string; n: number; label: string }[] = [
   { day: '2026-08-20', n: 53, label: 'Day 1' },
   { day: '2026-08-21', n: 12, label: 'Day 2' },
-  { day: '2026-08-22', n: 1, label: 'Day 3', thin: true },
+  { day: '2026-08-22', n: 1, label: 'Day 3' },
   { day: '2026-08-23', n: 6, label: 'Day 4' },
-  { day: '2026-08-24', n: 0, label: 'Day 5', thin: true },
+  { day: '2026-08-24', n: 0, label: 'Day 5' },
   { day: '2026-08-25', n: 43, label: 'Day 6' },
   { day: '2026-08-26', n: 18, label: 'Day 7' },
-  { day: '2026-08-27', n: 17, label: 'Day 8' },
+  { day: '2026-08-27', n: 26, label: 'Day 8' },
+  { day: '2026-08-28', n: 25, label: 'Day 9' },
 ];
 
 /**
@@ -1888,6 +1901,99 @@ export const tasks: Task[] = [
       ],
       raised: 'Nam, QA 29 Aug',
       notes: 'The shake is on the body rather than on the bug, and that is the whole difference: a bug that shakes is a bug that is moving, a ROOM that shakes is something having landed in it. Kept small on purpose, since the amounts that read as impressive in isolation read as a fault in a page pretending to be a video call. The hold reaches the script as a dispatched event rather than a call, for the same reason as ui/signal.ts: bugs.ts knows nothing about the conversation and has to keep working when it is not running. It is a timestamp rather than a lock, so a holder that forgets to release cannot wedge the script, and it is capped at four seconds and taken between sentences rather than inside one.',
+    },
+  },
+
+  /* ------------------------------------------------------------------------
+   * Nam's pass over the CV and the framed pages, 28 August. Six, and the first
+   * one is the fourth time he has reported it.
+   * --------------------------------------------------------------------- */
+  {
+    id: 'N101', col: 'done', size: 'S', tag: 'content',
+    title: 'The contact block drifts left, for the fourth time',
+    note: 'Fixed in the print stylesheet twice and never on screen, which is why it kept coming back.',
+    detail: {
+      why: 'Nam: "the email, location and social agains drifted to the left!? How many times have I fixed this again?" Four, and the reason it kept returning is that every previous fix landed in @media print. The screen rule, which is what every reader who does not export a PDF sees, was still flex-wrap: wrap.',
+      done: [
+        'The header never wraps above 560px; the name column absorbs the shortfall',
+        'Below 560px it stacks AND switches to left-aligned, which is the only honest pair',
+        'The PDF harness still passes all six layout assertions',
+      ],
+      raised: 'Nam, 28 Aug',
+      notes: 'It does not look like a wrapping bug, which is the whole problem. A wrapped flex item is sized to its own content, and this one is text-align: right, so the moment it wraps it becomes a full-width box holding three right-aligned lines of very different lengths. A ragged LEFT edge reads as a broken indent, not as alignment, so every report of it has described an indentation problem rather than a wrap. It wraps because the name column asks for about 640px and the contact block about 190, against a 768px content box. min-width: 0 on the name column is the load-bearing half of the fix: a flex item defaults to min-width: auto and will not shrink below its longest line without it.',
+    },
+  },
+  {
+    id: 'N102', col: 'done', size: 'S', tag: 'content',
+    title: 'The requirement map is out of the CV',
+    note: 'It was gated behind ?c=, which fixed the honesty problem and not the reuse one.',
+    detail: {
+      why: 'Nam: "we have a separate chrome tab for this, why add it to the CV now? This renders the CV not reusable for any other job!" T7 gated the section so it only appeared when a posting had been named, which stopped it measuring a stranger against a job ad they had never seen. It never addressed the other objection: the plain document is the thing that gets printed, mailed and passed on, and a CV whose spine is one employer\u2019s checklist has a shelf life of one application.',
+      done: [
+        'The section is gone from plain.ts, along with the now-unused import',
+        'The mapping keeps its own page in the mock browser, next to the posting',
+        'The PDF is two pages rather than three',
+      ],
+      raised: 'Nam, 28 Aug',
+      notes: 'Every other section of that document is true whoever reads it, which is the test this one failed. Nothing is lost: the browser tab was always the better home for it, because it is a thing you open when you want the CV measured against a specific posting rather than something the CV asserts about itself.',
+    },
+  },
+  {
+    id: 'N103', col: 'done', size: 'S', tag: 'specs',
+    title: 'The posting page says what it is',
+    note: 'Tab and heading both read "Against the job requirement" now, and the honest rows finally look honest.',
+    detail: {
+      why: 'Nam: "the title of the site is also The posting, line by line, I dont like this title. We should call it Against the job requirement." The old title described the format; the new one names the question the page answers.',
+      done: [
+        'The tab, the tab title and the h1 all agree',
+        'The partly-met rows get their own chip colour',
+      ],
+      raised: 'Nam, 28 Aug',
+      notes: 'The chip is the part worth recording. A comment in the stylesheet had said for a long time that the honest rows "get a different mark, because a tick on a requirement he only partly meets would be the one dishonest pixel on the whole page" \u2014 and the rule to do it was never written. So every tilde was sitting on the same green as every tick, and the distinction the tilde exists to draw was invisible. Amber #feefc3 with #653b00 ink, dark enough to clear 4.5:1 at 11px bold rather than the 3:1 a larger glyph could have got away with.',
+    },
+  },
+  {
+    id: 'N104', col: 'done', size: 'M', tag: 'specs',
+    title: 'One rhythm across the framed pages',
+    note: '"Things I built" had three card idioms stacked on one page, none of them agreeing about padding or gap.',
+    detail: {
+      why: 'Nam: "that page looks particularly clunky, padding is all over the place, inconsistent, etc." He is right, and no single value was wrong: the work sat at 12px padding and a 10px gap, the tooling had no surface and a 10px indent, the games ran 13/14 padding and a 12px gap. Three groups, three near-misses of the same design.',
+      done: [
+        '14px inside a card, 12px between cards, one type ramp, everywhere',
+        'Two idioms kept on purpose: a card is a thing, a row is an entry in a list',
+        'Links are the action token with a transition and a focus ring, not a colour flip',
+      ],
+      raised: 'Nam, 28 Aug',
+      notes: 'The link change is the one that follows from the principles rather than from the report. .pg-link was #0b57d0, which is the FILLED button\u2019s ground rather than the action colour, and it swapped to a darker blue on hover with no duration. Principle 2 says nothing in this build flips: a bare colour swap is the most reliable tell of a Material copy. It is #1a73e8 with a 75ms ramp now, and it has the ring every other focusable thing here has.',
+    },
+  },
+  {
+    id: 'N105', col: 'done', size: 'M', tag: 'specs',
+    title: 'The commit chart is a heatmap',
+    note: 'A month grid, GitHub\u2019s layout, so the empty fortnight before the work started is part of the picture.',
+    detail: {
+      why: 'Nam: "the commit count now I think it\u2019s a bit too flashy for not a lot of added info, lets convert it to a heatmap ... I think its a more familiar presentation of commit frequency for devs than this bar chart." The bars spent a lot of ink on nine numbers. A developer reading a grid of day cells needs no legend, because GitHub taught them, and the argument the chart has to make is the shape of the work rather than any single day.',
+      done: [
+        'A column per week, a row per weekday, the whole month',
+        'Five levels, thresholds as proportions of the peak rather than fixed counts',
+        'The ramp is derived from the two blues the light shell already owns',
+      ],
+      raised: 'Nam, 28 Aug',
+      notes: 'Two things fell out of the change. The bar chart could not draw a quiet day \u2014 a two-pixel bar is noise \u2014 so the near-empty days were dropped from the chart, kept in the total, and admitted in a footnote. A heatmap has no such problem: an empty cell is a legible value, so the footnote and the `thin` flag are both gone. And re-reading git log to build it caught the numbers being stale: the 27th was recorded as 17 while the day was still running and finished on 26, and the 28th was missing entirely. 150 became 184.',
+    },
+  },
+  {
+    id: 'N106', col: 'done', size: 'S', tag: 'call',
+    title: 'The case opens on your last catch',
+    note: 'It opened on the first slot, which for anyone who had caught something was a silhouette.',
+    detail: {
+      why: 'Nam: "if there is one bug found, we should put the focus on that bug, instead of putting it on the very first bug that is not found. If there are multiple bugs found, we put the selection on the latest found bug." The old rule was "the first one, because any other pick would be a recommendation", which was right while the case was empty and wrong the moment it was not.',
+      done: [
+        'The case opens on the most recent catch, and on slot one only when empty',
+        'The selected slot is scrolled into view, since the grid scrolls once the case fills',
+      ],
+      raised: 'Nam, 28 Aug',
+      notes: 'No new storage was needed, which is worth knowing before somebody adds some. The caught set is a Set persisted with JSON.stringify([...got]) and re-added in that order on load, and a Set iterates in insertion order, so catch order already survives reloads. Opening a collection you have started onto a silhouette shows you the one thing you have not done; opening it onto your latest catch shows you the thing you just did. The first is a chore list.',
     },
   },
 

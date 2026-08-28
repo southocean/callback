@@ -18,6 +18,7 @@
 
 import { h, clear } from '../dom.js';
 import { sym } from './icons.js';
+import { tip } from './tooltip.js';
 import { trapFocus } from '../a11y.js';
 import { buildDoc } from './built.js';
 import { renderScriptEditor } from './scripted.js';
@@ -241,14 +242,23 @@ const fmt = (iso: string): string => {
 };
 
 /**
- * The timeline, drawn rather than bulleted.
+ * The commit heatmap, which used to be a bar chart.
  *
  * Nam: "Present it in like a literal timeline graph, not bullet point text. This
- * is to show off the progress we could make with agentic programming."
+ * is to show off the progress we could make with agentic programming." Then, on
+ * the bars: "a bit too flashy for not a lot of added info, lets convert it to a
+ * heatmap ... I think its a more familiar presentation of commit frequency for
+ * devs than this bar chart."
  *
- * So the bars carry the argument: 126 commits across seven days, with the shape
- * of the work visible — two very heavy days, one where nothing happened, and a
- * long tail of correction. The numbers are read off `git log`, not estimated.
+ * He is right about the trade. The bars spent a lot of ink on nine numbers, and
+ * a developer reading a grid of day cells already knows what it means without a
+ * legend, because GitHub taught them. The argument the chart has to make is the
+ * SHAPE of the work rather than any one day's count, and shape is exactly what a
+ * heatmap is for.
+ *
+ * The whole month, not just the worked days, because the empty fortnight before
+ * the 20th is part of the claim: this did not exist, and then nine days later it
+ * did. Cropping to the busy end would throw that away.
  */
 /**
  * OVERVIEW, with the timeline folded into it.
@@ -263,12 +273,103 @@ const fmt = (iso: string): string => {
  * the question actually has. A vertical list of eight items said "here is a list";
  * five dated columns say "this happened over five days".
  */
+const WEEKDAY_ROWS = ['S', 'M', 'T', 'W', 'T', 'F', 'S'];
+
+/**
+ * Which month the heatmap draws, derived from the data rather than typed in, so
+ * it cannot drift the way the 27th's commit count did. The last day with commits
+ * on it is the month the project is being built in.
+ */
+const MONTH = (() => {
+  const last = commitsPerDay[commitsPerDay.length - 1]?.day ?? '2026-08-01';
+  const [y, m] = last.split('-').map(Number);
+  const d = new Date(y ?? 2026, (m ?? 8) - 1, 1);
+  return {
+    y: d.getFullYear(),
+    m: d.getMonth(),
+    label: d.toLocaleDateString('en-US', { month: 'long', year: 'numeric' }),
+  };
+})();
+
+/**
+ * One month of commits as a grid: a column per week, a row per weekday, Sunday
+ * at the top. GitHub's layout, because it is the one a developer can read
+ * without being told what they are looking at.
+ *
+ * FIVE LEVELS, and the thresholds are proportions of the peak rather than fixed
+ * counts, so the scale still means something if the numbers change. Level 0 is
+ * "no commits" and is a distinct value, not the bottom of the ramp: the two
+ * quiet days in the middle of the run are part of what the chart is saying.
+ *
+ * The ramp is derived from the two blues the light shell already owns, #d3e3fd
+ * and #0b57d0, with two steps interpolated between them. Principle 1 says pick
+ * the colour from the table rather than inventing one, and a sequential scale is
+ * the case the table does not enumerate: the honest version is to name the two
+ * ends it does enumerate and say the middle is derived. styles.css carries them.
+ */
+function heatmap(total: number, peak: number): HTMLElement {
+  const counts = new Map(commitsPerDay.map((d) => [d.day, d.n]));
+  const level = (n: number): number => {
+    if (n === 0) return 0;
+    const r = n / peak;
+    return r > 0.75 ? 4 : r > 0.5 ? 3 : r > 0.25 ? 2 : 1;
+  };
+
+  const first = new Date(MONTH.y, MONTH.m, 1);
+  const last = new Date(MONTH.y, MONTH.m + 1, 0);
+  // Back to the Sunday that opens the first week, so every column is a full one.
+  const start = new Date(first);
+  start.setDate(1 - first.getDay());
+  const weeks = Math.ceil((first.getDay() + last.getDate()) / 7);
+
+  const cells: HTMLElement[] = [];
+  for (let w = 0; w < weeks; w += 1) {
+    const col: HTMLElement[] = [];
+    for (let r = 0; r < 7; r += 1) {
+      const d = new Date(start);
+      d.setDate(start.getDate() + w * 7 + r);
+      if (d.getMonth() !== MONTH.m) {
+        // A day belonging to the month either side. It holds the grid's shape
+        // and carries no value, so it is not a zero -- a zero is a claim.
+        col.push(h('div', { class: 'hm-cell is-out', 'aria-hidden': 'true' }));
+        continue;
+      }
+      const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+      const n = counts.get(key) ?? 0;
+      const cell = h('div', {
+        class: 'hm-cell',
+        'data-l': String(level(n)),
+        role: 'listitem',
+        'aria-label': `${fmt(key)}: ${n} ${n === 1 ? 'commit' : 'commits'}`,
+      });
+      tip(cell, `${n} ${n === 1 ? 'commit' : 'commits'} on ${fmt(key)}`, 'above');
+      col.push(cell);
+    }
+    cells.push(h('div', { class: 'hm-col' }, ...col));
+  }
+
+  return h('div', { class: 'hm' },
+    h('div', { class: 'hm-grid-wrap' },
+      h('div', { class: 'hm-days', 'aria-hidden': 'true' },
+        // Monday, Wednesday and Friday only, which is what GitHub labels: seven
+        // labels at this cell size collide.
+        ...WEEKDAY_ROWS.map((w, i) => h('div', { class: 'hm-day' }, i % 2 === 1 ? w : ''))),
+      h('div', {
+        class: 'hm-grid', role: 'list',
+        'aria-label': `${total} commits in ${MONTH.label}`,
+      }, ...cells)),
+    h('div', { class: 'hm-foot' },
+      h('span', { class: 'hm-total' }, `${total} commits in ${MONTH.label}`),
+      h('div', { class: 'hm-key', 'aria-hidden': 'true' },
+        h('span', {}, 'Less'),
+        ...[0, 1, 2, 3, 4].map((l) => h('div', { class: 'hm-cell', 'data-l': String(l) })),
+        h('span', {}, 'More'))),
+  );
+}
+
 function overviewView(): HTMLElement {
   const total = commitsPerDay.reduce((a, b) => a + b.n, 0);
-  // Thin days are hidden from the chart, not from the total. See project.ts.
-  const shown = commitsPerDay.filter((d) => !d.thin);
-  const peak = Math.max(...shown.map((d) => d.n));
-  const hidden = commitsPerDay.length - shown.length;
+  const peak = Math.max(...commitsPerDay.map((d) => d.n));
 
   // One column per day that produced a milestone, in order.
   const days = [...new Set(milestones.map((m) => m.day))].sort();
@@ -278,16 +379,7 @@ function overviewView(): HTMLElement {
       `${total} commits from ${fmt(START)}, one person and an agent. The shape matters more than the count: ` +
       `two very heavy days and a long tail of correction after the interface existed.`),
 
-    h('div', { class: 'tl-chart', role: 'img', 'aria-label': `${total} commits across ${commitsPerDay.length} days` },
-      ...shown.map((d) => h('div', { class: 'tl-bar-wrap' },
-        h('div', { class: 'tl-bar-n' }, String(d.n)),
-        h('div', { class: 'tl-bar-track' },
-          h('div', { class: 'tl-bar', style: `height:${Math.max(2, Math.round((d.n / peak) * 100))}%` })),
-        h('div', { class: 'tl-bar-d' }, fmt(d.day))))),
-    hidden
-      ? h('p', { class: 'dp-note tl-omit' },
-        `${hidden} near-empty days are left off the chart. They are still in the total.`)
-      : h('span', {}),
+    heatmap(total, peak),
 
     buildDoc(),
 

@@ -47,7 +47,7 @@ export interface Source {
 
 const TABS: Source[] = [
   { id: 'cv', kind: 'tab', title: 'Nam Nguyen. Senior SWE, Web Development', host: 'southocean.github.io' },
-  { id: 'jobad', kind: 'tab', title: 'Google Careers, the posting, line by line', host: 'careers.google.com' },
+  { id: 'jobad', kind: 'tab', title: 'Against the job requirement', host: 'careers.google.com' },
   { id: 'work', kind: 'tab', title: 'Things I built', host: 'southocean.github.io' },
   /*
    * N36. Nam: "We actually have a how this was built page that we show in home
@@ -97,7 +97,7 @@ const DOCS: Record<string, Doc> = {
     host: 'southocean.github.io',
     page: () => frameOf(`${location.search}#plain`, 'Nam Nguyen, the CV as a document', pageCv),
   },
-  jobad: { title: 'Google Careers, the posting, line by line', host: 'careers.google.com', page: () => pageJobAd() },
+  jobad: { title: 'Against the job requirement', host: 'careers.google.com', page: () => pageJobAd() },
   /* N3: one list, and it is not "four" any more. */
   work: { title: 'Things I built', host: 'southocean.github.io', page: () => pageWork() },
   tools: { title: 'Internal tooling, a bot controller', host: 'southocean.github.io', page: () => pageTools() },
@@ -521,9 +521,17 @@ function pageCv(): HTMLElement {
  * N39. BUG: this page rendered a heading, an apology and nothing else.
  *
  * The requirement map was gated on a company code, exactly as the CV's own
- * section is, and the deployed link carries none. So a tab captioned "Google
+ * section was, and the deployed link carries none. So a tab captioned "Google
  * Careers — the posting, line by line" opened onto a sentence explaining why
  * there were no lines. Nam: "this page is empty? It was fine before."
+ *
+ * RENAMED, and it is now the only home for this. Nam: "The against the job
+ * requirement tab in the mock chrome is now called Google Career, The posting,
+ * line by line and the title of the site is also The posting, line by line, I
+ * dont like this title. We should call it Against the job requirement." Both the
+ * tab and the heading say that now, and the CV no longer carries a copy at all,
+ * because a CV whose spine is one employer's checklist cannot be sent anywhere
+ * else. plain.ts has the argument.
  *
  * T7 put that gate there for a real reason and the reason still holds for the
  * CV: measuring a reader at company X against company Y's posting is a category
@@ -539,7 +547,7 @@ function pageCv(): HTMLElement {
 function pageJobAd(): HTMLElement {
   const pitch = currentPitch();
   return h('div', { class: 'pg' },
-    h('h1', { class: 'pg-h' }, 'The posting, line by line'),
+    h('h1', { class: 'pg-h' }, 'Against the job requirement'),
     h('p', { class: 'pg-sub' }, pitch.named
       ? pitch.target
       : 'Senior Software Engineer, Web Development, the posting this CV was written against'),

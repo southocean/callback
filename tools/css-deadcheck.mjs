@@ -58,6 +58,11 @@ const DYNAMIC = [
   // ```bug-rar is-${bug.rarity}``` in bugframe.ts and devportal.ts -- the four
   // tiers a bug's hint can belong to. See data/bugs.ts.
   /^is-(common|uncommon|rare|legendary)$/,
+  // ```pg-req is-${r.strength}``` in share.ts. Three values, and only `honest`
+  // is styled -- strong and met both take the base .pg-tick, because the
+  // distinction that has to be visible is met-versus-partly-met, not the two
+  // grades of met. See data/cv.ts requirementMap.
+  /^is-(strong|met|honest)$/,
 ];
 
 const walk = (dir) => readdirSync(dir, { withFileTypes: true })

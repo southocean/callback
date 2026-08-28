@@ -131,11 +131,33 @@ export function openBugFrame(catcher: Bugs): void {
     grid.appendChild(slot);
   }
 
-  // Something has to be in the card before anything is pressed, and the first is
-  // the honest choice: any other pick would be a recommendation.
-  const first = all[0];
-  const firstSlot = grid.firstElementChild as HTMLElement | null;
-  if (first && firstSlot) choose(firstSlot, first.bug, first.got);
+  /*
+   * THE CASE OPENS ON YOUR LAST CATCH, not on the first empty slot.
+   *
+   * Nam: "if there is one bug found, we should put the focus on that bug,
+   * instead of putting it on the very first bug that is not found. If there are
+   * multiple bugs found, we put the selection on the latest found bug."
+   *
+   * The old rule was "the first one, because any other pick would be a
+   * recommendation", which was right while the case was empty and wrong the
+   * moment it was not. Opening a collection you have started onto a silhouette
+   * shows you the one thing you have not done; opening it onto your most recent
+   * catch shows you the thing you just did. The first is a chore list and the
+   * second is a trophy case, and this is a trophy case.
+   *
+   * An empty case still opens on slot one, where every slot says the same thing.
+   */
+  const latest = catcher.latest();
+  const at = latest ? all.findIndex((a) => a.bug.id === latest) : -1;
+  const pick = at >= 0 ? at : 0;
+  const opening = all[pick];
+  const openingSlot = grid.children[pick] as HTMLElement | undefined;
+  if (opening && openingSlot) {
+    choose(openingSlot, opening.bug, opening.got);
+    // The grid scrolls once the case is fuller than its frame, and a selected
+    // slot below the fold reads as nothing being selected at all.
+    openingSlot.scrollIntoView({ block: 'nearest', inline: 'nearest' });
+  }
 
   const close = (): void => { box.remove(); };
   const shut = h('button', {

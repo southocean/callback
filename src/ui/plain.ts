@@ -11,7 +11,7 @@ import { h } from '../dom.js';
 import { currentPitch } from '../data/companies.js';
 import { sym, socialLink, type SocialName } from './icons.js';
 import {
-  profile, pitch, roles, education, teaching, skills, offstage, requirementMap, segments,
+  profile, pitch, roles, education, teaching, skills, offstage, segments,
 } from '../data/cv.js';
 
 function email(): string {
@@ -37,10 +37,6 @@ function email(): string {
  * that is already a full application.
  */
 export function renderPlain(onBack: () => void, embedded = false): HTMLElement {
-  // Named `job`, not `pitch`: data/cv.ts already exports a `pitch` and shadowing
-  // it here would silently swap the CV summary for the company copy.
-  const job = currentPitch();
-
   return h(
     'main',
     { class: 'doc', id: 'main' },
@@ -93,27 +89,21 @@ export function renderPlain(onBack: () => void, embedded = false): HTMLElement {
     ),
 
     /*
-     * GATED, AND RENAMED. Nam: "we reference the google actual hiring title, but
-     * guard this section under url param c=1, cause we dont have the data on
-     * other companies job ad."
+     * NO REQUIREMENT MAP HERE. Nam: "we have a separate chrome tab for this, why
+     * add it to the CV now? This renders the CV not reusable for any other job!"
      *
-     * That was T7 on the board: with no code the section rendered one employer's
-     * requirements under a heading that named none, so a reader at a different
-     * company was being shown a mapping against a posting they had never seen.
-     * It is a real section when there is a real posting behind it and absent
-     * otherwise, which is the only honest pair of states available.
+     * Which is the argument that closes it. This section was gated behind ?c= so
+     * it only appeared when a posting had actually been named, and that fixed the
+     * honesty problem (T7) without touching the reuse problem: the plain document
+     * is the thing that gets printed, mailed and handed on, and a CV whose spine
+     * is one employer's requirement list is a document with a shelf life of one
+     * application. Every other section here is true whoever reads it.
      *
-     * The heading is "Against the job requirement" per point 20, and it now
-     * names the role it is measuring against.
+     * The mapping is not lost and was never only here. It lives in the mock
+     * browser as its own page, which is the right home for it: a tab you open
+     * when you want to see the CV measured against a specific posting, next to
+     * the posting. share.ts, the 'jobad' tab.
      */
-    job.named
-      ? h('section', {},
-        h('h2', {}, 'Against the job requirement'),
-        h('p', { class: 'doc-target' }, job.target),
-        ...requirementMap.map((r) =>
-          h('div', { class: 'doc-skill' }, h('b', {}, `${r.strength === 'honest' ? '~' : '✓'} ${r.req}: `), h('span', { class: 'doc-note' }, r.evidence)),
-        ))
-      : h('span', {}),
 
     h('section', {}, h('h2', {}, 'Skills'),
       h('div', { class: 'doc-2col' },
