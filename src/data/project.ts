@@ -2441,6 +2441,22 @@ export const tasks: Task[] = [
     },
   },
 
+  {
+    id: 'N140', col: 'done', size: 'M', tag: 'trust',
+    title: 'Removed copy is checked against the build, not the source',
+    note: 'Six strings that were cut on request are now asserted absent from what a visitor actually loads.',
+    detail: {
+      why: 'Nam: "you say you have done stuff and then I check back they are still there!! do you QA any of your work at all???" Two things went wrong that day and only one of them was a misread instruction. The other is that the check I ran was a grep over src/, and what he opened was docs/. Those agree almost always, which is what makes the gap dangerous: it holds until the one time it does not, and there is nothing to catch it.',
+      done: [
+        'tools/ship-check.mjs, wired into npm run verify after the build',
+        'Six ABSENT assertions from N128 to N138, two PRESENT ones',
+        'Verified to fail: reintroducing the cover-letter framing reports exit 1 and names the chunk',
+      ],
+      raised: 'Nam, 28 Aug',
+      notes: 'A PLAIN GREP OVER docs/ WOULD BE WORSE THAN NOTHING, which is most of why this is a file rather than a line. docs/ keeps content-hashed chunks from earlier builds, so a grep can find copy in a chunk no visitor can reach and fail on it, or find it in a stale chunk and conclude the current build still ships it. So the import graph is walked from index.html and only reachable files are searched. The board is exempt, because its cards quote the instructions that asked for the removals and would otherwise trip every assertion; the exemption is by content rather than by filename, since the filename is a hash, and it currently matches exactly one chunk of fifty-one. The first probe of this gate PASSED when it should have failed, because the string was in an unused const and esbuild tree-shook it: the real test had to put the text somewhere that renders.',
+    },
+  },
+
   /* Flagged rather than done. Still true as of this build. */
   { id: 'T24', col: 'backlog', size: 'M', tag: 'specs', title: 'Initial payload is halfway to the ceiling', note: '24.7 kB of a 50 kB gate, up from 18.2. Still green, and the growth is real, but two deferred chunks are 17 kB and 19 kB and deserve a splitting pass before it becomes urgent.' },
 ];
