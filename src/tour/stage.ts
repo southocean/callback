@@ -42,12 +42,15 @@
 import { h } from '../dom.js';
 import { prefersReducedMotion } from '../a11y.js';
 import {
-  parts, story, acks, asides, backTo,
+  parts, story, acks, asides, backTo, opener, resumeAt, askQuestion,
   banter, outroOpen, outroClose, outroTease, outroAllFound,
   OUTRO_GAPS, OUTRO_COUNT_SLOT, BANTER_SLOTS,
   type Bail, type Beat, type Line, type Surface,
 } from '../data/tour.js';
-import { markEggSeen, unseenEggs, seenBanter, markBanterSeen, chooseBanter, clearBanter } from '../prefs.js';
+import {
+  markEggSeen, unseenEggs, seenBanter, markBanterSeen, chooseBanter, clearBanter,
+  heardAnswers, markAnswerHeard, markQuipFound,
+} from '../prefs.js';
 import { currentPitch } from '../data/companies.js';
 import { makeHand, type Hand, type Scroller } from './cursor.js';
 import {
@@ -837,6 +840,8 @@ export function startTour(root: HTMLElement, podium: Podium): TourHandle {
     // Nothing is drained while he is talking. The quip stays marked as found,
     // which is what N118 counts; it just never gets said.
     while (!dead && tour.interject) {
+      // Found is found, whether or not it gets said (N118).
+      markQuipFound(tour.interject);
       if (delivering()) { tour = reduceTour(tour, { t: 'quipDone' }); continue; }
       await sayQuip(tour.interject);
     }
@@ -1214,12 +1219,71 @@ export function startTour(root: HTMLElement, podium: Podium): TourHandle {
   /* ------------------------------------------------------------ the personal -- */
 
   /** Board ticket N38. Uninterruptible, except by Stop. */
+  /**
+   * THE QUESTIONS, ASKED OUT LOUD AND REMEMBERED — board ticket N110.
+   *
+   * Three things changed here and they are one idea: the segment behaves like an
+   * interview rather than a monologue.
+   *
+   * IT ASKS BEFORE IT ANSWERS. Nam: "So user understands that this is not a
+   * monologue and there are actually questions ... It gives better context to the
+   * answer and provide breakpoints where they could may leave the conversation."
+   * The numbering is doing real work: it tells the visitor there is a finite
+   * list, which is what makes leaving in the middle feel like a choice rather
+   * than an escape.
+   *
+   * IT OPENS WITH A GAP. "Still here?" alone, then the silence, then the framing
+   * line. Running the two together is what spent the surprise.
+   *
+   * IT REMEMBERS. A chapter is written down after its last line, so coming back
+   * resumes at the first unheard question BY NUMBER AND NAME. And somebody who
+   * has heard all eight gets the openers anyway -- so they brace for another
+   * ninety seconds -- and is then let off.
+   */
   const tell = async (): Promise<void> => {
-    for (const chapter of story) {
+    const heard = new Set(heardAnswers());
+    const left = story.filter((c) => !heard.has(c.id));
+
+    await voice(words(opener.stillHere), opener.stillHere.ms);
+    if (dead) return;
+
+    if (!left.length) {
+      // The tease: same shape, and then he lets them off.
+      await voice(words(opener.again), opener.again.ms);
+      for (const line of opener.allHeard) {
+        if (dead) return;
+        await voice(words(line), line.ms);
+      }
+      tour = reduceTour(tour, { t: 'toldDone' });
+      dropBar();
+      return;
+    }
+
+    await voice(words(opener.more), opener.more.ms);
+    if (dead) return;
+
+    /*
+     * Only when they are actually coming back to something. On a first hearing
+     * "where were we" is a question about a conversation that has not happened.
+     */
+    const first = story.indexOf(left[0]!);
+    if (heard.size > 0) {
+      const line = resumeAt(first + 1, left[0]!.q);
+      await voice(words(line), line.ms);
+      if (dead) return;
+    }
+
+    for (const chapter of left) {
+      if (dead) return;
+      const n = story.indexOf(chapter) + 1;
+      const ask = askQuestion(n, chapter.q);
+      await voice(words(ask), ask.ms);
       for (const line of chapter.lines) {
         if (dead) return;
         await voice(words(line), line.ms);
       }
+      // After the LAST line, which is the only honest place to credit it.
+      markAnswerHeard(chapter.id);
     }
     tour = reduceTour(tour, { t: 'toldDone' });
     // The answers are done, so the reason for keeping an exit is done with them.
@@ -1277,6 +1341,20 @@ export function startTour(root: HTMLElement, podium: Podium): TourHandle {
     }
 
     if (dead) return;
+    /*
+     * AND THE GOODBYE CLOSES — board ticket N110.
+     *
+     * "Thank you for your time. Genuinely." used to sit on screen for however
+     * long it took the visitor to go quiet, which on the way into the personal
+     * segment is a minute or more. Nam: "this line lingers all the way after it
+     * finishes until the next line. That ruins the surprise!"
+     *
+     * It does, and in the most direct way: a caption on screen is the app saying
+     * it is still talking, so the silence that is meant to feel like the end
+     * reads as a pause, and the segment that follows reads as the rest of a
+     * sentence rather than as him starting again.
+     */
+    podium.hush();
     /*
      * A completed hearing, and the only kind that gets timed. `handedOver` broke
      * out of the loop above without reaching here, and Stop tears the whole thing

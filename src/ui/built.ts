@@ -17,7 +17,6 @@
 // the build config. Nothing is invented to fill a section.
 
 import { h } from '../dom.js';
-import { shipped } from '../data/story.js';
 
 /** The size budget CI enforces, in bytes of gzip. Kept in step with build.mjs. */
 const BUDGET_KB = 50;
@@ -82,7 +81,7 @@ export function buildDoc(afterLead?: HTMLElement): HTMLElement {
       'the interface measured off the real product rather than eyeballed. The corrections are in the commit ' +
       'log along with the retractions.'),
 
-    h('h2', {}, 'Specifications'),
+    h('h2', { class: 'bd-h2' }, 'The spec'),
     h('dl', { class: 'bd-rows' },
       ...SPECS.flatMap((r) => [h('dt', {}, r.k), h('dd', {}, r.v)])),
 
@@ -96,11 +95,10 @@ export function buildDoc(afterLead?: HTMLElement): HTMLElement {
      * documents the artefact, not its author. What is left is what this build
      * actually uses, and every line of it is checkable against the source.
      */
-    h('h2', {}, 'What it is built with'),
+    h('h2', { class: 'bd-h2' }, 'The stack'),
     h('ul', { class: 'bd-stack' },
       ...THIS_BUILD.map((s) => h('li', {}, h('b', {}, s.k), ', ', h('span', {}, s.v)))),
 
-    h('h2', {}, 'What shipped'),
-    h('p', {}, shipped.body),
+
   );
 }

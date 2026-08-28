@@ -22,28 +22,17 @@ export { START } from './cv.js';
  * concerns apart and means the totals stay true.
  */
 /*
- * Read off `git log --date=short --format=%ad | uniq -c`, never estimated, and
- * re-read rather than appended to: the 27th was recorded as 17 while the day was
- * still running and finished on 26, which is the failure mode of writing a
- * number down before the day is over.
+ * COMMITS PER DAY USED TO LIVE HERE, as a hand-maintained array, and it rotted
+ * exactly the way hand-maintained numbers do: the 27th was written down as 17
+ * while the day was still running and finished on 26, and the 28th was never
+ * added at all.
  *
- * `thin` is gone with the bar chart that needed it. A bar two pixels tall is
- * noise, so the quiet days used to be dropped from the chart and kept in the
- * total, with a footnote admitting it. A heatmap has no such problem: an empty
- * cell is a legible value, and the two quiet days are part of the shape rather
- * than an asterisk under it.
+ * Nam: "Make these info dynamic by the building time." So build.mjs reads it out
+ * of `git log` on the same pass that stamps the bundle size and the commit hash,
+ * and the panel reads it back out of the build-meta blob. A number that
+ * describes the repository is now measured from the repository, which is the
+ * rule the rest of this build already follows.
  */
-export const commitsPerDay: { day: string; n: number; label: string }[] = [
-  { day: '2026-08-20', n: 53, label: 'Day 1' },
-  { day: '2026-08-21', n: 12, label: 'Day 2' },
-  { day: '2026-08-22', n: 1, label: 'Day 3' },
-  { day: '2026-08-23', n: 6, label: 'Day 4' },
-  { day: '2026-08-24', n: 0, label: 'Day 5' },
-  { day: '2026-08-25', n: 43, label: 'Day 6' },
-  { day: '2026-08-26', n: 18, label: 'Day 7' },
-  { day: '2026-08-27', n: 26, label: 'Day 8' },
-  { day: '2026-08-28', n: 25, label: 'Day 9' },
-];
 
 /**
  * ONE A DAY, AND A TITLE ONLY.
@@ -2157,6 +2146,77 @@ export const tasks: Task[] = [
       ],
       raised: 'Nam, script pass 29 Aug',
       notes: 'Nam on the commentary count: "I think we have too many of them now. Some very basic stuff shouldnt call for acknowledgement, cause everybody knows it, no point in rewarding something so basic ... Save it for the more niche and harder to find interactions. Those are what worth rewarding." Twenty-nine today, twelve wanted.',
+    },
+  },
+
+  /* ------------------------------------------------------------------------
+   * Nam's pass over the spec panel, 28 August, later. Four of these are the same
+   * complaint from different angles: the page had stopped reading like a page.
+   * --------------------------------------------------------------------- */
+  {
+    id: 'N108', col: 'done', size: 'M', tag: 'specs',
+    title: 'The commit numbers are read from git at build time',
+    note: 'They were a hand-maintained array, and it had already gone stale twice.',
+    detail: {
+      why: 'Nam: "184 commits is that the updated number? Make these info dynamic by the building time, X commits in Y days." It was not the updated number by the time he asked. A figure that describes the repository should be measured from the repository, on the same pass that stamps the bundle size and the commit hash.',
+      done: [
+        'build.mjs aggregates git log into the build-meta blob',
+        'The panel reads it back; the hand-kept array is deleted rather than left as a fallback',
+        'The caption is "X commits in Y days", both derived, and the week count is gone',
+      ],
+      raised: 'Nam, 28 Aug',
+      notes: 'Deleted rather than kept as a fallback, which is the decision worth recording. A stale second source that only appears when the first is missing is how two numbers start disagreeing in a way nobody notices. With no git the board renders empty, which is the honest failure. The day span is also derived, and it is the SPAN rather than the count of days worked: 8 days of commits across a 9-day stretch, and the board is showing elapsed time.',
+    },
+  },
+  {
+    id: 'N109', col: 'done', size: 'S', tag: 'specs',
+    title: 'The board loses its key and gains a second fact',
+    note: 'Less/More under a chart of commits explains nothing anyone needed explaining.',
+    detail: {
+      why: 'Nam: "the less and more is also not needed, we can add there the number of kanban tickets, it adds to show the scope of the CV." GitHub needs a key because its scale is the only thing on the page. Here it was furniture, and a ticket count is a second measurement of the same claim.',
+      done: ['The legend is replaced by the board\u2019s own ticket count', 'The chart centres on the text rather than hanging off its left edge'],
+      raised: 'Nam, 28 Aug',
+    },
+  },
+  {
+    id: 'N110', col: 'done', size: 'M', tag: 'specs',
+    title: 'The spec page uses the screen it is given',
+    note: 'A 62ch cap meant for the browser\u2019s simple pages was also squeezing this one.',
+    detail: {
+      why: 'Nam: "when we are screensharing in the call, the text is not centered, the column is narrow, not taking advantage of the big screen at all. look at the third screenshot, how the CV still looks awesome in the screensharing mode, that\u2019s what I want here." The CV manages it because .doc is 820px with auto margins. This page had neither.',
+      done: [
+        'The column is 820px and centred, the same measure as the CV',
+        'The tab strip centres with it, so the two share an axis',
+        'The browser\u2019s paragraph cap no longer applies to a page that brings its own',
+      ],
+      raised: 'Nam, 28 Aug',
+      notes: 'Two separate causes, and the second only showed up under measurement. The column had no max-width or margin of its own, which is the obvious half. The other is that `.cb-page p { max-width: 62ch }` -- a rule for the plain documents the emulated browser hosts -- was also applying here, so the lead paragraphs wrapped at 580px inside an 820px column while the headings and the board beside them used the full width. Invisible in the dialog, because .cb-page is not in the ancestor chain there, which is why this only ever looked wrong on a shared screen. This also reverses an earlier fix that had made the columns full-width to line them up with the tab strip: that was right about the symptom and reached for the wrong lever, since constraining the tabs fixes the alignment AND keeps the margins.',
+    },
+  },
+  {
+    id: 'N111', col: 'done', size: 'S', tag: 'content',
+    title: 'The spec, the stack, the milestones',
+    note: 'Three headings doing one job in three different styles, and one section the milestones already covered.',
+    detail: {
+      why: 'Nam: "Specifications => The spec. What it is built with => The stack." And on the prose under What shipped: "Remove all this, we already have the milestones." He is right that it was a second telling of the same story, in paragraph form, directly above the timeline that tells it better.',
+      done: ['Three headings, one class, one voice', 'The What shipped paragraph is gone'],
+      raised: 'Nam, 28 Aug',
+      notes: 'The paragraph lived in story.ts as `shipped.body` and is still there, still reachable, because the design essay is where an argument about what shipped belongs. What went is the copy of it that was sitting in the spec.',
+    },
+  },
+  {
+    id: 'N112', col: 'done', size: 'M', tag: 'specs',
+    title: 'The milestone rail alternates, and stops scrolling',
+    note: 'Every label under the line meant every column had to be wide enough for two of them.',
+    detail: {
+      why: 'Nam: "now all the milestone texts are under the line, let\u2019s alternate them, one below then one above, so we can squeeze the line in tighter. May not even need a scrollbar when viewed in the home screen, that would be a huge win, much cleaner UI." Both halves of that are right, and the second follows from the first.',
+      done: [
+        'Labels alternate above and below the rail, which runs through the middle',
+        'Columns flex from 172px fixed down to 96px minimum',
+        'Six days fit a 780px panel with no horizontal scrollbar',
+      ],
+      raised: 'Nam, 28 Aug',
+      notes: 'The mechanism is worth stating because it is not obvious that alternating buys width. With every label under the rail, two adjacent titles sit side by side at the same height, so the column has to be wide enough for both at once. Alternating puts a label\u2019s nearest same-height neighbour two columns away, so the columns can be roughly half as wide before anything touches. One thing the change nearly broke: the strip clips on both axes, because overflow-x: auto forces overflow-y to compute as something other than visible. A slot too short to hold three lines of title does not push the layout out, it silently truncates the sentence, and "The shared screen becomes a desktop" first rendered as "becomes a". The slot height is now sized from the longest label rather than from how it looked.',
     },
   },
 

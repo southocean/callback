@@ -14,6 +14,7 @@ import type { Quests } from '../achievements.js';
 import type { Bugs } from '../bugs.js';
 import { openBugFrame } from './bugframe.js';
 import { loadInterview, clockMs } from '../prefs.js';
+import { progressNow, ring, breakdown } from './progress.js';
 import { openPlain } from './plainoverlay.js';
 import { runtimeMs } from '../data/tour.js';
 
@@ -263,6 +264,33 @@ export function renderEnded(store: Store, quests: Quests, bugs: Bugs): HTMLEleme
           ),
         )
         : h('span', {}),
+
+      /*
+       * HOW MUCH OF IT THEY FOUND — board ticket N118.
+       *
+       * Beside the time rather than instead of the side-quest card: the two
+       * answer different questions. The time is how fast they went through the
+       * conversation; this is how much of the thing around it they actually met.
+       *
+       * It animates up from what they were last shown, so a visit where they
+       * found four things reads as a gain rather than as a static figure they
+       * have to remember. Somebody who found nothing watches it hold still,
+       * which is also the truth.
+       */
+      h(
+        'div',
+        { class: 'safe pr-card' },
+        ring(progressNow(), { animate: true }),
+        h(
+          'div',
+          {},
+          h('h2', {}, 'How much of this you found'),
+          h('p', { style: 'margin:0 0 10px' },
+            `${progressNow().got} of ${progressNow().total} across four collections. `
+            + 'None of it gates anything: the CV is complete for somebody who finds none of it.'),
+          breakdown(progressNow()),
+        ),
+      ),
 
       h(
         'div',

@@ -476,21 +476,66 @@ export const parts: Part[] = [
  * by Stop: it is the one segment where being talked over would cost the point.
  */
 export interface Chapter {
+  /**
+   * Stable across reorderings and rewordings, because it is what gets written
+   * down when somebody hears the answer (N110). An index would renumber the
+   * moment a question moves; the question text itself is edited every other week.
+   */
+  id: string;
   /** The question, as a hiring manager would ask it. */
   q: string;
   lines: Line[];
 }
 
+/**
+ * HOW THE SEGMENT OPENS, AND HOW IT COMES BACK — board ticket N110.
+ *
+ * It used to open on one line buried inside the first answer: "Since you're
+ * still here, here's what a CV never answers..." Two problems with that. It ran
+ * straight on from the goodbye with no gap, so the surprise of him starting
+ * again was spent before it landed; and it was part of an answer, so a visitor
+ * who left and came back heard it as the opening of a monologue they had already
+ * started.
+ *
+ * Nam: "Break this into two lines with a little pause. Still here? (pause). Next
+ * line: Since you're still interested, here's what the CV never answers."
+ *
+ * The third variant is the one that makes the whole thing feel like it is paying
+ * attention. Somebody who has heard every answer gets the same two openers, so
+ * they brace for the full set, and then he lets them off.
+ */
+export const opener = {
+  /** Said alone, with the silence after it doing the work. */
+  stillHere: L('Still here?', 2600),
+  /** For anyone with answers left to hear. */
+  more: L("Since you're still interested, here's what the CV never answers.", 4200),
+  /** For anyone who has heard them all. The "if" is doing the teasing. */
+  again: L("If you're still interested, here's what the CV never answers.", 4200),
+  allHeard: [
+    L("Well, I've already told you everything.", 3000),
+    L('Call me, I have more fun stuff to tell you!', 3400),
+    L('Good luck bug hunting!', 2800),
+  ],
+};
+
+/** Picking up where they left off, by number and by name. */
+export const resumeAt = (n: number, q: string): Line =>
+  L(`Where were we again? Oh, question ${n}. ${q}`, 4400);
+
+/** The question, asked before it is answered. */
+export const askQuestion = (n: number, q: string): Line => L(`${n}. ${q}`, 3600);
+
 export const story: Chapter[] = [
   {
+    id: 'why-now',
     q: 'Why are you applying for this, and why now?',
     lines: [
-      L("Since you're still here, here's what a CV never answers...", 3400),
       L("I've spent seven years making one product better for the same players. I know that job very well now.", 5000),
       L('I want the version of it where the constraints are harder and the people around me are better than me.', 4800),
     ],
   },
   {
+    id: 'what-i-like',
     q: 'What do you actually like about this kind of work?',
     lines: [
       L('What I like is to correctly guess user intention. I apply that in my daily life too!', 5000),
@@ -510,6 +555,7 @@ export const story: Chapter[] = [
     ],
   },
   {
+    id: 'strongest',
     q: 'What are you strongest at?',
     lines: [
       L("What's my strength? Going the extra miles. And having fun with it! This CV speaks for itself.", 5600),
@@ -517,6 +563,7 @@ export const story: Chapter[] = [
     ],
   },
   {
+    id: 'weakness',
     q: 'What are your weaknesses, honestly?',
     lines: [
       L('Weakness? I easily get carried away. You know, flow state. I try to aim it at the right priority.', 5400),
@@ -525,6 +572,7 @@ export const story: Chapter[] = [
     ],
   },
   {
+    id: 'with-people',
     q: 'How do you work with other people?',
     lines: [
       L('How I work with others? I listen first, get all the constraints, then propose the best solution I can find.', 5600),
@@ -532,6 +580,7 @@ export const story: Chapter[] = [
     ],
   },
   {
+    id: 'when-wrong',
     q: 'What happens when you are wrong?',
     lines: [
       L("What if I'm wrong? I record it, and I never make the same mistake twice.", 4400),
@@ -539,6 +588,7 @@ export const story: Chapter[] = [
     ],
   },
   {
+    id: 'hardest',
     q: 'What is the hardest thing you have shipped?',
     lines: [
       L("The hardest thing I've shipped? Pivoting from Unity to React in two weeks. I was in the zone.", 5200),
@@ -546,6 +596,7 @@ export const story: Chapter[] = [
     ],
   },
   {
+    id: 'why-me',
     q: 'Why you?',
     lines: [
       /*
@@ -611,15 +662,34 @@ const Q = (
   id: string, group: Quip['group'], on: string, text: string, ms: number,
 ): Quip => ({ id, group, kind: EVENT_KEY.test(on) ? 'event' : 'click', on, text, ms });
 
+/**
+ * COMMENTARY, AND WHY THERE IS SO MUCH LESS OF IT — board ticket N118.
+ *
+ * Twenty-nine of these, cut to twelve. Nam: "I think we have too many of them
+ * now. Some very basic stuff shouldnt call for acknowledgement, cause everybody
+ * knows it, no point in rewarding something so basic ... Save it for the more
+ * niche and harder to find interactions. Those are what worth rewarding."
+ *
+ * Which is the right test, and it got sharper once these started counting toward
+ * a completion percentage: a line that fires for dragging a window is not a
+ * discovery, it is a receipt for using a computer. Seventeen went, and they were
+ * all the same kind of thing -- dragging, minimising, closing, resizing, opening
+ * a folder, clicking a tab, opening the four main panels, pressing the four main
+ * call controls. Every one of those is the first thing anybody does.
+ *
+ * What is left is what you have to go looking for: the snap layouts behind the
+ * maximise button, the taskbar clock, the tray that admits it has no wifi, Start,
+ * task view, the hover previews, the address bar, and the five Engineering tabs
+ * that live two panels deep.
+ *
+ * The camera and mic lines went with the rest, and they were the closest call:
+ * both made a trust point rather than a joke. But both points are made where
+ * they belong anyway, in the quest hints and in the pre-join chips, and a control
+ * bar is the most basic surface in the product.
+ */
 export const quips: Quip[] = [
   /* --- the shared desktop ------------------------------------------------ */
-  Q('desk-first', 'desktop', 'desk:first', 'A real desktop: windows, explorer, browser, player.', 2800),
-  Q('desk-drag', 'desktop', 'desk:drag', 'Yeah, you can do that.', 1800),
   Q('desk-snap', 'desktop', 'desk:snap', 'Snap layouts. I call this one Chrominion.', 2600),
-  Q('desk-min', 'desktop', 'desk:min', "It's not gone. It's on the taskbar, being patient.", 2800),
-  Q('desk-close', 'desktop', 'desk:close', "Fine. That one wasn't important.", 2200),
-  Q('desk-folder', 'desktop', 'desk:folder', 'Real folders. Well, real-ish.', 2200),
-  Q('desk-resize', 'desktop', 'desk:resize', 'It resizes properly too. Container queries, not media queries.', 3200),
   Q('desk-clock', 'desktop', '.dk-clock', 'That clock is the only honest thing on this desktop.', 3000),
   Q('desk-tray', 'desktop', '.dk-tray-btn:not(.dk-clock)', "Sorry, no wifi. That's a picture of wifi.", 2800),
   Q('desk-start', 'desktop', '.dk-start', 'There is a Start menu. There is even a shutdown, and it shuts something down.', 3600),
@@ -627,10 +697,7 @@ export const quips: Quip[] = [
   Q('desk-peek', 'desktop', '.dk-peek-card', 'Those previews are the windows themselves, scaled. They cannot go stale.', 3600),
 
   /* --- the emulated browser ---------------------------------------------- */
-  Q('cb-tab', 'browser', '.cb-tab', 'Tabs open, tabs close. A browser inside a browser.', 2800),
-  Q('cb-new', 'browser', '.cb-new', 'Go on then. Open a new one.', 2200),
   Q('cb-omni', 'browser', '.cb-omni-in', 'You can type a real URL in there. It will actually go.', 3000),
-  Q('cb-work', 'browser', '.cb-tab[data-tab-id="work"]', 'Everything I have built that I am allowed to show you.', 3000),
 
   /* --- the call's own panels --------------------------------------------- */
   Q('p-a11y', 'panel', '[data-tab="a11y"]', 'Accessibility, audited live. That panel runs the audit against this page while you watch.', 4400),
@@ -638,16 +705,8 @@ export const quips: Quip[] = [
   Q('p-perf', 'panel', '[data-tab="perf"]', 'Real numbers, off this page, not a benchmark I chose.', 3000),
   Q('p-net', 'panel', '[data-tab="net"]', 'Push that to Hotel wifi. That is the setting I actually design for.', 3400),
   Q('p-spec', 'panel', '[data-tab="spec"]', 'Every measurement, including the one that turned out to be wrong.', 3400),
-  Q('p-people', 'panel', 'panel:people', "That's who's in the call. It is a short list.", 2600),
-  Q('p-chat', 'panel', 'panel:chat', 'The messages are scripted. Nobody is typing.', 2600),
-  Q('p-host', 'panel', 'panel:host', 'Host controls. You can take the document away with you.', 3000),
-  Q('p-about', 'panel', 'panel:about', 'The career, as a timeline. Overlapping roles get their own lane, honestly.', 3800),
 
   /* --- the call itself ---------------------------------------------------- */
-  Q('c-hand', 'call', '[data-ctl="hand"]', '…Sorry about that. That is the one control that lies to you.', 3600),
-  Q('c-react', 'call', '[data-ctl="react"]', 'Those reactions are mine, not Google’s.', 2600),
-  Q('c-cam', 'call', '[data-ctl="camera"]', 'It never asks for your camera. It just changes the icon.', 3200),
-  Q('c-mic', 'call', '[data-ctl="mic"]', 'The mic check is real, by the way. Timed off the live product.', 3200),
 ];
 
 // ---------------------------------------------------------------------------

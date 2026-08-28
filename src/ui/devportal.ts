@@ -21,9 +21,10 @@ import { sym } from './icons.js';
 import { tip } from './tooltip.js';
 import { trapFocus } from '../a11y.js';
 import { buildDoc } from './built.js';
+import { buildMeta } from './eng.js';
 import { renderScriptEditor } from './scripted.js';
 import {
-  commitsPerDay, milestones, phasesOfWork, personas, reviews,
+  milestones, phasesOfWork, personas, reviews,
   columns, tasks, type Task, type Column,
 } from '../data/project.js';
 import { bugs as collection, RARITY_LABEL } from '../data/bugs.js';
@@ -307,11 +308,13 @@ const HM_WEEKS = 26;
  * does not need to tell.
  */
 function heatmap(): HTMLElement {
-  const counts = new Map(commitsPerDay.map((d) => [d.day, d.n]));
-  const peak = Math.max(...commitsPerDay.map((d) => d.n));
-  const total = commitsPerDay.reduce((a, b) => a + b.n, 0);
-  const busiest = commitsPerDay.reduce((a, b) => (b.n > a.n ? b : a));
-  const active = commitsPerDay.filter((d) => d.n > 0);
+  const days = buildMeta().commits;
+  if (!days.length) return h('span', {});
+  const counts = new Map(days.map((d) => [d.d, d.n]));
+  const peak = Math.max(...days.map((d) => d.n));
+  const total = days.reduce((a, b) => a + b.n, 0);
+  const busiest = days.reduce((a, b) => (b.n > a.n ? b : a));
+  const active = days.filter((d) => d.n > 0);
   /*
    * The SPAN, not the number of days that had commits in them: 8 days were
    * worked across a 9-day stretch, and "in nine days" is the true claim about
@@ -320,8 +323,8 @@ function heatmap(): HTMLElement {
    * says. Derived either way, so neither can go stale the way the 27th's count
    * did.
    */
-  const first = new Date(active[0]?.day ?? '');
-  const last = new Date(active[active.length - 1]?.day ?? '');
+  const first = new Date(active[0]?.d ?? '');
+  const last = new Date(active[active.length - 1]?.d ?? '');
   const span = Math.round((last.getTime() - first.getTime()) / 86400000) + 1;
 
   const key = (d: Date): string =>
@@ -383,10 +386,9 @@ function heatmap(): HTMLElement {
    * aloud one at a time they are a wall of zeroes with the signal buried in it.
    * The label carries what the picture is actually for.
    */
-  const summary = `${total} commits, ${fmt(commitsPerDay[0]?.day ?? '')} to `
-    + `${fmt(commitsPerDay[commitsPerDay.length - 1]?.day ?? '')}. `
-    + `Busiest day ${fmt(busiest.day)}, ${busiest.n} commits. `
-    + `Nothing in the ${HM_WEEKS - 2} weeks before that.`;
+  const summary = `${total} commits over ${span} days, ${fmt(active[0]?.d ?? '')} to `
+    + `${fmt(active[active.length - 1]?.d ?? '')}. `
+    + `Busiest day ${fmt(busiest.d)}, ${busiest.n} commits.`;
 
   return h('div', { class: 'hm' },
     h('div', { class: 'hm-board', role: 'img', 'aria-label': summary },
@@ -397,12 +399,22 @@ function heatmap(): HTMLElement {
           // and GitHub labels the same three.
           ...WEEKDAY_ROWS.map((w, i) => h('div', { class: 'hm-day' }, i % 2 === 1 ? w : ''))),
         h('div', { class: 'hm-grid' }, ...cols))),
+    /*
+     * TWO FACTS, NOT A KEY. Nam: "the less and more is also not needed, we can
+     * add there the number of kanban tickets, it adds to show the scope of the
+     * CV." He is right that the legend was dead weight: a five-step blue ramp
+     * under a chart of commits explains itself, and GitHub only needs one
+     * because its scale is the only thing on the page. A ticket count is a
+     * second measurement of the same claim, which is worth the space the key
+     * was taking.
+     *
+     * The week count is gone from the caption for the same reason: "no need to
+     * add the 26 weeks nobody cares". Both numbers here are derived, one from
+     * git log at build time and one from the board's own length.
+     */
     h('div', { class: 'hm-foot' },
-      h('span', { class: 'hm-total' }, `${total} commits in ${HM_WEEKS} weeks, all of them inside ${span} days`),
-      h('div', { class: 'hm-key', 'aria-hidden': 'true' },
-        h('span', {}, 'Less'),
-        ...[0, 1, 2, 3, 4].map((l) => h('div', { class: 'hm-cell', 'data-l': String(l) })),
-        h('span', {}, 'More'))),
+      h('span', { class: 'hm-total' }, `${total} commits in ${span} days`),
+      h('span', { class: 'hm-tickets' }, `${tasks.length} tickets on the board`)),
   );
 }
 
@@ -439,7 +451,7 @@ function overviewView(): HTMLElement {
      * and because a week reads better along one. The last day's node is live,
      * since the most recent thing is the one a reader is looking for.
      */
-    h('h2', { class: 'dp-head2' }, 'Milestones'),
+    h('h2', { class: 'bd-h2' }, 'The milestones'),
     railStrip(days),
   );
 }
@@ -457,16 +469,35 @@ function overviewView(): HTMLElement {
  * you.
  */
 function railStrip(days: string[]): HTMLElement {
+  const counts = new Map(buildMeta().commits.map((c) => [c.d, c.n]));
   const strip = h('div', {
     class: 'ms-strip', tabindex: '0', role: 'group', 'aria-label': 'Milestones, by day',
   },
     ...days.map((day, i) => {
       const m = milestones.find((x) => x.day === day);
-      return h('div', { class: 'ms-day' + (i === days.length - 1 ? ' is-latest' : '') },
+      /*
+       * ALTERNATING SIDES. Nam: "now all the milestone texts are under the line,
+       * let's alternate them, one below then one above, so we can squeeze the
+       * line in tighter."
+       *
+       * Which is the point of the change: with every label below the rail, two
+       * adjacent titles sit side by side at the same height and the column has
+       * to be wide enough for both. Alternating means a title's only horizontal
+       * neighbours are two columns away, so the columns can be narrower without
+       * anything colliding, and six days now fit a 780px panel with no
+       * horizontal scrollbar at all.
+       */
+      const n = counts.get(day) ?? 0;
+      return h('div', {
+        class: 'ms-day'
+          + (i % 2 === 1 ? ' is-up' : '')
+          + (i === days.length - 1 ? ' is-latest' : ''),
+      },
         h('span', { class: 'ms-node', 'aria-hidden': 'true' }),
-        h('span', { class: 'ms-date' }, fmt(day)),
-        h('span', { class: 'ms-n' }, `${commitsPerDay.find((d) => d.day === day)?.n ?? 0} commits`),
-        h('span', { class: 'ms-title' }, m?.title ?? ''));
+        h('div', { class: 'ms-body' },
+          h('span', { class: 'ms-date' }, fmt(day)),
+          h('span', { class: 'ms-n' }, `${n} ${n === 1 ? 'commit' : 'commits'}`),
+          h('span', { class: 'ms-title' }, m?.title ?? '')));
     })) as HTMLElement;
 
   /*

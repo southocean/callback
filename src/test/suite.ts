@@ -29,12 +29,17 @@ import {
   asides, timeline, runtimeMs, transcriptLines, OUTRO_CAP_MS,
   banter, outroOpen, outroClose, outroTease, outroAllFound,
   OUTRO_GAPS, OUTRO_COUNT_SLOT, BANTER_SLOTS,
+  opener, resumeAt, askQuestion,
 } from '../data/tour.js';
 import {
   observe, initialVisitor, tier, pace, passive, acknowledge, interests,
   BAIL_MS, IDLE_MS, PACE_MAX, type Visitor,
 } from '../tour/profile.js';
-import { readSeenEggs, stillUnseen, chooseBanter } from '../prefs.js';
+import { readSeenEggs, stillUnseen, chooseBanter, readHeard } from '../prefs.js';
+import { percent, tally } from '../completion.js';
+import { quests } from '../data/quests.js';
+import { bugs as allBugs } from '../data/bugs.js';
+import { eggs as allEggs } from '../data/eggs.js';
 import { eggs, eggMap, weekendMark, lastWeekendMark, key as dayKey, type Egg } from '../data/eggs.js';
 import { VISIBLE_QUESTS } from '../data/quests.js';
 import { bugs as bugList, bugById, BUG_COUNT } from '../data/bugs.js';
@@ -1494,6 +1499,141 @@ suite('how long the interview took', () => {
     eq(clockMs(9_000), '0:09');
     eq(clockMs(69_000), '1:09');
     eq(clockMs(600_000), '10:00');
+  });
+});
+
+suite('the questions, and remembering them', () => {
+  /*
+   * N110. The segment resumes by ID, and the ids are the one thing in it that a
+   * rewording must not break: they are written into localStorage the first time
+   * somebody hears an answer and read back weeks later.
+   */
+  test('every chapter has an id, and no two share one', () => {
+    for (const c of tourStory) {
+      ok(!!c.id && c.id.length > 1, `a chapter has no usable id: "${c.q.slice(0, 40)}"`);
+    }
+    const ids = tourStory.map((c) => c.id);
+    eq(new Set(ids).size, ids.length, 'two chapters share an id, so one would resume as the other');
+  });
+
+  test('an id is not derived from the question it belongs to', () => {
+    /*
+     * The point of the id is surviving a reword. If somebody ever generates them
+     * by slugifying `q`, this catches it: none of them should be long enough to
+     * be the question, and the numbering must not be positional either.
+     */
+    for (const c of tourStory) {
+      ok(c.id.length < 24, `"${c.id}" looks generated from the question text`);
+      ok(!/^\d+$/.test(c.id), `"${c.id}" is positional, so reordering would rewrite history`);
+    }
+  });
+
+  test('the resume line names a real question', () => {
+    const first = tourStory[0]!;
+    const line = resumeAt(1, first.q);
+    ok(line.text.includes(first.q), 'the resume line does not carry the question it resumes at');
+    ok(/question 1/i.test(line.text), 'the resume line does not number the question');
+  });
+
+  test('the question is asked before it is answered', () => {
+    const c = tourStory[2]!;
+    const ask = askQuestion(3, c.q);
+    eq(ask.text, `3. ${c.q}`);
+  });
+
+  test('the opener is two lines, and the tease is a third', () => {
+    // "Still here?" alone is the pause. Running them together is what N110 fixed.
+    ok(/still here/i.test(opener.stillHere.text), 'the opener no longer asks if they are still there');
+    ok(!/never answers/i.test(opener.stillHere.text), 'the framing line got merged back into the opener');
+    ok(/never answers/i.test(opener.more.text), 'the framing line lost its subject');
+    // "Since" for somebody with answers left, "If" for somebody who has them all.
+    ok(/^since/i.test(opener.more.text), 'the first-time framing should not be conditional');
+    ok(/^if/i.test(opener.again.text), 'the tease should be conditional, that is the joke');
+    ok(opener.allHeard.length >= 2, 'the all-heard branch has nothing to say');
+  });
+
+  test('a heard record survives a reload and junk reads as fresh', () => {
+    eq(readHeard(null), []);
+    eq(readHeard('nonsense'), []);
+    eq(readHeard('{}'), []);
+    eq(readHeard('["why-now","strongest"]'), ['why-now', 'strongest']);
+    // A hand-edited record with a number in it keeps the strings and drops it.
+    eq(readHeard('["why-now",7,"strongest"]'), ['why-now', 'strongest']);
+  });
+
+  test('every stored id still matches a chapter', () => {
+    // The failure this guards: a chapter renamed in the data while somebody's
+    // saved progress still names the old id, which would silently replay it.
+    const ids = new Set(tourStory.map((c) => c.id));
+    for (const id of ['why-now', 'what-i-like', 'strongest', 'weakness',
+      'with-people', 'when-wrong', 'hardest', 'why-me']) {
+      ok(ids.has(id), `the stored id "${id}" no longer matches a chapter`);
+    }
+  });
+});
+
+suite('completion', () => {
+  // The four id lists, read from the same data the tally reads.
+  const questIds = (): string[] => quests.map((q) => q.id);
+  const quipIds = (): string[] => tourQuips.map((q) => q.id);
+  const bugIds = (): string[] => allBugs.map((b) => b.id);
+  const eggIds = (): string[] => allEggs.map((e) => e.id);
+
+  /*
+   * N118. The number is read out loud on the last screen a visitor sees and
+   * carried on the home rail after that, so the two ends are what matter: it must
+   * not say 100 while something is missing, and it must not say 0 to somebody who
+   * has found something.
+   */
+  test('the ends are exact and the middle is rounded', () => {
+    eq(percent(0, 52), 0, 'nothing found should read zero');
+    eq(percent(52, 52), 100, 'everything found should read one hundred');
+    eq(percent(1, 52), 1, 'one find rounds to zero without the clamp');
+    eq(percent(51, 52), 99, 'one missing rounds to a hundred without the clamp');
+    eq(percent(26, 52), 50);
+    eq(percent(13, 52), 25);
+  });
+
+  test('an empty collection does not divide by zero', () => {
+    eq(percent(0, 0), 0);
+    eq(percent(3, 0), 0);
+  });
+
+  test('every collection is counted, and none twice', () => {
+    const p = tally({ quests: [], quips: [], bugs: [], eggs: [] });
+    eq(p.parts.length, 4, 'a collection went missing from the tally');
+    eq(p.got, 0);
+    eq(p.total, p.parts.reduce((a, x) => a + x.total, 0), 'the total is not the sum of its parts');
+    ok(p.total > 40, `only ${p.total} findable things, which suggests a list did not load`);
+  });
+
+  test('a saved id for something that no longer exists is ignored', () => {
+    /*
+     * The failure this guards is specific and would be invisible: seventeen quips
+     * were deleted in this same ticket, and anyone who had found them still has
+     * those ids in localStorage. Counting them would push the numerator past the
+     * denominator and print 108%.
+     */
+    const p = tally({
+      quests: ['nope', 'also-nope'], quips: ['desk-drag', 'c-mic'], bugs: ['ghost'], eggs: ['gone'],
+    });
+    eq(p.got, 0, 'ids for deleted things were counted');
+    eq(p.pct, 0);
+  });
+
+  test('duplicates in a saved list count once', () => {
+    const p = tally({ quests: ['join', 'join', 'join'], quips: [], bugs: [], eggs: [] });
+    eq(p.got, 1, 'a repeated id was counted more than once');
+  });
+
+  test('finding everything really does reach a hundred', () => {
+    const all = tally({ quests: [], quips: [], bugs: [], eggs: [] });
+    // Rebuild the full set from the totals the tally itself reports.
+    const full = tally({
+      quests: questIds(), quips: quipIds(), bugs: bugIds(), eggs: eggIds(),
+    });
+    eq(full.got, all.total, 'the four id lists do not add up to the total');
+    eq(full.pct, 100);
   });
 });
 

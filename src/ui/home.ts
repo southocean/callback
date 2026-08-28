@@ -16,6 +16,8 @@ import type { Bugs } from '../bugs.js';
 import { currentPitch } from '../data/companies.js';
 
 import { openPlain } from './plainoverlay.js';
+import { progressNow } from './progress.js';
+import { loadInterview } from '../prefs.js';
 import { gatePressed, onAdminGranted } from './admingate.js';
 import { isAdmin } from '../prefs.js';
 import { tip, tipAll, tipAllAbove, hideTip, rearm } from './tooltip.js';
@@ -406,6 +408,36 @@ export function renderHome(store: Store, reducedMotion = false, body?: HTMLEleme
     ) as HTMLButtonElement;
     item.addEventListener('click', () => { void import('./bugframe.js').then((m) => m.openBugFrame(bugs)); });
     rail.appendChild(item);
+  }
+
+  /*
+   * AND THE COMPLETION, LAST — board ticket N118.
+   *
+   * Nam: "Once progression is > 0 and at least one call has completed, when they
+   * go back to home screen, we should show the progression there too. Maybe on
+   * the left panel and last on the list."
+   *
+   * Both conditions matter and they guard different things. Above zero, because
+   * a rail item reading 0% on a first visit is a scoreboard for a game nobody has
+   * been told about. And after a completed call, because the number counts things
+   * that are mostly inside the call: showing it to somebody who has not been in
+   * yet would advertise the hunt before the thing being hunted.
+   *
+   * Same shape as the Bugs item above, for the same reason: it opens a dialog
+   * rather than changing screen, so all four rail items behave alike.
+   */
+  {
+    const p = progressNow();
+    if (p.pct > 0 && loadInterview()) {
+      const item = h(
+        'button',
+        { class: 'rail-item', type: 'button', 'aria-current': 'false' },
+        h('span', { class: 'rail-pill rail-pct' }, `${p.pct}%`),
+        h('span', { class: 'rail-label' }, 'Progress'),
+      ) as HTMLButtonElement;
+      item.addEventListener('click', () => { void import('./progressframe.js').then((m) => m.openProgress()); });
+      rail.appendChild(item);
+    }
   }
 
   // --- main ----------------------------------------------------------------

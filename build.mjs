@@ -101,12 +101,40 @@ try {
   /* first build, before the first commit */
 }
 
+/*
+ * COMMITS PER DAY, READ AT BUILD TIME.
+ *
+ * Nam: "Make these info dynamic by the building time, X commits in Y days."
+ *
+ * This used to be a hand-maintained array in data/project.ts, and it rotted
+ * exactly the way hand-maintained numbers do: the 27th was written down as 17
+ * while the day was still running and finished on 26, and the 28th was never
+ * added at all. A number that describes the repository should be read out of the
+ * repository, on the same pass that stamps the bundle size and the commit hash,
+ * for the same reason.
+ *
+ * Empty on a checkout with no git, which the panel renders as an empty board
+ * rather than as a wrong one.
+ */
+let commits = [];
+try {
+  const log = execSync('git log --date=short --format=%ad', { encoding: 'utf8' });
+  const per = new Map();
+  for (const day of log.split('\n').map((l) => l.trim()).filter(Boolean)) {
+    per.set(day, (per.get(day) ?? 0) + 1);
+  }
+  commits = [...per.entries()].sort((a, b) => (a[0] < b[0] ? -1 : 1)).map(([d, n]) => ({ d, n }));
+} catch {
+  /* no git, or no history yet */
+}
+
 const html = readFileSync('src/index.html', 'utf8')
   .replaceAll('%JS_GZIP%', String(entryGz))
   .replaceAll('%JS_RAW%', String(entry.length))
   .replaceAll('%CSS_GZIP%', String(cssGz))
   .replaceAll('%BUDGET%', String(BUDGET))
   .replaceAll('%COMMIT%', commit)
+  .replaceAll('%COMMITS%', JSON.stringify(commits))
   .replaceAll('%DEPS%', '0');
 
 writeFileSync(`${OUT}/index.html`, html);

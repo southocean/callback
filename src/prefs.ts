@@ -490,3 +490,133 @@ export function revokeAdmin(): void {
     /* ignore */
   }
 }
+
+// ---------------------------------------------------------------------------
+// WHICH ANSWERS HAVE BEEN HEARD — board ticket N110
+// ---------------------------------------------------------------------------
+
+/**
+ * The personal segment is eight questions and takes about ninety seconds, and it
+ * only ever starts after the visitor has gone quiet. So the likeliest way to meet
+ * it is halfway: it begins, they click something, and it is gone.
+ *
+ * Nam: "I want you to remember the progress of these questions, in case they exit
+ * it early, then we know which questions they have listened to, and if they go
+ * back then we we continue."
+ *
+ * A chapter counts as heard after its LAST line, which is the only honest
+ * boundary. Marking it at the question would credit somebody for a question they
+ * heard and an answer they did not.
+ *
+ * Same shape as the eggs record above, and for the same reasons: ids rather than
+ * indices, anything unparseable reads as a fresh visitor, and it never leaves
+ * the machine.
+ */
+const ANSWER_KEY = 'callback.answers';
+
+export function readHeard(raw: string | null): string[] {
+  if (!raw) return [];
+  try {
+    const v = JSON.parse(raw) as unknown;
+    return Array.isArray(v) ? v.filter((x): x is string => typeof x === 'string') : [];
+  } catch {
+    return [];
+  }
+}
+
+export function heardAnswers(): string[] {
+  try {
+    return readHeard(localStorage.getItem(ANSWER_KEY));
+  } catch {
+    return [];
+  }
+}
+
+export function markAnswerHeard(id: string): void {
+  try {
+    const now = heardAnswers();
+    if (now.includes(id)) return;
+    localStorage.setItem(ANSWER_KEY, JSON.stringify([...now, id]));
+  } catch {
+    /* ignore: they hear it again next time, which is harmless. */
+  }
+}
+
+// ---------------------------------------------------------------------------
+// COMPLETION — board ticket N118
+// ---------------------------------------------------------------------------
+
+/**
+ * Which commentary lines have been found, and what the ring last showed.
+ *
+ * The commentary was the only one of the four collections with no memory: a quip
+ * fired once per SESSION, out of `tour.quipped`, and came back on the next visit.
+ * That is fine for a throwaway line and wrong for something a percentage counts,
+ * so it is written down now.
+ *
+ * A quip found while the script is talking still counts (N108). It does not get
+ * said, but the visitor did the thing, and a completion number that disagrees
+ * with what somebody actually did is worse than a line they missed.
+ */
+const QUIP_KEY = 'callback.quips';
+/** What the ended screen last reported, so the next one can animate the gain. */
+const SEEN_PCT_KEY = 'callback.pct';
+
+export function foundQuips(): string[] {
+  try {
+    return readHeard(localStorage.getItem(QUIP_KEY));
+  } catch {
+    return [];
+  }
+}
+
+export function markQuipFound(id: string): void {
+  try {
+    const now = foundQuips();
+    if (now.includes(id)) return;
+    localStorage.setItem(QUIP_KEY, JSON.stringify([...now, id]));
+  } catch {
+    /* ignore */
+  }
+}
+
+/**
+ * The percentage the visitor was last shown.
+ *
+ * Read before the ended screen paints and written after, so the ring animates
+ * from what they remember to what they have. A first visit animates from zero,
+ * which is the honest starting point rather than a special case.
+ */
+export function lastShownPct(): number {
+  try {
+    const n = Number(localStorage.getItem(SEEN_PCT_KEY));
+    return Number.isFinite(n) && n >= 0 && n <= 100 ? n : 0;
+  } catch {
+    return 0;
+  }
+}
+
+export function rememberPct(pct: number): void {
+  try {
+    localStorage.setItem(SEEN_PCT_KEY, String(Math.round(pct)));
+  } catch {
+    /* ignore */
+  }
+}
+
+/** Everything found, from the four places it is kept. */
+export function foundAll(): { quests: string[]; quips: string[]; bugs: string[]; eggs: string[] } {
+  const read = (key: string): string[] => {
+    try {
+      return readHeard(localStorage.getItem(key));
+    } catch {
+      return [];
+    }
+  };
+  return {
+    quests: read('callback.quests'),
+    quips: foundQuips(),
+    bugs: read('callback.bugs'),
+    eggs: seenEggs(),
+  };
+}

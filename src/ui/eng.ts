@@ -18,13 +18,19 @@ import { sample, policy, profiles } from '../net/degrade.js';
 import type { Profile } from '../net/degrade.js';
 import type { Quests } from '../achievements.js';
 
+/** One day of history, `d` as yyyy-mm-dd. Stamped by build.mjs from git log. */
+export interface CommitDay { d: string; n: number }
+
 interface Build {
   jsGzip: number; jsRaw: number; cssGzip: number; budget: number; deps: number; commit: string;
+  commits: CommitDay[];
 }
 
 export function buildMeta(): Build {
   const el = document.getElementById('build-meta');
-  const fallback: Build = { jsGzip: 0, jsRaw: 0, cssGzip: 0, budget: 61440, deps: 0, commit: 'dev' };
+  const fallback: Build = {
+    jsGzip: 0, jsRaw: 0, cssGzip: 0, budget: 61440, deps: 0, commit: 'dev', commits: [],
+  };
   if (!el?.textContent) return fallback;
   try {
     return { ...fallback, ...(JSON.parse(el.textContent) as Partial<Build>) };
