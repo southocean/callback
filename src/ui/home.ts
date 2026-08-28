@@ -198,23 +198,30 @@ function slot(on: Date): { day: string; date: number; label: string; week: { n: 
     return `${hr}:${String(d.getMinutes()).padStart(2, '0')} ${ap}`;
   };
   /*
-   * The strip is CENTRED on the day you are looking at, not aligned to the
-   * calendar week. Nam: "selected date should always be in the middle, and we
-   * add the days before and after to fill up the 7 day selector."
+   * Sunday to Saturday, fixed, whichever day is selected.
    *
-   * Meet aligns to the week, and copying that had a cost this build cannot pay:
-   * on a Sunday the selected day sits hard against the left edge with six days
-   * of future beside it and none of the past, so the two roaming eggs -- placed
-   * three days back and two days forward precisely so both are always on screen
-   * -- fell out of the strip for most of the week. Centring makes that placement
-   * hold every day of the year. eggs.ts.
+   * This was briefly centred on the selected day instead, and that was wrong.
+   * Nam, with a screenshot of the live product: "the original meet doesnt have
+   * the selected day center on the 7 day selector, its fixed from sun to sat,
+   * which makes sense, this is an office tool so people want to see the calendar
+   * as the fixed days in a week."
+   *
+   * That is the better argument and it is not really about fidelity. A week
+   * where Wednesday is always the fourth column is a week you can read at a
+   * glance; a strip that slides under the selection means the same date lands in
+   * a different column depending on how you got there, so the shape of the week
+   * carries no information. Meet is a calendar before it is anything else.
+   *
+   * The cost lands on the eggs rather than here: a placement measured in days
+   * from today can fall off either end of a fixed week, so the two teaching eggs
+   * are anchored to the WEEKEND of the week the visitor is in. eggs.ts.
    */
   const week: { n: string; d: number; full: string; iso: string }[] = [];
-  const first = new Date(now);
-  first.setDate(now.getDate() - 3);
+  const sunday = new Date(now);
+  sunday.setDate(now.getDate() - now.getDay());
   for (let i = 0; i < 7; i++) {
-    const d = new Date(first);
-    d.setDate(first.getDate() + i);
+    const d = new Date(sunday);
+    d.setDate(sunday.getDate() + i);
     week.push({
       n: DAYS[d.getDay()] ?? '',
       d: d.getDate(),
@@ -722,10 +729,9 @@ export function renderHome(store: Store, reducedMotion = false, body?: HTMLEleme
         ),
         ...s.week.map((d) => {
           const eggsHere = marks.get(d.iso);
-          // Compared by date key rather than by day number. The strip is centred
-          // on the selected day now, so the selected column is always index 3 --
-          // but a comparison on the number alone is the kind of thing that comes
-          // back wrong the day the strip changes length.
+          // Compared by date key rather than by day-of-month number. The old
+          // comparison was correct only because a seven-day window cannot hold
+          // the same number twice, which is true and is not a reason.
           const sel = d.iso === dayKey(viewing);
           const cell = h(
             'button',
@@ -759,10 +765,9 @@ export function renderHome(store: Store, reducedMotion = false, body?: HTMLEleme
            * A property assignment cannot stack, so there is only ever one.
            */
           cell.onclick = () => switchDay(new Date(d.iso + 'T12:00:00'));
-          // The teaching marks. Two eggs are placed against today rather than on
-          // a date, three days back and two forward, so both are inside this
-          // strip the first time anyone looks at the page — which is how the
-          // calendar's dots become legible later.
+          // The teaching mark. The premiere is placed on a weekend day of this
+          // same week, so it is inside this strip the first time anyone looks at
+          // the page — which is how the calendar's dots become legible later.
           if (eggsHere?.length) cell.appendChild(h('span', { class: 'cal-dot', 'aria-hidden': 'true' }));
           return cell;
         }),

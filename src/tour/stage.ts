@@ -42,7 +42,7 @@
 import { h } from '../dom.js';
 import { prefersReducedMotion } from '../a11y.js';
 import {
-  parts, story, acks, asides,
+  parts, story, acks, asides, backTo,
   banter, outroOpen, outroClose, outroTease, outroAllFound,
   OUTRO_GAPS, OUTRO_COUNT_SLOT, BANTER_SLOTS,
   type Bail, type Beat, type Line, type Surface,
@@ -272,8 +272,29 @@ export function startTour(root: HTMLElement, podium: Podium): TourHandle {
   let startedAt = 0;
   /** True once the conversation reached its own last line under its own steam. */
   let heardOut = false;
-  /** True once the visitor pressed Stop. There is no outro after a Stop. */
-  let stopped = false;
+  /**
+   * STOP IS A PAUSE NOW, NOT AN ENDING — board ticket N84.
+   *
+   * Nam: "When clicking stop talking, the script literally freezes in place and
+   * caption doesnt close. We should acknowledge this instead of abruptly
+   * stopping."
+   *
+   * It did freeze, and the freeze was the honest symptom of the design: the
+   * handler tore the whole thing down mid-sentence, so whatever the hand was
+   * doing stayed half done and the caption strip kept the last line it had been
+   * given. Stop meant "die", and dying in the middle of a gesture looks exactly
+   * like a hang.
+   *
+   * So it is a request rather than a kill. `pauseWanted` is set by the control
+   * and consumed at the next safe point in speak() -- which is AFTER the line and
+   * after any beat on it, because a beat is a cutscene (N55) and abandoning one
+   * is what left the hand frozen. Then he acknowledges it, turns the captions off
+   * himself, and waits. Turning them back on is how the visitor asks him back.
+   */
+  let pauseWanted = false;
+  let paused = false;
+  /** Total ms spent paused, taken off the interview clock. See finished(). */
+  let pausedMs = 0;
   /**
    * True while the hand is performing a beat, which is the window in which a
    * press hurries it instead of skipping it. See the cutscene note in speak().
@@ -805,6 +826,13 @@ export function startTour(root: HTMLElement, podium: Podium): TourHandle {
       }
       await said;
       /*
+       * The safe point. After the line and after its beat, so a Stop pressed
+       * during the share still gets the share finished -- Nam: "if we are in the
+       * middle of a mouse interaction, or a line that triggers mouse interaction,
+       * finish it."
+       */
+      if (pauseWanted) { pauseWanted = false; await pauseHere(); }
+      /*
        * Checked AFTER the line rather than before it, so a click always gets one
        * whole sentence finished before the subject changes. Cutting mid-sentence
        * is how a demo starts looking broken rather than responsive.
@@ -833,6 +861,71 @@ export function startTour(root: HTMLElement, podium: Podium): TourHandle {
         voice(b.lines[2].text, b.lines[2].ms),
         (async () => { if (b.rewind && s) await hand.roll(s, where, 800); })(),
       ]);
+    }
+  };
+
+  /* ---------------------------------------------------------------- the pause -- */
+
+  /**
+   * Wait for the visitor to ask him back, which is turning the captions on.
+   *
+   * Polled rather than subscribed. The captions control is the call's, not the
+   * conversation's, and it already reports its state through the podium; adding
+   * an event for one listener would be a second way to know one thing.
+   */
+  const captionsBack = (): Promise<void> => new Promise((done) => {
+    const tick = window.setInterval(() => {
+      if (dead || podium.captionsOn()) { window.clearInterval(tick); done(); }
+    }, 400);
+  });
+
+  /**
+   * Go quiet, and come back when asked.
+   *
+   * The acknowledgement and the press OVERLAP on purpose. Nam: "try to time the
+   * disabling of the caption right after or event at the same time as the
+   * acknowledgement text finishes and is closed." So the hand sets off for the
+   * captions control while the line is still being read, and arrives as it ends:
+   * saying the line, then pausing, then reaching for a button is three beats
+   * where the visitor is owed one.
+   *
+   * The Stop control goes with it. It offers to stop something that is no longer
+   * happening, and it comes back with him.
+   */
+  const pauseHere = async (): Promise<void> => {
+    paused = true;
+    const since = performance.now();
+    bar.classList.add('is-away');
+
+    const ack = voice(asides.stopped.text, asides.stopped.ms);
+    // Set off roughly a travel-and-press before the line is due to end. The
+    // authored duration is scaled the same way voice() scales it, or the hand
+    // would leave early for a patient visitor and late for a restless one.
+    const dwell = Math.round(asides.stopped.ms * pace(visitor));
+    await wait(Math.max(0, dwell - 900));
+    const off = (async () => {
+      if (podium.captionsOn()) await pressSel('[data-ctl="captions"]', true);
+    })();
+    await Promise.all([ack, off]);
+    if (dead) return;
+    podium.hush();
+    await hand.park();
+
+    await captionsBack();
+    if (dead) return;
+    pausedMs += performance.now() - since;
+    paused = false;
+    bar.classList.remove('is-away');
+
+    /*
+     * And he picks the thread up by name. "Where were we again?" answered by
+     * silence would be a worse resumption than not asking.
+     */
+    await voice(asides.missed.text, asides.missed.ms);
+    const here = parts.find((p) => p.id === tour.current);
+    if (here && !dead) {
+      const line = backTo(here.label);
+      await voice(line.text, line.ms);
     }
   };
 
@@ -954,7 +1047,7 @@ export function startTour(root: HTMLElement, podium: Podium): TourHandle {
     };
 
     for (const { line, gap } of buildOutro()) {
-      if (dead || stopped) return;
+      if (dead || paused) return;
       // Abandoned by anything at all. Checked before the line rather than after,
       // so a visitor who clicks during a twenty-second gap is not talked at once
       // more before being let go.
@@ -1334,7 +1427,7 @@ export function startTour(root: HTMLElement, podium: Podium): TourHandle {
     }
     if (quiet < SETTLE_MS) settled = false;
     const still = now - Math.max(visitor.lastInput, flowEndedAt);
-    if (still >= STORY_MS && tour.mode === 'finished' && !tour.told && passive(visitor, now)) {
+    if (!paused && still >= STORY_MS && tour.mode === 'finished' && !tour.told && passive(visitor, now)) {
       tour = reduceTour(tour, { t: 'tell' });
       if (tour.mode === 'telling') void tell();
     }
@@ -1344,10 +1437,10 @@ export function startTour(root: HTMLElement, podium: Podium): TourHandle {
      * in front of content.
      *
      * `heardOut` rather than `mode === 'finished'`: a run that handed over never
-     * said goodbye, so there is nothing for an outro to come after. `!stopped`
+     * said goodbye, so there is nothing for an outro to come after. `!paused`
      * because somebody who asked for silence has asked for silence.
      */
-    if (heardOut && !stopped && !outroRan && tour.told && tour.mode === 'finished'
+    if (heardOut && !paused && !outroRan && tour.told && tour.mode === 'finished'
         && still >= OUTRO_WAIT_MS && passive(visitor, now)) {
       void runOutro();
     }
@@ -1381,14 +1474,15 @@ export function startTour(root: HTMLElement, podium: Podium): TourHandle {
   };
 
   stopBtn.addEventListener('click', () => {
-    stopped = true;
-    tour = reduceTour(tour, { t: 'stop' });
-    window.clearTimeout(timer);
-    // show() rather than say(): this line is the last thing that happens and
-    // nothing is awaiting it, so it wants no dwell contract and no ring counting
-    // down to a next line that is never coming.
-    podium.show(asides.stopped.text);
-    window.setTimeout(teardown, asides.stopped.ms);
+    if (paused || pauseWanted) return;
+    pauseWanted = true;
+    /*
+     * End the line being read, but not the beat under it. skip() is refused
+     * while a cutscene is locked and applied the moment it unlocks (N55), which
+     * is exactly the behaviour wanted here: the visitor stops waiting for the
+     * sentence, and the hand still finishes what it started.
+     */
+    podium.skip();
   });
 
   void run();

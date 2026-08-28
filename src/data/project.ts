@@ -1649,8 +1649,8 @@ export const tasks: Task[] = [
    * --------------------------------------------------------------------- */
   {
     id: 'N86', col: 'done', size: 'M', tag: 'onboarding',
-    title: 'The week strip centres on the selected day',
-    note: 'It was aligned to the calendar week, so on a Sunday the selected day sat hard against the left edge.',
+    title: 'The week strip centres on the selected day, and then does not',
+    note: 'Shipped, then reverted within the hour on a screenshot of the live product. See N96.',
     detail: {
       why: 'Nam: "selected date should always be in the middle, and we add the days before and after to fill up the 7 day selector here." Meet aligns its strip to the week and this build copied that, which is faithful and, here, wrong: the strip is the surface that teaches the whole easter-egg mechanic, and a selected day pinned to one end gives it six days of context on one side and none on the other.',
       done: [
@@ -1659,13 +1659,13 @@ export const tasks: Task[] = [
         'Paging by week still moves seven days, and Today still returns',
       ],
       raised: 'Nam, 28 Aug',
-      notes: 'This is what unblocks N87. Fixed offsets against today only work if the strip is centred; against a week-aligned strip, an egg placed two days out falls off the end for five days in seven. The two tickets are one idea and were only split because one is layout and the other is data. The selected column is also compared by date key rather than by day-of-month number now, because the old comparison was correct only because a seven-day window cannot hold the same number twice, which is true and is not a reason.',
+      notes: 'Kept on the board as a card that was wrong rather than deleted, because the reasoning is the interesting part and it was reasoning from the wrong premise. The complaint that started it was real: the two teaching eggs were falling off the end of the strip. Centring did fix that. It was just the expensive way to fix it, and it paid in the one currency this build is not allowed to spend, which is the product being what it says it is. N96 has the correction and the argument Nam made for it. The one thing here that survived is the selected column being compared by date key rather than by day-of-month number.',
     },
   },
   {
     id: 'N87', col: 'done', size: 'S', tag: 'onboarding',
     title: 'Both teaching eggs follow the visitor around',
-    note: 'One roamed and one was pinned to 28 August, so for most of the year only one of the pair was on screen.',
+    note: 'One roamed and one was pinned to 28 August, so for most of the year only one of the pair was on screen. Superseded by N96.',
     detail: {
       why: 'Nam: "the two visible easter eggs need to be added dynamically on the date ... Problem is that we dont know which day the interviewer will check this so they may miss these visible eggs we intentionally placed to introduce them the eggs." The pair exists to teach the dot: two marks inside the strip on the first screen is what makes a single mark on a month grid legible three clicks later. A pair that is only a pair during one week of August is not doing that job.',
       done: [
@@ -1674,7 +1674,7 @@ export const tasks: Task[] = [
         'The remaining eggs stay on the real dates they happened on',
       ],
       raised: 'Nam, 28 Aug',
-      notes: 'Placement is measured from TODAY, not from the selected day, and that is deliberate rather than an oversight: eggs that re-placed themselves as you paged would mean the dot moved whenever you tried to click it. The offset field carries a sign now, positive into the past and negative into the future, which is the smallest change that expresses "two days after" without a second field.',
+      notes: 'Placement is measured from TODAY, not from the selected day, and that is deliberate rather than an oversight: eggs that re-placed themselves as you paged would mean the dot moved whenever you tried to click it. That much survives. The day-count offsets do not, because they only ever worked against a strip that moved with the selection. N96 re-anchors both eggs to the weekend.',
     },
   },
   {
@@ -1797,6 +1797,27 @@ export const tasks: Task[] = [
       ],
       raised: 'Nam, 28 Aug',
       notes: 'Cut with a re-encode rather than a stream copy, and the reason is in the keyframes: they sit at 0, 7.7, 14.8, 23.1 and so on, so a copy can only start where a keyframe already is. Asking for 12 and getting 7.7 or 14.8 is not the cut he asked for. A second-generation encode of an already-lossy source is the cost, which is why this one is CRF 30 rather than the 32 the fresh cuts use. The poster is re-cut from the new file, because the old one was a frame that is no longer in the clip.',
+    },
+  },
+
+  /* ------------------------------------------------------------------------
+   * The correction, an hour after the pass above shipped. Worth reading N86 and
+   * N96 as a pair: one card is the mistake and the other is why it was one.
+   * --------------------------------------------------------------------- */
+  {
+    id: 'N96', col: 'done', size: 'M', tag: 'onboarding',
+    title: 'The week strip goes back to Sunday, and the eggs move to the weekend',
+    note: 'Meet does not centre the selected day. Nam sent the screenshot, and the argument with it.',
+    detail: {
+      why: 'Nam, reverting his own request: "the original meet doesnt have the selected day center on the 7 day selector, its fixed from sun to sat, which makes sense, this is an office tool so people want to see the calendar as the fixed days in a week. I was wrong about selected date being in the middle." The second sentence is the one that matters and it is not an appeal to fidelity. A week where Wednesday is always the fourth column is a week you can read without reading it; a strip that slides under the selection puts the same date in a different column depending on how you arrived, so the shape of the week stops carrying information. Meet is a calendar before it is anything else.',
+      done: [
+        'The strip is Sunday to Saturday again, whatever day is selected',
+        'The premiere takes a weekend day of the visitor’s own week, and never today',
+        'Saturday, unless today is Saturday, and then the Sunday that opened the same week',
+        'The jump takes the weekend before, one press of the back arrow away',
+      ],
+      raised: 'Nam, 28 Aug, with a screenshot of the live product',
+      notes: 'The eggs had to move because the thing that broke them is back: against a fixed week, a placement counted in days from today falls off one end or the other depending on which day the page is opened. Three days before a Monday is last week. So the anchor is no longer a number of days but a weekend, which is the one part of the current strip that is always in view, is never today for five days in seven, and is where a film premiere and a tandem jump actually happen. The Saturday-unless-today-is-Saturday branch is what keeps the last two days honest. Nam took the cost on the second egg with his eyes open: "Now it will be off screen unfortunately, but lets hope the movie premier is enough to teach user about these easter eggs." One visible mark on the first screen is the requirement; two was a luxury that cost the week its shape. The test asserts the jump is OFF the strip, so that stays a decision rather than becoming a bug somebody fixes by accident.',
     },
   },
 

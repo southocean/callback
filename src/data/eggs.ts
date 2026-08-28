@@ -11,11 +11,23 @@
 //
 // TWO eggs roam, and they are the teaching pair. Nam: "we dont know which day
 // the interviewer will check this so they may miss these visible eggs we
-// intentionally placed to introduce them the eggs." They used to sit three days
-// apart on real dates, which meant they were only both on screen during one week
-// of the year. Now they are placed against today: one three days back, one two
-// days forward, which puts both inside the seven-day strip whatever day the page
-// is opened, because the strip centres on the selected day.
+// intentionally placed to introduce them the eggs." They used to sit on real
+// dates, which meant they were only both on screen during one week of the year.
+//
+// They are anchored to the WEEKEND now, and the reason is the shape of the strip
+// above them. It runs Sunday to Saturday, fixed, so a placement counted in days
+// from today falls off one end or the other depending on which day you open the
+// page: three days before a Monday is last week. The weekend of the current week
+// is the one thing that is always in view and is never a workday, which is also
+// the honest place to put a film premiere and a tandem jump.
+//
+// The premiere takes a weekend day of the visitor's own week, never today, so
+// there is always exactly one mark on the first screen. The jump takes the
+// weekend before, which is off the edge of the strip: Nam accepted that cost
+// rather than crowd one week with both. "Now it will be off screen
+// unfortunately, but lets hope the movie premier is enough to teach user about
+// these easter eggs." It is one press of the back arrow away, which is the first
+// thing anyone does once they know the dots mean something.
 //
 // The rest are on real dates -- the zombie walk on Halloween, the parade on the
 // day of the parade, the competition on the night it ran. Finding those is the
@@ -27,11 +39,12 @@ export interface Egg {
   /** Fixed calendar date as [month, day], 1-indexed. Omitted for the roamers. */
   on?: [number, number];
   /**
-   * Days from today, for the two eggs that follow the visitor around. Positive
-   * is in the past, negative is in the future, and both must stay within three
-   * of zero or they fall outside the strip that is meant to show them off.
+   * For the two eggs that follow the visitor around, which weekend they land on:
+   * the one in the strip currently on screen, or the one a week before it.
+   * Anything counted in days from today cannot survive a fixed Sunday-to-Saturday
+   * week, which is why this names a weekend rather than a number.
    */
-  offset?: number;
+  roams?: 'thisWeekend' | 'lastWeekend';
   /** What the meeting is called in the list. */
   title: string;
   /** The line under the title, in the meeting card. */
@@ -61,7 +74,7 @@ export interface Egg {
 export const eggs: Egg[] = [
   {
     id: 'skydive',
-    offset: 3,
+    roams: 'lastWeekend',
     title: 'Falling out of a plane',
     blurb: 'Tandem jump. The face at second four is the honest one.',
     clip: 'media/i-can-fly.mp4',
@@ -75,7 +88,7 @@ export const eggs: Egg[] = [
     // itself now -- Nam picked the cut, 11:20 to 11:50, which is the sequence
     // with the most shouting in it. English subtitles are burned into the print.
     id: 'premiere',
-    offset: -2,
+    roams: 'thisWeekend',
     title: 'Movie premier',
     blurb: 'Tomma Händer, on a real screen. Thirty seconds of the loudest part.',
     clip: 'media/its-my-money.mp4',
@@ -164,6 +177,23 @@ export function key(d: Date): string {
  * egg silently dropped whichever was declared second — the dot appeared, the
  * meeting did not.
  */
+/**
+ * The weekend day the teaching egg lands on, in the Sunday-to-Saturday week that
+ * contains `today`.
+ *
+ * Saturday, which closes the week and is where a premiere belongs, except when
+ * today IS Saturday: then it is the Sunday that opened the same week. Nam: "if
+ * today is sat, then the egg will be on sun, and vice versa." Both branches keep
+ * the mark inside the strip and off today, which already has the interview on it
+ * and does not need a second card competing with the thing the page is for.
+ */
+export function weekendMark(today: Date): Date {
+  const d = new Date(today);
+  d.setDate(d.getDate() - d.getDay());        // Sunday, the left edge of the strip
+  if (today.getDay() !== 6) d.setDate(d.getDate() + 6);
+  return d;
+}
+
 export function eggMap(today: Date): Map<string, Egg[]> {
   const out = new Map<string, Egg[]>();
   const put = (k: string, e: Egg): void => {
@@ -172,9 +202,9 @@ export function eggMap(today: Date): Map<string, Egg[]> {
     else out.set(k, [e]);
   };
   for (const e of eggs) {
-    if (e.offset !== undefined) {
-      const d = new Date(today);
-      d.setDate(d.getDate() - e.offset);
+    if (e.roams) {
+      const d = weekendMark(today);
+      if (e.roams === 'lastWeekend') d.setDate(d.getDate() - 7);
       put(key(d), e);
       continue;
     }

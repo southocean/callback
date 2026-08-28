@@ -682,11 +682,29 @@ export const asides = {
     + 'and the plain document is in the top left. Thanks for the time.',
     6000,
   ),
-  /** The visitor pressed Stop. */
-  stopped: L('Of course. I will leave you to it.', 2400),
-  /** The visitor went quiet mid-tour and the script takes the wheel back. */
+  /**
+   * The visitor pressed Stop.
+   *
+   * It is an acknowledgement, not a sign-off, because Stop is no longer the end
+   * of anything: he goes quiet, turns the captions off himself, and waits. See
+   * the pause note in src/tour/stage.ts.
+   */
+  stopped: L('I hear you. The rest is yours to discover now.', 3200),
+  /** The visitor turned the captions back on, which is how they ask him back. */
+  missed: L('Oh, you missed me. Where were we again?', 3000),
+  /** The visitor went quiet mid-conversation and the script takes the wheel back. */
   resume: L('Still here? I will carry on then.', 2600),
 };
+
+/**
+ * Picking the thread back up, by name.
+ *
+ * A function rather than a line, because the only thing worth saying here is
+ * WHICH segment we were in, and the segment is not known until it happens. "Oh,
+ * you missed me. Where were we again?" followed by silence would be a worse
+ * resumption than no line at all.
+ */
+export const backTo = (label: string): Line => L(`Right. ${label}.`, 2400);
 
 // ---------------------------------------------------------------------------
 // AFTER THE GOODBYE — board ticket N49
