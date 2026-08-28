@@ -9195,6 +9195,28 @@ body.bug-struck { animation: bug-shake 520ms cubic-bezier(0.36, 0.07, 0.19, 0.97
 .dp-dark .pr-row.is-done .pr-bar i { background-color: #81c995; }
 .dp-dark .pr-where.is-done { color: #81c995; }
 
+/* --- the panel is the size of what is in it (N137) ------------------------ */
+/* .dp-card is `flex: 1 1 auto` inside a full-screen flex column, so every dialog
+   built on it fills the window. That is right for the two it was written for:
+   the Project spec is a document with tabs, and the bug case is a twelve-slot
+   grid with a detail pane, and both want every pixel they can get.
+
+   This one is a ring, three bars and a button. At full height it was about four
+   hundred pixels of content in a thousand-pixel box, and Nam said so: "way too
+   big, make it just the right size to house things in it."
+
+   `0 1 auto` rather than a fixed height: it takes the height of its contents and
+   is still allowed to SHRINK, so a short window or a long collection list scrolls
+   .dp-body as before instead of overflowing off the bottom. And justify-content
+   on the scrim, because a card that no longer fills its parent has to be told
+   where to sit -- without it a content-sized card pins itself to the top edge. */
+.pr-frame { justify-content: center; }
+.pr-frame .dp-card { flex: 0 1 auto; max-width: 560px; }
+/* The 60px floor under .dp-body is scroll headroom, so the last line of a long
+   document does not sit against the edge. Nothing here scrolls, so it is just
+   empty space at the bottom of a box that is now measured to its contents. */
+.pr-frame .dp-body { padding-bottom: 24px; }
+
 /* The way out to the cabinet, since the ended screen stopped carrying one (N137).
    Left-aligned under the rows rather than stretched, because it is one optional
    errand and not the panel's purpose. */
