@@ -705,13 +705,26 @@ export function startTour(root: HTMLElement, podium: Podium): TourHandle {
       }
       markEggSeen(egg.id);
       /*
-       * N116. 5200 to 7000. Nam: "at least give it 3 4 sec in each video so we
-       * know what its about." The blurb took most of the old window, so the clip
-       * itself got a second or two and the visitor was reading rather than
-       * watching. The line is unchanged; what grew is the silence after it, which
-       * is the part that is actually the video.
+       * HOW LONG TO STAY ON IT — N116, then N117.
+       *
+       * 5200 first, because the blurb took most of that window and the clip got a
+       * second or two. Nam: "at least give it 3 4 sec in each video so we know
+       * what its about." So it went to a flat 7000.
+       *
+       * A flat number turned out to be the wrong shape, and the recut is what
+       * exposed it. The winner clip is thirteen seconds and its whole point is a
+       * reveal about eight seconds in, so a seven second hold cut away one second
+       * before the thing the clip exists for -- the same complaint that prompted
+       * the recut, moved rather than fixed.
+       *
+       * So it follows the clip: long enough to reach the end of a short one,
+       * capped for the thirty second ones, floored at Nam's number. Read off the
+       * element rather than authored in eggs.ts, because a duration written next
+       * to a file is a duration that goes stale the next time the file is recut.
        */
-      await voice(`${egg.title}. ${egg.blurb}`, 7000);
+      const vid = q('.shot .wx video') as HTMLVideoElement | null;
+      const len = vid && Number.isFinite(vid.duration) ? vid.duration * 1000 : 0;
+      await voice(`${egg.title}. ${egg.blurb}`, Math.min(14_000, Math.max(7000, len + 900)));
     }
     // And they are credited for it, which is the half the first version missed.
     podium.quest('offclock');

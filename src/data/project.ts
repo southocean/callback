@@ -2120,14 +2120,14 @@ export const tasks: Task[] = [
     },
   },
   {
-    id: 'N117', col: 'backlog', size: 'S', tag: 'content',
+    id: 'N117', col: 'done', size: 'S', tag: 'content',
     title: 'Recut the-winner-is to the reveal',
     note: 'The winner arrives too late to survive a five second window.',
     detail: {
       why: 'Nam: "I realize it was a bit long before we see the winner, so when playing as part of this off the clock sequence it was a bit weird, like we didnt get to see the winner." A clip whose point is a reveal has to reach the reveal.',
       done: ['Cut from 1:49 to 2:02 of the original, which is the reveal'],
       raised: 'Nam, script pass 29 Aug',
-      notes: 'BLOCKED on the source, which is not on this machine. The shipped clip is already a 22s cut, so 1:49 is past the end of it and the timecode can only refer to the footage it came from. Searched docs/media (nine clips, longest 31s), ~/Videos (twenty files, all July screen recordings), Downloads (longest is a 198s wedding video), Desktop, Documents, OneDrive and C:/dev. Nothing over 2:02 that could hold a comedy final. One ffmpeg call away once the original turns up: -ss 109 -to 122, re-encoded rather than stream-copied so the cut lands on the frame rather than the nearest keyframe, and the poster reshot from the new first frame.',
+      notes: 'Done. The source was in Downloads as "Standup ending.mov", which the first search missed by looking only for *.mp4 -- a reminder that a file search filtered by the extension you expect is a search for what you already believe. 2:53 of 1920x1080 HEVC; the cut is 109s to 122s, re-encoded rather than stream-copied so it starts on the frame Nam picked rather than the nearest keyframe, scaled to the 704x396 the other landscape clips use, 24fps, and the poster reshot from the new first frame. CRF 32 lands it at 667 kB, smaller than the 840 kB it replaces despite being a better thirteen seconds. Checked the frames before encoding: 109s is the line-up under the Uppsalas Roligaste banner, the prize changes hands around 117s, and 122s is the winner holding flowers. The old note follows. BLOCKED on the source, which is not on this machine. The shipped clip is already a 22s cut, so 1:49 is past the end of it and the timecode can only refer to the footage it came from. Searched docs/media (nine clips, longest 31s), ~/Videos (twenty files, all July screen recordings), Downloads (longest is a 198s wedding video), Desktop, Documents, OneDrive and C:/dev. Nothing over 2:02 that could hold a comedy final. One ffmpeg call away once the original turns up: -ss 109 -to 122, re-encoded rather than stream-copied so the cut lands on the frame rather than the nearest keyframe, and the poster reshot from the new first frame.',
     },
   },
   {
