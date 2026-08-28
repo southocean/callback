@@ -39,11 +39,6 @@ export interface CaseStudy {
   relevance: string;
 }
 
-export interface ChatMessage {
-  from: 'nam' | 'system';
-  at: string;
-  text: string;
-}
 
 export const profile = {
   name: 'Nam Nguyen',
@@ -253,75 +248,29 @@ export const caseStudies: CaseStudy[] = [
   },
 ];
 
-/** The cover letter, as a chat thread. */
-export const chat: ChatMessage[] = [
-  {
-    from: 'system',
-    at: '',
-    text: 'Nam started a call. This panel is the cover letter. He just refused to attach it as a .docx.',
-  },
-  {
-    from: 'nam',
-    at: '09:00',
-    // Neutral. The company-specific opener is companies.ts -> pitch.opener,
-    // substituted in panels.ts when a code is present.
-    text: "Hi. I'm Nam, I live in Uppsala, and I am applying for a senior web development role.",
-  },
-  {
-    from: 'nam',
-    at: '09:00',
-    text:
-      'The short version: seven years leading the front end of a real-time multiplayer client. Four ' +
-      'strangers on four networks who all have to see the same board at the same instant, one of them on ' +
-      'hotel wifi. Take that and attach media to it and you have roughly your product.',
-  },
-  {
-    from: 'nam',
-    at: '09:01',
-    text:
-      'I took that client from a desktop app to the browser, then to a React + Unity hybrid: a rendering ' +
-      'engine living inside a web page, which is a sentence I understand the cost of. I led the five people ' +
-      'who did it with me.',
-  },
-  {
-    from: 'nam',
-    at: '09:02',
-    text:
-      'Before that: two years of C++ on signing hardware, where correctness was the product. Before that, ' +
-      'four years of optimisation research. Two papers, a book chapter, a best-paper award, and three ' +
-      'semesters as a teaching assistant for algorithms. Your ad asks for data structures and algorithms. ' +
-      'That part I can show you.',
-  },
-  {
-    from: 'nam',
-    at: '09:03',
-    text:
-      'One thing I will not pretend about: accessibility is listed as preferred and I have not shipped a ' +
-      'product where it was my mandate. So I did the work here instead. This page is keyboard-complete, ' +
-      'screen-reader tested, and the Engineering panel audits it live and is allowed to fail. Judge it on that.',
-  },
-  {
-    from: 'nam',
-    at: '09:04',
-    text:
-      'Your posting mentions agentic coding. I built this with it, and left the build log in the Engineering ' +
-      'panel, including three rounds of people picking the plan apart and what I changed each time.',
-  },
-  {
-    from: 'nam',
-    at: '09:05',
-    text:
-      'Also, and this is relevant more than it sounds: I do stand-up. Seven years of walking into a room ' +
-      'cold and finding out in ten seconds whether a thing lands. That is the same instinct a UX review needs.',
-  },
-  {
-    from: 'nam',
-    at: '09:06',
-    text:
-      "I'm 38 minutes from your office, I speak Swedish at C1, and I already have the right to work here. " +
-      'End the call whenever you like. There is a PDF and an email address on the way out.',
-  },
-];
+/*
+ * THE COVER LETTER IS GONE -- board ticket N138.
+ *
+ * Nine messages lived here and were rendered as Meet's chat, on the reasoning that
+ * a chat thread is where people actually read things. Nam, looking at the panel
+ * after the live-transcription switch landed: "all this stuff is still here! Ive
+ * asked you to remove them no??"
+ *
+ * He is right about the panel, and the switch is why. Once the chat panel's job is
+ * to show what has been said in this call -- a live record, or the running order --
+ * a cover letter above it is a second document competing for the same surface. The
+ * conceit had needed a caption to explain itself ever since it shipped; N129
+ * replaced that caption with a real control, and the control makes the conceit
+ * redundant rather than better explained.
+ *
+ * WHAT WENT WITH IT, stated here because it is not obvious from the deletion. The
+ * first Nam message was the only live home of `pitch.opener`, so the per-company
+ * copy behind ?c= (ticket T9) lost one of its four employer-naming surfaces. The
+ * tab title, the meeting name and the job-ad section still name the employer;
+ * company.ts still lists the opening line for each code, so the data is not
+ * orphaned, but nothing renders it to a visitor any more. That is a real reduction
+ * in what ?c= does and it is flagged rather than absorbed.
+ */
 
 /*
  * THE SECOND SCRIPT USED TO LIVE HERE.

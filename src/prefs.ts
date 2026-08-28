@@ -547,19 +547,21 @@ export function markAnswerHeard(id: string): void {
 // ---------------------------------------------------------------------------
 
 /**
- * Which commentary lines have been found, and what the ring last showed.
+ * Which commentary lines have been heard, and what the ring last showed.
  *
- * The commentary was the only one of the four collections with no memory: a quip
- * fired once per SESSION, out of `tour.quipped`, and came back on the next visit.
- * That is fine for a throwaway line and wrong for something a percentage counts,
- * so it is written down now.
+ * The commentary used to be the only collection with no memory: a quip fired once
+ * per SESSION, out of `tour.quipped`, and came back on the next visit. That is
+ * fine for a throwaway line and was wrong once a percentage counted them, so it
+ * was written down.
  *
- * A quip found while the script is talking still counts (N108). It does not get
- * said, but the visitor did the thing, and a completion number that disagrees
- * with what somebody actually did is worse than a line they missed.
+ * IT IS NO LONGER COUNTED -- board ticket N137, and the argument is in
+ * completion.ts -- but the memory stays, and it is now doing the job it was
+ * always better at: stopping him make the same observation twice at somebody who
+ * came back a second time. That is worth persisting for its own sake, and it
+ * costs one small key.
  */
 const QUIP_KEY = 'callback.quips';
-/** What the ended screen last reported, so the next one can animate the gain. */
+/** What the visitor was last shown, so the next report can animate the gain. */
 const SEEN_PCT_KEY = 'callback.pct';
 
 export function foundQuips(): string[] {
@@ -604,7 +606,15 @@ export function rememberPct(pct: number): void {
   }
 }
 
-/** Everything found, from the four places it is kept. */
+/**
+ * Everything found, from the four places it is kept.
+ *
+ * Still four, though only three of them are scored: `quips` is read by nothing
+ * but the quip system itself now (N137). It stays on this shape because the pass
+ * diff and the tally both take this object and neither is harmed by a field it
+ * ignores, and because splitting it would put two readers of the same four keys
+ * in two places.
+ */
 export function foundAll(): { quests: string[]; quips: string[]; bugs: string[]; eggs: string[] } {
   const read = (key: string): string[] => {
     try {

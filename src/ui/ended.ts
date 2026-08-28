@@ -14,14 +14,119 @@ import type { Quests } from '../achievements.js';
 import type { Bugs } from '../bugs.js';
 import { openBugFrame } from './bugframe.js';
 import { loadInterview, clockMs } from '../prefs.js';
-import { progressNow, ring, breakdown } from './progress.js';
 import { openPlain } from './plainoverlay.js';
 import { runtimeMs } from '../data/tour.js';
+import { buildRail } from './rail.js';
+import { passFinds, type PassPart } from '../pass.js';
 
-export function renderEnded(store: Store, quests: Quests, bugs: Bugs): HTMLElement {
+
+/**
+ * A tile per collection that gained something in this pass.
+ *
+ * Nam: "Each will have its own report tile, just like the side quest and the bugs
+ * here." So it is the same `.safe` card the rest of this screen is built from --
+ * glyph, heading, one paragraph -- and not a new shape. What changes is what the
+ * paragraph holds: the NAMES, rather than a sentence about a number.
+ *
+ * Naming them is the whole point. "3 new side quests" is a score; "Hotel wifi,
+ * Talk to the hand, Break it on purpose" is a memory of the last twenty minutes,
+ * and it is also the only place a secret quest ever gets said out loud, since the
+ * tray lists a secret only after it is found and this screen has just found it.
+ *
+ * A collection with nothing new draws nothing. An empty tile reading "0 new bugs"
+ * is a reproach, and this screen has no business reproaching anybody.
+ */
+function findCards(pass: ReturnType<typeof passFinds>, bugs: Bugs): HTMLElement[] {
+  /*
+   * NO PASS, NO TILES. #ended is a real URL and can be reloaded or linked, which
+   * means this screen can be reached without a call having happened. There is no
+   * before-picture in that case, and the honest report is silence rather than a
+   * list of everything the visitor has ever found dressed up as news.
+   */
+  if (!pass) return [];
+
+  const glyph: Record<PassPart['key'], 'bolt' | 'science' | 'videocam'> = {
+    quests: 'bolt', bugs: 'science', eggs: 'videocam',
+  };
+
+  const cards = pass.parts
+    .filter((part) => part.names.length > 0)
+    .map((part) => {
+      const n = part.names.length;
+      return h(
+        'div',
+        { class: 'safe' },
+        sym(glyph[part.key], 24),
+        h(
+          'div',
+          {},
+          h('h2', {}, `${n} new ${n === 1 ? part.one : part.many}`),
+          // Serial commas and a final "and", because this is a sentence about
+          // things that happened rather than a list of rows.
+          h('p', { style: part.key === 'bugs' ? undefined : 'margin:0' }, sentence(part.names)),
+          /*
+           * ONLY THE BUG TILE CARRIES A BUTTON, because only the bugs have a
+           * room to go to. The quests have a tray inside the call and the clips
+           * have the calendar; neither is somewhere to send a visitor who has
+           * just left. The case is a dialog, so it opens over this screen and
+           * gives it back.
+           */
+          part.key === 'bugs'
+            ? h(
+              'button',
+              { class: 'm-btn m-outlined', type: 'button', onclick: () => openBugFrame(bugs) },
+              'Open the case',
+            )
+            : h('span', {}),
+        ),
+      ) as HTMLElement;
+    });
+
+  if (cards.length) return cards;
+
+  /*
+   * NOTHING NEW, which is a real and frequent outcome -- a second run to beat a
+   * time finds nothing by design, and so does a first run by somebody who came to
+   * read a CV. It gets one quiet tile rather than none.
+   *
+   * The tile exists because the alternative is a screen that says nothing at all
+   * about the layer, to the one visitor who has not yet met it. This is the only
+   * place that can point at the ring without spoiling anything: the ring is on
+   * the rail, to the left, and pressing it says how much there is. That is a
+   * signpost to a total, not a hint to a hiding place.
+   */
+  return [h(
+    'div',
+    { class: 'safe' },
+    sym('bolt', 24),
+    h(
+      'div',
+      {},
+      h('h2', {}, 'Nothing new this time'),
+      h('p', { style: 'margin:0' },
+        'There are side quests, bugs and clips hidden in this build, and none of them gate anything. '
+        + 'The ring on the left counts them, and knows how many are left.'),
+    ),
+  ) as HTMLElement];
+}
+
+/** "a", "a and b", "a, b and c" -- the last join is a word, not a comma. */
+function sentence(names: string[]): string {
+  if (names.length <= 1) return names.join('');
+  return `${names.slice(0, -1).join(', ')} and ${names[names.length - 1]}`;
+}
+
+export function renderEnded(store: Store, _quests: Quests, bugs: Bugs): HTMLElement {
   const address = `${profile.emailUser}@${profile.emailHost}`;
-  const { got, total } = quests.count();
-  const caught = bugs.count();
+  /*
+   * READ ONCE, at the top, and deliberately not re-read further down. This
+   * function runs again on a re-render, and passFinds() is a pure diff against a
+   * snapshot that nothing here disturbs -- so the tiles say the same thing on the
+   * second render as the first, which is what a report of a finished pass has to
+   * do. The quests argument is still taken because main.ts hands it to every
+   * screen; nothing on this one reads it any more, hence the underscore.
+   */
+  const pass = passFinds();
   /*
    * HOW LONG IT TOOK — board ticket N51.
    *
@@ -183,6 +288,32 @@ export function renderEnded(store: Store, quests: Quests, bugs: Bugs): HTMLEleme
     'main',
     { class: 'ended', id: 'main' },
     timer,
+    /*
+     * THE RAIL, HERE TOO -- board ticket N137.
+     *
+     * Nam: "Then on the left panel, we will display the bug and the progression
+     * ring, at the exact place they would be once we are back in home screen -
+     * this might require copying the whole left panel in home screen but hide the
+     * first two buttons - so we keep the UI fully consistent."
+     *
+     * It is the same builder the home screen calls, with the two navigation items
+     * ghosted, so the bug glyph and the ring occupy the third and fourth slots
+     * exactly as they will in a moment. Press "Return to home screen" and neither
+     * of them moves by a pixel, which is the point: the total you were just
+     * looking at is still where you left it, and the ended screen stops being a
+     * cul-de-sac with its own furniture.
+     *
+     * Absolutely positioned rather than laid out beside the content, for two
+     * reasons. The content column is centred against the VIEWPORT on this screen
+     * and a 104px flex sibling would shove it off centre; and the geometry that
+     * has to match is the home rail's distance from the top-left of the window,
+     * which an absolute box states directly instead of reconstructing out of a
+     * missing top bar. Same trick the countdown in the other corner already uses.
+     *
+     * animateRing, and only here: this is the surface that reports the pass, so
+     * this is the one allowed to count the ring up and write the new baseline.
+     */
+    buildRail(store, bugs, { ghostNav: true, animateRing: true }),
     h(
       'div',
       { class: 'ended-in' },
@@ -266,90 +397,34 @@ export function renderEnded(store: Store, quests: Quests, bugs: Bugs): HTMLEleme
         : h('span', {}),
 
       /*
-       * HOW MUCH OF IT THEY FOUND — board ticket N118.
+       * WHAT THEY JUST FOUND -- board ticket N137.
        *
-       * Beside the time rather than instead of the side-quest card: the two
-       * answer different questions. The time is how fast they went through the
-       * conversation; this is how much of the thing around it they actually met.
+       * Three cards used to stand here and all three reported LIFETIME totals: a
+       * completion ring with its breakdown, "Side quests: 12 of 17", and
+       * "Bugs: 1 of 12". Nam took all three off. Two things were wrong with them.
        *
-       * It animates up from what they were last shown, so a visit where they
-       * found four things reads as a gain rather than as a static figure they
-       * have to remember. Somebody who found nothing watches it hold still,
-       * which is also the truth.
+       * The small one was that they disagreed with each other in public. The ring
+       * counted twenty-one side quests -- every one there is, secrets included,
+       * because a bar that reads 100% with three still hidden is a lie -- and the
+       * card underneath counted the seventeen the opening line promises out loud,
+       * because secrets are not advertised. Both numbers are right for their own
+       * question and they should never have been stacked eighteen pixels apart.
+       * Nam, reasonably: "why side quest says 21 on top then 17 below?"
+       *
+       * The big one is that a total is the wrong thing to say here at all. It
+       * reads identically on the fourth visit and the first, it is the same
+       * sentence whether the pass you just finished was a triumph or a straight
+       * run to the exit, and it belongs on a surface you go to rather than one you
+       * land on. So the total moved to the ring on the rail -- always in view,
+       * never in the way, one press from the breakdown -- and this space now
+       * answers the only question a post-call screen is well placed to answer:
+       * what did THAT do.
+       *
+       * One card per collection that gained something, naming the things by name,
+       * and nothing at all for a collection that did not. Nam: "So yeah, ended
+       * screen shows the new stuff user has found, if they have found it."
        */
-      h(
-        'div',
-        { class: 'safe pr-card' },
-        ring(progressNow(), { animate: true }),
-        h(
-          'div',
-          {},
-          h('h2', {}, 'How much of this you found'),
-          h('p', { style: 'margin:0 0 10px' },
-            `${progressNow().got} of ${progressNow().total} across four collections. `
-            + 'None of it gates anything: the CV is complete for somebody who finds none of it.'),
-          breakdown(progressNow()),
-        ),
-      ),
-
-      h(
-        'div',
-        { class: 'safe' },
-        sym('bolt', 24),
-        h(
-          'div',
-          {},
-          h('h2', {}, `Side quests: ${got} of ${total}`),
-          h(
-            'p',
-            { style: 'margin:0' },
-            got === total
-              ? 'All of them, which is more thorough than most interview loops. The main quest is the one in the job ad: four people on four networks, all seeing the same thing at the same instant.'
-              : 'A few are still open, under Meeting tools → Storyline. Two more are not on the list at all, and one of them is the oldest keyboard shortcut in games.',
-          ),
-        ),
-      ),
-
-      /*
-       * THE COLLECTION -- board ticket N59.
-       *
-       * Under the side quests rather than above them, because it is the harder
-       * one and this screen should read easiest first. It is here at all for the
-       * reason Nam gave: "By the end of a call, they will see the list of bugs
-       * they've collected." The card names the number and the drawer holds the
-       * rest, so a visitor who caught none is told there was something to catch
-       * rather than shown twelve empty boxes on arrival.
-       */
-      h(
-        'div',
-        { class: 'safe' },
-        sym('science', 24),
-        h(
-          'div',
-          {},
-          h('h2', {}, `Bugs: ${caught.got} of ${caught.total}`),
-          h(
-            'p',
-            {},
-            /*
-             * NO NUMBER HERE. Nam: "Including the amount of times you have to do
-             * it is way too on the nose, remove that." The card can say that
-             * there is something to find and that persistence is the shape of
-             * it; the moment it says how many presses, the hunt is a chore list.
-             */
-            caught.got === caught.total
-              ? 'The whole drawer. Nobody was supposed to get all of them, so consider the QA position filled.'
-              : caught.got === 0
-                ? 'There are bugs hidden in this build on purpose, and they do not turn up for anyone who tries something once. Testing software looks a lot like this.'
-                : 'The rest are still out there. Every empty slot in the case keeps its hint, and the harder ones say so.',
-          ),
-          h(
-            'button',
-            { class: 'm-btn m-outlined', type: 'button', onclick: () => openBugFrame(bugs) },
-            'Open the case',
-          ),
-        ),
-      ),
+      ...findCards(pass, bugs),
 
       h(
         'div',

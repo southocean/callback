@@ -6,14 +6,36 @@
 //
 // It is deliberately read-only and deliberately short. Nam asked for "a panel
 // breaking down your progress in each category", and the temptation with a screen
-// like this is to list what is still missing by name. That would turn four
+// like this is to list what is still missing by name. That would turn three
 // collections into a checklist and the hunt into errands, which is the opposite
 // of why any of them are hidden. Each row says how many and roughly where.
+//
+// N137 took two things out of it and put one in.
+//
+// The heading was "How much of this you found", which is a sentence where a name
+// belongs: this panel is opened from a rail item, and a rail item opens a place,
+// not a question. "Your completion" is what the ring on the rail means, so the
+// panel and the control that opens it now say the same word.
+//
+// The paragraph under the rows went the same way. It read "None of this gates
+// anything. The CV is complete for somebody who finds none of it..." -- which is
+// true, is the design principle the whole layer is built on, and is addressed to
+// somebody who has not yet found anything. By the time this panel can be opened
+// at all they have found something and pressed a ring to come and look at it.
+// Nam: "none of it gates anything bla bla => remove, we know."
+//
+// WHAT WENT IN is a way out to the bug case. The Bugs row is the only one of the
+// three whose collection has its own room, and the ended screen used to be where
+// you found the door; now that the ended screen reports a pass rather than a
+// total, the door belongs next to the total. It is only drawn when a catcher is
+// handed in, because two of the three callers have one and the panel must not
+// promise a room it cannot open.
 
 import { h } from '../dom.js';
 import { sym } from './icons.js';
 import { trapFocus } from '../a11y.js';
 import { progressNow, ring, breakdown } from './progress.js';
+import type { Bugs } from '../bugs.js';
 
 const ID = 'progressframe';
 
@@ -34,7 +56,7 @@ const ID = 'progressframe';
  * Light is the default because two of the three callers are light surfaces and a
  * missing argument should not be able to produce the wrong-looking panel.
  */
-export function openProgress(theme: 'light' | 'dark' = 'light'): void {
+export function openProgress(theme: 'light' | 'dark' = 'light', bugs?: Bugs): void {
   if (document.getElementById(ID)) return;
   const p = progressNow();
 
@@ -48,14 +70,14 @@ export function openProgress(theme: 'light' | 'dark' = 'light'): void {
     'div',
     {
       class: `dp dp-${theme} pr-frame`, id: ID, role: 'dialog', 'aria-modal': 'true',
-      'aria-label': 'How much of this you found',
+      'aria-label': 'Your completion',
     },
     h('div', { class: 'dp-card' },
       h('div', { class: 'dp-head' },
         h('span', { class: 'dp-head-ico', 'aria-hidden': 'true' }, sym('bolt', 22)),
         h('div', { class: 'dp-title' },
-          h('h1', {}, 'How much of this you found'),
-          h('p', {}, `${p.got} of ${p.total}, across four collections.`)),
+          h('h1', {}, 'Your completion'),
+          h('p', {}, `${p.got} of ${p.total}, across three collections.`)),
         h('button', {
           class: 'icon-btn dp-close', type: 'button', 'aria-label': 'Close', onclick: close,
         }, sym('close', 22))),
@@ -63,9 +85,20 @@ export function openProgress(theme: 'light' | 'dark' = 'light'): void {
         h('div', { class: 'dp-col' },
           h('div', { class: 'pr-hero' }, ring(p, { size: 96 })),
           breakdown(p),
-          h('p', { class: 'dp-note' },
-            'None of this gates anything. The CV is complete for somebody who finds none of it, '
-            + 'which is the point of hiding it in the first place.')))),
+          bugs
+            ? h('div', { class: 'pr-acts' },
+              h('button', {
+                class: 'm-btn m-outlined', type: 'button',
+                // Closed first, then opened: the case is a dialog of the same
+                // family and two of them stacked would trap focus in the one
+                // underneath. Fetched rather than imported so a visitor who only
+                // reads the breakdown never pays for the cabinet.
+                onclick: () => {
+                  close();
+                  void import('./bugframe.js').then((m) => m.openBugFrame(bugs));
+                },
+              }, 'Open the bug case'))
+            : h('span', {})))),
   ) as HTMLElement;
 
   frame.addEventListener('pointerdown', (e) => { if (e.target === frame) close(); });

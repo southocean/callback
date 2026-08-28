@@ -11,12 +11,11 @@
 import { h, clear } from '../dom.js';
 import { sym, lockup, spinner, focusRing, playLockup, settleLockup } from './icons.js';
 import { openDev } from './devopen.js';
-import { bugGlyph } from './bugart.js';
+import { buildRail } from './rail.js';
 import type { Bugs } from '../bugs.js';
 import { currentPitch } from '../data/companies.js';
 
 import { openPlain } from './plainoverlay.js';
-import { loadInterview } from '../prefs.js';
 import { gatePressed, onAdminGranted } from './admingate.js';
 import { isAdmin } from '../prefs.js';
 import { tip, tipAll, tipAllAbove, hideTip, rearm } from './tooltip.js';
@@ -351,108 +350,11 @@ export function renderHome(store: Store, reducedMotion = false, body?: HTMLEleme
   );
 
   // --- rail ----------------------------------------------------------------
-
-  const rail = h(
-    'nav',
-    { class: 'rail', 'aria-label': 'Sections' },
-    h(
-      'button',
-      {
-        class: 'rail-item',
-        type: 'button',
-        'aria-current': 'true',
-        // This had no onclick, so Calls was a one-way door: the rail rendered
-        // Meetings as a button and then ignored every press. Nam found it by
-        // trying to go back. Mirrors the Calls item below.
-        onclick: () => store.dispatch({ t: 'screen', screen: 'home' }),
-      },
-      h('span', { class: 'rail-pill' }, sym('event', 24, { fill: true })),
-      h('span', { class: 'rail-label' }, 'Meetings'),
-    ),
-    h(
-      'button',
-      {
-        class: 'rail-item',
-        type: 'button',
-        'aria-current': 'false',
-        onclick: () => store.dispatch({ t: 'screen', screen: 'calls' }),
-      },
-      h('span', { class: 'rail-pill' }, sym('call', 24)),
-      h('span', { class: 'rail-label' }, 'Calls'),
-    ),
-  );
-
-  /*
-   * A THIRD RAIL ITEM, and only for somebody who has caught something.
-   *
-   * Nam: "Once we have found a bug, we should add a bug button to the left side
-   * bar, under Calls, so we can quickly check the bug collection again."
-   *
-   * Conditional for the same reason the secret quests are hidden until found: a
-   * permanent item labelled Bugs on the first screen announces a mechanic
-   * nobody has met yet, and turns a thing you stumble into a thing you were
-   * assigned. Once one is caught it stops being a spoiler and starts being a
-   * shortcut, which is exactly when it appears.
-   *
-   * It opens the case rather than navigating, because the case is a dialog
-   * everywhere else it opens from, and a rail item that changed screen would be
-   * the only one of the three that did something different.
-   */
-  if (bugs && bugs.count().got > 0) {
-    const item = h(
-      'button',
-      { class: 'rail-item', type: 'button', 'aria-current': 'false' },
-      h('span', { class: 'rail-pill' }, bugGlyph(24)),
-      h('span', { class: 'rail-label' }, 'Bugs'),
-    ) as HTMLButtonElement;
-    item.addEventListener('click', () => { void import('./bugframe.js').then((m) => m.openBugFrame(bugs)); });
-    rail.appendChild(item);
-  }
-
-  /*
-   * AND THE COMPLETION, LAST — board ticket N118.
-   *
-   * Nam: "Once progression is > 0 and at least one call has completed, when they
-   * go back to home screen, we should show the progression there too. Maybe on
-   * the left panel and last on the list."
-   *
-   * Both conditions matter and they guard different things. Above zero, because
-   * a rail item reading 0% on a first visit is a scoreboard for a game nobody has
-   * been told about. And after a completed call, because the number counts things
-   * that are mostly inside the call: showing it to somebody who has not been in
-   * yet would advertise the hunt before the thing being hunted.
-   *
-   * Same shape as the Bugs item above, for the same reason: it opens a dialog
-   * rather than changing screen, so all four rail items behave alike.
-   */
-  /*
-   * FETCHED, NOT IMPORTED, and the size gate is why.
-   *
-   * completion.ts reads all four collections, and one of them is `quips` out of
-   * data/tour.ts -- which is the entire script, the banter and the personal
-   * segment. A static import here pulls all of that into the INITIAL bundle,
-   * because home.ts is the first screen and is not deferred. The build measured
-   * it: 28.9 kB to 36.2 kB gzip, a quarter of the budget for a rail item that
-   * most visitors never see.
-   *
-   * So the rail is built without it and the item arrives when the chunk does.
-   * `loadInterview` is checked first, synchronously and cheaply, so a visitor who
-   * has never finished a call does not fetch the chunk at all.
-   */
-  if (loadInterview()) {
-    void import('./progress.js').then((m) => {
-      const p = m.progressNow();
-      if (p.pct <= 0 || !rail.isConnected) return;
-      const item = h(
-        'button',
-        { class: 'rail-item', type: 'button', 'aria-current': 'false' },
-        h('span', { class: 'rail-pill rail-pct' }, `${p.pct}%`),
-        h('span', { class: 'rail-label' }, 'Progress'),
-      ) as HTMLButtonElement;
-      item.addEventListener('click', () => { void import('./progressframe.js').then((f) => f.openProgress()); });
-      rail.appendChild(item);
-    });
-  }
+  //
+  // Built by ui/rail.ts since N137, because the ended screen now shows the same
+  // one. See the note at the top of that file for why it is shared rather than
+  // copied.
+  const rail = buildRail(store, bugs);
 
   // --- main ----------------------------------------------------------------
 

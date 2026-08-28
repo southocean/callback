@@ -1,9 +1,10 @@
 // The completion ring, and the breakdown behind it.
 //
-// Board ticket N118. Two surfaces want the same number: the ended screen reports
-// it with the interview time, and the home screen carries it in the rail once
-// there is something to carry. One module, so they cannot disagree about what
-// 40% means.
+// Board ticket N118, and N137 changed who asks for it. It used to be the ended
+// screen and the home rail. Now it is the home rail and the ENDED screen's rail,
+// which is the same rail -- the ended screen stopped reporting a lifetime total
+// and reports the pass instead. One module either way, so the two rails cannot
+// disagree about what 40% means.
 //
 // THE RING IS THE FOURTH USE OF THAT MOTIF -- the ready card's countdown, the
 // ended screen's return, the caption's dwell, and now this. That is deliberate
@@ -21,7 +22,7 @@ import { tally, type Progress } from '../completion.js';
 import { foundAll, lastShownPct, rememberPct } from '../prefs.js';
 import { prefersReducedMotion } from '../a11y.js';
 
-/** Read the four collections and add them up. */
+/** Read the three collections and add them up. */
 export function progressNow(): Progress {
   return tally(foundAll());
 }
@@ -107,6 +108,10 @@ export function ring(p: Progress, opts: RingOpts = {}): HTMLElement {
  * The `where` line only appears for a collection with something left in it.
  * Telling somebody where to find clips they have all found is noise, and a
  * completed row saying nothing is how it reads as completed.
+ *
+ * THREE ROWS SINCE N137. The commentary was the fourth and is no longer scored;
+ * the argument is in completion.ts, and the short version is that a quip is not
+ * an object you can go back and look at, so it had no honest `where` to give.
  */
 export function breakdown(p: Progress): HTMLElement {
   return h('div', { class: 'pr-rows' },

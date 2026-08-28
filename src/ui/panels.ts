@@ -1,16 +1,19 @@
 // Tier-one panels: the story.
 //
-// Chat is the cover letter, People is the career timeline, Present is the case
+// Chat is the transcript, People is the career timeline, Present is the case
 // studies. Review U7 pushed everything technical out of here and behind one
 // Engineering door, so these three stay narrative.
+//
+// Chat used to be the cover letter, in nine authored messages. N138 cut them: once
+// the panel's job is to show what has been said in this call, a second document
+// above it is competing for the same surface. See the note in data/cv.ts.
 
 import { h, clear, icon, icons } from '../dom.js';
 import { sym } from './icons.js';
 import { ripple } from './gm3.js';
 import { layoutTimeline, overlaps } from '../state.js';
-import { currentPitch } from '../data/companies.js';
 import type { Store } from '../state.js';
-import { chat, roles, caseStudies, profile } from '../data/cv.js';
+import { roles, caseStudies, profile } from '../data/cv.js';
 import { transcriptLines } from '../data/tour.js';
 import {
   liveTranscription, setLiveTranscription, saidSoFar, onSaid, meetingStart, stamp,
@@ -20,49 +23,22 @@ import {
 export const NOW = 2026.63;
 
 /**
- * The cover letter, as Meet's chat.
+ * THE TRANSCRIPT, as Meet's chat.
  *
- * MEASURED off the live panel, 2026-08-25, with the chat open during a share:
+ * MEASURED off the live panel, 2026-08-25, with the chat open during a share, and
+ * the measurements still apply to the composer and to anything the visitor sends:
  *
  *   own bubble   #004a77, radius `20px 20px 4px`, text #e3e3e3 14/20,
  *                right-aligned, capped at 244 inside a 360 panel
  *   info card    #282a2c, radius 8, padding 12, #c4c7c5 at 12/16
  *
- * Nam: "wrong chat text color, should be an input here for the chat." Both.
- * Ours painted every bubble in the neutral surface at 4px/16px and left-aligned
- * them, and had no composer at all.
- *
- * These are Nam's own messages in Nam's own session, so they take the own-message
- * side. Anything a visitor types is a guest and takes the other side -- which is
- * Meet's actual rule (own right in blue, others left in grey) rather than a
- * layout picked to look tidy.
+ * Anything a visitor types is a guest and takes the other side, which is Meet's
+ * actual rule (own right in blue, others left in grey) rather than a layout picked
+ * to look tidy. Nam's own messages used to take the own-message side; there are no
+ * authored messages left to take it (N138), so the rule now only ever applies to
+ * the visitor's own sends.
  */
 export function renderChat(): HTMLElement {
-  /*
-   * The cover letter's opening line is company-specific. cv.ts holds the neutral
-   * version; a ?c= code swaps in one that names the employer. Substituted here by
-   * position rather than by matching the text, so editing the neutral copy in
-   * cv.ts cannot silently break the swap.
-   */
-  const opener = currentPitch().opener;
-  let swapped = false;
-  const textFor = (m: { from: string; text: string }): string => {
-    if (m.from !== 'nam' || swapped) return m.text;
-    swapped = true;
-    return opener;
-  };
-
-  /*
-   * THE SWITCH REPLACED AN INFO CARD -- board ticket N129.
-   *
-   * What used to sit at the top of this panel was a sentence explaining why the
-   * cover letter is in a chat panel: "It is a chat panel because a chat panel is
-   * where people actually read things." Nam: "We dont need that, lets change it."
-   * He is right, and the reason it goes is not that it was wrong. It was a caption
-   * on a design decision, addressed to somebody who had not asked, in the position
-   * where Meet puts a control. Replacing it with an actual control is a straight
-   * upgrade: the panel now DOES something at the top instead of explaining itself.
-   */
   const trans = h('div', { class: 'tr-body' }) as HTMLElement;
   const transHead = h('div', { class: 'shead' }, '') as HTMLElement;
   const drawTranscript = (): void => {
@@ -77,14 +53,6 @@ export function renderChat(): HTMLElement {
 
   const list = h('div', { class: 'msg-list' },
     liveSwitch(drawTranscript),
-    ...chat.map((m) =>
-      h(
-        'div',
-        { class: m.from === 'system' ? 'msg msg-sys' : 'msg msg-own' },
-        m.from === 'nam' ? h('div', { class: 'msg-from' }, `Nam Nguyen  ${m.at}`) : null,
-        h('div', { class: 'msg-body' }, textFor(m)),
-      ),
-    ),
     transHead,
     trans,
   ) as HTMLElement;
@@ -116,7 +84,7 @@ export function renderChat(): HTMLElement {
    * like to still add the message to the chat as if we have sent it, but of
    * course if you refresh the site those messages will be gone. It adds to the
    * illusion." Nothing is persisted, which is the intended behaviour rather than
-   * a shortcut -- a reload puts the cover letter back exactly as written.
+   * a shortcut. A reload empties the panel back to the transcript.
    *
    * It was already being added, in fact. The bug was that nobody could see it:
    * the bubble landed 1813px down a 423px-tall scrollport with scrollTop still
@@ -389,18 +357,23 @@ export function renderPresent(store: Store): HTMLElement {
  * came from. Signing into somebody else's Google account to re-measure a number
  * this project has already measured is not a trade worth making.
  *
- * What DID come off the screenshots is the geometry and the two icons: the
- * host-controls switch is the full-size M3 one rather than the 39x24 in the call
- * bar, and it carries a tick when on and a cross when off. Both are stated in the
- * stylesheet as read-from-screenshot rather than measured, because that is what
- * they are.
+ * The geometry is MEASURED now, off a real M3 switch in meet.google.com's
+ * Settings dialog: 39x24 with an 18px handle, 15px of travel, 75ms on
+ * cubic-bezier(0.4, 0, 0.2, 1). The screenshots had it as the full-size 52x32
+ * switch with a handle that shrank when off, and both were wrong. What the
+ * screenshots did get right is the pair of glyphs -- Meet draws a tick when on
+ * and a cross when off, which a computed-style dump cannot see. Colours come from
+ * the same control in a live call's chat panel rather than from the Settings
+ * dialog, because that one is on a light surface. styles.css has every reading.
  *
  * role="switch" and aria-checked, not a checkbox: it is a control that takes
  * effect immediately, which is the whole distinction between the two.
  */
 function liveSwitch(onChange: () => void): HTMLElement {
+  // 12px glyphs in an 18px handle, which is the proportion Meet's own switch
+  // shows at 4x. They were 16 in a 24px handle.
   const knob = h('span', { class: 'lt-knob' },
-    sym('check', 16), sym('close', 16)) as HTMLElement;
+    sym('check', 12), sym('close', 12)) as HTMLElement;
   const btn = h('button', {
     class: 'lt-sw', type: 'button', role: 'switch',
     'aria-checked': liveTranscription() ? 'true' : 'false',

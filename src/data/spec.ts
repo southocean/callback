@@ -102,8 +102,11 @@ export const flow = {
       body: 'The screen-share panel holds four case studies instead of a shared window.',
     },
     {
-      what: 'In-call messages is the cover letter',
-      body: 'Written as a chat thread, because that is where people actually read things.',
+      what: 'In-call messages is the transcript',
+      body:
+        'A switch at the top chooses between two answers: what has been said in this call, stamped when it '
+        + 'was said, or the whole running order, stamped when each line is due. They agree until you '
+        + 'interrupt.',
     },
     {
       what: 'Meeting tools is the engineering wing',

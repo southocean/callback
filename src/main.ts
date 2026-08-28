@@ -12,6 +12,7 @@ import { openDev } from './ui/devopen.js';
 import { togglePlain, onPlainOpened } from './ui/plainoverlay.js';
 import { codeFromUrl, pitchFor } from './data/companies.js';
 import { loadReadyGate, readyCardOpens } from './prefs.js';
+import { beginPass } from './pass.js';
 
 const root = must('#app');
 const quests = new Quests();
@@ -179,6 +180,19 @@ function render(): void {
    * this is the one place that knows a screen is about to be replaced.
    */
   const leftCall = lastKey === 'call' && key !== 'call';
+  /*
+   * AND ENTERING ONE STARTS A PASS -- board ticket N137.
+   *
+   * The ended screen reports what was found in THIS visit, which needs a
+   * before-picture, and this is the only place that knows the call is being
+   * entered rather than re-rendered. Doing it inside renderCall would not work:
+   * that function runs on every state change during the call, so the snapshot
+   * would be retaken after each find and the pass would always look empty.
+   *
+   * Read off lastKey for the same reason `leftCall` above is: a Rejoin is a new
+   * pass and has to reset the mark, a re-render is not and must not.
+   */
+  const enteredCall = key === 'call' && lastKey !== 'call';
 
   renderTicket += 1;
   lastKey = key;
@@ -186,6 +200,7 @@ function render(): void {
   // The chunk is already resolved -- you cannot have left a call you never
   // reached -- so this is a cached module lookup rather than a fetch.
   if (leftCall) void import('./ui/call.js').then((m) => m.stopTour());
+  if (enteredCall) beginPass();
 
   document.body.classList.toggle('plain', key === 'plain');
 

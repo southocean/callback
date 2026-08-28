@@ -2309,10 +2309,16 @@ function sessionRow(): HTMLElement {
     paint();
   }, 1000);
 
-  /* Opened from in here it has to be dark, because the room is. See openProgress. */
+  /* Opened from in here it has to be dark, because the room is. See openProgress.
+   *
+   * And with no catcher, so the panel draws no way out to the bug case (N137).
+   * That is the right answer rather than a gap: the call is where bugs are
+   * CAUGHT, and a cabinet opening over the top of the room you are hunting in is
+   * a second modal on a screen that already has one. The rail on the home and
+   * ended screens is where the case is browsed. */
   const progStat = h('button', {
     class: 'hc-stat hc-stat-btn', type: 'button',
-    'aria-label': `How much of this you found: ${pct} per cent. Opens the breakdown.`,
+    'aria-label': `Your completion: ${pct} per cent. Opens the breakdown.`,
     onclick: () => { void import('./progressframe.js').then((f) => f.openProgress('dark')); },
   },
     h('span', { class: 'hc-stat-k' }, 'Found'),

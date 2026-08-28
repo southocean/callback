@@ -803,13 +803,49 @@ button { font: inherit; }
    the project had already written the answer down and the honest thing is to reuse
    it and say so.
 
-   THE GEOMETRY IS READ OFF NAM'S TWO SCREENSHOTS and is not a measurement: 52x32
-   with a 24px handle, i.e. M3's full-size switch rather than the 39x24 the call bar
-   uses. The row around it is the panel's own surface, line and radius.
+   MEASURED NOW, off the live product, and it was wrong in every dimension.
+   Nam: "what we have here look a bit odd, way too big, and Idk if the animation
+   is correct." All three, and the old note here admitted the source: the geometry
+   had been read off two screenshots rather than measured.
 
-   Both icons are always in the DOM and one is always scaled to nothing. Swapping
+   Read from a real M3 switch in meet.google.com's Settings dialog, over the
+   DevTools protocol:
+
+     track        39x24, radius 9999px          (we had 52x32)
+     handle       18x18, radius 9999px          (we had 24 selected, 16 not)
+     handle inset 3px from the track's outer edge, both axes
+     travel       15px, so 3 + 18 + 15 = 36 and 39 - 3 = 36
+     motion       margin .075s cubic-bezier(0.4, 0, 0.2, 1), and the same curve
+                  and duration on the handle's width and height
+     focus        box-shadow 0 0 0 3px #00639b   (we had a 2px outline)
+     state layer  a 30x30 circle centred on the handle
+
+   TWO THINGS THE SCREENSHOTS GOT RIGHT and the DOM alone would have lost. The
+   switch does carry a tick when on and a cross when off -- the glyphs are drawn,
+   not text, so they read as nothing in a computed-style dump and only turned up
+   on a zoomed screen capture. And the handle does NOT change size between states
+   in this switch; the width/height transition is there for the press, not for the
+   toggle. Ours shrank the handle when off, which was an invention.
+
+   AND THE COLOURS ARE MEASURED TOO, off the right switch. The first pass read the
+   Settings dialog, which is a light surface, and mapped the dark values from the
+   palette. Nam: "why are you using the toggle in the setting? we should be using
+   the toggle inside meet call, in the chat panel?!" He is right, and it mattered:
+   the geometry was identical either way, but two of the four colours were wrong.
+
+   Read from "Let participants send messages" in a live call's chat panel, which
+   is the same control on the same kind of dark surface as this one:
+
+     on  track  #a8c7fa   handle #062e6f      (the palette guess had #8ab4f8)
+     off track  #333537 inside a 2px #8e918f ring, handle #8e918f
+                                             (the guess had --dark-line for the fill)
+
+   The off state is a ::before over the track that fades on `opacity .075s`, so
+   the two states cross-fade rather than one colour animating into the other.
+
+   Both icons stay in the DOM and one is always scaled to nothing. Swapping
    textContent at the midpoint would be cheaper and would also be a pop in the
-   middle of a 200ms move, which is the one thing Nam asked for the opposite of:
+   middle of the move, which is the one thing Nam asked for the opposite of:
    "note there is a very smooth transition between on and off". */
 .lt-row {
   display: flex; align-items: center; justify-content: space-between; gap: 16px;
@@ -818,46 +854,50 @@ button { font: inherit; }
 }
 .lt-label { font: 400 14px/20px var(--font); color: var(--on-dark); }
 
+/* 39x24 including the 2px border, so the border box stays put between states and
+   only the colours move. The knob's offsets are written against the PADDING box,
+   which is 2px in on every side -- hence 1px here for a 3px inset on screen. */
 .lt-sw {
   position: relative; flex: 0 0 auto; box-sizing: border-box;
-  width: 52px; height: 32px; padding: 0;
-  border: 2px solid transparent; border-radius: 16px; cursor: pointer;
-  background-color: #8ab4f8;
-  transition: background-color .2s linear, border-color .2s linear;
+  width: 39px; height: 24px; padding: 0;
+  border: 2px solid transparent; border-radius: 999px; cursor: pointer;
+  background-color: #a8c7fa;
+  transition: background-color .075s cubic-bezier(0.4, 0, 0.2, 1),
+              border-color .075s cubic-bezier(0.4, 0, 0.2, 1);
 }
 .lt-knob {
-  position: absolute; top: 2px; left: 22px;
-  width: 24px; height: 24px; border-radius: 50%;
+  position: absolute; top: 1px; left: 16px;
+  width: 18px; height: 18px; border-radius: 50%;
   display: grid; place-items: center;
   background-color: #062e6f; color: #d3e3fd;
-  transition: left .2s cubic-bezier(0.2, 0, 0, 1),
-              width .2s cubic-bezier(0.2, 0, 0, 1),
-              height .2s cubic-bezier(0.2, 0, 0, 1),
-              top .2s cubic-bezier(0.2, 0, 0, 1),
-              background-color .2s linear, color .2s linear;
+  transition: left .075s cubic-bezier(0.4, 0, 0.2, 1),
+              background-color .075s cubic-bezier(0.4, 0, 0.2, 1),
+              color .075s cubic-bezier(0.4, 0, 0.2, 1);
 }
-/* The two glyphs live on top of each other and take turns. */
+/* The two glyphs live on top of each other and take turns. 12px in an 18px
+   handle, which is the proportion the capture shows. */
 .lt-knob .ms {
-  position: absolute; line-height: 1;
-  transition: transform .2s cubic-bezier(0.2, 0, 0, 1), opacity .12s linear;
+  position: absolute; line-height: 1; font-size: 12px;
+  transition: transform .075s cubic-bezier(0.4, 0, 0.2, 1), opacity .06s linear;
 }
 .lt-knob .ms:nth-child(1) { transform: scale(1); opacity: 1; }
 .lt-knob .ms:nth-child(2) { transform: scale(0); opacity: 0; }
 
-/* OFF. The track goes to the panel's own outline, the handle shrinks to M3's
-   unselected size and slides left, and the cross takes over. Shrinking is what
-   makes the off state read as off at a glance rather than as a blue thing that
-   moved: it is the difference M3 draws between selected and unselected. */
+/* OFF. The track takes a fill and an outline and the handle slides left, at the
+   same size: 15px of travel and nothing else moves. */
 .lt-sw[aria-checked="false"] {
-  background-color: transparent; border-color: #8e918f;
+  background-color: #333537; border-color: #8e918f;
 }
 .lt-sw[aria-checked="false"] .lt-knob {
-  left: 6px; top: 6px; width: 16px; height: 16px;
+  left: 1px;
   background-color: #8e918f; color: #202124;
 }
 .lt-sw[aria-checked="false"] .lt-knob .ms:nth-child(1) { transform: scale(0); opacity: 0; }
 .lt-sw[aria-checked="false"] .lt-knob .ms:nth-child(2) { transform: scale(1); opacity: 1; }
-.lt-sw:focus-visible { outline: 2px solid var(--dark-blue); outline-offset: 3px; }
+/* Meet's own ring, and the one DESIGN-PRINCIPLES already specifies: a 3px
+   box-shadow in #00639b rather than an outline, because outlines cannot animate.
+   Read off the live switch as `rgb(0, 99, 155) 0px 0px 0px 3px`. */
+.lt-sw:focus-visible { outline: none; box-shadow: 0 0 0 3px #00639b; }
 
 /* The record can get long, and it is inside a panel that already scrolls. Capping
    it keeps the cover letter reachable without a second scrollbar fighting the
@@ -938,7 +978,6 @@ code { font: 400 12px/1.4 ui-monospace, Consolas, monospace; color: var(--dark-b
   background-color: var(--dark-surface);
   font: 400 14px/21px var(--font); color: var(--on-dark);
 }
-.msg-sys .msg-body { background: none; padding: 0; color: var(--on-dark2); font-size: 13px; font-style: italic; }
 
 /* people = timeline */
 .axis { margin: 4px 0 18px; }
@@ -7148,15 +7187,10 @@ body.is-pinned .solo { --pin-lead: 34px; }
 @supports not selector(::-webkit-scrollbar) {
   .msg-list { scrollbar-width: thin; scrollbar-color: #5f6368 transparent; }
 }
-/* Nam's own messages take the own-message side, because this is his session. */
-.msg-own { display: flex; flex-direction: column; align-items: flex-end; }
-.msg-own .msg-body {
-  max-width: 244px;
-  background-color: #004a77; color: #e3e3e3;
-  border-radius: 20px 20px 4px 20px;
-  font: 400 14px/20px var(--font);
-}
-.msg-own .msg-from { align-self: flex-end; }
+/* N138 removed .msg-own with the nine authored messages it dressed. The measured
+   own-bubble values it carried -- #004a77, radius 20/20/4/20, capped at 244 -- are
+   recorded in the renderChat docblock in ui/panels.ts, because they were read off
+   the live product and the measurement outlives the markup that used it. */
 /* Anything a visitor types is a guest: grey, and on the other side. That is
    Meet's real rule rather than a layout picked to look tidy. */
 .msg-guest { margin: 0 0 16px; display: flex; flex-direction: column; align-items: flex-start; }
@@ -9161,12 +9195,69 @@ body.bug-struck { animation: bug-shake 520ms cubic-bezier(0.36, 0.07, 0.19, 0.97
 .dp-dark .pr-row.is-done .pr-bar i { background-color: #81c995; }
 .dp-dark .pr-where.is-done { color: #81c995; }
 
-/* The rail item shows the number itself rather than a glyph: it is the one item
-   in that column whose whole content is a value, and a percent sign is a better
-   icon for it than anything from the symbol set. */
-.rail-pct {
-  font: 500 13px/1 var(--font); color: var(--dark-blue, #0b57d0);
-  font-variant-numeric: tabular-nums;
+/* The way out to the cabinet, since the ended screen stopped carrying one (N137).
+   Left-aligned under the rows rather than stretched, because it is one optional
+   errand and not the panel's purpose. */
+.pr-acts { margin-top: 18px; display: flex; }
+
+/* --- the rail item (N137) ------------------------------------------------- */
+/* It was a pill reading "44%" with the word "Progress" under it. Nam, with a
+   picture of the ring: "no text, not a percentage number and a progress text that
+   we currently have." So the item IS the ring, at 44px, and carries no label.
+
+   Which leaves it the only item in the column with one child instead of two, so
+   it centres itself in the 56px box rather than sitting at the top where a pill
+   would. The box stays 56 tall and keeps its 14px margin, because the pitch of
+   this column is what the ended screen's copy of the rail is matching. */
+.rail-prog { justify-content: center; }
+/* Overriding .rail-pill's 56x32 lozenge: the hover and press wash comes from that
+   class and is worth keeping, but the shape underneath it is a circle now. */
+.rail-ring {
+  width: 44px; height: 44px; border-radius: 50%;
+}
+/* 17px is right in a 96px hero and far too loud in a 44px one. Measured against
+   the arc rather than chosen: at this size the number should read as the ring's
+   contents, not as a figure with a ring drawn round it. */
+.rail-ring .pr-n { font-size: 12.5px; }
+/* The viewBox is 64 wide and the box is 44, so the stroke is scaled by .69 on the
+   way in. 6 lands at 4.1 rendered, which is the weight the 96px hero shows at 5
+   and the weight the countdown ring in the other corner is drawn at. */
+.rail-ring .pr-ring circle { stroke-width: 6; }
+
+/* --- the same rail, on the ended screen (N137) ---------------------------- */
+/* Absolutely positioned rather than a flex sibling, for the reasons in ended.ts:
+   the content column on that screen is centred against the WINDOW, and the
+   geometry that has to match is the home rail's distance from the top-left of it.
+   Home puts the rail inside .home-body, which starts under a 64px bar, and adds
+   48px of its own. So: 64 + 48, stated once. */
+.ended > .rail {
+  position: absolute; top: 0; left: 0; z-index: 4;
+  width: 104px; padding-top: calc(var(--topbar) + 48px);
+}
+/* Meetings and Calls: laid out, so the two items below them land in the third and
+   fourth slots, and then made invisible. visibility rather than display, which is
+   the whole trick -- display:none would collapse the pitch and the ring would
+   jump 140px up the screen the moment you pressed Return to home screen. */
+.ended > .rail .rail-item[aria-hidden="true"] { visibility: hidden; }
+
+/* Below 840 the home rail is a drawer behind a menu button, and the ended screen
+   has no menu button to put behind. Rather than invent one for a screen you are
+   leaving, the items come back into the flow as a centred row above the heading.
+   The "exact same place" argument does not apply here: at this width the home
+   rail is not in a place either. */
+@media (max-width: 839px) {
+  .ended > .rail {
+    position: static; transform: none; width: auto; height: auto;
+    box-shadow: none; background: none; border: 0; overflow: visible;
+    padding: 0 0 20px; margin: 0;
+    display: flex; flex-direction: row; justify-content: center; gap: 8px;
+  }
+  /* No pitch left to preserve, so the ghosts stop taking space. */
+  .ended > .rail .rail-item[aria-hidden="true"] { display: none; }
+  .ended > .rail .rail-item {
+    flex-direction: column; width: 72px; height: auto; padding: 0; margin: 0;
+    justify-content: flex-start; gap: 6px;
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {

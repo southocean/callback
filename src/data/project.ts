@@ -1343,7 +1343,7 @@ export const tasks: Task[] = [
       done: [
         'No code resolves to the Google pitch',
         '?c=0 resolves to the neutral build, so the reusable version is still one parameter away',
-        'The tab title, the meeting name, the chat opener and the job-ad section all name the employer by default',
+        'The tab title, the meeting name and the job-ad section all name the employer by default (the chat opener was a fourth until N138 cut the chat messages)',
       ],
       raised: 'Nam, script pass 28 Aug',
       notes: 'A default is a one-line change and an escape hatch is not. ?c=0 had to become a real code rather than an unknown one, because codeFromUrl treats an unrecognised value as absent, which now means Google.',
@@ -2381,6 +2381,63 @@ export const tasks: Task[] = [
       done: ['The checker decodes \\uXXXX and \\xXX inside string literals before looking', 'The sixteen existing escapes replaced with real punctuation', 'Verified to fail: an escaped dash now reports'],
       raised: 'Found, 28 Aug',
       notes: 'A gate that can be stepped around by writing the same character differently is worse than no gate, because it reports success. All sixteen were in data/project.ts, all in card copy the Project specifications panel prints, so all sixteen reached the screen.',
+    },
+  },
+
+  {
+    id: 'N136', col: 'review', size: 'S', tag: 'content',
+    title: 'The commentary stops being scored',
+    note: 'Twelve jokes were in the completion denominator with nowhere to send anybody looking for the rest.',
+    detail: {
+      why: 'Nam: "I think the we should eliminate the acknowledgement texts in this progression cause I dont really know how to count them into a category, let’s just keep the acknowledgement texts out of this and its just a fun thing for user."',
+      done: ['completion.ts counts three collections, not four', 'The quips are still remembered, so he does not repeat himself', 'The breakdown panel loses its fourth row'],
+      raised: 'Nam, 28 Aug',
+      notes: 'The other three are objects you can go back and look at: a quest in a tray, a bug in a case, a clip in a calendar. A quip is him noticing that you did something, and the reward is hearing it. Counting it meant the panel had to tell a completionist where the missing ones were, and the only honest answer was "touch something out of the way", which is not a hint, it is a shrug.',
+    },
+  },
+  {
+    id: 'N137', col: 'review', size: 'M', tag: 'content',
+    title: 'The ended screen reports the pass, the rail carries the total',
+    note: 'Three cards of lifetime figures replaced by what this visit found, and the ring moved to a rail the ended screen now has.',
+    detail: {
+      why: 'Nam: "On ended screen, we show the run time then underneath is list of new things user has found in this pass, like new bugs, new achievements and new easter eggs... Then on the left panel, we will display the bug and the progression ring, at the exact place they would be once we are back in home screen."',
+      done: ['The rail is one builder, shared by home and ended, with the nav items ghosted on ended', 'The rail item is the ring itself: no percentage text, no caption', 'One tile per collection that gained something, naming the things', 'The panel heading is "Your completion" and the gating paragraph is gone', 'The way out to the bug case moved into the panel and the rail'],
+      raised: 'Nam, 28 Aug',
+      notes: 'The 21-against-17 that started this was real and both numbers were right: the ring counts every side quest there is, because a bar reading 100% with three secrets left is a lie, and the card under it counted the seventeen the opening line promises out loud, because secrets are not advertised. Two right answers to two different questions do not belong eighteen pixels apart. Stacking them was the bug; the fix was to stop asking the second question on that screen. Ghosting the two nav items rather than removing them is what keeps the ring from jumping when you press Return to home screen.',
+    },
+  },
+
+  {
+    id: 'N138', col: 'review', size: 'M', tag: 'content',
+    title: 'The chat panel stops being the cover letter',
+    note: 'Nine authored messages cut. The panel is the switch and the transcript, which is the whole of its job now.',
+    detail: {
+      why: 'Nam, looking at the panel after N129 shipped: "we had a rebuild and I can see the live transcription toggle, but all this stuff is still here! Ive asked you to remove them no?? How the heck can I trust you now, you say you have done stuff and then I check back they are still there!" He asked for this in the same breath as the switch and I read it narrowly: he had quoted the info card verbatim, the way he quoted copy in two other points of the same message, so the card came out and the messages stayed. The card was the smaller half.',
+      done: [
+        'The nine messages and the ChatMessage type are gone',
+        'The panel is the switch, the transcript and the composer',
+        'Nothing anywhere claims the panel is a cover letter',
+        'Dead CSS removed, measured values kept in the docblock that needed them',
+      ],
+      raised: 'Nam, 28 Aug, second look',
+      notes: 'THE POINT IS NOT THAT THE MESSAGES WERE BAD. They were good, and one of them was the most disarming paragraph on the site. The reason they go is structural: once the panel answers "what has been said in this call", a second document above it competes for the same surface, and the conceit had needed a caption to explain itself since the day it shipped. N129 replaced that caption with a control, which made the conceit redundant rather than better explained. THREE CONSEQUENCES, none of them obvious from the diff. The per-company opening line (T9) lost its only rendered surface, so ?c= now swaps three things rather than four; company.ts says so on its own page rather than leaving a table implying otherwise. The composer survives and still works, so a visitor can type into an empty panel and see their own bubble, which is what Meet does. And the own-bubble values measured off the live product moved into the renderChat docblock, because a measurement outlives the markup that used it.',
+    },
+  },
+
+  {
+    id: 'N139', col: 'done', size: 'M', tag: 'specs',
+    title: 'The Live transcription switch, measured instead of guessed',
+    note: 'It was 52x32 from a screenshot. The real one is 39x24, and the move is 75ms rather than 200.',
+    detail: {
+      why: 'Nam: "what we have here look a bit odd, way too big, and Idk if the animation is correct." All three were true, and the stylesheet had already admitted why: the geometry was "READ OFF NAM’S TWO SCREENSHOTS and is not a measurement". With a browser we control and a signed-in session, it stopped having to be a guess.',
+      done: [
+        'Track 39x24, handle 18x18 in both states, 3px inset, 15px of travel',
+        'Motion is 75ms on cubic-bezier(0.4, 0, 0.2, 1), not 200ms on the standard curve',
+        'Focus is a 3px #00639b box-shadow, which is what the principles already said',
+        'Colours read off the same control on a dark surface',
+      ],
+      raised: 'Nam, 28 Aug',
+      notes: 'Two corrections worth keeping, both from Nam. The first pass measured the switch in Meet’s Settings dialog, and he stopped it: "why are you using the toggle in the setting? we should be using the toggle inside meet call, in the chat panel?!" The geometry turned out identical, but two of the four colours were not: the on-track is #a8c7fa rather than the #8ab4f8 the palette suggested, and the off-track is filled #333537 rather than the generic line token. Settings is a light surface and Meet does not honour prefers-color-scheme there, so the dark values could only come from inside a call. The second: the DOM alone would have thrown away the tick and the cross. They are drawn glyphs, so a computed-style dump reports nothing, and they only showed up on a 4x screen capture -- which is also how the off-state handle was caught being grey while getComputedStyle reported the selected navy. Numbers and pixels disagree often enough that both are worth reading. What the old version invented outright was the handle shrinking when off; Meet keeps it at 18 and reserves the size transition for the press.',
     },
   },
 

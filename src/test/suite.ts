@@ -38,6 +38,7 @@ import {
 } from '../tour/profile.js';
 import { readSeenEggs, stillUnseen, chooseBanter, readHeard } from '../prefs.js';
 import { percent, tally } from '../completion.js';
+import { newFinds, type Found } from '../pass.js';
 import { quests } from '../data/quests.js';
 import { bugs as allBugs } from '../data/bugs.js';
 import { eggs as allEggs } from '../data/eggs.js';
@@ -1580,9 +1581,8 @@ suite('the questions, and remembering them', () => {
 });
 
 suite('completion', () => {
-  // The four id lists, read from the same data the tally reads.
+  // The three id lists, read from the same data the tally reads.
   const questIds = (): string[] => quests.map((q) => q.id);
-  const quipIds = (): string[] => tourQuips.map((q) => q.id);
   const bugIds = (): string[] => allBugs.map((b) => b.id);
   const eggIds = (): string[] => allEggs.map((e) => e.id);
 
@@ -1610,40 +1610,105 @@ suite('completion', () => {
   });
 
   test('every collection is counted, and none twice', () => {
-    const p = tally({ quests: [], quips: [], bugs: [], eggs: [] });
-    eq(p.parts.length, 4, 'a collection went missing from the tally');
+    const p = tally({ quests: [], bugs: [], eggs: [] });
+    eq(p.parts.length, 3, 'a collection went missing from the tally');
     eq(p.got, 0);
     eq(p.total, p.parts.reduce((a, x) => a + x.total, 0), 'the total is not the sum of its parts');
-    ok(p.total > 40, `only ${p.total} findable things, which suggests a list did not load`);
+    ok(p.total > 30, `only ${p.total} findable things, which suggests a list did not load`);
   });
 
   test('a saved id for something that no longer exists is ignored', () => {
     /*
-     * The failure this guards is specific and would be invisible: seventeen quips
-     * were deleted in this same ticket, and anyone who had found them still has
-     * those ids in localStorage. Counting them would push the numerator past the
-     * denominator and print 108%.
+     * The failure this guards is specific and would be invisible: a quest, bug or
+     * clip renamed or dropped leaves its old id in somebody's localStorage.
+     * Counting one of those would push the numerator past the denominator and
+     * print 108%.
      */
     const p = tally({
-      quests: ['nope', 'also-nope'], quips: ['desk-drag', 'c-mic'], bugs: ['ghost'], eggs: ['gone'],
+      quests: ['nope', 'also-nope'], bugs: ['ghost'], eggs: ['gone'],
     });
     eq(p.got, 0, 'ids for deleted things were counted');
     eq(p.pct, 0);
   });
 
   test('duplicates in a saved list count once', () => {
-    const p = tally({ quests: ['join', 'join', 'join'], quips: [], bugs: [], eggs: [] });
+    const p = tally({ quests: ['join', 'join', 'join'], bugs: [], eggs: [] });
     eq(p.got, 1, 'a repeated id was counted more than once');
   });
 
   test('finding everything really does reach a hundred', () => {
-    const all = tally({ quests: [], quips: [], bugs: [], eggs: [] });
+    const all = tally({ quests: [], bugs: [], eggs: [] });
     // Rebuild the full set from the totals the tally itself reports.
     const full = tally({
-      quests: questIds(), quips: quipIds(), bugs: bugIds(), eggs: eggIds(),
+      quests: questIds(), bugs: bugIds(), eggs: eggIds(),
     });
-    eq(full.got, all.total, 'the four id lists do not add up to the total');
+    eq(full.got, all.total, 'the three id lists do not add up to the total');
     eq(full.pct, 100);
+  });
+});
+
+suite('the pass', () => {
+  /*
+   * N137. The ended screen stopped reporting lifetime totals and now reports what
+   * turned up in the visit just finished, which is a set difference taken against
+   * a snapshot the router stamps on the way into the call. A wrong answer here is
+   * a screen congratulating somebody for things they found last Tuesday, so the
+   * diff is exercised rather than trusted.
+   */
+  const none: Found = { quests: [], bugs: [], eggs: [] };
+  const names = (parts: ReturnType<typeof newFinds>, key: string): string[] =>
+    parts.find((p) => p.key === key)?.names ?? [];
+
+  test('an unchanged pass found nothing', () => {
+    const had: Found = { quests: ['join', 'chat'], bugs: [bugList[0]!.id], eggs: [] };
+    const parts = newFinds(had, { ...had });
+    eq(parts.reduce((a, p) => a + p.names.length, 0), 0, 'a pass that found nothing reported a find');
+  });
+
+  test('only what arrived during the pass is reported', () => {
+    const had: Found = { quests: ['join'], bugs: [], eggs: [] };
+    const now: Found = { quests: ['join', 'chat'], bugs: [bugList[0]!.id], eggs: [] };
+    eq(names(newFinds(had, now), 'quests').length, 1, 'a quest held before the pass was reported as new');
+    eq(names(newFinds(had, now), 'quests')[0], 'Read the messages');
+    eq(names(newFinds(had, now), 'bugs')[0], bugList[0]!.name);
+  });
+
+  test('an id for something that no longer exists is not reported', () => {
+    /*
+     * The same guard the tally has, and it matters more here: the tally would
+     * only miscount, while this would have to print a NAME for an id it cannot
+     * look up. Silence is the only honest output.
+     */
+    const now: Found = { quests: ['ghost-quest'], bugs: ['ghost-bug'], eggs: ['ghost-clip'] };
+    eq(newFinds(none, now).reduce((a, p) => a + p.names.length, 0), 0, 'a deleted id was named');
+  });
+
+  test('storage cleared mid-pass is not a find', () => {
+    // The admin panel can forget a collection while a call is running. Losing
+    // things is not finding them, and the screen must not say otherwise.
+    const had: Found = { quests: ['join', 'chat'], bugs: [], eggs: [] };
+    eq(newFinds(had, none).reduce((a, p) => a + p.names.length, 0), 0, 'a cleared list was read as a gain');
+  });
+
+  test('a duplicate saved id is named once', () => {
+    const now: Found = { quests: ['join', 'join'], bugs: [], eggs: [] };
+    eq(names(newFinds(none, now), 'quests').length, 1, 'a repeated id was named twice');
+  });
+
+  test('secret quests are reported by name, since this is where they surface', () => {
+    // The tray lists a secret only after it is found, so the pass report is the
+    // first place a visitor ever reads one of these titles.
+    const secret = quests.find((q) => q.secret)!;
+    const now: Found = { quests: [secret.id], bugs: [], eggs: [] };
+    eq(names(newFinds(none, now), 'quests')[0], secret.name, 'a secret quest went unnamed');
+  });
+
+  test('names come out in declared order, not the order they were found', () => {
+    // Stable between renders, and it reads as a list rather than a log.
+    const now: Found = { quests: ['chat', 'join'], bugs: [], eggs: [] };
+    const got = names(newFinds(none, now), 'quests');
+    eq(got[0], 'Join the call', 'the pass reported finds in storage order');
+    eq(got[1], 'Read the messages');
   });
 });
 

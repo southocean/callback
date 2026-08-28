@@ -31,9 +31,23 @@ export function renderCompany(onHome: () => void): HTMLElement {
         h('div', { class: 'doc-target' }, 'Unlisted. Nothing in the CV links here.'))),
 
     h('p', { class: 'co-lead' },
-      `A code in the query string swaps in the company-specific lines: the header, the scheduled ` +
-      'meeting and the opening message of the cover letter. Everything else is identical, so there is ' +
-      `one artefact rather than one per application. No code at all now resolves to ?c=${DEFAULT_CODE}.`),
+      `A code in the query string swaps in the company-specific lines: the header and the scheduled ` +
+      'meeting. Everything else is identical, so there is one artefact rather than one per application. ' +
+      `No code at all now resolves to ?c=${DEFAULT_CODE}.`),
+
+    /*
+     * N138 took the third surface away. The opening line was substituted into the
+     * first message of the chat panel's cover letter, and the cover letter is gone,
+     * so the string is still authored per company and rendered to nobody.
+     *
+     * It is listed below anyway, and labelled, rather than deleted. This page exists
+     * to say what each code actually does; a row that quietly implies an effect it
+     * no longer has is the exact failure that got the chat cut in the first place.
+     */
+    h('p', { class: 'co-note' },
+      'One caveat while you read the tables: the opening line is currently rendered nowhere. It was the '
+      + 'first message of the chat panel, which is now the transcript instead, so the text below is '
+      + 'authored and unused until it is given a new home.'),
 
     h('h2', {}, 'The neutral build'),
     h('p', { class: 'co-note' },
@@ -43,7 +57,7 @@ export function renderCompany(onHome: () => void): HTMLElement {
     h('dl', { class: 'co-card' },
       row('Applying for', NEUTRAL.target),
       row('Meeting title', NEUTRAL.meeting),
-      row('Opening line', NEUTRAL.opener)),
+      row('Opening line (unused)', NEUTRAL.opener)),
 
     h('h2', {}, 'Codes'),
     ...companies.map((c) => h('section', { class: 'co-block' },
@@ -57,7 +71,7 @@ export function renderCompany(onHome: () => void): HTMLElement {
         row('Location', c.place),
         row('Applying for', c.target),
         row('Meeting title', c.meeting),
-        row('Opening line', c.opener)),
+        row('Opening line (unused)', c.opener)),
       h('p', { class: 'co-note' }, c.notes))),
 
     h('h2', {}, 'Adding one'),
