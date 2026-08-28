@@ -164,7 +164,7 @@ const ACK_GAP_MS = 9000;
  * genuinely having ended. Come back too soon and it is not banter about nobody
  * leaving — it is the script still going.
  */
-const OUTRO_WAIT_MS = 14_000;
+const OUTRO_WAIT_MS = 120_000;
 
 export function startTour(root: HTMLElement, podium: Podium): TourHandle {
   const reduced = prefersReducedMotion();
@@ -244,6 +244,20 @@ export function startTour(root: HTMLElement, podium: Podium): TourHandle {
    * place to a joke about the taskbar clock.
    */
   let floorLine = '';
+  /**
+   * When the last caption went up, which is not the same as when the flow ended.
+   *
+   * Board ticket N109. The after-credits used to wait on `flowEndedAt`, so a
+   * visitor who spent five minutes clicking around after the goodbye -- hearing
+   * commentary the whole time -- still got "Still here?" measured from a moment
+   * long past. Nam: "Right now still here is triggered almost immediately after
+   * we finish the script, so its very bizarre, like of course Im here! We JUST
+   * finished, let me breathe!"
+   *
+   * Every line moves this, including the commentary, so the silence being waited
+   * on is real silence rather than the absence of one particular thing.
+   */
+  let spokeAt = 0;
 
   /**
    * Say a line and hold it for as long as the visitor wants it.
@@ -256,6 +270,7 @@ export function startTour(root: HTMLElement, podium: Podium): TourHandle {
    */
   const voice = async (text: string, ms: number): Promise<void> => {
     floorLine = text;
+    spokeAt = performance.now();
     await podium.say(text, Math.max(0, Math.round(ms * pace(visitor))));
   };
 
@@ -590,6 +605,41 @@ export function startTour(root: HTMLElement, podium: Podium): TourHandle {
   };
 
   /**
+   * Raise Explorer and open the folder the clips are in.
+   *
+   * Its own step because two things want it at two different moments: the
+   * segment's first line, so the visitor can see where this is going (N114), and
+   * doEggs itself, for the case where nothing opened it first. Idempotent, so the
+   * order does not matter -- raising a raised window is a press on a title bar,
+   * and clicking Hobby when Hobby is open navigates to Hobby.
+   *
+   * Returns whether the file list is actually there, since every caller has to
+   * decide what to do when it is not.
+   */
+  const openFiles = async (): Promise<boolean> => {
+    if (!q('.shot .dk-surface')) return false;
+    /*
+     * The taskbar button is a toggle: with one window open it focuses an
+     * unfocused app and MINIMISES a focused one, which is correct Windows and
+     * would be a coin flip here. Pressing the title bar only ever raises.
+     */
+    if (document.querySelector('.shot .wx:has(.wx-list)')) {
+      await pressSel('.shot .wx:has(.wx-list) .wx-bar');
+    } else if (await pressSel('.dk-task[data-app="explorer"]', true)) {
+      await appears('.shot .wx-list');
+    }
+    if (!q('.shot .wx-list')) return false;
+
+    /* Into Hobby, where the clips are. One click in the tree navigates. */
+    const hobby = rowNamed('.wx-tree', 'Hobby');
+    if (hobby) {
+      await hand.at(hobby, true);
+      await wait(reduced ? 0 : 260);
+    }
+    return true;
+  };
+
+  /**
    * THE CLIPS, OPENED BY HAND — board ticket N56.
    *
    * Nam: "when you are showing the easter eggs, you just auto triggering the
@@ -635,27 +685,8 @@ export function startTour(root: HTMLElement, podium: Podium): TourHandle {
       return;
     }
 
-    /*
-     * Explorer, raised rather than launched when it is already running.
-     *
-     * The taskbar button is a toggle: with one window open it focuses an
-     * unfocused app and MINIMISES a focused one, which is correct Windows and
-     * would be a coin flip here. Pressing the title bar only ever raises.
-     */
-    const win = document.querySelector<HTMLElement>('.shot .wx:has(.wx-list)');
-    if (win) {
-      await pressSel('.shot .wx:has(.wx-list) .wx-bar');
-    } else if (await pressSel('.dk-task[data-app="explorer"]', true)) {
-      await appears('.shot .wx-list');
-    }
-    if (!q('.shot .wx-list')) return;
-
-    /* Into Hobby, where the clips are. One click in the tree navigates. */
-    const hobby = rowNamed('.wx-tree', 'Hobby');
-    if (hobby) {
-      await hand.at(hobby, true);
-      await wait(reduced ? 0 : 260);
-    }
+    // Normally already done by the segment's first line (N114); harmless twice.
+    if (!await openFiles()) return;
 
     for (const egg of left.slice(0, EGGS_SHOWN)) {
       if (dead) return;
@@ -670,7 +701,14 @@ export function startTour(root: HTMLElement, podium: Podium): TourHandle {
         await appears('.shot .wx video', 2000);
       }
       markEggSeen(egg.id);
-      await voice(`${egg.title}. ${egg.blurb}`, 5200);
+      /*
+       * N116. 5200 to 7000. Nam: "at least give it 3 4 sec in each video so we
+       * know what its about." The blurb took most of the old window, so the clip
+       * itself got a second or two and the visitor was reading rather than
+       * watching. The line is unchanged; what grew is the silence after it, which
+       * is the part that is actually the video.
+       */
+      await voice(`${egg.title}. ${egg.blurb}`, 7000);
     }
     // And they are credited for it, which is the half the first version missed.
     podium.quest('offclock');
@@ -735,6 +773,7 @@ export function startTour(root: HTMLElement, podium: Podium): TourHandle {
     if (cue === 'heart') return sendHeart();
     if (cue.startsWith('zoom:')) return doZoom(Number(cue.slice(5)) || 1);
     if (cue === 'maximise') return doMaximise();
+    if (cue === 'files') { await openFiles(); return; }
     if (cue === 'eggs') return doEggs();
     if (cue === 'park') { await hand.park(); return; }
     if (cue.startsWith('tab:')) return doTab(cue.slice(4));
@@ -775,8 +814,32 @@ export function startTour(root: HTMLElement, podium: Podium): TourHandle {
   };
 
   /** Anything waiting to interrupt, said now. */
+  /**
+   * TRUE WHILE HE IS DELIVERING THE SCRIPT — board ticket N108.
+   *
+   * Nam: "lets not react to any user behavior in script while we are doing our
+   * script. If user does something, we dont acknowledge it at all. The
+   * acknowledgement comes after we have finished our script and they are
+   * exploring the call."
+   *
+   * Both reaction systems ask this, and both used to cut in over whatever was
+   * being said: a quip interrupts a line to answer a click, and an
+   * acknowledgement interrupts it to comment on how fast the visitor is moving.
+   * Either one is two people talking, and only one of them is real.
+   *
+   * `finished` is the whole test. The personal segment and the after-credits are
+   * both delivered from inside that mode and both handle their own interruption
+   * rules, so the question is only ever "is the running order still running".
+   */
+  const delivering = (): boolean => tour.mode !== 'finished' && tour.mode !== 'handedOver';
+
   const drain = async (): Promise<void> => {
-    while (!dead && tour.interject) await sayQuip(tour.interject);
+    // Nothing is drained while he is talking. The quip stays marked as found,
+    // which is what N118 counts; it just never gets said.
+    while (!dead && tour.interject) {
+      if (delivering()) { tour = reduceTour(tour, { t: 'quipDone' }); continue; }
+      await sayQuip(tour.interject);
+    }
   };
 
   /**
@@ -1265,6 +1328,8 @@ export function startTour(root: HTMLElement, podium: Podium): TourHandle {
 
   let lastAck = 0;
   const maybeAck = (jump: number): void => {
+    // N108. Not while he is talking. See delivering().
+    if (delivering()) return;
     // A small drift does not deserve a line. A bail or a burst does.
     if (jump < 0.1) return;
     /*
@@ -1525,8 +1590,23 @@ export function startTour(root: HTMLElement, podium: Podium): TourHandle {
      * said goodbye, so there is nothing for an outro to come after. `!paused`
      * because somebody who asked for silence has asked for silence.
      */
+    /*
+     * N109. Measured from the last CAPTION rather than from the end of the flow,
+     * and two minutes rather than fourteen seconds.
+     *
+     * Who it is for decides how long it waits. Nam: "This extra interaction is
+     * aimed at the dedicated users who stays here long after its done. We dont
+     * want everyone to see this, only the hardcore ones, cause those are the ones
+     * who would appreciate it." Two minutes with nothing said is only reachable by
+     * somebody who has run out of things to find and stayed anyway, which is
+     * exactly the person it is written for.
+     *
+     * Visitor input is deliberately NOT part of this. They can keep clicking; if
+     * nothing they click has anything left to say, the room is still silent.
+     */
+    const silence = now - Math.max(spokeAt, flowEndedAt);
     if (heardOut && !paused && !outroRan && tour.told && tour.mode === 'finished'
-        && still >= OUTRO_WAIT_MS && passive(visitor, now)) {
+        && silence >= OUTRO_WAIT_MS && !performing) {
       void runOutro();
     }
   }, 1000);

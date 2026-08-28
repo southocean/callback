@@ -2013,6 +2013,153 @@ export const tasks: Task[] = [
     },
   },
 
+  /* ---------------------------------------------------------------------
+   * Nam's script pass, 29 August. Eleven notes, and most of them are one
+   * argument: the conversation should behave like a conversation. It should not
+   * talk over itself to react to a click, it should not come back thirty seconds
+   * after saying goodbye, and it should ask a question before answering one.
+   * ------------------------------------------------------------------- */
+  {
+    id: 'N108', col: 'done', size: 'M', tag: 'call',
+    title: 'No reactions at all while he is talking',
+    note: 'Quips and acknowledgements both wait until the script is done.',
+    detail: {
+      why: 'Nam: "lets not react to any user behavior in script while we are doing our script. If user does something, we dont acknowledge it at all. The acknowledgement comes after we have finished our script and they are exploring the call." A line that cuts in over another line is two people talking, and only one of them is real.',
+      done: [
+        'A quip fired during the flow is not spoken',
+        'A restlessness acknowledgement during the flow is not spoken',
+        'Both are live again once the flow has finished',
+        'A quip found during the flow still counts as found, for N118',
+      ],
+      raised: 'Nam, script pass 29 Aug',
+    },
+  },
+  {
+    id: 'N109', col: 'done', size: 'S', tag: 'call',
+    title: 'Two minutes of silence before the after-credits',
+    note: '"Still here?" thirty seconds after the goodbye reads as "of course I am".',
+    detail: {
+      why: 'Nam: "Right now still here is triggered almost immediately after we finish the script, so its very bizarre, like of course Im here! We JUST finished, let me breathe!" And the point of the segment is who it is for: "This extra interaction is aimed at the dedicated users who stays here long after its done. We dont want everyone to see this, only the hardcore ones."',
+      done: [
+        'Measured from the last caption, not from the end of the flow',
+        'Two minutes, so it is only reached by someone who ran out of things to find',
+        'Any caption at all restarts the clock',
+      ],
+      raised: 'Nam, script pass 29 Aug',
+    },
+  },
+  {
+    id: 'N110', col: 'backlog', size: 'L', tag: 'content',
+    title: 'The questions are asked out loud, and remembered',
+    note: 'Each answer gets its question first, and leaving halfway is resumable.',
+    detail: {
+      why: 'Nam: "I want you to add the questions in before the answers too. So user understands that this is not a monologue and there are actually questions, and they can see the questions themselves too ... It gives better context to the answer and provide breakpoints where they could may leave the conversation."',
+      done: [
+        '"Thank you for your time. Genuinely." closes when its timer ends rather than lingering',
+        'A real silence before the segment starts',
+        '"Still here?" then a pause, then "Since you are still interested, here is what the CV never answers."',
+        'Each chapter says its numbered question before its answer',
+        'A chapter counts as heard only after its last line',
+        'Coming back resumes at the first unheard question, named',
+        'Somebody who has heard them all gets the short version instead, and is sent off to hunt bugs',
+      ],
+      raised: 'Nam, script pass 29 Aug',
+      notes: 'Nam: "this also foreshadow my hidden talent for game narrative that I’ll save for the in person interview."',
+    },
+  },
+  {
+    id: 'N111', col: 'done', size: 'S', tag: 'content',
+    title: 'A better line about Sweden',
+    note: 'The tonkotsu line goes.',
+    detail: {
+      why: 'Nam: "This line sucks!" It was three countries and a soup, and it answered nothing anybody asked.',
+      done: ['"What I think of Sweden? Just like Japan, but in black and white."'],
+      raised: 'Nam, script pass 29 Aug',
+    },
+  },
+  {
+    id: 'N112', col: 'done', size: 'S', tag: 'content',
+    title: 'The hesitation moves to where the joke is',
+    note: 'Claude made this whole section, uh, redundant. LOL.',
+    detail: {
+      why: 'Nam found the placement himself, which is exactly how N53 said this would have to work: authored per line, because where the joke is lives in the meaning and only the writer is holding it.',
+      done: ['The pause sits before the punchline word rather than before the verb'],
+      raised: 'Nam, script pass 29 Aug',
+    },
+  },
+  {
+    id: 'N113', col: 'done', size: 'S', tag: 'content',
+    title: 'Cut the line before the punch',
+    note: '"I ran out of requirements before I ran out of evidence."',
+    detail: {
+      why: 'Nam: "horrible line! Lets just remove it, next line is already the punch." A setup that arrives after the setup weakens the joke it is setting up.',
+      done: ['The line is gone and the beats after it still land on the right lines'],
+      raised: 'Nam, script pass 29 Aug',
+    },
+  },
+  {
+    id: 'N114', col: 'done', size: 'S', tag: 'call',
+    title: 'Off the clock opens Explorer on its first line',
+    note: 'Three lines of nothing happening before the first clip is a dead start.',
+    detail: {
+      why: 'Nam: "Line 1 says And here’s how I have fun after work. and its weird that nothing happens after that, so lets go Explorer to Hobby after that line, So then at least user knows we are gonna show them some videos."',
+      done: ['Explorer is raised and Hobby is open by the end of the first line'],
+      raised: 'Nam, script pass 29 Aug',
+    },
+  },
+  {
+    id: 'N115', col: 'done', size: 'S', tag: 'content',
+    title: 'A better sign-off for Off the clock',
+    note: 'Come join my party.',
+    detail: {
+      why: 'Nam: "this doesnt work as well as I had hoped." Hoping the visitor enjoyed it asks them to report back; an invitation does not.',
+      done: ['"So yeah, I’m not bad at having fun. Come join my party 🎉"'],
+      raised: 'Nam, script pass 29 Aug',
+    },
+  },
+  {
+    id: 'N116', col: 'done', size: 'S', tag: 'call',
+    title: 'Room to breathe in the close, and between clips',
+    note: 'Three actions back to back, over a video that is still playing.',
+    detail: {
+      why: 'Nam: "we have line 3 4 5 each doing an action. I need a longer pause between them, cause right now its a bit overwhelmed ... the call is very stimulating now." And the clips: "at least give it 3 4 sec in each video so we know what its about."',
+      done: [
+        'The close leaves a real gap between its three acting lines',
+        'Each clip is on screen long enough to tell what it is',
+      ],
+      raised: 'Nam, script pass 29 Aug',
+    },
+  },
+  {
+    id: 'N117', col: 'backlog', size: 'S', tag: 'content',
+    title: 'Recut the-winner-is to the reveal',
+    note: 'The winner arrives too late to survive a five second window.',
+    detail: {
+      why: 'Nam: "I realize it was a bit long before we see the winner, so when playing as part of this off the clock sequence it was a bit weird, like we didnt get to see the winner." A clip whose point is a reveal has to reach the reveal.',
+      done: ['Cut from 1:49 to 2:02 of the original, which is the reveal'],
+      raised: 'Nam, script pass 29 Aug',
+      notes: 'BLOCKED on the source, which is not on this machine. The shipped clip is already a 22s cut, so 1:49 is past the end of it and the timecode can only refer to the footage it came from. Searched docs/media (nine clips, longest 31s), ~/Videos (twenty files, all July screen recordings), Downloads (longest is a 198s wedding video), Desktop, Documents, OneDrive and C:/dev. Nothing over 2:02 that could hold a comedy final. One ffmpeg call away once the original turns up: -ss 109 -to 122, re-encoded rather than stream-copied so the cut lands on the frame rather than the nearest keyframe, and the poster reshot from the new first frame.',
+    },
+  },
+  {
+    id: 'N118', col: 'backlog', size: 'L', tag: 'trust',
+    title: 'One number for all of it: completion',
+    note: 'Achievements, commentary, bugs and clips, as a single percentage.',
+    detail: {
+      why: 'Nam: "I want to have this one thing to tie all of these gamifications together: A completion percentage." Four separate collections with four separate counters is four things to care about; one number is a reason to keep looking.',
+      done: [
+        'The commentary is tightened to around twelve, kept for the things worth finding',
+        'A quip found is remembered, so it counts once and never fires twice',
+        'Completion accumulates achievements, commentary, bugs and clips',
+        'The ended screen shows it as a ring with the number inside, animating the gain',
+        'The home screen shows it too, last in the rail, once above zero and after one completed call',
+        'Pressing it opens a breakdown, one row per category',
+      ],
+      raised: 'Nam, script pass 29 Aug',
+      notes: 'Nam on the commentary count: "I think we have too many of them now. Some very basic stuff shouldnt call for acknowledgement, cause everybody knows it, no point in rewarding something so basic ... Save it for the more niche and harder to find interactions. Those are what worth rewarding." Twenty-nine today, twelve wanted.',
+    },
+  },
+
   /* Flagged rather than done. Still true as of this build. */
   { id: 'T24', col: 'backlog', size: 'M', tag: 'specs', title: 'Initial payload is halfway to the ceiling', note: '24.7 kB of a 50 kB gate, up from 18.2. Still green, and the growth is real, but two deferred chunks are 17 kB and 19 kB and deserve a splitting pass before it becomes urgent.' },
 ];

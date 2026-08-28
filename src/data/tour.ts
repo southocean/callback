@@ -69,6 +69,14 @@ export type Cue =
    * wants two. See N78.
    */
   | 'zoom:1' | 'zoom:2'
+  /**
+   * Raise Explorer and open Hobby, where the clips are.
+   *
+   * Separate from `eggs` so the folder can arrive on the segment's first line
+   * while the clips themselves wait for its third (N114). `eggs` still does this
+   * for itself when nothing has opened it, so the two are safe in either order.
+   */
+  | 'files'
   /** Play the easter-egg clips this visitor has not found yet. */
   | 'eggs'
   /** The hand drifts off the edge and stops. */
@@ -231,9 +239,11 @@ export const parts: Part[] = [
        * tokeniser holds on it the way it holds on a full stop. Nothing derives
        * the placement, so nothing can put it in front of a punchline again.
        */
-      L('Claude, uh, made this whole section redundant LOL.', 4000),
+      L('Claude made this whole section, uh, redundant. LOL.', 4400),
       L('Education: Vietnam, Japan, Sweden.', 2600),
-      L('I love tonkotsu! Three countries, and that is the strongest opinion I brought home.', 4600),
+      /* N111. Was a line about tonkotsu and three countries, which answered a
+         question nobody asked. Nam: "This line sucks!" */
+      L('What I think of Sweden? Just like Japan, but in black and white.', 4400),
     ],
     beats: [
       // N78. The document is laid out for a full screen and arrives inside a
@@ -287,7 +297,11 @@ export const parts: Part[] = [
       L("I've got you covered.", 1800),
       L('Degree ✅. Five years of software development ✅.', 3600),
       L('Front end, algorithm, architecture, QA: ✅ ✅ ✅ ✅.', 4000),
-      L('I ran out of requirements before I ran out of evidence.', 3800),
+      /* N113. "I ran out of requirements before I ran out of evidence." sat here
+         and Nam cut it: "horrible line! Lets just remove it, next line is already
+         the punch." A setup arriving after the setup weakens the joke it sets up.
+         The last roll moved down onto the punch with it, so the page still
+         reaches the bottom of the posting as he lands it. */
       L("Yeah. I'm a safe hire.", 2600),
     ],
     beats: [
@@ -351,12 +365,20 @@ export const parts: Part[] = [
      * half the calendar should not be shown their own discoveries.
      */
     lines: [
-      L("And here's how I have fun after work.", 3000),
+      L("And here's how I have fun after work.", 3600),
       L('These are hidden in the calendar on the home screen. You found some of them.', 4200),
       L("Here are the ones you didn't.", 2400),
-      L("So yeah, I'm not bad at having fun. Hope you've enjoyed this too!", 4400),
+      /* N115. Was "Hope you've enjoyed this too!", which asks the visitor to
+         report back on a feeling. An invitation does not. */
+      L("So yeah, I'm not bad at having fun. Come join my party 🎉", 4400),
     ],
     beats: [
+      /* N114. Explorer opens on the FIRST line rather than the third. Nam: "its
+         weird that nothing happens after that, so lets go Explorer to Hobby after
+         that line, So then at least user knows we are gonna show them some
+         videos." Three lines of talking with a still screen is a dead start, and
+         the folder full of clips is its own announcement. */
+      { at: 0, cue: 'files' },
       { at: 2, cue: 'eggs' },
     ],
     commentary: [L('Stand-up, short films, and a zombie walk that made the local news.', 3800)],
@@ -398,7 +420,12 @@ export const parts: Part[] = [
        * page does what it says.
        */
       L('Everything on screen is real and nothing here breaks.', 3000),
-      L('Open the chat.', 2200),
+      /* N116. These three each perform something, and at 2200ms apart they
+         arrived on top of each other. Nam: "I need a longer pause between them,
+         cause right now its a bit overwhelmed" -- and he is watching them over a
+         clip that is still playing, so the call is already busy. The extra second
+         each is the pause, since a line's dwell IS the gap before the next one. */
+      L('Open the chat.', 3400),
       /*
        * N79. This was "Drag the video." and it dragged the wrong thing: the beat
        * measured the tile as the beat began, and the line before it had just
@@ -411,8 +438,8 @@ export const parts: Part[] = [
        * layout change. Which is the argument for preferring selectors over
        * coordinates everywhere in this script.
        */
-      L('Send a heart.', 2400),
-      L('Raise your hand.', 2400),
+      L('Send a heart.', 3600),
+      L('Raise your hand.', 3600),
       L('The CV is also available in home screen and after this meeting.', 4400),
       L('Thank you for your time. Genuinely.', 3000),
     ],
