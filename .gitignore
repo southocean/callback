@@ -1,5 +1,9 @@
 node_modules/
 .tmp/
+# Throwaway Chrome/Edge user-data dirs from the screenshot and QA harnesses.
+# They are hundreds of files of cache and they have been committed by accident
+# once already, which is exactly what a gitignore is for.
+*-profile/
 _private/
 QA/
 

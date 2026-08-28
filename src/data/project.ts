@@ -1513,6 +1513,117 @@ export const tasks: Task[] = [
     },
   },
 
+  /* ------------------------------------------------------------------------
+   * Nam's late pass, 28 August. Two of these are the kind of bug that makes the
+   * whole thing look broken: a window that will not go away (N81) and a
+   * conversation that stops mid-sentence (N84).
+   * --------------------------------------------------------------------- */
+  {
+    id: 'N77', col: 'backlog', size: 'S', tag: 'call',
+    title: 'The mock cursor is too big',
+    note: 'It was drawn at 22x35 against a real pointer’s 12x19.',
+    detail: {
+      why: 'Nam: "the mock cursor is gigantic now, we need to bring it down a bit in size." It was drawn at nearly twice life size so it would stay findable over a busy screen share, which is a real problem, but the ring already solves that and the arrow was doing it twice.',
+      done: ['The arrow is closer to a real pointer', 'The ring scales with it, so the findability trick still works'],
+      raised: 'Nam, 28 Aug',
+    },
+  },
+  {
+    id: 'N78', col: 'backlog', size: 'S', tag: 'call',
+    title: 'The browser opens the CV zoomed out too',
+    note: 'One notch for the CV, two for the spec, both performed with the wheel.',
+    detail: {
+      why: 'Nam: "we also need to zoom out a bit on the CV site when we open it too." Same reason as the spec: the shared desktop is a window inside a window, and a document laid out for a full screen arrives about a fifth too big for it.',
+      done: ['The cue carries how many notches, so the CV gets 90% and the spec 80%', 'Still done with a ctrl-wheel from the hand, not by setting a value'],
+      raised: 'Nam, 28 Aug',
+    },
+  },
+  {
+    id: 'N79', col: 'backlog', size: 'M', tag: 'call',
+    title: 'Send a heart instead of dragging the video',
+    note: 'The drag measured a stale rect, and the gesture was never the right one to demonstrate anyway.',
+    detail: {
+      why: 'Nam: "drag the video is wrong, it was dragging the old position of the video tile, which has updated after we open the chat. overall dragging is hard to demo, lets change that, instead of drag the video, we could do send a heart, which opens emoji and sends a heart."',
+      done: [
+        'The close opens the reaction tray and sends the heart, in two presses',
+        'The drag cue is gone with the line it served',
+        'The line becomes "Send a heart."',
+      ],
+      raised: 'Nam, 28 Aug',
+      notes: 'The stale rect was real and worth recording even though the fix is a deletion. The beat measured the tile when the beat began, and the line before it had just opened the chat, which narrows the stage and moves the tile. Any beat that measures geometry across a layout change has the same defect; a press on a control does not, because the hand resolves the selector at beat time. That is the argument for preferring selectors over coordinates everywhere in the script.',
+    },
+  },
+  {
+    id: 'N80', col: 'backlog', size: 'M', tag: 'specs',
+    title: 'A Settings tab in the spec, behind the admin gate',
+    note: 'Clear the achievements, clear the bugs, and see the onboarding as a stranger does.',
+    detail: {
+      why: 'Nam: "we should have in the project spec in konami mode (admin mode), add a new settings tab, where we have a button to clear out achivements and clear out bugs, just so we can test out the onboarding behavior." Everything this build remembers is a first-visit experience nobody who works on it can see any more.',
+      done: [
+        'A Settings tab, shown only when the admin gate has been passed',
+        'Clear the side quests, clear the collection, clear the post-credit banter, clear the clips',
+        'Each says what it is about to forget, and how much of it there is',
+      ],
+      raised: 'Nam, 28 Aug',
+      notes: 'It also answers the question Nam asked in the same breath: "I dont think we got to see any video at all after checking how it was built. Was it because I have seen all the videos there are?" Almost certainly yes, since Off the clock plays only what you have not found and says so when that is nothing. With this tab it is a thing he can check rather than a thing I can assert.',
+    },
+  },
+  {
+    id: 'N81', col: 'backlog', size: 'M', tag: 'call',
+    title: 'BUG: a maximised window that is minimised stays on screen, inert',
+    note: 'is-max sets animation:none, and the animation was the only thing hiding a minimised window.',
+    detail: {
+      why: 'Nam: "I cant click the close or maximize or minimize button here at all, it seems like I have a frozen chrome app ... when I open chrome, do some stuff, then I minimize it, then a stale version of the mock chrome remain on screen, not actually interactable - maybe because in reality its in minimized state." That last guess is exactly right.',
+      done: [
+        'is-min hides the window in its own rule, not only at the end of a keyframe',
+        'The travel animation still plays where it can, and is now decoration rather than mechanism',
+        'is-out gets the same treatment, for the same reason',
+        'Peek cards are clickable again',
+      ],
+      raised: 'Nam, 28 Aug',
+      notes: 'Two rules of equal specificity, and the later one wins. `.wx.is-min` hid the window by animating to visibility:hidden with fill-mode both; `.wx.is-max` sets animation:none, because a maximised window has no scale to animate from without lurching. So maximising and then minimising cancelled the animation that was doing the hiding, and left a fully painted window with pointer-events:none over the desktop. The conversation maximises Chrome, which is why it reproduced every time after a guided share. The lesson is the general one: a state should be expressed in the rule for that state, and an animation should only ever be how it gets there.',
+    },
+  },
+  {
+    id: 'N82', col: 'backlog', size: 'S', tag: 'content',
+    title: 'The live client leaves the mock browser',
+    note: 'It did not load reliably framed. Explorer now opens it in a real tab.',
+    detail: {
+      why: 'Nam: "we are removing the mahjong stars tab since it doesnt load very consistently. Clicking that on the explorer will open a new real tab on your real browser going to the site."',
+      done: ['The riichi tab is gone from the picker, the tab strip and the document registry', 'The Explorer row opens the real site in a real tab'],
+      raised: 'Nam, 28 Aug',
+    },
+  },
+  {
+    id: 'N83', col: 'backlog', size: 'S', tag: 'content',
+    title: 'Things I built opens real tabs, and the list gets shorter',
+    note: 'Three games and the bot controller come off it.',
+    detail: {
+      why: 'Nam: "all the urls here on this Things I built site should open an external browser tab too ... in Games section, we can remove mahjong star, rhymshoot 2.0 and lostsoulv2. We are keeping ryhtm shoot, molt and space invasion. We can remove the bot controller too cause now I realize without whitelisting your ip, you wont be able to sit the bots on tables."',
+      done: [
+        'Every link on the page opens in the real browser rather than in the emulated one',
+        'Games: Rhythm Shoot, Molt and Space Invasion',
+        'The bot controller is gone, since a reader cannot actually reach it',
+      ],
+      raised: 'Nam, 28 Aug',
+      notes: 'The bot controller is the honest one to lose. It was the strongest tooling claim on the page and it was unreachable without an IP whitelist, so every reader who followed it found a page that did nothing. A link that cannot work is worse than no link: it spends the credibility the rest of the page is building.',
+    },
+  },
+  {
+    id: 'N84', col: 'backlog', size: 'S', tag: 'call',
+    title: 'BUG: abandoning the post-credits left the caption on screen',
+    note: 'Any input ends the segment, and the return left the last line up with nothing to take it down.',
+    detail: {
+      why: 'Nam: "somehow we are stuck in this caption there are still ten bugs out there. Then nothing progresses anymore, I dont think we get to the next line which is the last line that closes the caption. Why is that so?"',
+      done: [
+        'Leaving the post-credits hushes the strip and tears the conversation down',
+        'The achievement for sitting through it is still only awarded to somebody who did',
+      ],
+      raised: 'Nam, 28 Aug',
+      notes: 'Working as designed and wrong anyway, which is the interesting part. Any input abandons the segment, silently and with no penalty, and that is right. What was missing is that the normal ending is the only path that took the captions down, so an abandoned run left whichever line was up sitting there for ever. N67 made it far more visible without causing it: the silences are 32 and 41 seconds now, so the window in which somebody can wander off mid-segment is most of it.',
+    },
+  },
+
   /* Flagged rather than done. Still true as of this build. */
   { id: 'T24', col: 'backlog', size: 'M', tag: 'specs', title: 'Initial payload is halfway to the ceiling', note: '24.7 kB of a 50 kB gate, up from 18.2. Still green, and the growth is real, but two deferred chunks are 17 kB and 19 kB and deserve a splitting pass before it becomes urgent.' },
 ];
