@@ -17,7 +17,24 @@ import { progressNow, ring, breakdown } from './progress.js';
 
 const ID = 'progressframe';
 
-export function openProgress(): void {
+/**
+ * WHICH ROOM IT WAS OPENED FROM -- board ticket N132.
+ *
+ * Nam: "Note that the meeting itself is in dark mode, so if we open the
+ * progression panel here, it should adapt to that and also is in dark mode.
+ * Opening that from end screen or home screen should trigger the light mode
+ * display."
+ *
+ * The panel already had everything it needed for this and was not using it.
+ * Every colour in it comes from a --dp-* custom property, and those are declared
+ * on .dp-light and .dp-dark rather than on :root, which is how one component
+ * wears two themes without a second stylesheet. This was pinned to dp-light, so
+ * a light card opened over a dark call.
+ *
+ * Light is the default because two of the three callers are light surfaces and a
+ * missing argument should not be able to produce the wrong-looking panel.
+ */
+export function openProgress(theme: 'light' | 'dark' = 'light'): void {
   if (document.getElementById(ID)) return;
   const p = progressNow();
 
@@ -30,7 +47,7 @@ export function openProgress(): void {
   const frame = h(
     'div',
     {
-      class: 'dp dp-light pr-frame', id: ID, role: 'dialog', 'aria-modal': 'true',
+      class: `dp dp-${theme} pr-frame`, id: ID, role: 'dialog', 'aria-modal': 'true',
       'aria-label': 'How much of this you found',
     },
     h('div', { class: 'dp-card' },

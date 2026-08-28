@@ -34,7 +34,10 @@ import { sample } from '../net/degrade.js';
 import type { Profile } from '../net/degrade.js';
 import type { Quests } from '../achievements.js';
 import type { Bugs } from '../bugs.js';
-import { noteReadyShown, noteReadyClosed, markEggSeen, recordInterview } from '../prefs.js';
+import { noteReadyShown, noteReadyClosed, markEggSeen, recordInterview, clockMs } from '../prefs.js';
+import type { Clock, TourHandle } from '../tour/stage.js';
+import { progressNow } from './progress.js';
+import { startMeeting, noteSaid } from './record.js';
 import { signal } from './signal.js';
 
 const TITLES: Record<Exclude<Panel, 'none'>, string> = {
@@ -56,6 +59,13 @@ export interface CallDeps {
 }
 
 export function renderCall(store: Store, quests: Quests, deps: CallDeps, bugs: Bugs): HTMLElement {
+  /*
+   * The meeting starts when the call mounts, which is what the chat panel's OFF
+   * transcript stamps its authored offsets against (N129). Idempotent, because
+   * this function runs again on every re-render and a re-render is not a new
+   * meeting.
+   */
+  startMeeting();
   let releaseTrap: (() => void) | null = null;
 
   // ------------------------------------------------------------- host tile --
@@ -2174,8 +2184,18 @@ export function renderCall(store: Store, quests: Quests, deps: CallDeps, bugs: B
         // The visitor may have left in the second it took to get here.
         if (store.get().screen !== 'call') { tourStarted = false; return; }
         tour = m.startTour(shell, {
-          say: caption.say,
-          show: caption.show,
+          /*
+           * EVERY BUBBLE IS WRITTEN DOWN -- board ticket N129. The chat panel's
+           * live transcript is a record of what appeared on this strip, so the
+           * record is taken here, at the one place both kinds of bubble pass
+           * through, rather than inside the caption (which would also log the
+           * announcements) or inside the stage (which would miss the quips).
+           *
+           * `show` carries quips AND the line a quip puts back afterwards, so the
+           * log dedupes against its own last entry. See noteSaid.
+           */
+          say: (text, ms) => { noteSaid(text); return caption.say(text, ms); },
+          show: (text) => { noteSaid(text); caption.show(text); },
           skip: caption.skip,
           hush: caption.hush,
           lock: caption.lock,
@@ -2212,7 +2232,24 @@ export function renderCall(store: Store, quests: Quests, deps: CallDeps, bugs: B
 
 /* Module-scoped so a re-render cannot start a second tour over the first. */
 let tourStarted = false;
-let tour: { stop: () => void } | null = null;
+/*
+ * The WHOLE handle, not just stop(). N132 put a live interview clock in Host
+ * controls, and the stage is the only thing that knows what time it is: the clock
+ * starts on the first spoken line, stops at the last one, and does not count the
+ * silence a visitor asked for. Narrowing this to { stop } meant the panel would
+ * have had to keep its own timer and get all three of those wrong.
+ */
+let tour: TourHandle | null = null;
+
+/**
+ * The interview clock, for whoever is showing it.
+ *
+ * Null when there is no conversation running or it has not said its first word
+ * yet, which the caller renders as "not started" rather than as 0:00.
+ */
+export function interviewClock(): Clock | null {
+  return tour?.clock() ?? null;
+}
 
 /** Leaving the call ends the tour with it. Called from main.ts on leave. */
 export function stopTour(): void {
@@ -2225,6 +2262,66 @@ export function stopTour(): void {
 // Host controls — Meet's admin drawer, holding this CV's admin: the document,
 // the file, and the paragraph the referrer has to write (review H4).
 // --------------------------------------------------------------------------
+
+/**
+ * THE SESSION ROW -- board ticket N132.
+ *
+ * Nam: "in this host control I think we can show the game progression here too,
+ * the clock running (if we have not gotten to the end of the interview where we
+ * stop the clock) and the progression percentage, which if you click will open up
+ * the progression panel."
+ *
+ * Two readouts, and only the second is a control, because only the second has
+ * somewhere to go. The clock is the same figure the ended screen reports, pulled
+ * from the stage rather than timed again here (see interviewClock).
+ *
+ * IT CLEANS ITSELF UP BY ASKING WHETHER IT IS STILL THERE. The panel host rebuilds
+ * its body on every switch, so this element is thrown away without being told, and
+ * an interval holding a reference to it would keep both alive for the life of the
+ * page. Checking isConnected once a second is cheaper than a lifecycle hook and
+ * cannot be forgotten by whoever adds the next panel.
+ */
+function sessionRow(): HTMLElement {
+  const p = progressNow();
+  const pct = p.total ? Math.round((p.got / p.total) * 100) : 0;
+
+  const time = h('b', {}, '--:--');
+  const state = h('span', { class: 'hc-stat-note' }, 'Not started');
+
+  const clockStat = h('div', { class: 'hc-stat' },
+    h('span', { class: 'hc-stat-k' }, 'Interview'),
+    time,
+    state) as HTMLElement;
+
+  const paint = (): void => {
+    const c = interviewClock();
+    if (!c) { time.textContent = '--:--'; state.textContent = 'Not started'; return; }
+    time.textContent = clockMs(c.ms);
+    // Three states and not two: a paused clock is stopped without being finished,
+    // and telling somebody the interview is over when they have merely asked for
+    // quiet, and can ask him back, would be the wrong word for the same number.
+    state.textContent = c.done ? 'Finished' : c.running ? 'Running' : 'Paused';
+    clockStat.classList.toggle('is-live', c.running);
+  };
+  paint();
+  const tick = window.setInterval(() => {
+    if (!clockStat.isConnected) { window.clearInterval(tick); return; }
+    paint();
+  }, 1000);
+
+  /* Opened from in here it has to be dark, because the room is. See openProgress. */
+  const progStat = h('button', {
+    class: 'hc-stat hc-stat-btn', type: 'button',
+    'aria-label': `How much of this you found: ${pct} per cent. Opens the breakdown.`,
+    onclick: () => { void import('./progressframe.js').then((f) => f.openProgress('dark')); },
+  },
+    h('span', { class: 'hc-stat-k' }, 'Found'),
+    h('b', {}, `${pct}%`),
+    h('span', { class: 'hc-stat-note' }, `${p.got} of ${p.total}`)) as HTMLElement;
+  tip(progStat, 'Open the breakdown');
+
+  return h('div', { class: 'hc-stats' }, clockStat, progStat);
+}
 
 /* No `store` parameter any more: the one dispatch in here was the plain route,
    and the CV opens as an overlay now (N54). */
@@ -2250,13 +2347,14 @@ function hostControls(): HTMLElement {
     'div',
     {},
     h('p', { class: 'pnote' }, 'Meet keeps the awkward administrative things behind this door. So does this.'),
+    h('div', { class: 'shead' }, 'This session'),
+    sessionRow(),
     h('div', { class: 'shead' }, 'For my referrer'),
     h(
       'p',
       { class: 'pnote' },
       'A friend on the Meet team offered to refer me, which is generous and is the reason this exists at all, the ' +
-        'work is still mine to defend. Referral forms want a paragraph at an awkward hour, so here is one already ' +
-        'written: fact-only, no superlatives, every sentence checkable against the CV.',
+        'work is still mine to defend.',
     ),
     h('div', { class: 'relevance', style: 'font-size:12.5px' }, text),
     h('div', { style: 'margin:12px 0 4px' }, copy),
@@ -2280,8 +2378,21 @@ function hostControls(): HTMLElement {
     h(
       'p',
       { class: 'pnote', style: 'margin-top:18px' },
-      'Not affiliated with, endorsed by, or built at Google. The interface is an homage, rebuilt from the outside; ' +
-        'no Google marks are used.',
+      /*
+       * N133. The second clause used to read "no Google marks are used", on a
+       * build that opens with the Google sign-in and draws the Meet camera mark.
+       * Three files already carried comments pointing out that the sentence was
+       * false, which is the failure mode a comment cannot fix.
+       *
+       * Nam: "we are gonna keep that google meet login in the beginning after the
+       * site just loaded, so you can go ahead and make sure we remove mentions of
+       * that we dont have any google logo. We do, and I am taking that risk okay."
+       * His call and his risk. What goes is the build telling a checkable lie
+       * about itself in the one paragraph a careful reader checks; the README
+       * names both Google-owned assets and why each is used, at length.
+       */
+      'Not affiliated with, endorsed by, or built at Google. The interface is an homage, rebuilt from the ' +
+        'outside, from measurements of the live product.',
     ),
   );
 }

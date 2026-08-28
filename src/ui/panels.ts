@@ -12,6 +12,9 @@ import { currentPitch } from '../data/companies.js';
 import type { Store } from '../state.js';
 import { chat, roles, caseStudies, profile } from '../data/cv.js';
 import { transcriptLines } from '../data/tour.js';
+import {
+  liveTranscription, setLiveTranscription, saidSoFar, onSaid, meetingStart, stamp,
+} from './record.js';
 
 /** 2026-08-20 as a decimal year, for timeline geometry. */
 export const NOW = 2026.63;
@@ -49,8 +52,31 @@ export function renderChat(): HTMLElement {
     return opener;
   };
 
+  /*
+   * THE SWITCH REPLACED AN INFO CARD -- board ticket N129.
+   *
+   * What used to sit at the top of this panel was a sentence explaining why the
+   * cover letter is in a chat panel: "It is a chat panel because a chat panel is
+   * where people actually read things." Nam: "We dont need that, lets change it."
+   * He is right, and the reason it goes is not that it was wrong. It was a caption
+   * on a design decision, addressed to somebody who had not asked, in the position
+   * where Meet puts a control. Replacing it with an actual control is a straight
+   * upgrade: the panel now DOES something at the top instead of explaining itself.
+   */
+  const trans = h('div', { class: 'tr-body' }) as HTMLElement;
+  const transHead = h('div', { class: 'shead' }, '') as HTMLElement;
+  const drawTranscript = (): void => {
+    const on = liveTranscription();
+    transHead.textContent = on ? 'Live transcript' : 'Full script';
+    clear(trans);
+    trans.appendChild(renderTranscript());
+    /* Anchored to the bottom while it is a record, because the interesting end of
+       a record is the recent end. The running order reads from the top. */
+    if (on) trans.scrollTop = trans.scrollHeight;
+  };
+
   const list = h('div', { class: 'msg-list' },
-    h('div', { class: 'msg-card' }, 'The cover letter. It is a chat panel because a chat panel is where people actually read things.'),
+    liveSwitch(drawTranscript),
     ...chat.map((m) =>
       h(
         'div',
@@ -59,9 +85,21 @@ export function renderChat(): HTMLElement {
         h('div', { class: 'msg-body' }, textFor(m)),
       ),
     ),
-    h('div', { class: 'shead' }, 'Transcript'),
-    renderTranscript(),
+    transHead,
+    trans,
   ) as HTMLElement;
+  drawTranscript();
+
+  /*
+   * And it grows while he talks. The single most likely moment for this panel to
+   * be open is during the conversation, so a record that only appeared on reopen
+   * would be a record nobody watched being written. The subscription lets itself
+   * go once the panel host has thrown the element away.
+   */
+  const off = onSaid(() => {
+    if (!list.isConnected) { off(); return; }
+    if (liveTranscription()) drawTranscript();
+  });
 
   const field = h('input', {
     class: 'msg-field', type: 'text', 'aria-label': 'Send a message',
@@ -338,38 +376,110 @@ export function renderPresent(store: Store): HTMLElement {
   return wrap;
 }
 
+/**
+ * MEET'S HOST-CONTROLS SWITCH, with a different label on it.
+ *
+ * Nam sent both states as screenshots and offered to sign me into Meet to measure
+ * the transition off the live product. Not taken, and it is worth saying why
+ * rather than quietly guessing: this build already has that switch, measured off a
+ * live share for the presentation-audio control in the call bar, and the timing it
+ * recorded is 0.2s on cubic-bezier(0.2, 0, 0, 1) for the handle with a linear
+ * fade on the track. That is M3's `standard` easing and duration, which is what
+ * Meet is using, and it is already in the stylesheet with a note saying where it
+ * came from. Signing into somebody else's Google account to re-measure a number
+ * this project has already measured is not a trade worth making.
+ *
+ * What DID come off the screenshots is the geometry and the two icons: the
+ * host-controls switch is the full-size M3 one rather than the 39x24 in the call
+ * bar, and it carries a tick when on and a cross when off. Both are stated in the
+ * stylesheet as read-from-screenshot rather than measured, because that is what
+ * they are.
+ *
+ * role="switch" and aria-checked, not a checkbox: it is a control that takes
+ * effect immediately, which is the whole distinction between the two.
+ */
+function liveSwitch(onChange: () => void): HTMLElement {
+  const knob = h('span', { class: 'lt-knob' },
+    sym('check', 16), sym('close', 16)) as HTMLElement;
+  const btn = h('button', {
+    class: 'lt-sw', type: 'button', role: 'switch',
+    'aria-checked': liveTranscription() ? 'true' : 'false',
+    'aria-label': 'Live transcription',
+  }, knob) as HTMLButtonElement;
+
+  const row = h('div', { class: 'lt-row' },
+    h('span', { class: 'lt-label' }, 'Live transcription'),
+    btn) as HTMLElement;
+
+  btn.addEventListener('click', () => {
+    const next = !liveTranscription();
+    setLiveTranscription(next);
+    btn.setAttribute('aria-checked', next ? 'true' : 'false');
+    onChange();
+  });
+  return row;
+}
+
+/**
+ * ONE OF TWO TRANSCRIPTS, and which one is the switch's business.
+ *
+ * Review T11 and A1 are still satisfied by both: rendered as a static list rather
+ * than a live region that floods a screen reader, and neither pretends to be
+ * speech recognition.
+ */
 export function renderTranscript(): HTMLElement {
-  /*
-   * Review T11 and A1: labelled as scripted, and rendered as a static list
-   * rather than a live region that floods a screen reader.
-   *
-   * N45. This used to render an eleven-line array of its own from data/cv.ts,
-   * which was a second script — the one the call played on a loop behind
-   * everything else. Now it renders the conversation itself, stamped by the same
-   * derived clock the Scripts panel prints, so a transcript that disagrees with
-   * what is actually said is no longer a thing that can happen.
-   */
-  const transcript = transcriptLines(profile.name);
-  return h(
-    'div',
-    {},
-    h(
-      'p',
-      { class: 'pnote' },
-      'Transcript. Scripted, not recognised: there is no audio track here, and pretending otherwise would be a lie ' +
-        'told in a job application. Live recognition is a separate, optional thing: turn on your microphone and it ' +
-        'transcribes you. The timestamps are where each line falls if nobody interrupts; you almost certainly did.',
-    ),
-    ...transcript.map((l) =>
-      h(
-        'p',
-        { class: 'msg' },
-        h('span', { class: 'msg-from' }, `${l.speaker} · ${String(Math.floor(l.at / 60)).padStart(2, '0')}:${String(l.at % 60).padStart(2, '0')}`),
-        h('span', { class: 'msg-body', style: 'display:block' }, l.text),
-      ),
-    ),
+  if (liveTranscription()) return renderRecord();
+  return renderScript();
+}
+
+/**
+ * WHAT WAS SAID, STAMPED WHEN IT WAS SAID.
+ *
+ * Empty until he starts talking, and the empty state says so plainly instead of
+ * rendering a heading over nothing: this panel is reachable before the
+ * conversation begins and from a call where the visitor turned the captions off.
+ */
+function renderRecord(): HTMLElement {
+  const lines = saidSoFar();
+  if (!lines.length) {
+    return h('p', { class: 'pnote' },
+      'Nothing yet. Every caption that appears in the call is written down here as it is said, '
+      + 'with the time it went up. Turn this off for the whole script instead.');
+  }
+  return h('div', {},
+    ...lines.map((l) =>
+      h('p', { class: 'msg' },
+        h('span', { class: 'msg-from' }, `${profile.name} \u00b7 ${stamp(l.at)}`),
+        h('span', { class: 'msg-body', style: 'display:block' }, l.text))),
   );
 }
+
+/**
+ * WHAT THERE IS TO SAY, STAMPED WHEN IT WOULD BE SAID.
+ *
+ * The authored offset plus the moment the meeting started, which is Nam's rule:
+ * "all timestamps would be calculated based on the designated time for each
+ * message, offset by the time the meeting started." So it reads as a schedule for
+ * this call rather than as a set of durations, and it lines up with the other
+ * column the moment nobody interrupts.
+ *
+ * N45 is what makes this safe to show at all: the offsets come from the script
+ * itself, via the same derived clock the Scripts panel prints. There used to be a
+ * separate eleven-line array in data/cv.ts that this panel rendered while the call
+ * played something else on a loop, so a transcript that disagreed with what was
+ * actually being said was a thing that could happen. It cannot now.
+ */
+function renderScript(): HTMLElement {
+  const from = meetingStart();
+  const transcript = transcriptLines(profile.name);
+  return h('div', {},
+    ...transcript.map((l) =>
+      h('p', { class: 'msg' },
+        h('span', { class: 'msg-from' }, `${profile.name} \u00b7 ${stamp(from + l.at * 1000)}`),
+        h('span', { class: 'msg-body', style: 'display:block' }, l.text))),
+  );
+}
+
 
 
 /**

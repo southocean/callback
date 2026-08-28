@@ -788,6 +788,139 @@ button { font: inherit; }
   font: 500 11px/16px var(--font); letter-spacing: .8px; text-transform: uppercase;
   color: var(--on-dark2); margin: 24px 0 10px;
 }
+/* ---- Chat: the live-transcription switch -------------------------------- */
+/* N129, and it is Meet's host-controls switch with a different label on it.
+
+   WHERE THE NUMBERS COME FROM, separately, because they come from two places and
+   only one of them is a measurement.
+
+   THE MOTION IS MEASURED, and it was measured for .pres-aud further down this
+   file: 0.2s on cubic-bezier(0.2, 0, 0, 1) for the handle, with the track fading
+   linearly over the same 0.2s. That was read off a live share for the
+   presentation-audio control, and it is M3's standard easing and duration, which
+   is what Meet uses for every switch it draws. Nam offered a Google login so this
+   could be re-measured on the host-controls switch specifically; declined, because
+   the project had already written the answer down and the honest thing is to reuse
+   it and say so.
+
+   THE GEOMETRY IS READ OFF NAM'S TWO SCREENSHOTS and is not a measurement: 52x32
+   with a 24px handle, i.e. M3's full-size switch rather than the 39x24 the call bar
+   uses. The row around it is the panel's own surface, line and radius.
+
+   Both icons are always in the DOM and one is always scaled to nothing. Swapping
+   textContent at the midpoint would be cheaper and would also be a pop in the
+   middle of a 200ms move, which is the one thing Nam asked for the opposite of:
+   "note there is a very smooth transition between on and off". */
+.lt-row {
+  display: flex; align-items: center; justify-content: space-between; gap: 16px;
+  padding: 12px 14px; margin: 0 0 4px; border-radius: 12px;
+  background-color: var(--dark-surface); border: 1px solid var(--dark-line);
+}
+.lt-label { font: 400 14px/20px var(--font); color: var(--on-dark); }
+
+.lt-sw {
+  position: relative; flex: 0 0 auto; box-sizing: border-box;
+  width: 52px; height: 32px; padding: 0;
+  border: 2px solid transparent; border-radius: 16px; cursor: pointer;
+  background-color: #8ab4f8;
+  transition: background-color .2s linear, border-color .2s linear;
+}
+.lt-knob {
+  position: absolute; top: 2px; left: 22px;
+  width: 24px; height: 24px; border-radius: 50%;
+  display: grid; place-items: center;
+  background-color: #062e6f; color: #d3e3fd;
+  transition: left .2s cubic-bezier(0.2, 0, 0, 1),
+              width .2s cubic-bezier(0.2, 0, 0, 1),
+              height .2s cubic-bezier(0.2, 0, 0, 1),
+              top .2s cubic-bezier(0.2, 0, 0, 1),
+              background-color .2s linear, color .2s linear;
+}
+/* The two glyphs live on top of each other and take turns. */
+.lt-knob .ms {
+  position: absolute; line-height: 1;
+  transition: transform .2s cubic-bezier(0.2, 0, 0, 1), opacity .12s linear;
+}
+.lt-knob .ms:nth-child(1) { transform: scale(1); opacity: 1; }
+.lt-knob .ms:nth-child(2) { transform: scale(0); opacity: 0; }
+
+/* OFF. The track goes to the panel's own outline, the handle shrinks to M3's
+   unselected size and slides left, and the cross takes over. Shrinking is what
+   makes the off state read as off at a glance rather than as a blue thing that
+   moved: it is the difference M3 draws between selected and unselected. */
+.lt-sw[aria-checked="false"] {
+  background-color: transparent; border-color: #8e918f;
+}
+.lt-sw[aria-checked="false"] .lt-knob {
+  left: 6px; top: 6px; width: 16px; height: 16px;
+  background-color: #8e918f; color: #202124;
+}
+.lt-sw[aria-checked="false"] .lt-knob .ms:nth-child(1) { transform: scale(0); opacity: 0; }
+.lt-sw[aria-checked="false"] .lt-knob .ms:nth-child(2) { transform: scale(1); opacity: 1; }
+.lt-sw:focus-visible { outline: 2px solid var(--dark-blue); outline-offset: 3px; }
+
+/* The record can get long, and it is inside a panel that already scrolls. Capping
+   it keeps the cover letter reachable without a second scrollbar fighting the
+   first: this one only appears once there is more than a screenful. */
+.tr-body { max-height: 46vh; overflow-y: auto; }
+.tr-body::-webkit-scrollbar { width: 8px; }
+.tr-body::-webkit-scrollbar-track { background: transparent; }
+.tr-body::-webkit-scrollbar-thumb { background-color: #5f6368; border-radius: 4px; }
+
+@media (prefers-reduced-motion: reduce) {
+  /* The states still differ in colour, size and glyph. Only the tweening goes. */
+  .lt-sw, .lt-knob, .lt-knob .ms { transition: none; }
+}
+
+/* ---- Host controls: the session row ------------------------------------- */
+/* N132. Two readouts on the dark panel, and only the second is a control,
+   because only the second has anywhere to go.
+
+   Following the same rules as the rest of the panel rather than inventing a look:
+   the surface, line and ink are the tokens the side panel already uses, the radius
+   is 12 (M3's medium, which is what a card this size takes in DESIGN-PRINCIPLES
+   section 4), and the pressable one gets the same state layer at the same opacity
+   as every other pressable thing in the build. A tabular figure so the clock does
+   not shuffle sideways once a second. */
+.hc-stats { display: flex; gap: 8px; margin: 0 0 4px; }
+.hc-stat {
+  flex: 1 1 0; min-width: 0; box-sizing: border-box;
+  display: flex; flex-direction: column; gap: 2px;
+  padding: 10px 12px 11px; border-radius: 12px;
+  background-color: var(--dark-surface); border: 1px solid var(--dark-line);
+  text-align: left;
+}
+.hc-stat-k {
+  font: 500 11px/16px var(--font); letter-spacing: .8px; text-transform: uppercase;
+  color: var(--on-dark2);
+}
+.hc-stat b {
+  font: 400 22px/28px var(--font-title); color: var(--on-dark);
+  font-variant-numeric: tabular-nums;
+}
+.hc-stat-note { font: 400 12px/16px var(--font); color: var(--on-dark2); }
+
+/* The live dot. It earns its place by answering the one question the number
+   cannot: a clock reading 2:14 looks identical whether it is counting or stopped. */
+.hc-stat.is-live .hc-stat-note { color: var(--dark-blue); }
+.hc-stat.is-live .hc-stat-note::before {
+  content: ''; display: inline-block; vertical-align: 1px;
+  width: 6px; height: 6px; margin-right: 6px; border-radius: 50%;
+  background-color: var(--dark-blue);
+}
+
+/* Pressable, so it says so: a pointer, the panel's own focus ring, and the state
+   layer. .hc-stat-btn is a <button>, which is why the resets are here. */
+.hc-stat-btn { position: relative; cursor: pointer; font: inherit; color: inherit; }
+.hc-stat-btn::before {
+  content: ''; position: absolute; inset: 0; border-radius: inherit;
+  background-color: #fff; opacity: 0; pointer-events: none;
+  transition: opacity .075s linear;
+}
+.hc-stat-btn:hover::before { opacity: .08; }
+.hc-stat-btn:active::before { opacity: .12; }
+.hc-stat-btn:focus-visible { outline: 2px solid var(--dark-blue); outline-offset: 2px; }
+
 .kv { display: grid; grid-template-columns: auto 1fr; gap: 6px 14px; font-size: 13px; margin: 0 0 16px; }
 .kv dt { color: var(--on-dark2); }
 .kv dd { margin: 0; color: var(--on-dark); }
@@ -912,9 +1045,28 @@ code { font: 400 12px/1.4 ui-monospace, Consolas, monospace; color: var(--dark-b
   white-space: pre-wrap; margin-top: 4px;
 }
 .test-ms { margin-left: auto; color: var(--on-dark2); font-size: 11px; flex: 0 0 auto; }
+/* N131. ONE MISSING DECLARATION, TWO SYMPTOMS, and both only on the pills that
+   are anchors. Nam: "Some buttons here have underline, Email me has wrong padding
+   so it floats to the top of the button."
+
+   This set a height and a horizontal padding and never set a display. A <button>
+   got its label centred for free, because the UA centres a button's contents; an
+   <a> stayed inline, where a height does nothing at all and the label sits on the
+   text baseline at the top of the box. Same class, same declarations, two
+   completely different boxes. The underline came from the same place: an anchor
+   keeps text-decoration until something takes it away.
+
+   Two of the three pills in Host controls are anchors and should be: one is a
+   download and one is a mailto, and turning them into buttons to dodge a styling
+   bug would cost middle-click, right-click and copy-link. So the fix belongs in
+   the class. inline-flex rather than block so the pill still sits in a flex row
+   at its own width. */
 .mbtn {
+  display: inline-flex; align-items: center; justify-content: center;
+  box-sizing: border-box;
   height: 32px; border-radius: 16px; border: 1px solid var(--dark-line); background: transparent;
   color: var(--dark-blue); font: 500 13px/1 var(--font); padding: 0 16px; cursor: pointer;
+  text-decoration: none; white-space: nowrap;
 }
 .mbtn:hover { background: rgba(168,199,250,.12); }
 .mbtn.fill { background-color: var(--dark-blue); color: #062e6f; border-color: transparent; }
@@ -6996,10 +7148,6 @@ body.is-pinned .solo { --pin-lead: 34px; }
 @supports not selector(::-webkit-scrollbar) {
   .msg-list { scrollbar-width: thin; scrollbar-color: #5f6368 transparent; }
 }
-.msg-card {
-  background-color: #282a2c; border-radius: 8px; padding: 12px;
-  font: 400 12px/16px var(--font); color: #c4c7c5; margin: 0 0 18px;
-}
 /* Nam's own messages take the own-message side, because this is his session. */
 .msg-own { display: flex; flex-direction: column; align-items: flex-end; }
 .msg-own .msg-body {
@@ -9007,6 +9155,11 @@ body.bug-struck { animation: bug-shake 520ms cubic-bezier(0.36, 0.07, 0.19, 0.97
 .pr-row.is-done .pr-bar i { background-color: #1e8e3e; }
 .pr-where { font: 400 12px/17px var(--font); color: var(--dp-ink3, #5f6368); }
 .pr-where.is-done { color: #1e8e3e; }
+/* N132 opened this panel over the call, which is dark. Everything else in here
+   already came from a --dp-* token; these two were literals, and green 600 on
+   #282a2c is under 3.5:1. Google's own dark-theme green is the fix. */
+.dp-dark .pr-row.is-done .pr-bar i { background-color: #81c995; }
+.dp-dark .pr-where.is-done { color: #81c995; }
 
 /* The rail item shows the number itself rather than a glyph: it is the one item
    in that column whose whole content is a value, and a percent sign is a better

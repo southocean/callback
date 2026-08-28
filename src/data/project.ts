@@ -280,14 +280,14 @@ export const columns: { id: Column; label: string }[] = [
  * trophy cabinet, not a plan.
  */
 export const tasks: Task[] = [
-  { id: 'T4', col: 'done', size: 'M', tag: 'trust', title: 'Say something before the camera prompt', note: 'Done, by removing the prompt instead. There is no permission bar left to get in front of \u2014 see T29.' },
+  { id: 'T4', col: 'done', size: 'M', tag: 'trust', title: 'Say something before the camera prompt', note: 'Done, by removing the prompt instead. There is no permission bar left to get in front of. See T29.' },
   { id: 'T5', col: 'backlog', size: 'S', tag: 'trust', title: 'Label the emulated browser and desktop', note: 'A browser with an address bar drawn inside a page is a phishing pattern. Keep the trick, label it.' },
   { id: 'T6', col: 'backlog', size: 'M', tag: 'content', title: 'Rewrite the plain CV footer', note: 'It closes on build receipts and is no-print, so the PDF loses the disclaimer with it.' },
   { id: 'T7', col: 'done', size: 'S', tag: 'content', title: '"Against this job ad" names no job ad', note: 'Closed by N66 from the other end: with no code the CV now names the employer, so the section has a job ad to be against.' },
   { id: 'T8', col: 'review', size: 'M', tag: 'onboarding', title: 'CV opens as an overlay, not a route', note: 'Shipped. Meet never navigates away from itself and neither should this.' },
   { id: 'T9', col: 'review', size: 'M', tag: 'onboarding', title: 'Per-company copy behind a code', note: 'Shipped. No employer named by default; ?c= swaps in the specific lines.' },
   { id: 'T10', col: 'review', size: 'L', tag: 'specs', title: 'Project specifications panel', note: 'Shipped. One place the build is documented, reachable from the home screen and from inside the call.' },
-  { id: 'T11', col: 'review', size: 'M', tag: 'call', title: 'Easter eggs open inside the call', note: 'Shipped, then QA\u2019d by Nam \u2014 which is where T16 to T20 came from. Join goes straight to the call with the clip playing on the shared screen.' },
+  { id: 'T11', col: 'review', size: 'M', tag: 'call', title: 'Easter eggs open inside the call', note: 'Shipped, then QA\u2019d by Nam, which is where T16 to T20 came from. Join goes straight to the call with the clip playing on the shared screen.' },
   { id: 'T12', col: 'done', size: 'L', tag: 'call', title: 'The shared desktop', note: 'Windows that drag, resize, snap and minimise, a file explorer, a browser and a media player.' },
   { id: 'T13', col: 'done', size: 'M', tag: 'call', title: 'Pinned and presenting layouts', note: 'Read off the live product while a share was running, the only way those states were reachable.' },
   { id: 'T14', col: 'done', size: 'M', tag: 'trust', title: 'Perception pass', note: 'How this reads to a stranger, ranked by how fast it pushes them toward closing the tab.' },
@@ -295,24 +295,24 @@ export const tasks: Task[] = [
 
   /* From Nam's egg QA, 26 August. Five requests and three bugs, all shipped and
      measured in a browser; sitting in review because he has not seen them yet. */
-  { id: 'T16', col: 'review', size: 'L', tag: 'call', title: 'Real video controls on the shared player', note: 'Shipped, then cut back on Nam\u2019s note that it obstructed the picture. Clicking the video pauses it; the overlay is now one play button, shown only while paused and for a second after a press. Skip \u00b110s is gone \u2014 the clips are 8 to 30 seconds, so it only ever meant the start or the end.' },
-  { id: 'T17', col: 'review', size: 'M', tag: 'call', title: 'The player stops lying about sound', note: 'Shipped. It autoplayed muted while showing an unmuted speaker at full volume. The UI now reads off the video, and the visitor\u2019s choice is remembered \u2014 a mute the browser imposed is not saved as one they chose.' },
+  { id: 'T16', col: 'review', size: 'L', tag: 'call', title: 'Real video controls on the shared player', note: 'Shipped, then cut back on Nam\u2019s note that it obstructed the picture. Clicking the video pauses it; the overlay is now one play button, shown only while paused and for a second after a press. Skip \u00b110s is gone: the clips are 8 to 30 seconds, so it only ever meant the start or the end.' },
+  { id: 'T17', col: 'review', size: 'M', tag: 'call', title: 'The player stops lying about sound', note: 'Shipped. It autoplayed muted while showing an unmuted speaker at full volume. The UI now reads off the video, and the visitor\u2019s choice is remembered: a mute the browser imposed is not saved as one they chose.' },
   { id: 'T18', col: 'review', size: 'S', tag: 'call', title: 'No share sheet over an easter egg', note: 'Shipped. The meeting\u2019s-ready card exists to say the link is copyable; parked over a 30-second clip it is just clutter. Suppressed in the reducer, so a future route into an egg cannot forget.' },
   { id: 'T19', col: 'review', size: 'S', tag: 'call', title: 'Egg player opens centred', note: 'Shipped. It was inheriting the cascade meant for windows you opened yourself and landing in the corner behind Explorer.' },
   { id: 'T20', col: 'review', size: 'S', tag: 'call', title: 'Leaving an egg goes straight home', note: 'Shipped. The ended screen earns its place after a real visit; after a clip it is a speed bump, once per egg, for someone hunting them.' },
-  { id: 'T21', col: 'review', size: 'S', tag: 'call', title: 'BUG: countdown ring animated in two frames', note: 'Fixed. A unitless custom property inside calc() stays a <number>, so the keyframe never resolved to a length and Chrome fell back to DISCRETE animation \u2014 full arc for 30s, then none. Nam: "either fully blue or fully white".' },
-  { id: 'T22', col: 'review', size: 'S', tag: 'specs', title: 'BUG: three CSS rules had lost their selectors', note: 'Fixed. A prune deleted the selector lines and left the declarations, which a browser silently discards. deadcss cannot see it \u2014 with the selector gone there is no name left to report \u2014 so css-structure.mjs now gates on it.' },
+  { id: 'T21', col: 'review', size: 'S', tag: 'call', title: 'BUG: countdown ring animated in two frames', note: 'Fixed. A unitless custom property inside calc() stays a <number>, so the keyframe never resolved to a length and Chrome fell back to DISCRETE animation: full arc for 30s, then none. Nam: "either fully blue or fully white".' },
+  { id: 'T22', col: 'review', size: 'S', tag: 'specs', title: 'BUG: three CSS rules had lost their selectors', note: 'Fixed. A prune deleted the selector lines and left the declarations, which a browser silently discards. deadcss cannot see it, because with the selector gone there is no name left to report, so css-structure.mjs now gates on it.' },
   { id: 'T23', col: 'review', size: 'S', tag: 'specs', title: 'BUG: local video could not seek', note: 'Fixed. serve.mjs answered Range with a plain chunked 200, so Chrome reported the media unseekable and every skip snapped to zero. Production was never affected, which is exactly why it wasted a QA pass.' },
 
-  { id: 'T25', col: 'review', size: 'S', tag: 'call', title: 'BUG: speed menu was white on white', note: 'Fixed. color:#fff for the closed control inherited into the <option> elements, and the platform draws the popup on its own surface \u2014 which this document forces light. color-scheme:dark plus explicit option colours.' },
+  { id: 'T25', col: 'review', size: 'S', tag: 'call', title: 'BUG: speed menu was white on white', note: 'Fixed. color:#fff for the closed control inherited into the <option> elements, and the platform draws the popup on its own surface, which this document forces light. color-scheme:dark plus explicit option colours.' },
 
-  { id: 'T26', col: 'review', size: 'S', tag: 'call', title: 'BUG: the call auto-ended and dumped you home', note: 'Fixed. The ended screen\u2019s 60s auto-return kept ticking after you left it, then dispatched screen: home from under you mid-call. Its guard listened for hashchange, and main.ts navigates with pushState \u2014 which never fires it, so the guard had never once run. Each visit armed another one. The tick now checks it is still the ended screen.' },
+  { id: 'T26', col: 'review', size: 'S', tag: 'call', title: 'BUG: the call auto-ended and dumped you home', note: 'Fixed. The ended screen\u2019s 60s auto-return kept ticking after you left it, then dispatched screen: home from under you mid-call. Its guard listened for hashchange, and main.ts navigates with pushState, which never fires it, so the guard had never once run. Each visit armed another one. The tick now checks it is still the ended screen.' },
 
   { id: 'T27', col: 'review', size: 'S', tag: 'specs', title: 'BUG: Meeting tools was wider than every other panel', note: 'Fixed. It forced 460px against the 360 every other drawer uses, so it sat over the video tile and the right edge moved depending on which drawer you opened. The width existed because eight tabs would not fit; they wrap to two rows now and there are five, so the cause went with it.' },
   { id: 'T28', col: 'review', size: 'S', tag: 'specs', title: 'Meeting tools: two tabs removed, five reordered', note: 'Removed. The requirement map is already in About and the mock Chrome opens the real posting, three copies is how they start disagreeing. Design went on Nam’s call: not relevant here, and some mystery is worth keeping.' },
 
-  { id: 'T29', col: 'review', size: 'M', tag: 'trust', title: 'The page never asks for your camera', note: 'Shipped. getUserMedia is gone \u2014 the control flips its own icon and nothing else, verified by wrapping mediaDevices.getUserMedia and toggling both ways. Closes R11 in the perception doc, which called the browser\u2019s permission bar on a page dressed as Meet the scariest moment in the funnel.' },
-  { id: 'T30', col: 'review', size: 'M', tag: 'specs', title: 'WebGL effects pipeline deleted', note: 'Removed with the camera it ran on: the Effects tab, src/fx/pipeline.ts, the fx side quest, the \u2018e\u2019 shortcut and the Backgrounds button. A real loss \u2014 it was the most technically substantial thing here \u2014 but it was only ever visible to a reader who granted the permission we just removed. Recoverable from git.' },
+  { id: 'T29', col: 'review', size: 'M', tag: 'trust', title: 'The page never asks for your camera', note: 'Shipped. getUserMedia is gone: the control flips its own icon and nothing else, verified by wrapping mediaDevices.getUserMedia and toggling both ways. Closes R11 in the perception doc, which called the browser\u2019s permission bar on a page dressed as Meet the scariest moment in the funnel.' },
+  { id: 'T30', col: 'review', size: 'M', tag: 'specs', title: 'WebGL effects pipeline deleted', note: 'Removed with the camera it ran on: the Effects tab, src/fx/pipeline.ts, the fx side quest, the \u2018e\u2019 shortcut and the Backgrounds button. A real loss, and it was the most technically substantial thing here, but it was only ever visible to a reader who granted the permission we just removed. Recoverable from git.' },
 
   { id: 'T31', col: 'review', size: 'S', tag: 'trust', title: 'BUG: the lobby named a camera it never asked about', note: 'Fixed. The lobby promoted a chip to "Integrated Camera", a hardcoded device name, in a file whose own comment forbids exactly that. It only looked right because Windows calls most built-in webcams that. Now reads "No camera requested" beside "Effects unavailable", matching the mic and speaker chips, and the promote mechanism is gone because nothing can be granted.' },
 
@@ -412,7 +412,7 @@ export const tasks: Task[] = [
                 "Card title: \"Diep Bui, referral\"",
                 "The \"Calling as\" line replaced with something playful",
                 "The description line is less stiff",
-                "The work address appears nowhere in src/ or docs/ \u2014 asserted by a test"
+                "The work address appears nowhere in src/ or docs/, asserted by a test"
           ],
           "raised": "Nam, QA 27 Aug, point 7"
     },
@@ -1938,7 +1938,7 @@ export const tasks: Task[] = [
         'The partly-met rows get their own chip colour',
       ],
       raised: 'Nam, 28 Aug',
-      notes: 'The chip is the part worth recording. A comment in the stylesheet had said for a long time that the honest rows "get a different mark, because a tick on a requirement he only partly meets would be the one dishonest pixel on the whole page" \u2014 and the rule to do it was never written. So every tilde was sitting on the same green as every tick, and the distinction the tilde exists to draw was invisible. Amber #feefc3 with #653b00 ink, dark enough to clear 4.5:1 at 11px bold rather than the 3:1 a larger glyph could have got away with.',
+      notes: 'The chip is the part worth recording. A comment in the stylesheet had said for a long time that the honest rows "get a different mark, because a tick on a requirement he only partly meets would be the one dishonest pixel on the whole page", and the rule to do it was never written. So every tilde was sitting on the same green as every tick, and the distinction the tilde exists to draw was invisible. Amber #feefc3 with #653b00 ink, dark enough to clear 4.5:1 at 11px bold rather than the 3:1 a larger glyph could have got away with.',
     },
   },
   {
@@ -1968,7 +1968,7 @@ export const tasks: Task[] = [
         'The ramp is derived from the two blues the light shell already owns',
       ],
       raised: 'Nam, 28 Aug',
-      notes: 'Two things fell out of the change. The bar chart could not draw a quiet day \u2014 a two-pixel bar is noise \u2014 so the near-empty days were dropped from the chart, kept in the total, and admitted in a footnote. A heatmap has no such problem: an empty cell is a legible value, so the footnote and the `thin` flag are both gone. And re-reading git log to build it caught the numbers being stale: the 27th was recorded as 17 while the day was still running and finished on 26, and the 28th was missing entirely. 150 became 184.',
+      notes: 'Two things fell out of the change. The bar chart could not draw a quiet day, because a two-pixel bar is noise, so the near-empty days were dropped from the chart, kept in the total, and admitted in a footnote. A heatmap has no such problem: an empty cell is a legible value, so the footnote and the `thin` flag are both gone. And re-reading git log to build it caught the numbers being stale: the 27th was recorded as 17 while the day was still running and finished on 26, and the 28th was missing entirely. 150 became 184.',
     },
   },
   {
@@ -2154,7 +2154,7 @@ export const tasks: Task[] = [
    * complaint from different angles: the page had stopped reading like a page.
    * --------------------------------------------------------------------- */
   {
-    id: 'N108', col: 'done', size: 'M', tag: 'specs',
+    id: 'N119', col: 'done', size: 'M', tag: 'specs',
     title: 'The commit numbers are read from git at build time',
     note: 'They were a hand-maintained array, and it had already gone stale twice.',
     detail: {
@@ -2169,7 +2169,7 @@ export const tasks: Task[] = [
     },
   },
   {
-    id: 'N109', col: 'done', size: 'S', tag: 'specs',
+    id: 'N120', col: 'done', size: 'S', tag: 'specs',
     title: 'The board loses its key and gains a second fact',
     note: 'Less/More under a chart of commits explains nothing anyone needed explaining.',
     detail: {
@@ -2179,7 +2179,7 @@ export const tasks: Task[] = [
     },
   },
   {
-    id: 'N110', col: 'done', size: 'M', tag: 'specs',
+    id: 'N121', col: 'done', size: 'M', tag: 'specs',
     title: 'The spec page uses the screen it is given',
     note: 'A 62ch cap meant for the browser\u2019s simple pages was also squeezing this one.',
     detail: {
@@ -2194,7 +2194,7 @@ export const tasks: Task[] = [
     },
   },
   {
-    id: 'N111', col: 'done', size: 'S', tag: 'content',
+    id: 'N122', col: 'done', size: 'S', tag: 'content',
     title: 'The spec, the stack, the milestones',
     note: 'Three headings doing one job in three different styles, and one section the milestones already covered.',
     detail: {
@@ -2205,7 +2205,7 @@ export const tasks: Task[] = [
     },
   },
   {
-    id: 'N112', col: 'done', size: 'M', tag: 'specs',
+    id: 'N123', col: 'done', size: 'M', tag: 'specs',
     title: 'The milestone rail alternates, and stops scrolling',
     note: 'Every label under the line meant every column had to be wide enough for two of them.',
     detail: {
@@ -2221,7 +2221,7 @@ export const tasks: Task[] = [
   },
 
   {
-    id: 'N113', col: 'done', size: 'S', tag: 'specs',
+    id: 'N124', col: 'done', size: 'S', tag: 'specs',
     title: 'The milestones heading was never the same heading',
     note: 'A duplicate class instead of a shared container. Wrong left edge, and no top margin at all.',
     detail: {
@@ -2235,7 +2235,7 @@ export const tasks: Task[] = [
     },
   },
   {
-    id: 'N114', col: 'done', size: 'S', tag: 'call',
+    id: 'N125', col: 'done', size: 'S', tag: 'call',
     title: 'The sticky tab strip sits flush',
     note: 'A sticky offset resolves against the scrollport’s padding box, so top: 0 left a 26px window.',
     detail: {
@@ -2246,7 +2246,7 @@ export const tasks: Task[] = [
     },
   },
   {
-    id: 'N115', col: 'done', size: 'M', tag: 'trust',
+    id: 'N126', col: 'done', size: 'M', tag: 'trust',
     title: 'Layout assertions for the spec panel',
     note: 'Both of the above shipped past a visual QA that only looked at the host where they were invisible.',
     detail: {
@@ -2258,6 +2258,129 @@ export const tasks: Task[] = [
       ],
       raised: 'Nam, 28 Aug',
       notes: 'The same answer print-cv.mjs gives for the PDF, and for the same reason the README already gives about the test runner: a check that cannot fail proves nothing, so this one was run against the reintroduced bug before being trusted. It is deliberately NOT in `npm run verify`: it needs a browser, and a gate that cannot run on a machine without Chrome is a gate that gets deleted. It skips with exit 0 when no Chrome is found, and it checks docs/ rather than src, so it measures what people actually load.',
+    },
+  },
+
+  /* ---------------------------------------------------------------------------
+     Nam's QA of 28 August, second pass. Six requests off one screenshot set, plus
+     three things the pass turned up in the board and the gates themselves.
+     --------------------------------------------------------------------------- */
+  {
+    id: 'N127', col: 'review', size: 'M', tag: 'call',
+    title: 'Stop talking stops the hand as well',
+    note: 'Stop ended the script and left the cursor working, so the room looked haunted rather than quiet.',
+    detail: {
+      why: 'Nam: "when I press stop talking, the script stops, but I think the mouse interaction continues ... After we have explicitly stop the talking, it means stop all other interactions too, like mouse movement, acknowledgement texts, after credit text etc." Stop is the one control that means "be quiet", and a cursor that carries on moving by itself is the loudest thing on the screen.',
+      done: [
+        'The hand is put away for the whole pause, not parked in view',
+        'No acknowledgement line and no after-credits while paused',
+        'Achievements, bugs and the found-counting all keep working',
+        'A quip found while paused stays found and is never spoken, then or later',
+      ],
+      raised: 'Nam, 28 Aug',
+      notes: 'The second half is the interesting half. Nam: "the acknowledgement text system should work the same, except for showing the text - if they found something, they found something, we dont acknowledge it again cause showing it the second time theyve done it would be very werid - the surprise was gone so our acknowledgement falls flat." So silence is a display rule, not a bookkeeping one, and it is one-way: the line is dropped rather than deferred. N108 already built exactly this for the script talking over itself, so the pause reuses the shape rather than inventing a second one. Verified by reading the paths rather than by running them, which is worth stating plainly: the behaviour needs a browser and a Stop press to see. What the code now guarantees is that takePause() is the single place a pause is taken, that the flow and the personal segment both reach it, and that the outro and the segment cannot start between the press and the safe point.',
+    },
+  },
+  {
+    id: 'N128', col: 'done', size: 'S', tag: 'content',
+    title: 'The transcript stops explaining itself',
+    note: 'Three sentences of preamble over a list that was already labelled Transcript.',
+    detail: {
+      why: 'Nam: "remove all the stuff we had as default, that was not neccessary. The transcript is nice, but the subtext is way too much." The paragraph defended the transcript against an accusation nobody had made, and it did it directly above a heading that already said what the thing was.',
+      done: ['The pnote above the transcript is gone', 'The heading and the lines stay'],
+      raised: 'Nam, 28 Aug',
+    },
+  },
+  {
+    id: 'N129', col: 'review', size: 'L', tag: 'call',
+    title: 'Live transcription, as a real toggle',
+    note: 'The chat panel gets Meet\u2019s host-controls switch, and two ways to timestamp the same script.',
+    detail: {
+      why: 'Nam: "The cover letter. It is a chat panel because a chat panel is where people actually read things. => We dont need that, lets change it ... I want this toggle with a different text: Live transcription which defaults to true. What it does is that it prints out the cc bubble text into the chat panel as a record of what the script has said. If the toggle is off then we show the full script."',
+      done: [
+        'A switch at the top of the chat panel, styled off the host-controls screenshots',
+        'On, and it is a record: each caption bubble is appended as it is emitted',
+        'Off, and it is the whole script, timestamped from the authored offsets',
+        'On-timestamps are the wall clock when the bubble fired; off-timestamps are the designated time plus the meeting start',
+        'The switch animates between states rather than snapping',
+      ],
+      raised: 'Nam, 28 Aug, with screenshots of both states',
+      notes: 'The two timestamp rules are the point of the feature rather than a detail of it: one is what happened, the other is what was written down, and they disagree the moment a visitor interrupts. Nam offered a browser login to measure the transition off the live product. Not taken, and the reason is worth recording: the .pres-aud switch in this build was already measured off a live share (0.2s, cubic-bezier(0.2, 0, 0, 1)), so the timing is known from inside the project and the geometry comes off the two screenshots. Signing into somebody else\u2019s Google account is not a thing to do for a number already sitting in the stylesheet. The panel needs a visual pass. Nam offered a logged-in Meet tab so the switch could be measured; this session has no tool that can drive a browser, only one that can photograph a window, so the geometry is off his screenshots and the motion is reused from the .pres-aud measurement. The remaining unknown is small and named in the stylesheet: whether the host-controls switch really is 52x32 with a 24px handle.',
+    },
+  },
+  {
+    id: 'N130', col: 'done', size: 'S', tag: 'content',
+    title: 'The referral note gets out of its own way',
+    note: 'A CV-shaped paragraph, in front of a CV, offered to somebody who has read it.',
+    detail: {
+      why: 'Nam: "I think this is waaaay too long and boring. Let\u2019s shorten it a lot more and let this CV speak for itself." He wrote the replacement himself and it is four lines: the facts a referrer needs, and a link to the thing that argues the rest.',
+      done: ['The intro loses its second half', 'The note is Nam\u2019s four-line version', 'Copy still copies the note and nothing else'],
+      raised: 'Nam, 28 Aug',
+      notes: 'The old note listed seven years, two years of C++, an MSc, four years of research, two publications, a book chapter, a best-paper award, three semesters of teaching, a language level and a commute. Every line was true and checkable, which is what it was optimised for, and it read like a form because that is what it was written against. A referral is a favour asked of a person, not a submission.',
+    },
+  },
+  {
+    id: 'N131', col: 'review', size: 'S', tag: 'trust',
+    title: 'The pill buttons stop behaving like links',
+    note: 'Two of the three Take it away buttons were anchors, so they underlined and their text sat at the top.',
+    detail: {
+      why: 'Nam: "here you can see some styling problems. Some buttons here have underline, Email me has wrong padding so it floats to the top of the button. Please control the styling in these right panels and make sure everything follows the google design principles."',
+      done: [
+        '.mbtn lays out and centres its own label whatever element wears it',
+        'No underline on a pill',
+        'Every pill in the side panels checked, not just the three that were reported',
+      ],
+      raised: 'Nam, 28 Aug, with a screenshot',
+      notes: 'One cause, two symptoms, and it is the kind that only shows on the elements nobody tested. .mbtn set a height and a padding but never a display, so a <button> got centred text for free from the UA and an <a> stayed inline: height did nothing, the padding applied on one axis, and the label sat on the text baseline at the top of the box. Download the PDF and Email me are anchors because they are a download and a mailto; Read as a document is a button. That is the right markup, so the fix belongs in the class rather than in the elements. Nothing automated covers this: deadcss proves the class is used and cssstruct proves it parses, and neither can see a label sitting at the top of a box. Wants eyes on the three pills in Host controls.',
+    },
+  },
+  {
+    id: 'N132', col: 'review', size: 'M', tag: 'call',
+    title: 'Host controls carries the clock and the progression',
+    note: 'And the progression panel finally reads the room it was opened from.',
+    detail: {
+      why: 'Nam: "in this host control I think we can show the game progression here too, the clock running (if we have not gotten to the end of the interview where we stop the clock) and the progression percentage, which if you click will open up the progression panel."',
+      done: [
+        'A live clock in Host controls, which stops when the interview stops it',
+        'The found-percentage beside it, as a button',
+        'It opens the progression panel',
+        'Opened from inside the call the panel is dark; from home or the end screen it is light',
+      ],
+      raised: 'Nam, 28 Aug',
+      notes: 'Nam: "Note that the meeting itself is in dark mode, so if we open the progression panel here, it should adapt to that." The panel already had the machinery for this and was not using it: every colour in it comes from a --dp-* property, and those are declared on .dp-light and .dp-dark, so wearing the other theme is a class rather than a second stylesheet. It was hard-coded to dp-light. Two halves with different confidence. The clock is arithmetic and reads off the same figure the ended screen records, so it is checkable by reasoning. The dark progression panel is a visual change and wants a look, along with the two greens that were literals and are now overridden for dark.',
+    },
+  },
+  {
+    id: 'N133', col: 'done', size: 'S', tag: 'trust',
+    title: 'The disclaimer stops denying the logo',
+    note: 'It claimed no Google marks are used, on a page that opens with the Google sign-in.',
+    detail: {
+      why: 'Nam: "we are gonna keep that google meet login in the beginning after the site just loaded, so you can go ahead and make sure we remove mentions of that we dont have any google logo. We do, and I am taking that risk okay."',
+      done: ['No sentence anywhere claims the marks are unused', 'The homage and not-affiliated statements stay', 'Every copy of the disclaimer updated, not just the one in the call'],
+      raised: 'Nam, 28 Aug',
+      notes: 'Three files had already been annotated with the fact that the sentence was false without any of them changing it, which is the failure mode a comment cannot fix. The decision recorded here is Nam\u2019s and it is his risk to take; what this ticket removes is a build telling a checkable lie about itself in the one place a reader goes to check.',
+    },
+  },
+  {
+    id: 'N134', col: 'done', size: 'S', tag: 'trust',
+    title: 'Board ids are unique, and now checked',
+    note: 'Two parallel sessions both numbered from N108, so eight ids named two cards each.',
+    detail: {
+      why: 'A board where an id means two things is a board you cannot cite, and every code comment that says "board ticket N110" stops being a reference. Found while numbering this batch.',
+      done: ['The spec-panel block renumbered to N119 to N126', 'The tour block keeps its numbers, because every code reference points at it', 'A test asserts task ids are unique'],
+      raised: 'Found, 28 Aug',
+      notes: 'The tour block won the tie on evidence rather than on seniority: prefs.ts, tour.ts, stage.ts and the suite all cite N108 to N115 with the tour meanings, and nothing in the codebase cited the spec-panel meanings at all. Worth knowing that the duplicate was invisible to every gate: the panel renders the cards in order, so two N110s look like two cards.',
+    },
+  },
+  {
+    id: 'N135', col: 'done', size: 'S', tag: 'trust',
+    title: 'The em dash gate sees through escapes',
+    note: 'It matched the character, so \\u2014 in a string passed the gate and still printed an em dash.',
+    detail: {
+      why: 'Nam: "control the whole site to make sure we dont have em dashes thks!" The gate did that for the character and not for the meaning, and sixteen escaped em dashes were sitting in board copy that renders in the spec panel.',
+      done: ['The checker decodes \\uXXXX and \\xXX inside string literals before looking', 'The sixteen existing escapes replaced with real punctuation', 'Verified to fail: an escaped dash now reports'],
+      raised: 'Found, 28 Aug',
+      notes: 'A gate that can be stepped around by writing the same character differently is worse than no gate, because it reports success. All sixteen were in data/project.ts, all in card copy the Project specifications panel prints, so all sixteen reached the screen.',
     },
   },
 

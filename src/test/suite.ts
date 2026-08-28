@@ -24,6 +24,7 @@ import {
   ADMIN_PASSWORD,
 } from '../data/admin.js';
 import { ADMIN_CLICKS, ADMIN_HINT_FROM, DROP_COLOURS, dropColour, dropDir } from '../ui/admingate.js';
+import { tasks as boardTasks, columns as boardColumns } from '../data/project.js';
 import {
   parts as tourParts, quips as tourQuips, acks as tourAcks, story as tourStory,
   asides, timeline, runtimeMs, transcriptLines, OUTRO_CAP_MS,
@@ -418,7 +419,13 @@ suite('content integrity', () => {
   });
 
   test('the referral blurb carries no superlatives', async () => {
-    // Review R5: the friend has to defend every sentence of it.
+    /*
+     * Review R5 asked for fact-only, because the friend has to defend every
+     * sentence. N130 relaxed that deliberately: the blurb is four lines in Nam's
+     * own voice now and one of them is a characterisation, which is his to make.
+     * What the gate still holds is the narrower and more useful line - the words
+     * that read as somebody else's marketing copy pasted into a referral form.
+     */
     const { referralBlurb } = await import('../data/cv.js');
     // 'best-paper award' is an award's name, not self-description, so it is exempt.
     const banned = /\b(best(?![- ]paper)|amazing|incredible|world[- ]class|rockstar|ninja|guru|exceptional|brilliant)\b/i;
@@ -1637,6 +1644,43 @@ suite('completion', () => {
     });
     eq(full.got, all.total, 'the four id lists do not add up to the total');
     eq(full.pct, 100);
+  });
+});
+
+/*
+ * THE BOARD IS A DOCUMENT, and it can be wrong in ways nothing else notices.
+ *
+ * Board ticket N134. Two sessions working the same afternoon both numbered from
+ * N108, so eight ids named two cards each. Nothing caught it: the panel renders
+ * the cards in order, so two N110s look like two cards, and every code comment
+ * that says "board ticket N110" quietly stopped being a reference.
+ *
+ * An id is the only part of a card that anything else depends on, so it is the
+ * only part worth asserting.
+ */
+suite('the board', () => {
+  test('every ticket id is unique', () => {
+    const seen = new Map<string, string>();
+    for (const t of boardTasks) {
+      const first = seen.get(t.id);
+      ok(first === undefined, `${t.id} is used twice: "${first}" and "${t.title}"`);
+      seen.set(t.id, t.title);
+    }
+    eq(seen.size, boardTasks.length, 'a card was lost to a duplicate id');
+  });
+
+  test('every card is in a column the board renders', () => {
+    const ids = new Set(boardColumns.map((c) => c.id));
+    for (const t of boardTasks) {
+      ok(ids.has(t.col), `${t.id} sits in "${t.col}", which is not a column`);
+    }
+  });
+
+  test('no card is left without a title or a note', () => {
+    for (const t of boardTasks) {
+      ok(t.title.trim().length > 0, `${t.id} has no title`);
+      ok(t.note.trim().length > 0, `${t.id} has no note`);
+    }
   });
 });
 

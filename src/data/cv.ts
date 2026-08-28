@@ -584,15 +584,31 @@ export const requirementMap: { req: string; evidence: string; strength: 'strong'
 ];
 
 /** For the friend who has to put his name on it (review H4, R2, R5). Fact-only. */
+/*
+ * FOUR LINES, AND NAM WROTE THEM - board ticket N130.
+ *
+ * The version this replaces was nine lines and listed seven years, two years of
+ * C++, an MSc, four years of research, two publications, a book chapter, an
+ * award, three semesters of teaching, a language level and a commute. Every
+ * clause was true and checkable, which is exactly what it was optimised for
+ * under review R5, and it read like a form because a form is what it was written
+ * against.
+ *
+ * Nam: "I think this is waaaay too long and boring. Let's shorten it a lot more
+ * and let this CV speak for itself." He is right about the audience. A referral
+ * is a favour asked of a person who already knows him, pasted into a box by
+ * somebody doing him a kindness at an awkward hour; it does not need to
+ * re-litigate the CV sitting one link away.
+ *
+ * Note what that trades. The old blurb could be defended sentence by sentence
+ * because every sentence was a fact. "Always very extra in all the right ways"
+ * is a characterisation, and it is his to make about himself in his own voice.
+ * The link is what carries the evidence now, which is the whole argument for
+ * making it short.
+ */
 export const referralBlurb =
-  'Nam Nguyen, front-end, Uppsala. Seven years as lead front-end developer on a real-time multiplayer ' +
-  'game client at Wasabi Productions, where he took the product through every platform it has had ' +
-  'to the browser and then to a React + Unity hybrid. Before that, two years of C++ on signing hardware at ' +
-  'Bkav. MSc Computer Science from Uppsala, plus four years of optimisation research with two publications, ' +
-  'a book chapter and a best-paper award, and three semesters as a teaching assistant for algorithms. ' +
-  'Swedish C1, already resident and eligible to work, 38 minutes from the Stockholm office. He wrote his ' +
-  'application as a TypeScript web app with no dependencies, a CI-enforced size budget and a test suite you ' +
-  'can run in the browser: ';
+  'Nam Nguyen, Uppsala. Seven years as lead front-end developer. Always very extra in all the right ways. ' +
+  'His CV is a proof of that, an homage to Google Meet: ';
 
 export const meta = {
   siteName: 'Callback',

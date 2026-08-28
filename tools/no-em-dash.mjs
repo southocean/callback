@@ -50,6 +50,44 @@ const walk = (dir) => readdirSync(dir, { withFileTypes: true })
   .flatMap((e) => (e.isDirectory() ? walk(join(dir, e.name)) : [join(dir, e.name)]));
 
 /**
+ * One escape sequence, as the character it will actually be.
+ *
+ * THIS IS THE WHOLE OF THE HOLE THIS CLOSES. The walker used to take the byte
+ * after a backslash and move on, which is right for \\' and \\\\ and harmless for
+ * \\n, and wrong for exactly the case that matters: `\\u2014` contributed a `u`
+ * and then four ordinary digits, so a string containing an escaped em dash read
+ * as "u2014" and the gate passed it. Sixteen of them were sitting in board copy
+ * that the Project specifications panel prints, which means the gate was
+ * reporting success about text that had the character on screen.
+ *
+ * A gate that can be stepped around by spelling the character differently is
+ * worse than no gate, because it is trusted. So the escapes that can name a
+ * character by number are resolved to that character before anything is tested.
+ *
+ * Everything else returns the literal next character, which is correct: `\\'`
+ * is an apostrophe, `\\n` is not a dash under any spelling, and neither can
+ * become one.
+ */
+function unescape(src, i) {
+  const d = src[i + 1] ?? '';
+  if (d === 'u' && src[i + 2] === '{') {
+    const end = src.indexOf('}', i + 3);
+    const hex = end === -1 ? '' : src.slice(i + 3, end);
+    if (/^[0-9a-fA-F]{1,6}$/.test(hex)) {
+      return [String.fromCodePoint(parseInt(hex, 16)), end - i + 1];
+    }
+  }
+  if (d === 'u' || d === 'x') {
+    const width = d === 'u' ? 4 : 2;
+    const hex = src.slice(i + 2, i + 2 + width);
+    if (hex.length === width && /^[0-9a-fA-F]+$/.test(hex)) {
+      return [String.fromCharCode(parseInt(hex, 16)), 2 + width];
+    }
+  }
+  return [d, 2];
+}
+
+/**
  * Every string literal in a source file, with the line it started on.
  *
  * Returns the CONTENT, not the quotes, so a report can print the string as the
@@ -87,7 +125,7 @@ function strings(src) {
       i += 1;
       while (i < n) {
         const d = src[i];
-        if (d === '\\') { text += src[i + 1] ?? ''; i += 2; continue; }
+        if (d === '\\') { const [ch, used] = unescape(src, i); text += ch; i += used; continue; }
         if (d === quote) { i += 1; break; }
         if (d === '\n') {
           line += 1;

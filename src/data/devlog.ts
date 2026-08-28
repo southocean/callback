@@ -32,7 +32,11 @@ export const phases = [
     body:
       'One metaphor: the site is a call, and every control in the bar is a section of the CV. Nothing ' +
       'decorative. Constraints fixed up front, vanilla TypeScript, zero runtime dependencies, a size budget ' +
-      'enforced by CI, full content with zero permissions granted, and no Google marks anywhere.',
+      // N133. The last clause said "no Google marks anywhere", which stopped being
+      // true the moment the shell drew the camera mark and never got corrected.
+      // The honest version of the constraint is the one that actually held.
+      'enforced by CI, full content with zero permissions granted, and every surface rebuilt from ' +
+      'measurements rather than from Google code.',
   },
   {
     name: 'Review',
