@@ -8293,64 +8293,109 @@ body.bug-struck { animation: bug-shake 520ms cubic-bezier(0.36, 0.07, 0.19, 0.97
 .dp .bd-rows dt, .dp .bd-stack b { color: var(--dp-ink); }
 
 /* --- the timeline, as a chart -------------------------------------------- */
-/* --- the commit heatmap -------------------------------------------------- */
-/* Nam, on the bar chart this replaces: "a bit too flashy for not a lot of added
- * info, lets convert it to a heatmap ... I think its a more familiar
- * presentation of commit frequency for devs than this bar chart."
+/* --- the commit board ---------------------------------------------------- */
+/* Nam, on the one-month version: "omg this looks horrendous! Make it like
+ * claude, having a whole board like that with more cells will convey better how
+ * concentrated our work has been and how effective it is."
  *
- * A column per week, a row per weekday, Sunday at the top. The whole month, so
- * the empty fortnight before the work started is visible: that emptiness is the
- * claim the panel is making.
+ * Twenty-six columns rather than six. The emptiness is the content: you cannot
+ * show concentration without showing what it is concentrated against.
  *
- * THE RAMP. Principle 1 says take the colour from the palette rather than invent
- * one, and a five-step sequential scale is the case the palette does not
- * enumerate. So the two ends are the tokens that ARE in it -- #d3e3fd, the light
- * shell's card blue, and #0b57d0, its primary -- and the two middles are
- * interpolated between them rather than picked by eye. Level 0 is the shell's
- * own neutral: a day with no commits is a value, not an absence, which is the
- * one thing the bar chart could not draw and needed a footnote to admit.
+ * MAKING A DARK BOARD WORK ON WHITE, which is the part he flagged. Claude's is
+ * white-on-charcoal and does not survive inversion -- a pale ramp on a white page
+ * loses its bottom two steps entirely, which is exactly what the first attempt
+ * did. GitHub's contribution graph is the reference for the light case and its
+ * answer is two rules:
  *
- * --dp- variables so it inverts with the panel, which renders on a light surface
- * in the browser and a dark one in the call. */
+ *   1. THE EMPTY CELL IS A NEUTRAL, not the lightest step of the ramp. A day
+ *      with no commits has to read as a different KIND of thing from a quiet
+ *      day, not as less of the same thing.
+ *   2. THE RAMP STARTS CLEAR OF THE PAGE. #d3e3fd on white is a 1.1:1 tile; as
+ *      the bottom of a five-step scale it is indistinguishable from empty. So
+ *      the four steps are four Google blues with real separation, not four
+ *      tints of one.
+ *
+ * The blues are the palette's own: #aecbfa, #8ab4f8, #4285f4 and #0b57d0. Only
+ * the last is in the two-palette table, and the note in DESIGN-PRINCIPLES is
+ * that a sequential scale is the case that table does not enumerate. These are
+ * Google Blue 200/300/500/700 rather than values picked by eye.
+ *
+ * --dp- variables carry the neutral, so the board still works in the dark panel
+ * inside the call, where the ramp has plenty of contrast already. */
+/* fit-content, so the caption and the legend under the board are as wide as the
+   BOARD rather than as wide as the panel. Left to fill the column, the legend
+   pinned itself to the far right of a 780px surface under a 500px chart and read
+   as a stray control that had lost its group. */
 .hm {
   --hm-0: var(--dp-line);
-  --hm-1: #d3e3fd;
-  --hm-2: #a8c7fa;
-  --hm-3: #5b8def;
+  --hm-1: #aecbfa;
+  --hm-2: #8ab4f8;
+  --hm-3: #4285f4;
   --hm-4: #0b57d0;
-  margin: 2px 0 6px;
+  width: fit-content; max-width: 100%; margin: 6px 0 20px;
 }
-.hm-grid-wrap { display: flex; gap: 6px; align-items: flex-start; }
-/* Fixed to the cell pitch (14 + 4 gap) so the labels line up with their rows
-   rather than being centred against them. */
-.hm-days { display: grid; grid-template-rows: repeat(7, 14px); gap: 4px; flex: 0 0 auto; }
-.hm-day {
-  font: 400 10px/14px var(--font); color: var(--dp-ink3);
-  text-align: right; width: 12px;
-}
-.hm-grid { display: flex; gap: 4px; }
-.hm-col { display: grid; grid-template-rows: repeat(7, 14px); gap: 4px; }
+.hm-board { display: inline-block; max-width: 100%; overflow-x: auto; }
 .hm-cell {
-  width: 14px; height: 14px; border-radius: 3px; background-color: var(--hm-0);
-  /* An inset rather than a border, so the ring does not change the cell's size
-     and knock the grid out of alignment by a pixel per column. */
-  box-shadow: inset 0 0 0 1px rgba(0, 0, 0, .04);
+  width: 15px; height: 15px; border-radius: 3px; background-color: var(--hm-0);
+  /* Inset, not a border: a border changes the box and knocks every column one
+     pixel out of true. */
+  box-shadow: inset 0 0 0 1px rgba(0, 0, 0, .05);
 }
 .hm-cell[data-l="1"] { background-color: var(--hm-1); }
 .hm-cell[data-l="2"] { background-color: var(--hm-2); }
 .hm-cell[data-l="3"] { background-color: var(--hm-3); }
 .hm-cell[data-l="4"] { background-color: var(--hm-4); }
-/* A day in the month either side. It holds the column's shape and says nothing,
-   so it is not drawn as a zero -- a zero would be a claim about a day this chart
-   is not reporting on. */
+/*
+ * AND REVERSED ON DARK, which is not a nicety. This panel renders on white in
+ * the browser and on #202124 inside the call, and "more" has to mean "further
+ * from the page" in both. On white that is darker; on charcoal it is lighter.
+ * Left as-is, the busiest day of the whole build would have been the DIMMEST
+ * cell on the board in the call, sitting closer to the background than a
+ * one-commit day.
+ *
+ * Same four blues, walked the other way, so the scale stays on the palette
+ * rather than growing a second set of values to keep in sync. GitHub does the
+ * same thing between its light and dark greens.
+ */
+.dp-dark .hm {
+  --hm-1: #0b57d0;
+  --hm-2: #4285f4;
+  --hm-3: #8ab4f8;
+  --hm-4: #aecbfa;
+}
+.dp-dark .hm-cell { box-shadow: inset 0 0 0 1px rgba(255, 255, 255, .04); }
+.dp-dark .hm-cell.is-out { box-shadow: none; }
+/* A day that has not happened yet. Not drawn at all, because an empty cell would
+   claim it was a day with no commits on it. */
 .hm-cell.is-out { background-color: transparent; box-shadow: none; }
+
+/* The month strip is offset by the weekday gutter so its labels sit over their
+   own columns rather than one gutter to the left. */
+.hm-mons { display: flex; gap: 4px; margin: 0 0 4px 22px; }
+.hm-mon {
+  width: 15px; flex: 0 0 15px;
+  font: 400 10px/12px var(--font); color: var(--dp-ink3); white-space: nowrap;
+}
+.hm-grid-wrap { display: flex; gap: 5px; align-items: flex-start; }
+.hm-days { display: grid; grid-template-rows: repeat(7, 15px); gap: 4px; flex: 0 0 17px; }
+.hm-day { font: 400 10px/15px var(--font); color: var(--dp-ink3); text-align: right; }
+.hm-grid { display: flex; gap: 4px; }
+.hm-col { display: grid; grid-template-rows: repeat(7, 15px); gap: 4px; }
+
+/* The legend sits under the board rather than opposite it. Pinned to the far
+   right of a wide panel it read as a stray control that had lost its group. */
 .hm-foot {
-  display: flex; align-items: center; justify-content: space-between; gap: 12px;
-  flex-wrap: wrap; margin-top: 10px;
+  display: flex; align-items: center; gap: 16px; flex-wrap: wrap;
+  margin-top: 12px;
 }
 .hm-total { font: 400 12px/16px var(--font); color: var(--dp-ink2); }
-.hm-key { display: flex; align-items: center; gap: 4px; }
+.hm-key { display: flex; align-items: center; gap: 4px; margin-left: auto; }
 .hm-key span { font: 400 11px/16px var(--font); color: var(--dp-ink3); }
+@media (max-width: 620px) {
+  /* No room to push the legend away, and a wrapped one reading as a second row
+     of the sentence above it is worse than one sitting next to it. */
+  .hm-key { margin-left: 0; }
+}
 
 
 /* ================= THE KANBAN TICKET ==================================== */

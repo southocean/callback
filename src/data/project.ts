@@ -1997,6 +1997,22 @@ export const tasks: Task[] = [
     },
   },
 
+  {
+    id: 'N107', col: 'done', size: 'M', tag: 'specs',
+    title: 'The commit board, at the size that makes the point',
+    note: 'A month grid was the wrong denominator. Twenty-six weeks says what nine days of work looks like.',
+    detail: {
+      why: 'Nam, on the version shipped an hour earlier: "omg this looks horrendous! Make it like claude, having a whole board like that with more cells will convey better how concentrated our work has been and how effective it is." He is right, and the diagnosis is the denominator rather than the styling. Six columns of mostly-empty cells says "a quiet month". Twenty-six columns with everything crammed into the last two says "this did not exist, and then it did", which is the actual claim. The emptiness is the content: concentration cannot be shown without showing what it is concentrated against.',
+      done: [
+        '26 weeks, month labels, 15px cells',
+        'A light ramp that works, and a dark one that is not the light one inverted',
+        'The lead paragraph that narrated the chart is gone, and the board sits under the document’s own opening line',
+      ],
+      raised: 'Nam, 28 Aug',
+      notes: 'Two things worth keeping. Nam asked how to make a dark design work on white and whether there was anything to copy: GitHub, and its answer is two rules that the first attempt broke. The empty cell must be a NEUTRAL rather than the lightest step of the ramp, so a day with no commits reads as a different kind of thing rather than as less of the same thing; and the ramp has to start clear of the page, because #d3e3fd on white is a 1.1:1 tile and vanishes as a bottom step. Second, the ramp is REVERSED on the dark surface rather than reused. This panel renders on white in the browser and on #202124 in the call, and "more" has to mean "further from the page" in both -- darker on white, lighter on charcoal. Left alone, the busiest day of the entire build would have been the dimmest cell on the board inside the call. Same four blues walked the other way, so there is no second palette to keep in sync. Measured after the change: luminance ascends 0.05 to 0.586 across the five steps on dark.',
+    },
+  },
+
   /* Flagged rather than done. Still true as of this build. */
   { id: 'T24', col: 'backlog', size: 'M', tag: 'specs', title: 'Initial payload is halfway to the ceiling', note: '24.7 kB of a 50 kB gate, up from 18.2. Still green, and the growth is real, but two deferred chunks are 17 kB and 19 kB and deserve a splitting pass before it becomes urgent.' },
 ];

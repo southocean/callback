@@ -26,7 +26,6 @@ import {
   commitsPerDay, milestones, phasesOfWork, personas, reviews,
   columns, tasks, type Task, type Column,
 } from '../data/project.js';
-import { START } from '../data/cv.js';
 import { bugs as collection, RARITY_LABEL } from '../data/bugs.js';
 import { bugArt } from './bugart.js';
 import { isAdmin, FORGETTABLE, storedCount, forget } from '../prefs.js';
@@ -274,92 +273,132 @@ const fmt = (iso: string): string => {
  * five dated columns say "this happened over five days".
  */
 const WEEKDAY_ROWS = ['S', 'M', 'T', 'W', 'T', 'F', 'S'];
+const MONTH_ABBR = [
+  'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec',
+];
+
+/** How many weeks the board shows. Half a year, which is Claude's board and
+ *  roughly GitHub's at half width. */
+const HM_WEEKS = 26;
 
 /**
- * Which month the heatmap draws, derived from the data rather than typed in, so
- * it cannot drift the way the 27th's commit count did. The last day with commits
- * on it is the month the project is being built in.
- */
-const MONTH = (() => {
-  const last = commitsPerDay[commitsPerDay.length - 1]?.day ?? '2026-08-01';
-  const [y, m] = last.split('-').map(Number);
-  const d = new Date(y ?? 2026, (m ?? 8) - 1, 1);
-  return {
-    y: d.getFullYear(),
-    m: d.getMonth(),
-    label: d.toLocaleDateString('en-US', { month: 'long', year: 'numeric' }),
-  };
-})();
-
-/**
- * One month of commits as a grid: a column per week, a row per weekday, Sunday
- * at the top. GitHub's layout, because it is the one a developer can read
- * without being told what they are looking at.
+ * The commit board.
  *
- * FIVE LEVELS, and the thresholds are proportions of the peak rather than fixed
- * counts, so the scale still means something if the numbers change. Level 0 is
- * "no commits" and is a distinct value, not the bottom of the ramp: the two
- * quiet days in the middle of the run are part of what the chart is saying.
+ * Nam, on the one-month version: "omg this looks horrendous! Make it like
+ * claude, having a whole board like that with more cells will convey better how
+ * concentrated our work has been and how effective it is."
  *
- * The ramp is derived from the two blues the light shell already owns, #d3e3fd
- * and #0b57d0, with two steps interpolated between them. Principle 1 says pick
- * the colour from the table rather than inventing one, and a sequential scale is
- * the case the table does not enumerate: the honest version is to name the two
- * ends it does enumerate and say the middle is derived. styles.css carries them.
+ * He is right, and the reason is that a month grid was the wrong denominator. Six
+ * columns of mostly-empty cells says "a quiet month". Twenty-six columns with
+ * everything crammed into the last two says "this did not exist, and then it
+ * did", which is the actual claim. The emptiness IS the content: you cannot show
+ * concentration without showing what it is concentrated against.
+ *
+ * ON MAKING A DARK DESIGN WORK IN LIGHT. Claude's board is white-on-charcoal and
+ * does not survive being inverted -- a pale ramp on white loses its bottom two
+ * steps. The reference for the light version is GitHub's contribution graph,
+ * which solved this years ago and whose answer is: the empty cell is a NEUTRAL,
+ * not the lightest step of the ramp, and the ramp itself starts well clear of
+ * the page. So level 0 is grey and levels 1 to 4 are four Google blues with real
+ * separation between them, rather than four tints of one.
+ *
+ * Days in the future are not drawn. A day that has not happened is not a day
+ * with no commits, and rendering it as an empty cell is a small lie the board
+ * does not need to tell.
  */
-function heatmap(total: number, peak: number): HTMLElement {
+function heatmap(): HTMLElement {
   const counts = new Map(commitsPerDay.map((d) => [d.day, d.n]));
+  const peak = Math.max(...commitsPerDay.map((d) => d.n));
+  const total = commitsPerDay.reduce((a, b) => a + b.n, 0);
+  const busiest = commitsPerDay.reduce((a, b) => (b.n > a.n ? b : a));
+  const active = commitsPerDay.filter((d) => d.n > 0);
+  /*
+   * The SPAN, not the number of days that had commits in them: 8 days were
+   * worked across a 9-day stretch, and "in nine days" is the true claim about
+   * elapsed time while "on eight days" is the true claim about effort. The
+   * stretch is what the board is showing, so the stretch is what the caption
+   * says. Derived either way, so neither can go stale the way the 27th's count
+   * did.
+   */
+  const first = new Date(active[0]?.day ?? '');
+  const last = new Date(active[active.length - 1]?.day ?? '');
+  const span = Math.round((last.getTime() - first.getTime()) / 86400000) + 1;
+
+  const key = (d: Date): string =>
+    `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+
   const level = (n: number): number => {
     if (n === 0) return 0;
     const r = n / peak;
     return r > 0.75 ? 4 : r > 0.5 ? 3 : r > 0.25 ? 2 : 1;
   };
 
-  const first = new Date(MONTH.y, MONTH.m, 1);
-  const last = new Date(MONTH.y, MONTH.m + 1, 0);
-  // Back to the Sunday that opens the first week, so every column is a full one.
-  const start = new Date(first);
-  start.setDate(1 - first.getDay());
-  const weeks = Math.ceil((first.getDay() + last.getDate()) / 7);
+  const today = new Date();
+  // The Sunday that opens the last column, then back HM_WEEKS - 1 more.
+  const lastSunday = new Date(today);
+  lastSunday.setDate(today.getDate() - today.getDay());
+  const start = new Date(lastSunday);
+  start.setDate(lastSunday.getDate() - (HM_WEEKS - 1) * 7);
 
-  const cells: HTMLElement[] = [];
-  for (let w = 0; w < weeks; w += 1) {
-    const col: HTMLElement[] = [];
+  const cols: HTMLElement[] = [];
+  const labels: HTMLElement[] = [];
+  let lastMonth = -1;
+
+  for (let w = 0; w < HM_WEEKS; w += 1) {
+    const colStart = new Date(start);
+    colStart.setDate(start.getDate() + w * 7);
+
+    /*
+     * A month label sits above the column that contains that month's first days,
+     * which is GitHub's rule and not quite the obvious one: labelling the column
+     * whose Sunday falls in a new month puts "Aug" above a column that is five
+     * sevenths July. Checking the whole week catches the changeover properly.
+     */
+    const endOfCol = new Date(colStart);
+    endOfCol.setDate(colStart.getDate() + 6);
+    const m = endOfCol.getMonth();
+    const show = m !== lastMonth && (endOfCol.getDate() >= 4 || w === 0);
+    labels.push(h('div', { class: 'hm-mon' }, show ? MONTH_ABBR[m] ?? '' : ''));
+    if (show) lastMonth = m;
+
+    const cells: HTMLElement[] = [];
     for (let r = 0; r < 7; r += 1) {
-      const d = new Date(start);
-      d.setDate(start.getDate() + w * 7 + r);
-      if (d.getMonth() !== MONTH.m) {
-        // A day belonging to the month either side. It holds the grid's shape
-        // and carries no value, so it is not a zero -- a zero is a claim.
-        col.push(h('div', { class: 'hm-cell is-out', 'aria-hidden': 'true' }));
+      const d = new Date(colStart);
+      d.setDate(colStart.getDate() + r);
+      if (d > today) {
+        cells.push(h('div', { class: 'hm-cell is-out' }));
         continue;
       }
-      const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
-      const n = counts.get(key) ?? 0;
-      const cell = h('div', {
-        class: 'hm-cell',
-        'data-l': String(level(n)),
-        role: 'listitem',
-        'aria-label': `${fmt(key)}: ${n} ${n === 1 ? 'commit' : 'commits'}`,
-      });
-      tip(cell, `${n} ${n === 1 ? 'commit' : 'commits'} on ${fmt(key)}`, 'above');
-      col.push(cell);
+      const n = counts.get(key(d)) ?? 0;
+      const cell = h('div', { class: 'hm-cell', 'data-l': String(level(n)) });
+      tip(cell, `${n} ${n === 1 ? 'commit' : 'commits'} on ${fmt(key(d))}`, 'above');
+      cells.push(cell);
     }
-    cells.push(h('div', { class: 'hm-col' }, ...col));
+    cols.push(h('div', { class: 'hm-col' }, ...cells));
   }
 
+  /*
+   * role="img" with one sentence, rather than 182 list items each announcing a
+   * day with no commits on it. The cells are a picture of a distribution; read
+   * aloud one at a time they are a wall of zeroes with the signal buried in it.
+   * The label carries what the picture is actually for.
+   */
+  const summary = `${total} commits, ${fmt(commitsPerDay[0]?.day ?? '')} to `
+    + `${fmt(commitsPerDay[commitsPerDay.length - 1]?.day ?? '')}. `
+    + `Busiest day ${fmt(busiest.day)}, ${busiest.n} commits. `
+    + `Nothing in the ${HM_WEEKS - 2} weeks before that.`;
+
   return h('div', { class: 'hm' },
-    h('div', { class: 'hm-grid-wrap' },
-      h('div', { class: 'hm-days', 'aria-hidden': 'true' },
-        // Monday, Wednesday and Friday only, which is what GitHub labels: seven
-        // labels at this cell size collide.
-        ...WEEKDAY_ROWS.map((w, i) => h('div', { class: 'hm-day' }, i % 2 === 1 ? w : ''))),
-      h('div', {
-        class: 'hm-grid', role: 'list',
-        'aria-label': `${total} commits in ${MONTH.label}`,
-      }, ...cells)),
+    h('div', { class: 'hm-board', role: 'img', 'aria-label': summary },
+      h('div', { class: 'hm-mons', 'aria-hidden': 'true' }, ...labels),
+      h('div', { class: 'hm-grid-wrap', 'aria-hidden': 'true' },
+        h('div', { class: 'hm-days' },
+          // Monday, Wednesday and Friday only. Seven labels at this pitch collide,
+          // and GitHub labels the same three.
+          ...WEEKDAY_ROWS.map((w, i) => h('div', { class: 'hm-day' }, i % 2 === 1 ? w : ''))),
+        h('div', { class: 'hm-grid' }, ...cols))),
     h('div', { class: 'hm-foot' },
-      h('span', { class: 'hm-total' }, `${total} commits in ${MONTH.label}`),
+      h('span', { class: 'hm-total' }, `${total} commits in ${HM_WEEKS} weeks, all of them inside ${span} days`),
       h('div', { class: 'hm-key', 'aria-hidden': 'true' },
         h('span', {}, 'Less'),
         ...[0, 1, 2, 3, 4].map((l) => h('div', { class: 'hm-cell', 'data-l': String(l) })),
@@ -368,20 +407,18 @@ function heatmap(total: number, peak: number): HTMLElement {
 }
 
 function overviewView(): HTMLElement {
-  const total = commitsPerDay.reduce((a, b) => a + b.n, 0);
-  const peak = Math.max(...commitsPerDay.map((d) => d.n));
-
   // One column per day that produced a milestone, in order.
   const days = [...new Set(milestones.map((m) => m.day))].sort();
 
+  /*
+   * The lead paragraph that used to open this tab is gone. Nam: "Any redundant
+   * information can be removed, like this: 184 commits from 20 Aug, one person
+   * and an agent. The shape matters more than the count..." It was narrating the
+   * chart underneath it, which is what a chart is for, and it was doing it in the
+   * position where the document's own opening line belongs.
+   */
   return h('div', { class: 'dp-col' },
-    h('p', { class: 'dp-lead' },
-      `${total} commits from ${fmt(START)}, one person and an agent. The shape matters more than the count: ` +
-      `two very heavy days and a long tail of correction after the interface existed.`),
-
-    heatmap(total, peak),
-
-    buildDoc(),
+    buildDoc(heatmap()),
 
     /*
      * MILESTONES, on a rail.

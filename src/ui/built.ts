@@ -49,8 +49,17 @@ const SPECS: Row[] = [
 ];
 
 
-/** The document itself, with no page chrome around it. */
-export function buildDoc(): HTMLElement {
+/**
+ * The document itself, with no page chrome around it.
+ *
+ * `afterLead` is slotted between the two opening paragraphs. Nam: "you probably
+ * want this heat map thingy after the first line description." The first
+ * paragraph says what the artefact is; the chart then shows how it was made; and
+ * the second paragraph, which is about the agentic build and the commit log, now
+ * reads as commentary on the thing directly above it rather than as an assertion
+ * with nothing behind it.
+ */
+export function buildDoc(afterLead?: HTMLElement): HTMLElement {
   return h(
     'div',
     { class: 'bd' },
@@ -67,6 +76,7 @@ export function buildDoc(): HTMLElement {
     h('p', { class: 'bd-lead' },
       'A CV you can talk to rather than read. It opens as a call because a call is a conversation, and the ' +
       'panels, captions and shared screen carry what a page of bullet points cannot.'),
+    afterLead ?? null,
     h('p', { class: 'bd-lead' },
       'It is also, openly, a demonstration of agentic programming: one person and an agent, one week, with ' +
       'the interface measured off the real product rather than eyeballed. The corrections are in the commit ' +
