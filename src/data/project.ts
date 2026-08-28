@@ -1181,7 +1181,7 @@ export const tasks: Task[] = [
         'No desktop share means nothing to press, so the old direct route runs instead',
       ],
       raised: 'Nam, QA 28 Aug',
-      notes: 'Two things had to be built rather than wired. The hand had no double click, and a single press on a file row SELECTS it while a second press on a selected row starts a rename after 260ms, so open() sends two presses and then the dblclick that cancels the rename and acts. And playEgg rebuilt the whole share with a clip booted into it, which tore down the desktop the hand was standing on; going through Explorer means pressing surfaces that already exist. QA also caught a bug this exposed rather than caused: reusing the player updated the record’s title and the blurb but never the .wx-title span, so the window read "Falling out of a plane" over the Robinson tape. Invisible while every clip arrived in a fresh window.',
+      notes: 'Two things had to be built rather than wired. The hand had no double click, and a single press on a file row SELECTS it while a second press on a selected row starts a rename after 260ms, so open() sends two presses and then the dblclick that cancels the rename and acts. And playEgg rebuilt the whole share with a clip booted into it, which tore down the desktop the hand was standing on; going through Explorer means pressing surfaces that already exist. QA also caught a bug this exposed rather than caused: reusing the player updated the record’s title and the blurb but never the .wx-title span, so the window read "Falling out of a plane" over an entirely different clip. Invisible while every clip arrived in a fresh window.',
     },
   },
   {
@@ -1501,17 +1501,17 @@ export const tasks: Task[] = [
     },
   },
   {
-    id: 'N76', col: 'backlog', size: 'S', tag: 'content',
-    title: 'The Robinson clip is square, and the 16:9 original is not in this repo',
-    note: 'Blocked on Nam. The file has been 480x480 since the first commit, so the crop happened before it got here.',
+    id: 'N76', col: 'done', size: 'S', tag: 'content',
+    title: 'A clip is square, and the 16:9 original is not in this repo',
+    note: 'Closed by deletion. Nam pulled the clip on 28 August, so there is no ratio left to fix. See N89 and N91.',
     detail: {
-      why: 'Nam: "I realize the robinson video is actually 16:9. Somehow it was cropped down to a different ratio?" He is right that it is wrong and the crop is not something this build did.',
+      why: 'Nam: "I realize the video is actually 16:9. Somehow it was cropped down to a different ratio?" He is right that it is wrong, and the crop is not something this build did.',
       done: [
         'Nam re-exports the clip at its native ratio and drops it in docs/media/',
         'The poster is re-cut to match',
       ],
       raised: 'Nam, review 28 Aug',
-      notes: 'Probed with ffprobe: robinson.mp4 is 480x480, and git log over the file returns exactly one commit, the first one, at the size it is now. So there is no earlier version to recover and no amount of player work can put back sides that are not in the file. Worth saying that the player is not the problem: premiere.mp4 is 720x390 and zombie.mp4 is 640x1138, and both letterbox correctly, so a 16:9 replacement will simply work when it arrives.',
+      notes: 'Probed with ffprobe: the file is 480x480, and git log over it returns exactly one commit, the first one, at the size it is now. So there is no earlier version to recover and no amount of player work can put back sides that are not in the file. Worth saying that the player is not the problem: two other clips in the set are 720x390 and 640x1138, and both letterbox correctly, so a 16:9 replacement will simply work when it arrives.',
     },
   },
 
@@ -1638,6 +1638,165 @@ export const tasks: Task[] = [
       ],
       raised: 'Nam, 28 Aug morning',
       notes: 'Header-only by spec, and the reason is worth knowing: a document cannot be trusted to say who may frame it once it has already been framed. This site is on GitHub Pages, which sets no headers we control, so the directive was never available to us in the first place. The actual defence is in main.ts and it works: a framed copy detects it and coerces itself to the plain document, so the clone cannot render inside somebody else’s page. Deleting the line loses nothing except the error. Everything else in that console was the browser’s own extensions, and the failed chunk was a tab left open overnight asking for a hash that a rebuild had replaced.',
+    },
+  },
+
+  /* ------------------------------------------------------------------------
+   * Nam's calendar and footage pass, 28 August. One brief, three separate
+   * problems: the strip was aligned to the wrong thing, the teaching eggs were
+   * only visible for one week of the year, and half the reel was footage he had
+   * changed his mind about.
+   * --------------------------------------------------------------------- */
+  {
+    id: 'N86', col: 'done', size: 'M', tag: 'onboarding',
+    title: 'The week strip centres on the selected day',
+    note: 'It was aligned to the calendar week, so on a Sunday the selected day sat hard against the left edge.',
+    detail: {
+      why: 'Nam: "selected date should always be in the middle, and we add the days before and after to fill up the 7 day selector here." Meet aligns its strip to the week and this build copied that, which is faithful and, here, wrong: the strip is the surface that teaches the whole easter-egg mechanic, and a selected day pinned to one end gives it six days of context on one side and none on the other.',
+      done: [
+        'The seven columns run from three days before the selected day to three days after',
+        'The selected column is index 3 on every day of the year',
+        'Paging by week still moves seven days, and Today still returns',
+      ],
+      raised: 'Nam, 28 Aug',
+      notes: 'This is what unblocks N87. Fixed offsets against today only work if the strip is centred; against a week-aligned strip, an egg placed two days out falls off the end for five days in seven. The two tickets are one idea and were only split because one is layout and the other is data. The selected column is also compared by date key rather than by day-of-month number now, because the old comparison was correct only because a seven-day window cannot hold the same number twice, which is true and is not a reason.',
+    },
+  },
+  {
+    id: 'N87', col: 'done', size: 'S', tag: 'onboarding',
+    title: 'Both teaching eggs follow the visitor around',
+    note: 'One roamed and one was pinned to 28 August, so for most of the year only one of the pair was on screen.',
+    detail: {
+      why: 'Nam: "the two visible easter eggs need to be added dynamically on the date ... Problem is that we dont know which day the interviewer will check this so they may miss these visible eggs we intentionally placed to introduce them the eggs." The pair exists to teach the dot: two marks inside the strip on the first screen is what makes a single mark on a month grid legible three clicks later. A pair that is only a pair during one week of August is not doing that job.',
+      done: [
+        'The skydive sits three days before today, the premiere two days after',
+        'Both land inside the centred strip whatever day the page is opened',
+        'The remaining eggs stay on the real dates they happened on',
+      ],
+      raised: 'Nam, 28 Aug',
+      notes: 'Placement is measured from TODAY, not from the selected day, and that is deliberate rather than an oversight: eggs that re-placed themselves as you paged would mean the dot moved whenever you tried to click it. The offset field carries a sign now, positive into the past and negative into the future, which is the smallest change that expresses "two days after" without a second field.',
+    },
+  },
+  {
+    id: 'N88', col: 'done', size: 'S', tag: 'call',
+    title: 'A day can hold more than one meeting',
+    note: 'eggMap was keyed to a single egg, so a second one on the same date was silently swallowed.',
+    detail: {
+      why: 'The stand-up set and the announcement of the result happened on one night and belong on one day. The map returned one Egg per date, so declaring both put the dot on the calendar and then showed only whichever was declared last. Nothing warned: the mark said there was something there and the day showed one thing, which is the failure that looks like it works.',
+      done: [
+        'eggMap returns a list per date',
+        'The day view renders a card per meeting, in the order they are declared',
+        'The strip and the month grid still draw exactly one dot however many meetings a day holds',
+      ],
+      raised: 'Nam, 28 Aug',
+      notes: 'One dot per day rather than a count, and that is a real decision rather than laziness: a badge reading 2 hands over how much is hidden there, and the hunt is the product. The month grid and the strip both read the same list, so neither can drift from the other.',
+    },
+  },
+  {
+    id: 'N89', col: 'done', size: 'M', tag: 'content',
+    title: 'Four new clips, cut and encoded at their true ratio',
+    note: 'The competition set, the result, the parade and the zombie walk. Portrait stays portrait.',
+    detail: {
+      why: 'Nam: "Please respect their original ratio, if a video is in landscape then show it in landscape and vice versa for portrait." Every clip in the reel used to be squeezed into 480x480, which on four phone-vertical sources meant throwing the sides away. He had already caught it once, on a single clip, and it was never a property of that one file.',
+      done: [
+        'uppsala-roligaste 396x704 from 0:08, the-winner-is 704x396 from 1:38 to 2:00',
+        'dragon-strut 396x704 from 0:03 to 0:14, a-deadly-feast 704x396 from 0:22',
+        'All four 24fps CRF 32, posters cut from the encoded file so the shapes cannot disagree',
+        'The reel stage takes its shape from the clip rather than the clip taking the stage shape',
+      ],
+      raised: 'Nam, 28 Aug',
+      notes: 'The source of the stand-up set carries a -90 rotation in its display matrix, so it probes as 1920x1080 and plays as 1080x1920; scaling to explicit dimensions rather than a factor is what keeps that from silently coming out sideways. On the stage: aspect-ratio with a max-height beside it does not constrain what it looks like it constrains, because in block flow the box takes its width first and the ratio then wins, so the cap is computed as a max-WIDTH from the clip ratio instead. Three clips are still square and cannot be fixed here, because acting, sfx and the skydive exist in this repo only as 480x480, which is N76 generalised.',
+    },
+  },
+  {
+    id: 'N90', col: 'done', size: 'S', tag: 'trust',
+    title: 'The clips are named for what they are, not for what they are of',
+    note: 'The emulated Explorer lists these by filename, so a file named after its subject gave an egg away before anyone opened it.',
+    detail: {
+      why: 'Nam asked for the rename and it turns out to close a leak rather than just read better. Explorer, the browser page and the window title all derive their text from the file path, so the folder listing was a spoiler surface for a mechanic whose entire value is that you do not know what is behind the dot.',
+      done: [
+        'skydive to i-can-fly, premiere to its-my-money, zombie to laskigare-an-zombie',
+        'The 4 October egg is titled "Coming this Halloween" and no longer names the park',
+        'Every path moved with git mv, so the history follows the file',
+      ],
+      raised: 'Nam, 28 Aug',
+      notes: 'The 4 October egg is the one where the name was doing damage. It used to be titled with the park that cast the monster, which answered the question the date was three weeks early in order to ask. Its id is "teaser" rather than anything descriptive for the same reason: the id is in the URL.',
+    },
+  },
+  {
+    id: 'N91', col: 'done', size: 'M', tag: 'content',
+    title: 'The reel drops the square crop and a pulled clip',
+    note: 'Nam pulled one clip on a disclosure call. The parade takes the slot rather than the reel losing one.',
+    detail: {
+      why: 'Nam: "maybe we shouldnt disclose that." And on the reel generally, it shares its files with the eggs, so leaving it alone would have meant the two surfaces showing different stand-up footage and one of them still showing the pulled clip.',
+      done: [
+        'The clip and its poster are gone from the repo, not just unlinked',
+        'Stockholm Pride closes the reel; the stand-up entry points at the competition set',
+        'The Off the clock tile and the story record stop asserting things the reel no longer contains',
+      ],
+      raised: 'Nam, 28 Aug',
+      notes: 'The first pass took the non-disclosure to mean the footage and left the design essay in story.ts standing, on the argument that it was commissioned, argued from both sides, and unaffected by the clip going. Nam overruled that the same day: "remove them everywhere". So the second main quest is out of the essay too, which cost one whole entry in the case against. That entry existed only to argue that the job and a second goal cannot sit at the same altitude, and with the second goal gone there is nothing to weigh. The essay says that it was cut and does not say what it was. Leaving a debate about a subject on the page is the one reliable way to keep the subject on the page.',
+    },
+  },
+
+  {
+    id: 'N92', col: 'done', size: 'S', tag: 'call',
+    title: 'A dot on today led to the interview and nothing else',
+    note: 'Four dates a year hold both. The day view showed the interview and returned, so the mark went nowhere.',
+    detail: {
+      why: 'Found by the test written for N87, not by looking. The day view branched on "is this today" first and returned, so on 15 March, 1 August, 4 October and 31 October the strip drew a mark over today and pressing it showed the scheduled interview with no meeting under it. A dot that leads nowhere is worse than no dot: it teaches the visitor that the marks are decoration, on the one day they are most likely to be looking at the page.',
+      done: [
+        'Today shows the interview and then whatever else is on that date',
+        'A test asserts the collision is real, so the branch cannot be tidied away as dead code',
+      ],
+      raised: 'The suite, while N87 was being written',
+      notes: 'Older than this pass. It was reachable before the eggs started roaming, and nobody hit it because it is dormant for 361 days a year and the four live days are dates you would have to deliberately set the clock to. Which is the argument for the test being a year-long loop rather than three hand-picked days: the interesting dates in a calendar rule are never the ones you would think to type.',
+    },
+  },
+
+  {
+    id: 'N93', col: 'done', size: 'M', tag: 'onboarding',
+    title: 'One press on a day moved the page twice',
+    note: 'Clicking 15 March landed on 1 September. Every day cell carried two click handlers, one of them stale.',
+    detail: {
+      why: 'Found by driving the built page rather than by reading it, and it had been there long before this pass. h() binds every handler with addEventListener; paintDate rebinds the day cells with `cell.onclick = ...`. Those are two different registrations, so a repainted cell had both: the closure from the day it was created, and the current one.',
+      done: [
+        'The day cell binds its handler as a property, so the rebind replaces rather than stacks',
+        'Clicking a day after paging goes to that day',
+      ],
+      raised: 'QA on the built page, 28 Aug',
+      notes: 'The second move is the part worth understanding, because it is why the destination made no sense. The stale handler fired first and repainted the strip, which rewrote cell.onclick -- and an onclick property listener resolves its callback when it is INVOKED, not when the event is dispatched. So the second handler ran the value the first one had just written: the date that column held in the newly painted week. Two wrongs producing a date that had never been on screen. It hid for as long as it did because it is invisible until a column holds a different date than it did at first render, which means it never fires on the first week you look at.',
+    },
+  },
+  {
+    id: 'N94', col: 'done', size: 'M', tag: 'call',
+    title: 'The player window sizes itself to the clip',
+    note: 'It was a fixed 82% x 78% of the desktop, so a square clip reached 35% of it and a 9:16 one would manage 20%.',
+    detail: {
+      why: 'The other half of Nam’s ratio note. Encoding at the true ratio stops the picture being wrong; it does not stop the window being the wrong shape around it. object-fit did the honest thing and letterboxed, which on a portrait clip is a video shown as a sliver between two black fields. A real player resizes to the file it opens.',
+      done: [
+        'The window takes the clip’s shape on open, and again when a clip is swapped into a window already open',
+        'The chrome is measured rather than assumed, so it survives an edit to a line-height',
+        'Fill went from 35% to 94% on a square clip and from about 20% to 73% on a 9:16 one',
+      ],
+      raised: 'Nam, 28 Aug, and QA on the built page',
+      notes: 'Sizing the window narrow exposed two things that were already broken at narrow widths and had simply never been reachable on this surface. The title bar did not truncate: a flex item’s min-width is auto, so a long title pushed the caption buttons past the edge and .wx clipped them, which meant a window with no close button. And the player’s control bar had no narrow layout at all, so it overflowed and lost the speed control and the fullscreen button with no sign anything was missing. Both are fixed the way Explorer already solved the same problem a few hundred lines up, with container queries. Snapping a window to a quadrant could always have reached both.',
+    },
+  },
+
+  {
+    id: 'N95', col: 'done', size: 'S', tag: 'content',
+    title: 'The heaviest clip was a third of the media directory',
+    note: '4.2 MB for 54 seconds, against 1.2 MB for the next largest. Cut to the part worth watching.',
+    detail: {
+      why: 'Nam: "we can cut it from second 12 to 43. should get it about half as light." He is right about both halves. The clip carried 23 seconds nobody needed, and it was also the only one in the set still encoded at 640x1138 while everything around it had moved to 396x704.',
+      done: [
+        'Cut to 0:12 to 0:43, which is 31 seconds',
+        'Re-encoded at 396x704, the same frame as the other portrait clips',
+        '4.18 MB to 1.41 MB, and docs/media from 9.2 MB to 6.5 MB',
+      ],
+      raised: 'Nam, 28 Aug',
+      notes: 'Cut with a re-encode rather than a stream copy, and the reason is in the keyframes: they sit at 0, 7.7, 14.8, 23.1 and so on, so a copy can only start where a keyframe already is. Asking for 12 and getting 7.7 or 14.8 is not the cut he asked for. A second-generation encode of an already-lossy source is the cost, which is why this one is CRF 30 rather than the 32 the fresh cuts use. The poster is re-cut from the new file, because the old one was a frame that is no longer in the clip.',
     },
   },
 

@@ -162,6 +162,14 @@ const DAY_SWITCH_MS = 420;
 const isToday = (d: Date): boolean => dayKey(d) === dayKey(TODAY);
 
 /**
+ * What a marked day is called, appended to that day's own label. A day can hold
+ * more than one meeting now, so this is a list rather than a name, and it stays
+ * empty for the days that hold nothing.
+ */
+const titles = (on: Egg[] | undefined): string =>
+  on?.length ? ', ' + on.map((e) => e.title).join(', ') : '';
+
+/**
  * Meet dims the home screen and writes "Joining…" across it for about a quarter
  * of a second before the green room appears. It is barely long enough to read,
  * and leaving it out is why our join felt like a page swap rather than a
@@ -189,12 +197,24 @@ function slot(on: Date): { day: string; date: number; label: string; week: { n: 
     hr = hr % 12 || 12;
     return `${hr}:${String(d.getMinutes()).padStart(2, '0')} ${ap}`;
   };
+  /*
+   * The strip is CENTRED on the day you are looking at, not aligned to the
+   * calendar week. Nam: "selected date should always be in the middle, and we
+   * add the days before and after to fill up the 7 day selector."
+   *
+   * Meet aligns to the week, and copying that had a cost this build cannot pay:
+   * on a Sunday the selected day sits hard against the left edge with six days
+   * of future beside it and none of the past, so the two roaming eggs -- placed
+   * three days back and two days forward precisely so both are always on screen
+   * -- fell out of the strip for most of the week. Centring makes that placement
+   * hold every day of the year. eggs.ts.
+   */
   const week: { n: string; d: number; full: string; iso: string }[] = [];
-  const sunday = new Date(now);
-  sunday.setDate(now.getDate() - now.getDay());
+  const first = new Date(now);
+  first.setDate(now.getDate() - 3);
   for (let i = 0; i < 7; i++) {
-    const d = new Date(sunday);
-    d.setDate(sunday.getDate() + i);
+    const d = new Date(first);
+    d.setDate(first.getDate() + i);
     week.push({
       n: DAYS[d.getDay()] ?? '',
       d: d.getDate(),
@@ -493,15 +513,15 @@ export function renderHome(store: Store, reducedMotion = false, body?: HTMLEleme
       if (!cell) return;
       const sel = d.iso === dayKey(viewing);
       cell.setAttribute('aria-current', sel ? 'true' : 'false');
-      const egg = marks.get(d.iso);
-      cell.setAttribute('aria-label', sel ? 'Selected' : d.full + (egg ? ', ' + egg.title : ''));
+      const eggsHere = marks.get(d.iso);
+      cell.setAttribute('aria-label', sel ? 'Selected' : d.full + titles(eggsHere));
       const nameEl = cell.querySelector('.day-name');
       const numEl = cell.querySelector('.day-num');
       if (nameEl) nameEl.textContent = d.n;
       if (numEl) numEl.textContent = String(d.d);
       cell.onclick = () => switchDay(new Date(d.iso + 'T12:00:00'));
       cell.querySelector('.cal-dot')?.remove();
-      if (egg) cell.appendChild(h('span', { class: 'cal-dot', 'aria-hidden': 'true' }));
+      if (eggsHere?.length) cell.appendChild(h('span', { class: 'cal-dot', 'aria-hidden': 'true' }));
     });
   };
 
@@ -623,7 +643,7 @@ export function renderHome(store: Store, reducedMotion = false, body?: HTMLEleme
 
   const paintDay = (): void => {
     clear(dayBody);
-    const egg = marks.get(dayKey(viewing));
+    const onToday = marks.get(dayKey(viewing)) ?? [];
     if (isToday(viewing)) {
       dayBody.appendChild(h('div', { class: 'sched-label' }, 'Scheduled'));
       dayBody.appendChild(interviewCard());
@@ -642,10 +662,25 @@ export function renderHome(store: Store, reducedMotion = false, body?: HTMLEleme
          */
         'Get personal with Nam in this interactive CV. Only if all meetings could be like this!',
       ));
+      /*
+       * A fixed egg can land on today, and four of them do: 15 March, 1 August,
+       * 4 October, 31 October. This branch used to return after the interview,
+       * so on those four days the strip drew a dot over today and pressing it
+       * showed the interview and nothing else -- a mark with nothing behind it,
+       * on the one day the visitor is most likely to be looking.
+       *
+       * Caught by a test rather than by a person, which is the only way a bug
+       * that is dormant for 361 days a year gets caught at all.
+       */
+      for (const e of onToday) dayBody.appendChild(eggCard(e));
       dayBody.appendChild(hint);
-    } else if (egg) {
+    } else if (onToday.length) {
       dayBody.appendChild(h('div', { class: 'sched-label' }, 'Scheduled'));
-      dayBody.appendChild(eggCard(egg));
+      // One card each, in the order they are declared, which for the stand-up
+      // night is the set and then the result it led to. A day that holds two
+      // meetings is ordinary in a calendar; it was only ever this build's own
+      // one-egg-per-day map that made it impossible.
+      for (const e of onToday) dayBody.appendChild(eggCard(e));
       dayBody.appendChild(h('p', { class: 'sched-note' }, 'Not work. Join anyway.'));
     } else {
       dayBody.appendChild(emptyDay());
@@ -686,25 +721,49 @@ export function renderHome(store: Store, reducedMotion = false, body?: HTMLEleme
           sym('chevron_left', 24),
         ),
         ...s.week.map((d) => {
-          const egg = marks.get(d.iso);
+          const eggsHere = marks.get(d.iso);
+          // Compared by date key rather than by day number. The strip is centred
+          // on the selected day now, so the selected column is always index 3 --
+          // but a comparison on the number alone is the kind of thing that comes
+          // back wrong the day the strip changes length.
+          const sel = d.iso === dayKey(viewing);
           const cell = h(
             'button',
             {
               class: 'day',
               type: 'button',
-              'aria-current': d.d === s.date ? 'true' : 'false',
+              'aria-current': sel ? 'true' : 'false',
               // Meet labels each column with the full date, and tips today as
               // "Selected" rather than repeating it. Both measured.
-              'aria-label': d.d === s.date ? 'Selected' : d.full + (egg ? ', ' + egg.title : ''),
-              onclick: () => switchDay(new Date(d.iso + 'T12:00:00')),
+              'aria-label': sel ? 'Selected' : d.full + titles(eggsHere),
             },
             h('span', { class: 'day-name' }, d.n),
             h('span', { class: 'day-num' }, String(d.d)),
           );
-          // The teaching mark. One egg always lands inside the current week, so
-          // this dot is on screen the first time anyone looks at the page —
-          // which is how the calendar's dots become legible later.
-          if (egg) cell.appendChild(h('span', { class: 'cal-dot', 'aria-hidden': 'true' }));
+          /*
+           * Assigned as a PROPERTY rather than handed to h(), and this is a bug
+           * fix rather than a style preference. h() binds every handler with
+           * addEventListener, and paintDate rebinds these cells with
+           * `cell.onclick = ...` -- so a cell that had been repainted carried
+           * two live handlers: the one from the day it was created, and the
+           * current one.
+           *
+           * Both fired. The stale one ran first, switched to the date this
+           * column held at first render, and repainted -- which rewrote the
+           * property the second handler was about to be read from, because an
+           * onclick property listener resolves its callback at invoke time
+           * rather than at dispatch. So one press moved the page twice, and the
+           * second move was to a date that had never been on screen: clicking
+           * 15 March landed on 1 September.
+           *
+           * A property assignment cannot stack, so there is only ever one.
+           */
+          cell.onclick = () => switchDay(new Date(d.iso + 'T12:00:00'));
+          // The teaching marks. Two eggs are placed against today rather than on
+          // a date, three days back and two forward, so both are inside this
+          // strip the first time anyone looks at the page — which is how the
+          // calendar's dots become legible later.
+          if (eggsHere?.length) cell.appendChild(h('span', { class: 'cal-dot', 'aria-hidden': 'true' }));
           return cell;
         }),
         h(

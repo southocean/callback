@@ -54,8 +54,11 @@ export interface CalendarOpts {
   anchor: HTMLElement;
   /** The day currently shown by the page. */
   selected: Date;
-  /** Marks. A day in here gets a dot, which is the whole easter-egg mechanic. */
-  marks: Map<string, Egg>;
+  /**
+   * Marks. A day in here gets a dot, which is the whole easter-egg mechanic.
+   * The value is a list because a day can hold more than one meeting.
+   */
+  marks: Map<string, Egg[]>;
   onPick: (d: Date) => void;
   onClose: () => void;
 }
@@ -99,7 +102,7 @@ export function calendar(o: CalendarOpts): HTMLElement {
       d.setDate(start.getDate() + i);
       const k = key(d);
       const outside = d.getMonth() !== view.getMonth();
-      const egg = o.marks.get(k);
+      const marked = o.marks.get(k) ?? [];
 
       const cell = h(
         'button',
@@ -111,7 +114,7 @@ export function calendar(o: CalendarOpts): HTMLElement {
           type: 'button',
           role: 'gridcell',
           'aria-label': d.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })
-            + (egg ? `, ${egg.title}` : ''),
+            + marked.map((e) => `, ${e.title}`).join(''),
           'aria-current': k === selKey ? 'date' : 'false',
           onclick: () => o.onPick(d),
         },
@@ -119,8 +122,9 @@ export function calendar(o: CalendarOpts): HTMLElement {
       );
       // The mark. Deliberately not a badge or a colour change — a dot reads as
       // "there is something here" without saying what, which is the only way a
-      // hunt works.
-      if (egg) cell.appendChild(h('span', { class: 'cal-dot', 'aria-hidden': 'true' }));
+      // hunt works. One dot however many meetings the day holds, for the same
+      // reason: a count is information the hunt is not supposed to hand over.
+      if (marked.length) cell.appendChild(h('span', { class: 'cal-dot', 'aria-hidden': 'true' }));
       grid.appendChild(cell);
     }
   };

@@ -15,6 +15,16 @@ import { reel, omitted } from '../data/clips.js';
 import type { Clip } from '../data/clips.js';
 import { prefersReducedMotion } from '../a11y.js';
 
+/*
+ * The box the reel is allowed to fill, in px. The panel is 360 wide, so 280 is
+ * the widest a stage can be and keep its gutters; 360 tall is the most a clip
+ * can take before the controls under it fall below the fold on a laptop. A
+ * portrait clip hits the height cap, a landscape one hits the width cap, and
+ * both are drawn at their own shape inside whichever bound they reached.
+ */
+const STAGE_W = 280;
+const STAGE_H = 360;
+
 export function renderOffClock(): HTMLElement {
   const reduced = prefersReducedMotion();
   let index = 0;
@@ -40,6 +50,9 @@ export function renderOffClock(): HTMLElement {
     onclick: () => (playing ? pause() : play()),
   }, h('span', { class: 'clip-play' }, '▶'));
 
+  // Hoisted out of the tree below because paint() reshapes it per clip.
+  const stage = h('div', { class: 'reel-stage' }, video, overlay);
+
   const current = (): Clip => reel[index] ?? reel[0]!;
 
   const muteBtn = h(
@@ -60,6 +73,18 @@ export function renderOffClock(): HTMLElement {
     video.src = c.src;
     video.poster = c.poster;
     video.muted = muted;
+    // The stage takes the clip's shape rather than forcing every clip into a
+    // square. Set from the authored dimensions, not from the video element's
+    // own videoWidth: that is only known after metadata loads, which is one
+    // frame too late and reshapes the panel in front of the reader.
+    //
+    // The width cap is computed rather than left to CSS. `aspect-ratio` with a
+    // `max-height` beside it does not do what it looks like it does: in block
+    // flow the box still takes the full width first, so the ratio wins and the
+    // cap is simply overflowed. Capping the WIDTH is the same constraint
+    // expressed in the axis that is actually free.
+    stage.style.aspectRatio = `${c.w} / ${c.h}`;
+    stage.style.maxWidth = `${Math.min(STAGE_W, STAGE_H * (c.w / c.h))}px`;
 
     label.textContent = '';
     label.append(
@@ -134,7 +159,7 @@ export function renderOffClock(): HTMLElement {
     h(
       'p',
       { class: 'pnote' },
-      'Not filler. Two of these are the reason the page you are looking at exists. Roughly forty seconds in total, ' +
+      'Not filler. Two of these are the reason the page you are looking at exists. Just under a minute in total, ' +
         'cut to the highlight: nobody has time for the uncut version, including me.',
     ),
 
@@ -143,7 +168,7 @@ export function renderOffClock(): HTMLElement {
       { class: 'reel' },
       label,
       caption,
-      h('div', { class: 'reel-stage' }, video, overlay),
+      stage,
       h(
         'div',
         { class: 'reel-controls' },

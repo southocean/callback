@@ -973,6 +973,10 @@ code { font: 400 12px/1.4 ui-monospace, Consolas, monospace; color: var(--dark-b
 .reel-index { font: 500 11px/1 var(--font); color: var(--on-dark2); font-variant-numeric: tabular-nums; }
 .reel-what { font: 500 17px/24px var(--font); color: #fff; }
 .reel-caption { font: 400 12.5px/18px var(--font); color: var(--on-dark2); margin-bottom: 12px; min-height: 36px; }
+/* aspect-ratio and max-width are both overwritten per clip by offclock.ts, which
+   reads the encoded dimensions off the clip. These are the values a square clip
+   resolves to, kept here so the box is right before the first paint and so the
+   rule still reads as a box rather than as an empty selector. */
 .reel-stage {
   position: relative; border-radius: 12px; overflow: hidden; background: #000;
   aspect-ratio: 1/1; max-width: 280px; margin: 0 auto;
@@ -1005,7 +1009,12 @@ code { font: 400 12px/1.4 ui-monospace, Consolas, monospace; color: var(--dark-b
   background: none; border: 0; padding: 12px 0; cursor: pointer; color: inherit;
 }
 .clip-jump:hover .clip-what { color: var(--dark-blue); }
-.clip-thumb { border-radius: 8px; flex: 0 0 auto; object-fit: cover; }
+/* `cover` here, not `contain`, and deliberately: this is a 56px index thumbnail,
+   not the clip. A contained portrait poster in a square box is 31px of picture
+   between two black bars, which reads as a broken image rather than as a crop.
+   The stage below is where the whole frame is owed; a thumbnail owes you a
+   recognisable one. */
+.clip-thumb { border-radius: 8px; flex: 0 0 auto; object-fit: cover; width: 56px; height: 56px; }
 .clip-what { font: 500 14px/20px var(--font); color: var(--on-dark); display: block; margin-bottom: 2px; }
 .clip-why { font: 400 12.5px/18px var(--font); color: var(--on-dark2); display: block; }
 .clip-note { font: 400 11.5px/16px var(--font); color: var(--on-dark2); margin: 8px 0 0; }
@@ -4737,8 +4746,21 @@ body.set-open .cc { bottom: calc(var(--botbar) + 52px + 12px); }
 .wx-bar-ico, .wx-crumb-ico { width: 16px; height: 16px; flex: 0 0 auto; display: block; }
 .wx-bar-ico svg, .wx-crumb-ico svg, .wx-ico svg, .dk-task svg, .dk-peek-ico svg,
 .dk-start-app svg, .cb-tab-ico svg { width: 100%; height: 100%; display: block; }
-.wx-title { font-size: 12.5px; color: #fff; }
-.wx-btns { margin-left: auto; display: flex; }
+/* min-width: 0 and an ellipsis, because a flex item's min-width is `auto` and
+ * that means "never shrink below your own content". The title therefore pushed
+ * the caption buttons out of the bar rather than truncating, and .wx clips its
+ * children, so on a narrow window the CLOSE BUTTON was off the edge -- a window
+ * with no way to shut it.
+ *
+ * Reachable two ways, and only one of them is new: snapping a window to a
+ * quadrant has always been able to make it this narrow, and now the player also
+ * opens narrow when the clip inside it is a tall one. Windows truncates here
+ * too; nothing about the title is worth a second line. */
+.wx-title {
+  font-size: 12.5px; color: #fff;
+  min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.wx-btns { margin-left: auto; display: flex; flex: 0 0 auto; }
 .wx-cap {
   width: 46px; height: 40px; display: grid; place-items: center;
   font-size: 11px; color: #fff; background: none; border: 0; cursor: pointer;
@@ -7362,6 +7384,33 @@ body.tray-open.cc-on .react-clip { bottom: calc(var(--botbar) + 268px); }
 .mp-speed option { background-color: #2b2b2b; color: #fff; }
 .mp-speed:focus-visible { outline: 2px solid #4cc2ff; outline-offset: 2px; }
 .mp-time { flex: 0 0 auto; font: 400 11.5px/1 var(--font); color: #b9bcc0; font-variant-numeric: tabular-nums; }
+
+/* The bar sheds as the window narrows, the same way Explorer's does a few
+ * hundred lines up and for the same reason: the window can now be narrow.
+ *
+ * It became narrow when the player started sizing itself to the clip. A 9:16
+ * video in a desktop this short wants a window around 260px wide, and at that
+ * width the bar's seven controls need about 340 -- so it overflowed, and .wx
+ * clips its children, which meant the speed control and the fullscreen button
+ * were simply not on screen. Not hidden: cut off, with no indication that
+ * anything was missing.
+ *
+ * Shed in the order you would miss them. Speed is a nicety. The volume SLIDER
+ * goes next but the mute button stays, so sound is still controllable. The
+ * clock goes last of the three because it is the only one the seek bar cannot
+ * express. Play, seek, mute and fullscreen survive at every width. */
+@container wx (max-width: 420px) {
+  .mp-speed { display: none; }
+}
+@container wx (max-width: 360px) {
+  .mp-vol { display: none; }
+}
+@container wx (max-width: 290px) {
+  .mp-time { display: none; }
+}
+/* Whatever is left is one row that does not wrap. A wrapped bar inside a fixed
+   window height eats the caption underneath it. */
+.mp-bar { flex-wrap: nowrap; }
 
 /* --- the overlay -------------------------------------------------------- */
 /* Nam: "we need to pull back on the media control, cause its obstructing the

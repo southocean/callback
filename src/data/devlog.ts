@@ -475,7 +475,7 @@ export const findings: Finding[] = [
     objection:
       'Forty seconds of video on a page whose whole pitch is a 50 KB budget. Pick one.',
     resolution:
-      'The budget is a JavaScript budget and it still holds at around 38 KB gzipped. The reel is roughly 1.5 MB ' +
+      'The budget is a JavaScript budget and it still holds at around 38 KB gzipped. The reel is roughly 2.4 MB ' +
       'in total, which is one stock photo on a normal careers page, and it loads metadata only, no clip is ' +
       'fetched until you ask for it. Said out loud on the page rather than hidden.',
     changed: 'preload="metadata", lazy clip loading, and the payload stated in the panel.',

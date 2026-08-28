@@ -113,7 +113,7 @@ export const flow = {
     },
     {
       what: 'Off the clock',
-      body: 'A seventh tile that is not a job: a 40-second reel, click to play, sound off until asked for.',
+      body: 'A seventh tile that is not a job: a five-clip reel just under a minute, click to play, sound off until asked for.',
     },
     {
       what: 'Host controls is the handover',

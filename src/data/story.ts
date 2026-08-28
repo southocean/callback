@@ -1,10 +1,16 @@
 // The narrative, and an honest argument about it.
 //
 // Nam's own framing: "I'm a challenger. I've completed all the side quests —
-// only the main story is left: working at Google, and getting cast for
-// Robinson." He asked for it to be built in, and also asked for the case
-// against it. Both are here, because a design document that only argues one
-// side is not a design document.
+// only the main story is left: working at Google." He asked for it to be built
+// in, and also asked for the case against it. Both are here, because a design
+// document that only argues one side is not a design document.
+//
+// The proposal originally named a second main quest alongside the job, and this
+// document used to argue about it at length: whether it humanised him or made
+// the role sound like one trophy of two. Nam cut it on 28 August. The argument
+// went with it rather than being left standing as a debate about something the
+// CV no longer mentions, which would have been the one way to keep the subject
+// on the page after he asked for it to come off.
 //
 // What shipped is a synthesis, and the reasoning is set out below so he can
 // overrule it. It is his CV.
@@ -18,7 +24,7 @@ export const original = {
   label: 'What Nam proposed',
   quote:
     'I am a challenger. I have completed all the side quests, game dev, research, C++, comedy, acting, ' +
-    'jiu-jitsu, a zombie walk. Only the main story is left: working at Google, and getting cast for Robinson.',
+    'jiu-jitsu, a zombie walk. Only the main story is left: working at Google.',
   note:
     'Game-dev framing, dream framing. It is charming, it is unmistakably his voice, and it is the most ' +
     'memorable thing anyone said during the whole build.',
@@ -51,7 +57,7 @@ export const pros: Take[] = [
     heading: 'Interviewers remember stories',
     body:
       'Nobody recalls the fourth bullet of the third role. A panel that has read two hundred CVs will remember ' +
-      'the one that was a call, and the one where the applicant had been trying to get onto Robinson.',
+      'the one that was a call, and the one whose hobbies section opens with a man in a handmade dragon head.',
   },
 ];
 
@@ -70,13 +76,6 @@ export const cons: Take[] = [
       'If this job is the main story, everything before it was a tutorial level. That is the opposite of the ' +
       'argument the CV needs to make, which is that a specific decade of specific work produced a person who ' +
       'already solves this specific problem. Do not describe your own experience as preparation.',
-  },
-  {
-    heading: 'Robinson and the job cannot be co-equal goals',
-    body:
-      'In the same sentence, they read as two trophies rather than one career and one hobby. The joke is ' +
-      'genuinely good and it humanises him. It just cannot sit at the same altitude as the role, or the role ' +
-      'stops sounding like work he wants to do.',
   },
   {
     heading: '"I completed all the side quests" is self-congratulatory without receipts',
@@ -99,11 +98,9 @@ export const shipped = {
     'main quest is the problem, not the company. Four people on four networks who all have to see the same ' +
     'thing at the same instant. That is the boss fight, and it is a thing about the work rather than a thing ' +
     'about the logo. The side quests stay exactly as he wrote them, because they are the good part, and the ' +
-    'achievements make them literal. Robinson survives as what it is: a hobby line in Off the clock, told as a ' +
-    'joke against himself, which is where it is funniest and where it costs nothing.',
+    'achievements make them literal.',
   keeps: [
     'Challenger energy, side quests, achievements, easter eggs, the whole game layer.',
-    'Robinson, demoted from life goal to punchline, which improves it.',
     'The range-not-scatter reframe, which is the genuinely valuable idea in his version.',
   ],
   drops: [
@@ -130,6 +127,6 @@ export const alternative = {
 };
 
 export const verdict =
-  'Ship the game layer, cut the dream framing, keep Robinson as a joke. It is the version where the metaphor ' +
+  'Ship the game layer, cut the dream framing, keep the side quests. It is the version where the metaphor ' +
   'does work rather than asking for something, and it is the only version where the last seven years are the ' +
   'main story instead of the tutorial.';

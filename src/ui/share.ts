@@ -1352,8 +1352,10 @@ function explorerBody(onOpen: (id: string) => void, onFolder?: (f: string) => vo
   const SIDE: Entry = { name: 'side-projects.html', kind: 'html', tab: 'side' };
   const MAHJONG: Entry = { name: 'mahjong-stars.html', kind: 'html', tab: 'ext:https://preview.mahjongstars.com/' };
   const OFFCLOCK: Entry = { name: 'off-the-clock.html', kind: 'html', tab: 'hobby' };
-  /* The six easter-egg clips, from src/data/eggs.ts — the real files in
-     docs/media, named exactly as they are on disk. */
+  /* The easter-egg clips, from src/data/eggs.ts — the real files in docs/media,
+     named exactly as they are on disk. Which is why they are named for what the
+     clip IS rather than what it is footage of: a folder listing is a spoiler
+     surface, and a file named after its subject gave an egg away unopened. */
   const CLIPS: Entry[] = eggs.map((e) => ({
     name: e.clip.replace('media/', ''), kind: 'video', tab: 'vid:' + e.id,
   }));
@@ -1741,7 +1743,7 @@ function chromeWindow(o: { onEmpty: () => void }): { body: HTMLElement; select: 
    *     which is what Chrome does;
    *   - `+` opens a new tab;
    *   - opening a file from Explorer creates a tab if that page has none, so
-   *     Tools, Hobby and the six clips can be reached without pretending they
+   *     Tools, Hobby and every clip can be reached without pretending they
    *     were already open in the picker;
    *   - a tab renders its REAL page from DOCS. The stub was the weakest part of
    *     the whole desktop -- clicking through to a paragraph saying "one of the
@@ -2613,7 +2615,14 @@ function pageDesktop(onQuit: () => void, boot?: { egg?: string; cv?: boolean }):
     if (existing) {
       focus(existing);
       existing.select?.(id);
-      if (kind === 'player') existing.setTitle?.();
+      if (kind === 'player') {
+        existing.setTitle?.();
+        // The window is REUSED (N56), so the clip can change shape without the
+        // window being rebuilt. Refit, or the second clip inherits the first
+        // one's proportions.
+        const next = eggs.find((e) => e.id === id.replace(/^vid:/, ''));
+        if (next) requestAnimationFrame(() => fitToClip(existing.el, next));
+      }
       return;
     }
     openWindow(kind, id);
@@ -2651,6 +2660,59 @@ function pageDesktop(onQuit: () => void, boot?: { egg?: string; cv?: boolean }):
    * wx-in, which scales from .96, and a rect read mid-animation is 4% short.
    * offset* ignores transforms.
    */
+  /**
+   * Size a player window to the clip inside it.
+   *
+   * Nam: "Please respect their original ratio, if a video is in landscape then
+   * show it in landscape and vice versa for portrait." Encoding the clips at
+   * their true ratio was half of that; this is the other half. The window was a
+   * fixed 82% x 78% of the desktop whatever it held, so `object-fit: contain`
+   * did the honest thing and letterboxed -- a square clip reached 35% of the
+   * window and a 9:16 one would have managed 20%, which is a portrait video
+   * shown as a sliver between two black fields.
+   *
+   * A real player resizes to the file it opens, so this does too. The window
+   * chrome is MEASURED rather than assumed: title bar, control bar and caption
+   * are laid out from fonts and padding, and hard-coding their total is how you
+   * get a window that is right until someone edits a line-height. Read the gap
+   * between the window and its video stage, then ask for a stage of the right
+   * shape and add the gap back.
+   */
+  const fitToClip = (el: HTMLElement, clip: { w: number; h: number }): void => {
+    const host = surface.getBoundingClientRect();
+    const stage = el.querySelector<HTMLElement>('.mp-stage');
+    if (!stage || host.width < 1 || host.height < 1) {
+      requestAnimationFrame(() => fitToClip(el, clip));
+      return;
+    }
+    // The chrome is whatever the window has that the stage does not.
+    const chromeH = el.offsetHeight - stage.offsetHeight;
+    const chromeW = el.offsetWidth - stage.offsetWidth;
+
+    // The desktop is small, so the caps do real work rather than being belt and
+    // braces: at 9:16 the height cap is what decides the window.
+    const maxW = Math.round(host.width * 0.82);
+    const maxH = Math.round(host.height * 0.86);
+    const ratio = clip.w / clip.h;
+
+    let stageW = Math.min(maxW - chromeW, (maxH - chromeH) * ratio);
+    let stageH = stageW / ratio;
+    // A very tall clip in a short desktop can drive the width below the point
+    // where the control bar still reads as a control bar. Letterboxing the last
+    // few pixels is better than a player too narrow to use.
+    //
+    // 200 is what the bar needs once it has shed the speed control, the volume
+    // slider and the clock, which it does by container query at these widths --
+    // play, seek, mute and fullscreen, their gaps and the padding. Set it from
+    // the widest thing that still has to fit, not from a round number.
+    const MIN_W = 200;
+    if (stageW < MIN_W) { stageW = MIN_W; stageH = Math.min(stageH, maxH - chromeH); }
+
+    el.style.width = `${Math.round(stageW + chromeW)}px`;
+    el.style.height = `${Math.round(stageH + chromeH)}px`;
+    centreWin(el);
+  };
+
   const centreWin = (el: HTMLElement): void => {
     const host = surface.getBoundingClientRect();
     // Nothing sensible to centre against yet -- try again next frame rather than
@@ -2698,8 +2760,8 @@ function pageDesktop(onQuit: () => void, boot?: { egg?: string; cv?: boolean }):
        * .wx-title span, which is the thing on screen. Invisible while every clip
        * rebuilt the whole share and arrived in a fresh window; the moment the
        * player started being REUSED (N56) it showed as a window captioned
-       * "Falling out of a plane" playing the Robinson tape, with the right blurb
-       * underneath it. Explorer already does both, a few lines up.
+       * "Falling out of a plane" playing an entirely different clip, with the
+       * right blurb underneath it. Explorer already does both, a few lines up.
        */
       rec.setTitle = () => {
         rec.title = made.title();
@@ -2728,6 +2790,11 @@ function pageDesktop(onQuit: () => void, boot?: { egg?: string; cv?: boolean }):
     live.push(rec);
     surface.appendChild(el);
     focus(rec);
+    // After the append, because the fit measures the window it is sizing.
+    if (kind === 'player') {
+      const first = eggs.find((e) => e.id === (tabId ?? '').replace(/^vid:/, '')) ?? eggs[0]!;
+      requestAnimationFrame(() => fitToClip(el, first));
+    }
     // Focus the shell so its name is announced and Tab starts at the top.
     el.focus();
   }

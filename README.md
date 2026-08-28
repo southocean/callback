@@ -40,7 +40,7 @@ Four screens, all deep-linkable:
 - **Presenting** — the screen share holds four case studies.
 - **In-call messages** — the cover letter, written as a chat thread.
 - **Meeting tools** — where Meet keeps whiteboards and polls, this keeps the engineering case: the measured spec, the test suite, a live accessibility audit, bundle size, a WebGL effects pipeline, a network-degradation simulator, and a map against the job ad.
-- **Off the clock** — a seventh tile that is not a job. A forty-second reel, click to play, sound off until you ask for it.
+- **Off the clock** — a seventh tile that is not a job. A five-clip reel just under a minute, click to play, sound off until you ask for it.
 - **Host controls** — the handover: PDF, plain document, email, and a referral note already written.
 - **Document mode** — no equivalent in Meet. Press <kbd>D</kbd>, or take *CV* in the rail.
 - **Calls** — Meet's Calls tab rings someone you know. This one reaches the people who can vouch for the work. The screen is a clone down to the chips and the selection model; the contents are references, and the dialog gains one line Meet has no reason to carry — what that person can actually speak to.

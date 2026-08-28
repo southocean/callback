@@ -540,7 +540,7 @@ export function renderCall(store: Store, quests: Quests, deps: CallDeps, bugs: B
         store.dispatch({ t: 'panel', panel: 'people' }),
       ),
     ),
-    tile('offclock', 'Off the clock', 'stand-up, SFX, skydiving', 'always', 'Two of these are the reason this page exists. One is still trying to get onto Robinson.', () =>
+    tile('offclock', 'Off the clock', 'stand-up, SFX, skydiving', 'always', 'Two of these are the reason this page exists. One of them is a dragon at Pride.', () =>
       store.dispatch({ t: 'panel', panel: 'offclock' }),
     ),
   );

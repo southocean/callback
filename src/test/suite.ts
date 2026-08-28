@@ -35,6 +35,7 @@ import {
   BAIL_MS, IDLE_MS, PACE_MAX, type Visitor,
 } from '../tour/profile.js';
 import { readSeenEggs, stillUnseen, chooseBanter } from '../prefs.js';
+import { eggs, eggMap, key as dayKey } from '../data/eggs.js';
 import { VISIBLE_QUESTS } from '../data/quests.js';
 import { bugs as bugList, bugById, BUG_COUNT } from '../data/bugs.js';
 import { codeFromUrl, pitchFor, DEFAULT_CODE, NEUTRAL_CODE } from '../data/companies.js';
@@ -1206,6 +1207,110 @@ suite('the visitor profile', () => {
     let v = observe(fresh(), { t: 'key', at: 1000 });
     v = observe(v, { t: 'move', at: 2000 });
     eq(v.modality, 'keyboard', 'a stray pointer move demoted a keyboard visitor');
+  });
+});
+
+/* ------------------------------------------------------------------------- */
+
+/*
+ * Where the eggs land, which is a rule rather than a list.
+ *
+ * Two of them are placed against today so that both are inside the seven-day
+ * strip whatever day the page is opened (N87), and the strip is centred on the
+ * selected day so that placement holds (N86). That pair of facts is the entire
+ * onboarding for the easter-egg mechanic, and neither half is checkable by
+ * looking at the data: the offsets are only correct RELATIVE to a strip whose
+ * shape lives in another file. So the test states the strip's shape itself.
+ */
+suite('where the marks land', () => {
+  /** The seven days home.ts draws, centred on the day being viewed. */
+  const strip = (on: Date): string[] => {
+    const out: string[] = [];
+    for (let i = -3; i <= 3; i++) {
+      const d = new Date(on);
+      d.setDate(on.getDate() + i);
+      out.push(dayKey(d));
+    }
+    return out;
+  };
+
+  const roamers = eggs.filter((e) => e.offset !== undefined);
+
+  test('both roaming eggs are inside the strip, every day of the year', () => {
+    // A year of opening days, so nothing here can pass by landing on a
+    // convenient month. Month ends and the leap day are in the set by
+    // construction rather than by being remembered.
+    for (let i = 0; i < 366; i++) {
+      const today = new Date(2024, 0, 1);
+      today.setDate(today.getDate() + i);
+      const on = strip(today);
+      const marks = eggMap(today);
+      for (const e of roamers) {
+        const at = on.filter((k) => (marks.get(k) ?? []).includes(e));
+        eq(at.length, 1);
+      }
+    }
+  });
+
+  test('the pair sits three days back and two forward', () => {
+    // Not the same assertion as above: inside the strip is the requirement,
+    // and these are the positions Nam asked for. One could hold without the
+    // other, and the reason to pin them is that they are what makes two marks
+    // visible without either sitting under the selected day.
+    const today = new Date(2026, 7, 28);
+    const on = strip(today);
+    const marks = eggMap(today);
+    const at = (id: string): number =>
+      on.findIndex((k) => (marks.get(k) ?? []).some((e) => e.id === id));
+    eq(at('skydive'), 0);
+    eq(at('premiere'), 5);
+  });
+
+  test('neither roamer lands on today, which already has the interview on it', () => {
+    for (let i = 0; i < 366; i++) {
+      const today = new Date(2024, 0, 1);
+      today.setDate(today.getDate() + i);
+      const here = eggMap(today).get(dayKey(today)) ?? [];
+      eq(here.filter((e) => e.offset !== undefined).length, 0);
+    }
+  });
+
+  test('a fixed egg is allowed to land on today, and four of them do', () => {
+    /*
+     * The counterpart to the test above, and it is here because the answer used
+     * to be that it was NOT allowed: home.ts drew the interview and returned,
+     * so on 15 March, 1 August, 4 October and 31 October the strip showed a dot
+     * over today with nothing behind it. Now the day holds both. This asserts
+     * the collision is real, so that the branch handling it never looks like
+     * dead code to somebody tidying up.
+     */
+    const collides = eggs.filter((e) => e.on).map((e) => {
+      const today = new Date(2026, e.on![0] - 1, e.on![1]);
+      return (eggMap(today).get(dayKey(today)) ?? []).length;
+    });
+    eq(collides.filter((n) => n === 0), []);
+  });
+
+  test('a date holding two meetings keeps both, in the order they are declared', () => {
+    const marks = eggMap(new Date(2026, 7, 28));
+    const night = marks.get('2026-03-15') ?? [];
+    eq(night.map((e) => e.id), ['standup', 'winner']);
+  });
+
+  test('every egg is reachable from some date', () => {
+    const marks = eggMap(new Date(2026, 7, 28));
+    const placed = new Set([...marks.values()].flat().map((e) => e.id));
+    eq(eggs.filter((e) => !placed.has(e.id)).map((e) => e.id), []);
+  });
+
+  test('every clip and poster is named, and no two eggs share a file', () => {
+    // The filenames are the spoiler surface: Explorer lists them. A duplicate
+    // would mean two eggs playing the same footage, which reads as a bug in
+    // the hunt rather than as a repeat.
+    const clips = eggs.map((e) => e.clip);
+    eq(new Set(clips).size, eggs.length);
+    eq(clips.filter((c) => !c.startsWith('media/') || !c.endsWith('.mp4')), []);
+    eq(eggs.filter((e) => e.poster !== e.clip.replace('.mp4', '.jpg')).map((e) => e.id), []);
   });
 });
 
