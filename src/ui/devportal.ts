@@ -508,8 +508,13 @@ function gateView(): HTMLElement {
 
   return h('div', { class: 'dp-col' },
     h('p', { class: 'dp-lead' },
-      `The avatar on the home screen opens this panel's hidden tabs after ${ADMIN_CLICKS} presses. `
-      + `From press ${ADMIN_HINT_FROM} each click drops a number, which is the only signal the gesture exists. `
+      `The help button in the home screen's top bar opens this panel's hidden tabs after ${ADMIN_CLICKS} `
+      + 'presses. '
+      + `From press ${ADMIN_HINT_FROM} each click throws a number out of the pointer, cycling blue, red `
+      + 'and green and alternating left and right so a fast run fans out. It is the only signal the '
+      + 'gesture exists, and it is on that button rather than the account avatar because a coloured '
+      + 'number thrown out of a coloured circle cannot be read. The logo yellow is left out of the '
+      + 'cycle for the same reason: it is 1.7:1 on a white bar. '
       + 'The dialog that opens then asks a general knowledge question, and the question is a decoy.'),
     h('p', { class: 'dp-note' },
       'Answering it correctly is a dead end: it pays out in applause and an insult, rerolls, and leaves the '
@@ -543,7 +548,7 @@ function gateView(): HTMLElement {
     h('h3', { class: 'ag-h' }, `On the password landing (${grantedLines.length})`),
     h('ol', { class: 'ag-list' }, ...grantedLines.map((r) => h('li', {}, r))),
 
-    h('h3', { class: 'ag-h' }, `Pressing the avatar once already admin (${alreadyAdminLines.length})`),
+    h('h3', { class: 'ag-h' }, `Pressing it again once already admin (${alreadyAdminLines.length})`),
     h('ol', { class: 'ag-list' }, ...alreadyAdminLines.map((r) => h('li', {}, r))),
   );
 }

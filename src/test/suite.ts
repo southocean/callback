@@ -23,7 +23,7 @@ import {
   challenges, wrongRoasts, rightRoasts, grantedLines, judge, normalise, pick,
   ADMIN_PASSWORD,
 } from '../data/admin.js';
-import { ADMIN_CLICKS, ADMIN_HINT_FROM } from '../ui/admingate.js';
+import { ADMIN_CLICKS, ADMIN_HINT_FROM, DROP_COLOURS, dropColour, dropDir } from '../ui/admingate.js';
 import {
   parts as tourParts, quips as tourQuips, acks as tourAcks, story as tourStory,
   asides, timeline, runtimeMs, transcriptLines, OUTRO_CAP_MS,
@@ -1464,6 +1464,30 @@ suite('the admin gate', () => {
     ok(ADMIN_CLICKS === 11, 'the gesture is no longer eleven presses');
     ok(ADMIN_HINT_FROM < ADMIN_CLICKS, 'the hint starts after the box already opened');
     ok(ADMIN_HINT_FROM > 1, 'the very first press gives the gesture away');
+  });
+
+  /* The click effect is a pure function of the press count, which is the only
+     reason it can be tested at all, and the two properties worth pinning are the
+     two that took a revision each to get right. */
+  test('the numbers walk the colour wheel and never repeat back to back', () => {
+    const seen: number[] = [];
+    for (let n = ADMIN_HINT_FROM; n <= ADMIN_CLICKS; n++) seen.push(dropColour(n));
+    for (const c of seen) ok(c >= 0 && c < DROP_COLOURS, `colour ${c} is not on the wheel`);
+    for (let i = 1; i < seen.length; i++) {
+      ok(seen[i] !== seen[i - 1], `two ${seen[i]}s back to back at press ${ADMIN_HINT_FROM + i}`);
+    }
+    // Eight visible presses over the wheel: every colour on it shows up at least once.
+    eq(new Set(seen).size, DROP_COLOURS, 'the run does not show every colour on the wheel');
+  });
+
+  test('the numbers are thrown both ways, strictly alternating', () => {
+    const dirs: number[] = [];
+    for (let n = ADMIN_HINT_FROM; n <= ADMIN_CLICKS; n++) dirs.push(dropDir(n));
+    ok(dirs.includes(1), 'nothing is ever thrown to the right');
+    ok(dirs.includes(-1), 'nothing is ever thrown to the left');
+    for (let i = 1; i < dirs.length; i++) {
+      eq(dirs[i], -dirs[i - 1], `press ${ADMIN_HINT_FROM + i} went the same way as the one before it`);
+    }
   });
 
   test('a stored grant reads back, and anything else reads as locked', () => {

@@ -16,7 +16,7 @@ import type { Bugs } from '../bugs.js';
 import { currentPitch } from '../data/companies.js';
 
 import { openPlain } from './plainoverlay.js';
-import { avatarPressed, onAdminGranted } from './admingate.js';
+import { gatePressed, onAdminGranted } from './admingate.js';
 import { isAdmin } from '../prefs.js';
 import { tip, tipAll, tipAllAbove, hideTip, rearm } from './tooltip.js';
 import { eggMap, key as dayKey, type Egg } from '../data/eggs.js';
@@ -49,12 +49,32 @@ let isSelected = false;
 let wired = false;
 
 /**
- * The account avatar, which is also the door.
+ * The Support button, which is the door.
  *
- * Board ticket N60. It stays a plain account button in every respect a reader
- * can see: same class, same label, same G. The eleven press gesture is the only
+ * Board ticket N60. It stays a plain Support button in every respect a reader can
+ * see: same class, same label, same glyph. The eleven press gesture is the only
  * thing that distinguishes it, and the only tell before the fourth press is that
- * nothing happens, which is what the real one does too.
+ * nothing happens, which is what this button does in this build anyway.
+ *
+ * The gesture started on the avatar and moved here because the numbers it throws
+ * could not be read against a coloured circle. admingate.ts has the whole of it.
+ */
+function helpBtn(): HTMLElement {
+  const btn = h(
+    'button',
+    { class: 'icon-btn', type: 'button', 'aria-label': 'Support' },
+    sym('help', 24),
+  );
+  btn.addEventListener('click', (e) => gatePressed(e as MouseEvent, btn));
+  return btn;
+}
+
+/**
+ * The account avatar, which is where the door's reward shows.
+ *
+ * The eleven press gesture used to live here; what stays is the letter, G until the
+ * door opens and A afterwards, which is the only lasting sign anywhere on the page
+ * that it opened at all.
  *
  * The letter is rebuilt from the stored grant on every mount rather than being
  * flipped in place, so arriving already-admin from a reload shows the A without
@@ -71,7 +91,6 @@ function avatarBtn(): HTMLElement {
     },
     letter,
   );
-  btn.addEventListener('click', (e) => avatarPressed(e as MouseEvent, btn));
   onAdminGranted(() => {
     letter.textContent = 'A';
     btn.classList.add('is-admin');
@@ -285,7 +304,7 @@ export function renderHome(store: Store, reducedMotion = false, body?: HTMLEleme
     h(
       'div',
       { class: 'home-bar-right' },
-      h('button', { class: 'icon-btn', type: 'button', 'aria-label': 'Support' }, sym('help', 24)),
+      helpBtn(), // the door, and it looks like Support because that is the point
       h(
         'button',
         {

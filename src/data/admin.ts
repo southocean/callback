@@ -78,7 +78,7 @@ export const challenges: Challenge[] = [
  * a failed sum.
  */
 export const wrongRoasts: string[] = [
-  'No. You clicked an avatar eleven times to get here and this is where it ends?',
+  'No. You clicked a help button eleven times to get here and this is where it ends?',
   'Incorrect. Somewhere a hiring manager is reading the actual CV.',
   'Wrong, and confidently so. My favourite kind.',
   'That is not it. The bar was ankle height and you limbo danced under it.',
@@ -113,7 +113,7 @@ export const grantedLines: string[] = [
   'Correct, and this time it counts. Two tabs just appeared that were not there before.',
 ];
 
-/** Already in, and pressing the avatar again. */
+/** Already in, and pressing the help button again. */
 export const alreadyAdminLines: string[] = [
   'You are already admin. There is no second floor.',
   'Still admin. The A is right there in the corner.',

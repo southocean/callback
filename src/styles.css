@@ -8365,59 +8365,101 @@ body.tray-open.cc-on .react-clip { bottom: calc(var(--botbar) + 268px); }
 }
 
 /* --- the falling number --------------------------------------------------- */
-/* Fixed to the viewport and parented to <body>, because the avatar sits in a
-   top bar with its own stacking and overflow and a child of the button gets
-   clipped by it. translate(-50%, -50%) puts it on the pointer rather than
-   beside it, so it reads as coming out of the click.
+/* THE LAYER. Fixed and overflow:hidden, so a number thrown towards the right edge
+   is clipped by this rather than sticking out of the window and giving the page a
+   scrollbar it has no other reason to have. That scrollbar is why the first cut
+   refused to throw right at all. Ported from the bot manager's .click-pops.
 
-   pointer-events: none matters more than it looks: these live for 900ms
-   directly under a control the reader is in the middle of pressing eleven
-   times, and one swallowed click is a cheat code that does not work. */
-.admin-drop {
-  position: fixed; z-index: 90; pointer-events: none;
-  /* The number reads on the home screen's white top bar, which is the only place
-     this ever appears. The first version was #8ab4f8 on white, which Nam could
-     barely see. Google blue 600 clears 4.5:1 there, and the coloured glow under
-     it is what makes it feel lit rather than printed. */
-  font: 700 22px/1 var(--font-title); color: #1a73e8;
-  text-shadow: 0 2px 8px rgba(26, 115, 232, .4);
-  will-change: transform, opacity;
-  animation: admin-drop .85s both;
+   ABOVE THE DIALOG (96, over .ag-back's 95), which is the other thing that port
+   brought with it. The eleventh press throws the eleventh number and opens the box
+   in the same breath, so at 90 the one number that is the payoff spent its whole
+   flight behind the scrim. It is the biggest one and it is what the gesture was
+   counting towards. pointer-events lives on this layer, so being on top of the
+   dialog costs the dialog nothing. */
+.admin-drops {
+  position: fixed; inset: 0; z-index: 96; pointer-events: none; overflow: hidden;
 }
 
-/* THE ARC. --dx and --rot come from admingate.ts, one pair per number, so no two
-   drops travel the same path. x moves steadily across the whole flight while y
-   pops up and then falls, which is what makes it a throw rather than a drop.
+/* pointer-events: none matters more than it looks: these live for a second
+   directly under a control the reader is in the middle of pressing eleven times,
+   and one swallowed click is a cheat code that does not work. It is set on the
+   layer above, which covers the whole viewport and would otherwise eat every
+   click on the page.
 
-   The per-keyframe easing is where the weight comes from: fast out of the click,
-   slow at the apex, then accelerating down. A single easing across the whole
-   animation cannot do that, and the version that tried it looked like the number
-   was being lowered on a string. */
-@keyframes admin-drop {
-  0% {
-    opacity: 0;
-    transform: translate(-50%, -50%) scale(.55) rotate(0deg);
-    animation-timing-function: cubic-bezier(.12, .85, .3, 1);
-  }
-  14% {
-    opacity: 1;
-    transform: translate(calc(-50% + var(--dx, 0px) * .18), calc(-50% - 11px)) scale(1.28) rotate(calc(var(--rot, 0deg) * .2));
-    animation-timing-function: cubic-bezier(.3, .4, .5, 1);
-  }
-  /* The apex, and the top of the bump Nam asked for. Kept to 16px because the
-     avatar sits 32px down a 56px bar: the first cut rose 27 and the numbers
-     clipped straight off the top of the viewport. The pop is carried by the
-     scale overshoot and the easing more than by the height anyway. */
-  40% {
-    opacity: 1;
-    transform: translate(calc(-50% + var(--dx, 0px) * .48), calc(-50% - 16px)) scale(1) rotate(calc(var(--rot, 0deg) * .5));
-    animation-timing-function: cubic-bezier(.55, 0, .8, .45);
-  }
-  72% { opacity: .85; }
-  100% {
-    opacity: 0;
-    transform: translate(calc(-50% + var(--dx, 0px)), calc(-50% + 70px)) scale(.82) rotate(var(--rot, 0deg));
-  }
+   The header comment in admingate.ts covers why the control underneath is the help
+   button and not the avatar; the short version is that these are coloured numbers
+   and the avatar is a coloured circle.
+
+   TWO ELEMENTS, TWO ANIMATIONS. This span carries the horizontal drift only, at a
+   constant speed, and the <b> inside it carries the toss, the tilt and the pop.
+   Multiplying them gives a genuine ballistic arc out of two flat keyframe blocks
+   and no per-frame JavaScript. The translate(-50%, -50%) rides along in the X
+   keyframes rather than being a margin, because a margin would be a second thing
+   to keep in step with the font size and this way there is nothing to keep. */
+.admin-drop {
+  position: absolute;
+  font: 700 22px/1 var(--font-title);
+  will-change: transform;
+  animation: admin-drop-x 1.15s linear both;
+}
+/* NO OUTLINE AND NO GLOW, which is the third and last answer to a question that
+   was really two questions. Nam first: "I find these numbers very hard to see
+   actually." Then, once the gesture had moved off the avatar: "if we move it to the
+   ? button then we dont need to have the outline and shadow stuff, makes the
+   numbers look very bulky."
+
+   Both are right, and the second is why the first stopped mattering. The numbers
+   were hard to see because they were thrown out of a 32px circle filled with a
+   blue-to-green gradient, so their brightest frames landed on a saturated colour of
+   their own. The outline was a way to win that fight. Moving the target to the help
+   button ended the fight instead: a grey glyph on the white bar puts nothing behind
+   the numbers at all. An outline that is no longer carrying contrast is just weight,
+   and at 22px an eight-offset edge plus a coloured halo turns a thrown digit into a
+   sticker of a digit.
+
+   So the fill is doing the whole job, and it is the four colours the logo actually
+   ships rather than a set walked darker to survive a background that is no longer
+   there. Flat ink, no edge, no halo. */
+.admin-drop b {
+  display: block; font-weight: inherit;
+  will-change: transform, opacity;
+  animation: admin-drop-y 1.15s cubic-bezier(.3, 0, .7, 1) both;
+}
+
+/* Blue, red, green, in that order, cycled by n in admingate.ts. Straight from the
+   logo, unmodified.
+
+   THREE OF THE FOUR. The logo yellow #fbbc04 is 1.7:1 on this white bar where these
+   three are 3.1 to 3.9, and it cannot be fixed at any tone that is still yellow,
+   because the problem is that yellow is light and the bar is white. It had an
+   outline holding it up until the outline came out for making the numbers bulky, and
+   without it the yellow number did not read as the faintest of four, it read as a
+   glitch. Better three colours that all work than four where one is an apology.
+   DROP_COLOURS in admingate.ts is the other half of this and the two must agree. */
+.admin-drop[data-c="0"] b { color: #4285f4; }
+.admin-drop[data-c="1"] b { color: #ea4335; }
+.admin-drop[data-c="2"] b { color: #34a853; }
+
+/* --dx and --rot come from admingate.ts, one pair per number, so no two drops
+   travel the same path. X moves steadily across the whole flight while Y pops up
+   and then falls, which is what makes it a throw rather than a drop. */
+@keyframes admin-drop-x {
+  from { transform: translate(-50%, -50%) translateX(0); }
+  to { transform: translate(-50%, -50%) translateX(var(--dx, 0px)); }
+}
+
+/* The bump Nam asked for, on the ease that carries the weight: out of the click
+   fast and overscaled, hanging for a beat around the apex, then accelerating down
+   and away. The stops are the bot manager's (12%, 28%, and the .6 to 1.15 to 1
+   scale pop); the heights are this bar's. Kept to 16px of rise because the avatar
+   sits 32px down a 56px bar: an earlier cut rose 27 and the numbers clipped
+   straight off the top of the window. The pop is carried by the overscale and the
+   easing more than by the height anyway, which is what makes 16 enough. */
+@keyframes admin-drop-y {
+  0% { transform: translateY(0) rotate(0deg) scale(.6); opacity: 0; }
+  12% { transform: translateY(-11px) rotate(calc(var(--rot, 0deg) * .2)) scale(1.15); opacity: 1; }
+  28% { transform: translateY(-16px) rotate(calc(var(--rot, 0deg) * .4)) scale(1); opacity: 1; }
+  100% { transform: translateY(88px) rotate(var(--rot, 0deg)) scale(.85); opacity: 0; }
 }
 
 /* --- already admin, pressing it again ------------------------------------- */
@@ -8499,11 +8541,12 @@ body.tray-open.cc-on .react-clip { bottom: calc(var(--botbar) + 268px); }
 .ag-close:focus-visible { outline: 2px solid #8ab4f8; outline-offset: 2px; }
 
 @media (prefers-reduced-motion: reduce) {
-  .admin-drop, .admin-toast, .ag-back, .ag-panel { animation: none; }
+  .admin-drop, .admin-drop b, .admin-toast, .ag-back, .ag-panel { animation: none; }
   /* The number still has to leave, and animationend never fires without an
      animation. Opacity 0 with the setTimeout in admingate.ts removing the node
-     is the reduced-motion version of the same effect. */
-  .admin-drop { opacity: 0; }
+     is the reduced-motion version of the same effect. It goes on the <b>, which
+     is the half that owned the opacity once the arc became two animations. */
+  .admin-drop b { opacity: 0; }
 }
 
 /* --- the gate's own page in the spec -------------------------------------- */
