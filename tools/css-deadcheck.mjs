@@ -55,6 +55,9 @@ const DYNAMIC = [
   // ```sc-tick${... ' is-partstart' : ''}``` in scripted.ts -- the first line of
   // a part, which is the row that carries the segment's label and rule.
   /^is-partstart$/,
+  // ```bug-rar is-${bug.rarity}``` in bugframe.ts and devportal.ts -- the four
+  // tiers a bug's hint can belong to. See data/bugs.ts.
+  /^is-(common|uncommon|rare|legendary)$/,
 ];
 
 const walk = (dir) => readdirSync(dir, { withFileTypes: true })

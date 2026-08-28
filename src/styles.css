@@ -7557,169 +7557,197 @@ body.tray-open.cc-on .react-clip { bottom: calc(var(--botbar) + 268px); }
 }
 
 /* ==================== THE BUG COLLECTION (N59) =========================== */
-/* Nam sent a photograph of a real entomology drawer: pale backing board, warm
-   wood frame, specimens pinned in rows with a label under each. Everything
-   below is that, and the only thing it borrows from Meet is the dialog scrim,
-   because the case is deliberately NOT part of the product. It is a thing the
-   product happens to be holding. */
+/* Rebuilt after Nam's review: "I want this collection frame to be BEAUTIFUL,
+   and in the same design language as google meet."
+ *
+ * So every value below comes off the same measured spec as the rest of the
+ * page. The scrim is Meet's dialog scrim, the surface is its dialog surface,
+ * the state layers are the .08 / .12 the whole product uses, the focus ring is
+ * the primary blue, and the tonal chips are the two Meet actually ships
+ * (#c4eed0 on the New button, #d3e3fd on the scheduled card).
+ *
+ * The wood went with the review. It was the most literal reading of the
+ * photograph and the one thing here that could read as a different product. */
 
 /* The drawing itself. One rule for both states: a silhouette is the same
-   geometry taking its colour from `currentColor`, so nothing here has to know
-   which of the two it is looking at. */
+   geometry taking its colour from `currentColor`, so nothing has to know which
+   of the two it is looking at. */
 .bug-art { display: block; overflow: visible; }
-.is-hidden-bug { color: #b9b2a3; opacity: .55; }
+/* The rail's third item. The other two are 24px font glyphs in a 56x32 pill, so
+   this sits in the same hole and takes the same colour. */
+.rail-bug { display: block; }
+.is-hidden-bug { color: #bdc1c6; }
 
 /* --- the toast, which is the achievement toast with an animal in it ------ */
 /* Same surface, same dwell, same dismiss. Two notification designs in one
    product is one too many, and the drawing already tells them apart. */
 .quest-toast.is-bug { padding-left: 8px; }
+/* Held invisible until the bug lands in it. Not `hidden`: the flight measures
+   this slot to know where to fly, so it has to have a box. */
+.quest-toast.is-arriving { opacity: 0; animation: none; }
 .qt-bug {
   flex: 0 0 auto; width: 34px; height: 42px;
   display: grid; place-items: center;
 }
 .qt-bug .bug-art { max-height: 42px; }
 
-/* --- the scarab, and the scarab flattened ------------------------------- */
-/* Timed against slap-rush: the hand peaks at 46% of 1.25s, so impact is 575ms.
-   The bug crawls up for half a second and is flat at 580. */
-.bug-squash {
-  position: absolute; left: 50%; top: 58%;
-  transform: translate(-50%, -50%);
-  animation: bug-crawl 620ms cubic-bezier(0.4, 0, 0.2, 1) both;
-  transform-origin: 50% 60%;
-  filter: drop-shadow(0 6px 10px rgba(0, 0, 0, .45));
+/* --- the flight ---------------------------------------------------------- */
+/* Out of the control that was pressed, into the middle of the screen, then into
+   the notice. Nam: "timing here is important for this to feel polished." The
+   durations live in bugs.ts beside the sequence they pace; this is only what
+   the thing looks like at each stop. */
+.bug-fly {
+  position: fixed; left: 0; top: 0; z-index: 500;
+  pointer-events: none; transform-origin: 50% 50%;
+  will-change: transform;
 }
-@keyframes bug-crawl {
-  from { transform: translate(-260%, 30%) rotate(-24deg); }
-  to   { transform: translate(-50%, -50%) rotate(4deg); }
+/* In the middle it is lit from underneath, which is what separates a specimen
+   being presented from one merely passing through. */
+.bug-fly.is-mid { filter: drop-shadow(0 0 18px rgba(255, 214, 102, .85)) drop-shadow(0 8px 18px rgba(0, 0, 0, .45)); }
+.bug-fly.is-beat .bug-art { animation: bug-beat 900ms cubic-bezier(0.36, 0.07, 0.19, 0.97) both; }
+@keyframes bug-beat {
+  0%   { transform: rotate(0deg) scale(1); }
+  12%  { transform: rotate(-7deg) scale(1.1); }
+  24%  { transform: rotate(6deg) scale(1.08); }
+  36%  { transform: rotate(-5deg) scale(1.06); }
+  48%  { transform: rotate(4deg) scale(1.05); }
+  60%  { transform: rotate(-2deg) scale(1.04); }
+  100% { transform: rotate(0deg) scale(1); }
 }
 /* Flat, and it stays flat. A bug that springs back has not been smashed. */
-.bug-squash.is-flat {
-  animation: none;
-  transform: translate(-50%, -50%) scale(1.5, .16) rotate(4deg);
-  opacity: .5;
-  transition: transform 90ms cubic-bezier(0.3, 0, 0.1, 1), opacity 700ms linear 500ms;
+.bug-fly.is-flat .bug-art {
+  transform: scale(1.55, .14);
+  opacity: .45;
+  filter: none;
+  transition: transform 90ms cubic-bezier(0.3, 0, 0.1, 1), opacity 420ms linear 120ms;
 }
 
-/* --- the case ----------------------------------------------------------- */
-.bug-frame-wrap {
+/* --- the dialog ---------------------------------------------------------- */
+.bug-scrim {
   position: fixed; inset: 0; z-index: 400;
   display: grid; place-items: center; padding: 24px;
-  background-color: rgba(20, 18, 14, .62);
-  animation: bugin .18s ease-out both;
+  background-color: rgba(32, 33, 36, .6);
+  animation: bug-in .15s cubic-bezier(0, 0, 0.2, 1) both;
 }
-@keyframes bugin { from { opacity: 0; } }
-/* The frame. Three layers of wood rather than one border, because a real one
-   has a bevel and the bevel is most of what says "frame" at a glance. */
-.bug-frame {
-  width: min(980px, 100%); max-height: 100%;
+@keyframes bug-in { from { opacity: 0; } }
+/* M3 dialog: 28px radius, elevation 3, on the surface the light shell uses. */
+.bug-dlg:focus { outline: none; }
+.bug-dlg {
+  width: min(920px, 100%);
   display: flex; flex-direction: column;
-  border-radius: 6px;
-  background-color: #c69a5c;
-  padding: 14px;
-  box-shadow: 0 24px 60px rgba(0, 0, 0, .5),
-              inset 0 0 0 2px rgba(255, 255, 255, .35),
-              inset 0 0 0 14px #b0834a;
+  background-color: #fff; border-radius: 28px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, .3), 0 4px 8px 3px rgba(0, 0, 0, .15);
   overflow: hidden;
 }
-.bug-frame-top {
+/* SYMMETRIC, which it was not. Nam counted the padding and he was right: the
+   title sat on 20 top and 12 bottom because the tally carried its own line
+   height. One padding, one row, everything centred on it. */
+.bug-top {
   display: flex; align-items: center; gap: 12px;
-  padding: 2px 4px 12px;
-  color: #4a3313;
+  padding: 20px 20px 20px 24px;
 }
-.bug-frame-top h2 {
+.bug-title {
   margin: 0; flex: 1 1 auto;
-  font: 500 20px/26px var(--font-title); letter-spacing: .1px;
+  font: 400 22px/28px var(--font-title); color: #1f1f1f;
 }
 .bug-tally {
-  font: 400 13px/18px var(--font); font-variant-numeric: tabular-nums;
-  color: #6b4c22;
+  flex: 0 0 auto; padding: 4px 12px; border-radius: 8px;
+  background-color: #e8f0fe; color: #0b57d0;
+  font: 500 12px/16px var(--font); font-variant-numeric: tabular-nums;
 }
+/* Meet's 40px icon button, with the state layer the rest of the page uses. */
 .bug-x {
-  flex: 0 0 auto; width: 32px; height: 32px; padding: 0;
-  border: 0; border-radius: 50%; cursor: pointer;
-  background-color: rgba(74, 51, 19, .12); color: #4a3313;
-  display: grid; place-items: center; --sl: #4a3313;
+  flex: 0 0 auto; position: relative; overflow: hidden;
+  width: 40px; height: 40px; padding: 0; border: 0; border-radius: 50%;
+  background: none; color: #444746; cursor: pointer;
+  display: grid; place-items: center; --sl: #444746;
 }
-.bug-x:hover { background-color: rgba(74, 51, 19, .2); }
-.bug-x:focus-visible { outline: 2px solid #4a3313; outline-offset: 2px; }
+.bug-x::after {
+  content: ''; position: absolute; inset: 0; border-radius: 50%;
+  background-color: currentColor; opacity: 0;
+  transition: opacity .12s linear; pointer-events: none;
+}
+.bug-x:hover::after { opacity: .08; }
+.bug-x:active::after { opacity: .12; }
+.bug-x:focus-visible { outline: 2px solid #0b57d0; outline-offset: -2px; }
 
-/* The backing board. Cotton wool white, faintly warm, like the photograph. */
+/* --- the case ------------------------------------------------------------ */
+/* FIXED HEIGHT, and that is the fix for Nam's jumping dialog. It is sized for
+   the longest entry in the collection, so selecting a specimen changes the
+   words and never the box. Both columns scroll inside it as a safety net, which
+   only matters at small heights. */
 .bug-case {
-  flex: 1 1 auto; min-height: 0;
-  display: grid; grid-template-columns: 1fr 268px; gap: 0;
-  background-color: #f6f3ea;
-  border-radius: 2px;
-  box-shadow: inset 0 2px 10px rgba(90, 70, 40, .25);
-  overflow: hidden;
+  display: grid; grid-template-columns: 1fr 316px;
+  height: 470px; max-height: calc(100vh - 200px);
+  border-top: 1px solid #e3e3e3;
 }
 .bug-grid {
   min-height: 0; overflow: auto;
   display: grid; grid-template-columns: repeat(4, 1fr);
-  gap: 4px; padding: 16px;
-  align-content: start;
+  gap: 4px; padding: 16px; align-content: start;
+  background-color: #f8f9fa;
 }
 .bug-slot {
-  position: relative; border: 0; background: none; cursor: pointer;
-  padding: 10px 4px 8px; border-radius: 6px;
-  display: flex; flex-direction: column; align-items: center; gap: 4px;
-  color: #3d2f16;
+  position: relative; overflow: hidden;
+  border: 0; background: none; cursor: pointer;
+  padding: 12px 6px 10px; border-radius: 12px;
+  display: flex; flex-direction: column; align-items: center; gap: 6px;
+  --sl: #1f1f1f;
 }
-.bug-slot:hover { background-color: rgba(120, 92, 40, .09); }
-.bug-slot.is-on { background-color: rgba(120, 92, 40, .16); }
-.bug-slot:focus-visible { outline: 2px solid #6b4c22; outline-offset: -2px; }
-/* The pin head. Every specimen in a drawer has one and it is the detail that
-   makes the row read as pinned rather than as clip art laid out. */
-.bug-pin {
-  position: absolute; top: 6px; left: 50%; transform: translateX(-50%);
-  width: 7px; height: 7px; border-radius: 50%;
-  background: radial-gradient(circle at 30% 30%, #fff, #8b8b8b 60%, #4a4a4a);
-  box-shadow: 0 1px 2px rgba(0, 0, 0, .4);
+.bug-slot::after {
+  content: ''; position: absolute; inset: 0; border-radius: 12px;
+  background-color: #1f1f1f; opacity: 0;
+  transition: opacity .12s linear; pointer-events: none;
 }
+.bug-slot:hover::after { opacity: .08; }
+.bug-slot:active::after { opacity: .12; }
+.bug-slot.is-on { background-color: #d3e3fd; }
+.bug-slot:focus-visible { outline: 2px solid #0b57d0; outline-offset: -2px; }
+.bug-slot-art { display: grid; place-items: center; height: 76px; }
 .bug-slot-name {
-  font: 400 10px/13px var(--font); text-align: center;
-  color: #6b5a34; max-width: 100%;
+  max-width: 100%; font: 400 11px/16px var(--font); color: #444746;
   overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
 }
-.bug-slot.is-empty .bug-slot-name { color: #a2947a; }
+.bug-slot.is-empty .bug-slot-name { color: #9aa0a6; }
 
-/* --- the label, which is the whole interface ---------------------------- */
+/* --- the card ------------------------------------------------------------ */
 .bug-detail {
   min-height: 0; overflow: auto;
-  padding: 20px 20px 24px;
-  border-left: 1px solid #e0d8c4;
-  background-color: #fffdf7;
+  padding: 20px 24px 24px;
+  border-left: 1px solid #e3e3e3;
 }
-.bug-plate {
-  display: grid; place-items: center; min-height: 150px;
-  margin-bottom: 12px;
+.bug-plate { display: grid; place-items: center; height: 128px; margin-bottom: 14px; }
+.bug-dt-head { display: flex; align-items: baseline; gap: 8px; flex-wrap: wrap; margin-bottom: 2px; }
+.bug-dt-name { margin: 0; font: 400 18px/24px var(--font-title); color: #1f1f1f; }
+/* The four tiers, in Meet's own tonal pairs where it has them. */
+.bug-rar {
+  flex: 0 0 auto; padding: 2px 8px; border-radius: 6px;
+  font: 500 11px/16px var(--font); letter-spacing: .3px;
 }
-.bug-dt-name {
-  margin: 0 0 2px; font: 500 17px/23px var(--font-title); color: #33291a;
-}
-.bug-dt-sp {
-  margin: 0 0 12px; font: italic 400 13px/18px var(--font); color: #7a6a4c;
-}
-.bug-dt-hint {
-  margin: 0 0 10px; font: 400 13px/19px var(--font); color: #4a4033;
-}
-.bug-dt-fact { margin: 0; font: 400 13px/19px var(--font); color: #5b5241; }
-.bug-dt-fact.is-locked { color: #9a917f; font-style: italic; }
+.bug-rar.is-common { background-color: #e8eaed; color: #444746; }
+.bug-rar.is-uncommon { background-color: #c4eed0; color: #0b5c2e; }
+.bug-rar.is-rare { background-color: #d3e3fd; color: #0b57d0; }
+.bug-rar.is-legendary { background-color: #feefc3; color: #7a4b00; }
+.bug-dt-sp { margin: 0 0 14px; font: italic 400 13px/18px var(--font); color: #5f6368; }
+.bug-dt-where { margin: 0 0 12px; font: 400 13px/20px var(--font); color: #1f1f1f; }
+.bug-dt-where b { font-weight: 500; }
+.bug-dt-fact { margin: 0; font: 400 13px/20px var(--font); color: #444746; }
+.bug-dt-fact.is-locked { color: #80868b; font-style: italic; }
 
 @media (max-width: 760px) {
-  .bug-case { grid-template-columns: 1fr; grid-template-rows: 1fr auto; }
+  .bug-case { grid-template-columns: 1fr; grid-template-rows: 1fr auto; height: auto; }
   .bug-grid { grid-template-columns: repeat(3, 1fr); }
-  .bug-detail { border-left: 0; border-top: 1px solid #e0d8c4; }
+  .bug-detail { border-left: 0; border-top: 1px solid #e3e3e3; }
 }
 @media (prefers-reduced-motion: reduce) {
-  .bug-frame-wrap, .bug-squash { animation: none; }
-  .bug-squash.is-flat { transition: none; }
+  .bug-scrim { animation: none; }
+  .bug-x::after, .bug-slot::after { transition: none; }
 }
 
-/* --- the collection, in the project spec (N59) --------------------------- */
-/* The answer key. A row per animal rather than the drawer's grid, because this
+/* --- the collection, in the project spec --------------------------------- */
+/* The answer key. A row per animal rather than the case's grid, because this
    one is read rather than browsed: it carries the trigger, the hint and the
-   fact, and none of those fit under a 84px specimen. */
+   fact, and none of those fit under a 76px specimen. */
 .bugspec { display: flex; flex-direction: column; gap: 4px; }
 .bugspec-row {
   display: grid; grid-template-columns: 84px 1fr; gap: 14px; align-items: start;
@@ -7727,6 +7755,7 @@ body.tray-open.cc-on .react-clip { bottom: calc(var(--botbar) + 268px); }
 }
 .bugspec-row:last-child { border-bottom: 0; }
 .bugspec-art { display: grid; place-items: center; padding-top: 2px; }
+.bugspec-head { display: flex; align-items: baseline; gap: 8px; flex-wrap: wrap; }
 .bugspec-txt h3 { margin: 0 0 1px; font: 500 14px/20px var(--font-title); color: var(--dp-ink); }
 .bugspec-txt p { margin: 0 0 3px; font: 400 13px/19px var(--font); color: var(--dp-ink2); }
 .bugspec-sp { font: italic 400 12px/18px var(--font); color: var(--dp-ink3); margin-bottom: 6px; }

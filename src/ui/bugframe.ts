@@ -1,53 +1,79 @@
-// The drawer. Board ticket N59.
+// The case. Board ticket N59, rebuilt after Nam's review of the first one.
 //
-// Nam sent a photograph of a real entomology case and asked for it: "it opens up
-// to like a bug frame like in this photo, with the missing bugs only showing
-// silhouette. Click on the bug will open up a bug panel that details the image,
-// name and a short description of the bug, where it is and how to find it."
+// He asked for it in the first place from a photograph of a real entomology
+// drawer: "it opens up to like a bug frame like in this photo, with the missing
+// bugs only showing silhouette. Click on the bug will open up a bug panel that
+// details the image, name and a short description of the bug, where it is and
+// how to find it."
 //
-// Which is exactly the affordance a real drawer has. Specimens are pinned in
-// rows with a label under each, you lean in on one, and the label is the whole
-// interface. So this is a grid and a detail pane, and the only design decision
-// worth defending is what an EMPTY slot shows.
+// And then, seeing it: "Please make sure this collection fully follows the
+// design principles of google meet. The colors, the hovering and click effects,
+// the label popup ... I want this collection frame to be BEAUTIFUL, and in the
+// same design language as google meet."
 //
-// AN EMPTY SLOT IS NOT EMPTY. It has the right outline, at the right size, in
-// the right place, and its hint is readable without catching it. Three reasons,
-// and they are the same three every time this build has chosen to show its work:
-// a grid of blank boxes tells you nothing about what you are missing; an outline
-// tells you it is a butterfly and not a beetle, which is the part that makes you
-// want it; and a collection nobody can finish is a list of things you failed at.
-// What is withheld is the species, the colours and the fact, which is the reward
-// rather than the invitation.
+// WHAT THAT COST, AND WHAT IT DID NOT. The varnished wood went. It was the most
+// literal reading of the photograph and the least defensible thing on screen:
+// nothing else in this build has a texture, and a browser chrome pretending to
+// be furniture is the one note that would have read as a different product. So
+// the frame is now a Material 3 dialog, in the palette the rest of the page is
+// measured against, and every state layer, radius and type ramp comes off the
+// same spec as the call.
+//
+// What survived is the part that was never about wood: a grid of specimens with
+// a label under each, an outline where one is missing, and a card beside it that
+// tells you what you are looking at. That is the drawer. The rest was varnish.
+//
+// Three of Nam's notes were specific and all three are load-bearing:
+//
+//   THE PIN HEADS ARE GONE. "Whats the 3D dot on top of the bugs? Remove them."
+//   They were a radial-gradient bevel, which is the one shading trick Material
+//   never uses, and at 7px they read as dirt on the screen rather than as brass.
+//
+//   THE LAYOUT NO LONGER JUMPS. "when I click on the Gilded Scarab, because it
+//   has a description longer than the default one, the collection frame becomes
+//   bigger to accommodate for the text, creating a jumping height." The case is
+//   a fixed height now, sized for the longest entry, so selecting a specimen
+//   changes the words and nothing else. A dialog that resizes under the pointer
+//   is a dialog you have to re-aim at.
+//
+//   THE HEADER IS SYMMETRIC. "the top bar, the title and the 1 of 12 and the
+//   close button not having equal padding top vs bottom." It did not; it does.
 
 import { h, clear } from '../dom.js';
 import { sym } from './icons.js';
+import { tip } from './tooltip.js';
 import { bugArt } from './bugart.js';
+import { RARITY_LABEL } from '../data/bugs.js';
 import type { Bugs, Bug } from '../bugs.js';
 
-/** The label under a specimen. A caught one is named; an empty one is not. */
-const slotLabel = (bug: Bug, got: boolean): HTMLElement =>
-  h('span', { class: 'bug-slot-name' }, got ? bug.name : '?');
-
 /**
- * The detail pane.
+ * The detail card.
  *
- * One element that is rewritten rather than one per bug: twelve panes built up
- * front is twelve drawings nobody asked for, and the frame is already the
- * expensive part of this screen.
+ * One element, rewritten, rather than twelve built up front: twelve drawings
+ * nobody asked to see is the expensive half of this screen, and the case is
+ * already carrying twelve.
  */
 function detail(host: HTMLElement, bug: Bug, got: boolean): void {
   clear(host);
   host.append(
-    h('div', { class: 'bug-plate' }, bugArt(bug, { size: 140, silhouette: !got })),
-    h('h3', { class: 'bug-dt-name' }, got ? bug.name : 'Not caught yet'),
+    h('div', { class: 'bug-plate' }, bugArt(bug, { size: 118, silhouette: !got })),
+    h('div', { class: 'bug-dt-head' },
+      h('h3', { class: 'bug-dt-name' }, got ? bug.name : 'Not caught yet'),
+      /*
+       * RARITY IS SHOWN EITHER WAY, and that is the point of it. Nam asked for
+       * it so the collection says which ones are meant to be hard, and a tier
+       * that only appeared after you had already found the thing would be
+       * telling you something you no longer need. On an empty slot it is a
+       * promise about how much work the hint below is doing.
+       */
+      h('span', { class: `bug-rar is-${bug.rarity}` }, RARITY_LABEL[bug.rarity])),
     h('p', { class: 'bug-dt-sp' }, got ? bug.species : 'Species unknown until you find it.'),
     /*
-     * THE HINT IS ALWAYS UP, found or not. It is the only line that survives
-     * catching, because a collector rereading their own drawer wants to know
-     * where the thing was, and because a hint that vanishes on success cannot be
-     * checked against what actually happened.
+     * The hint becomes the location once it is caught. Both answer "where", so
+     * they share a row rather than stacking, and a collector rereading their own
+     * drawer gets the answer instead of the riddle they already solved.
      */
-    h('p', { class: 'bug-dt-hint' }, h('b', {}, 'Where: '), got ? bug.where : bug.hint),
+    h('p', { class: 'bug-dt-where' }, h('b', {}, got ? 'Found in: ' : 'Where: '), got ? bug.where : bug.hint),
     got
       ? h('p', { class: 'bug-dt-fact' }, bug.fact)
       : h('p', { class: 'bug-dt-fact is-locked' }, 'Catch it and this says something true about the animal.'),
@@ -55,72 +81,94 @@ function detail(host: HTMLElement, bug: Bug, got: boolean): void {
 }
 
 /**
- * The whole case, as an overlay.
+ * The whole case, as a Material dialog.
  *
- * A dialog rather than a screen: it is reached from the ended screen, and the
- * ended screen is where somebody decides whether to go back in. Replacing it
- * with a route would put a back button between a visitor and the thing they
- * were about to do.
+ * A dialog rather than a screen, because both places it opens from are places
+ * somebody is about to do something else: the ended screen, where they are
+ * deciding whether to go back in, and the rail, where they are mid-browse.
+ * Routing to it would put a Back button between them and that decision.
  */
 export function openBugFrame(catcher: Bugs): void {
-  if (document.getElementById('bugframe')) return;
+  const existing = document.getElementById('bugframe');
+  if (existing) { existing.remove(); return; }
+
   const all = catcher.all();
   const { got, total } = catcher.count();
 
   const pane = h('div', { class: 'bug-detail' }) as HTMLElement;
-  const grid = h('div', { class: 'bug-grid' }) as HTMLElement;
+  const grid = h('div', { class: 'bug-grid', role: 'list' }) as HTMLElement;
 
   let chosen: HTMLElement | null = null;
+  const choose = (slot: HTMLElement, bug: Bug, have: boolean): void => {
+    chosen?.classList.remove('is-on');
+    chosen?.setAttribute('aria-pressed', 'false');
+    chosen = slot;
+    slot.classList.add('is-on');
+    slot.setAttribute('aria-pressed', 'true');
+    detail(pane, bug, have);
+  };
+
   for (const { bug, got: have } of all) {
     const slot = h(
       'button',
       {
         class: have ? 'bug-slot' : 'bug-slot is-empty',
         type: 'button',
-        'aria-label': have ? `${bug.name}, caught` : `Empty slot. ${bug.hint}`,
+        role: 'listitem',
+        'aria-pressed': 'false',
+        'aria-label': have ? `${bug.name}, ${RARITY_LABEL[bug.rarity]}` : `Not caught. ${RARITY_LABEL[bug.rarity]}.`,
       },
-      h('span', { class: 'bug-pin', 'aria-hidden': 'true' }),
-      bugArt(bug, { size: 84, silhouette: !have }),
-      slotLabel(bug, have),
+      h('span', { class: 'bug-slot-art' }, bugArt(bug, { size: 76, silhouette: !have })),
+      h('span', { class: 'bug-slot-name' }, have ? bug.name : '?'),
     ) as HTMLElement;
-    slot.addEventListener('click', () => {
-      chosen?.classList.remove('is-on');
-      chosen = slot;
-      slot.classList.add('is-on');
-      detail(pane, bug, have);
-    });
+    /*
+     * Meet's own tooltip, not a title attribute. Nam listed "the label popup"
+     * among the things that had to match, and the platform's tooltip is the
+     * wrong shape, the wrong delay and the wrong colour in one go.
+     */
+    tip(slot, have ? `${bug.name} · ${RARITY_LABEL[bug.rarity]}` : `Not caught · ${RARITY_LABEL[bug.rarity]}`);
+    slot.addEventListener('click', () => choose(slot, bug, have));
     grid.appendChild(slot);
   }
 
-  // Something has to be in the pane before anything is pressed, and the first
-  // one is the honest choice: any other pick would be a recommendation.
+  // Something has to be in the card before anything is pressed, and the first is
+  // the honest choice: any other pick would be a recommendation.
   const first = all[0];
-  if (first) detail(pane, first.bug, first.got);
+  const firstSlot = grid.firstElementChild as HTMLElement | null;
+  if (first && firstSlot) choose(firstSlot, first.bug, first.got);
 
   const close = (): void => { box.remove(); };
+  const shut = h('button', {
+    class: 'bug-x', type: 'button', 'aria-label': 'Close',
+  }, sym('close', 20)) as HTMLButtonElement;
+  tip(shut, 'Close');
+
   const box = h(
     'div',
-    { class: 'bug-frame-wrap', id: 'bugframe', role: 'dialog', 'aria-modal': 'true', 'aria-label': 'The bug collection' },
+    { class: 'bug-scrim', id: 'bugframe', role: 'dialog', 'aria-modal': 'true', 'aria-label': 'The bug collection' },
     h(
       'div',
-      { class: 'bug-frame' },
+      // Focusable so the dialog itself can take focus on open. Focusing the
+      // close button instead put a ring on it at rest, which reads as "this is
+      // the thing to press" on a screen whose point is the grid.
+      { class: 'bug-dlg', tabindex: '-1' },
       h(
         'div',
-        { class: 'bug-frame-top' },
-        h('h2', {}, 'The collection'),
+        { class: 'bug-top' },
+        h('h2', { class: 'bug-title' }, 'The collection'),
         h('span', { class: 'bug-tally' }, `${got} of ${total}`),
-        h('button', { class: 'bug-x', type: 'button', 'aria-label': 'Close' }, sym('close', 20)),
+        shut,
       ),
       h('div', { class: 'bug-case' }, grid, pane),
     ),
   ) as HTMLElement;
 
-  box.querySelector('.bug-x')?.addEventListener('click', close);
-  // The backdrop closes it; the case itself does not, so a mis-click inside the
-  // drawer never costs the visitor the drawer.
+  shut.addEventListener('click', close);
+  // The scrim closes it; the dialog does not, so a mis-click inside the case
+  // never costs the visitor the case.
   box.addEventListener('click', (e) => { if (e.target === box) close(); });
   box.addEventListener('keydown', (e) => { if ((e as KeyboardEvent).key === 'Escape') close(); });
 
   document.body.appendChild(box);
-  box.querySelector<HTMLElement>('.bug-x')?.focus();
+  box.querySelector<HTMLElement>('.bug-dlg')?.focus();
 }

@@ -20,13 +20,15 @@ import {
 import { reduceTour, initialTour, nextScripted, registerFor, QUEUE_BRIEF, type TourState } from '../tour/director.js';
 import {
   parts as tourParts, quips as tourQuips, acks as tourAcks, story as tourStory,
-  outro, asides, timeline, runtimeMs, transcriptLines, OUTRO_CAP_MS,
+  asides, timeline, runtimeMs, transcriptLines, OUTRO_CAP_MS,
+  banter, outroOpen, outroClose, outroTease, outroAllFound,
+  OUTRO_GAPS, OUTRO_COUNT_SLOT, BANTER_SLOTS,
 } from '../data/tour.js';
 import {
   observe, initialVisitor, tier, pace, passive, acknowledge, interests,
   BAIL_MS, IDLE_MS, PACE_MAX, type Visitor,
 } from '../tour/profile.js';
-import { readSeenEggs, stillUnseen } from '../prefs.js';
+import { readSeenEggs, stillUnseen, chooseBanter } from '../prefs.js';
 import { VISIBLE_QUESTS } from '../data/quests.js';
 import { bugs as bugList, bugById, BUG_COUNT } from '../data/bugs.js';
 import { codeFromUrl, pitchFor, DEFAULT_CODE, NEUTRAL_CODE } from '../data/companies.js';
@@ -683,13 +685,13 @@ suite('the conversation director', () => {
    * exists because the visitor cannot see how much is left.
    */
   test('the outro silences only ever grow', () => {
-    // The last line has no silence after it -- the captions go off instead.
-    const gaps = outro.slice(0, -1).map((l) => l.gap);
+    // The last slot has no silence after it -- the captions go off instead.
+    const gaps = OUTRO_GAPS.slice(0, -1);
     for (let i = 1; i < gaps.length; i += 1) {
       ok(gaps[i]! > gaps[i - 1]!,
-        `outro line ${i} comes back sooner than the one before it, so the winding-down reads as a restart`);
+        `outro slot ${i} comes back sooner than the one before it, so the winding-down reads as a restart`);
     }
-    eq(outro[outro.length - 1]!.gap, 0, 'the last line has a silence after it, so nothing ends the outro');
+    eq(OUTRO_GAPS[OUTRO_GAPS.length - 1], 0, 'the last slot has a silence after it, so nothing ends the outro');
   });
 
   /*
@@ -705,7 +707,7 @@ suite('the conversation director', () => {
    */
   test('no outro bubble sits on screen longer than a normal line', () => {
     const longestInFlow = Math.max(...tourParts.flatMap((p) => p.lines.map((l) => l.ms)));
-    for (const l of outro) {
+    for (const l of [outroOpen, outroClose, outroTease, outroAllFound, ...banter]) {
       ok(l.ms <= longestInFlow,
         `an outro bubble is up for ${l.ms}ms, longer than the flow's longest line (${longestInFlow}ms),`
         + ' which is what tells the visitor another line is coming');
@@ -719,9 +721,17 @@ suite('the conversation director', () => {
    * fastest. The silences are not scaled -- a comedic beat is authored -- so the
    * cap is checked with the worst pace applied to the half that moves.
    */
+  /*
+   * The worst case is now a DRAW rather than a fixed script, so the cap has to
+   * hold against the unluckiest one: the four longest lines in the pool landing
+   * in the four drawn slots, with the longer of the two counting lines.
+   */
   test('the outro fits inside its cap even at the slowest pace', () => {
-    const shown = outro.reduce((a, l) => a + l.ms, 0);
-    const silent = outro.reduce((a, l) => a + l.gap, 0);
+    const worstDrawn = [...banter].sort((a, b) => b.ms - a.ms).slice(0, BANTER_SLOTS);
+    const shown = outroOpen.ms + outroClose.ms
+      + Math.max(outroTease.ms, outroAllFound.ms)
+      + worstDrawn.reduce((a, l) => a + l.ms, 0);
+    const silent = OUTRO_GAPS.reduce((a, g) => a + g, 0);
     const total = shown + silent;
     ok(total <= OUTRO_CAP_MS, `the outro runs ${Math.round(total / 1000)}s, over its ${OUTRO_CAP_MS / 1000}s cap`);
     const worst = shown * PACE_MAX + silent;
@@ -729,28 +739,40 @@ suite('the conversation director', () => {
       `at the slowest pace the outro runs ${Math.round(worst / 1000)}s, over its ${OUTRO_CAP_MS / 1000}s cap`);
   });
 
-  /*
-   * N67. The tease counts what this visitor has left, so the line has to carry
-   * the placeholder AND declare that it is droppable. Either half without the
-   * other is a bug that only shows up for a completionist: a placeholder with no
-   * `needs` says "there are still no things out there", and a `needs` with no
-   * placeholder silently hides a line for the wrong reason.
-   */
-  test('the counting line is a template, and is droppable', () => {
-    const counted = outro.filter((l) => l.text.includes('{left}'));
-    eq(counted.length, 1, 'the outro should name what is left exactly once');
-    eq(counted[0]!.needs, 'left', 'the counting line is not marked droppable');
-    for (const l of outro) {
-      if (l.needs === 'left') ok(l.text.includes('{left}'), 'a droppable line has nothing to fill in');
-      // A placeholder nothing fills is a line that says "{left}" out loud.
-      const rest = l.text.replace('{left}', '');
-      ok(!/[{}]/.test(rest), `an unfilled placeholder is left in "${l.text.slice(0, 40)}"`);
-    }
+  test('the outro ends on the goodbye, not on a joke', () => {
+    ok(/thank you/i.test(outroClose.text), 'the last thing said after the goodbye is not a thank you');
   });
 
-  test('the outro ends on the goodbye, not on a joke', () => {
-    const last = outro[outro.length - 1]?.text ?? '';
-    ok(/thank you/i.test(last), 'the last thing said after the goodbye is not a thank you');
+  /*
+   * N67, second pass. Nam: "we need more of these, cause these are banters and
+   * they shouldnt repeat so much ... the post credit should be playful and much
+   * less repetitive."
+   *
+   * The property that delivers that is arithmetic rather than taste: the pool
+   * has to be big enough that several visits pass before a repeat. Four a run
+   * against twenty lines is five, and this fails the moment somebody adds a slot
+   * without adding lines to fill it.
+   */
+  test('the banter pool outlasts several visits', () => {
+    eq(new Set(banter.map((b) => b.id)).size, banter.length, 'two banter lines share an id');
+    ok(banter.length >= BANTER_SLOTS * 4,
+      `${banter.length} lines at ${BANTER_SLOTS} a visit repeats after ${Math.floor(banter.length / BANTER_SLOTS)} runs`);
+    eq(OUTRO_GAPS.length - 3, BANTER_SLOTS, 'the drawn slots and the fixed ones do not add up');
+    ok(OUTRO_COUNT_SLOT > 0 && OUTRO_COUNT_SLOT < OUTRO_GAPS.length - 1,
+      'the counting slot is the opener or the goodbye, so one of them would never play');
+  });
+
+  /*
+   * And the tease still has to be a template with something to fill it, or the
+   * line says "{left}" out loud. Its partner has to NOT be one, since it is the
+   * version for a visitor with nothing left to count.
+   */
+  test('the counting line is a template and its alternative is not', () => {
+    ok(outroTease.text.includes('{left}'), 'the counting line has nothing to fill in');
+    ok(!outroAllFound.text.includes('{left}'), 'the everything-found line still counts something');
+    for (const l of [outroOpen, outroClose, outroAllFound, ...banter]) {
+      ok(!/[{}]/.test(l.text), `an unfilled placeholder is in "${l.text.slice(0, 40)}"`);
+    }
   });
 
   /*
@@ -774,7 +796,8 @@ suite('the conversation director', () => {
   test('no em dashes anywhere in the script', () => {
     const lines = [
       ...tourParts.flatMap((p) => [...p.lines, ...p.commentary, ...p.brief, ...(p.bail?.lines ?? [])]),
-      ...tourQuips, ...tourAcks, ...outro,
+      ...tourQuips, ...tourAcks,
+      outroOpen, outroClose, outroTease, outroAllFound, ...banter,
       ...tourStory.flatMap((c) => c.lines),
       ...Object.values(asides),
     ];
@@ -790,7 +813,8 @@ suite('the conversation director', () => {
   test('nothing in the script calls itself a tour', () => {
     const spoken = [
       ...tourParts.flatMap((p) => [...p.lines, ...p.commentary, ...p.brief, ...(p.bail?.lines ?? [])]),
-      ...tourQuips, ...tourAcks, ...outro,
+      ...tourQuips, ...tourAcks,
+      outroOpen, outroClose, outroTease, outroAllFound, ...banter,
       ...tourStory.flatMap((c) => c.lines),
     ].map((l) => l.text);
     for (const text of spoken) {
@@ -972,6 +996,50 @@ suite('the bug collection', () => {
         ok(!/[—–]/.test(text), `an em dash is in the collection: "${text.slice(0, 48)}"`);
       }
     }
+  });
+});
+
+/* ------------------------------------------------------------------------- */
+
+suite('the banter, drawn fresh', () => {
+  /*
+   * The rule Nam asked for, as a property: a second visit does not repeat the
+   * first. Everything here runs against a fixed random source, because "did it
+   * avoid what it already said" is exactly the kind of thing that looks right
+   * every time you watch it and is wrong one run in five.
+   */
+  const pool = [{ id: 'a' }, { id: 'b' }, { id: 'c' }, { id: 'd' }, { id: 'e' }, { id: 'f' }];
+  /** Always takes the first of whatever is left, so the picks are predictable. */
+  const first = (): number => 0;
+
+  test('it never repeats what has already been heard', () => {
+    const { picks, reset } = chooseBanter(pool, ['a', 'b'], 2, first);
+    eq(picks.map((p) => p.id).join(','), 'c,d');
+    eq(reset, false);
+  });
+
+  test('it asks for as many as it needs, and no more', () => {
+    eq(chooseBanter(pool, [], 4, first).picks.length, 4);
+    eq(new Set(chooseBanter(pool, [], 4, () => Math.random()).picks.map((p) => p.id)).size, 4,
+      'the same line was drawn twice in one run');
+  });
+
+  /*
+   * THE POOL WRAPS WHOLE. Somebody on their sixth visit has earned more banter
+   * than exists, and the alternatives are worse than repeating: saying less each
+   * time, or saying nothing. Wrapping to the full pool means the second cycle is
+   * as varied as the first rather than being whichever four were left over.
+   */
+  test('a pool too small to fill the slots starts over', () => {
+    const { picks, reset } = chooseBanter(pool, ['a', 'b', 'c', 'd', 'e'], 3, first);
+    eq(reset, true, 'it did not reset when it ran out');
+    eq(picks.length, 3);
+    eq(new Set(picks.map((p) => p.id)).size, 3, 'a reset run drew the same line twice');
+  });
+
+  test('an exhausted pool is still exhausted, not empty', () => {
+    const { picks } = chooseBanter(pool, pool.map((b) => b.id), 6, first);
+    eq(picks.length, 6, 'a fully-heard pool returned nothing at all');
   });
 });
 

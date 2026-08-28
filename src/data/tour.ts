@@ -59,8 +59,10 @@ export type Cue =
   /** Maximise the browser window inside the shared desktop. */
   | 'maximise'
   | 'tab:cv' | 'tab:jobad' | 'tab:built' | 'tab:work'
-  /** Drag the self tile to another corner, with real pointer events. */
+  /** Drag the self tile a little, and let it spring back. */
   | 'drag'
+  /** Ctrl-wheel the mock browser out a couple of notches, so the page fits. */
+  | 'zoom'
   /** Play the easter-egg clips this visitor has not found yet. */
   | 'eggs'
   /** The hand drifts off the edge and stops. */
@@ -315,6 +317,9 @@ export const parts: Part[] = [
     ],
     beats: [
       { at: 0, cue: 'tab:built' },
+      // The spec is a wide document and the shared screen is not. It fits at
+      // 80 per cent, so the hand ctrl-wheels it there before talking about it.
+      { at: 1, cue: 'zoom' },
       { at: 2, roll: { of: 'page', to: 0.35, ms: 1600 } },
       { at: 3, roll: { of: 'page', to: 0.6, ms: 1400 } },
       { at: 4, roll: { of: 'page', to: 0.8, ms: 1400 } },
@@ -725,42 +730,102 @@ export const asides = {
  */
 export const OUTRO_CAP_MS = 240_000;
 
-export interface OutroLine extends Line {
-  /** Silence after the bubble goes, before the next line appears. */
-  gap: number;
-  /**
-   * Skip this line when there is nothing left to find.
-   *
-   * The tease counts the easter eggs and bugs still out there (N67), and for a
-   * completionist that count is zero. "There are 0 things left, that is all I am
-   * saying" is a worse line than no line, and it takes away the reward for
-   * having finished.
-   */
-  needs?: 'left';
-}
+/**
+ * WHERE THE SILENCES GO, and nothing else.
+ *
+ * The gaps used to belong to individual lines, which was fine while the outro
+ * was a fixed script. It is not one any more (see `banter` below), so the
+ * growing pause is a property of the SLOT rather than of whatever is said in
+ * it. That is also the truer model: the joke is somebody running out of things
+ * to say and thinking of one more anyway, and the shape of that is in the
+ * timing, not in the words.
+ *
+ * Seven slots. The first is the opener, the fifth counts what is left, the last
+ * is the goodbye, and the other four are drawn from the pool.
+ */
+export const OUTRO_GAPS = [6000, 11_000, 17_000, 24_000, 32_000, 41_000, 0];
 
-const O = (text: string, ms: number, gap: number, needs?: OutroLine['needs']): OutroLine =>
-  (needs ? { text, ms, gap, needs } : { text, ms, gap });
+/** Which slot asks how much is left to find. */
+export const OUTRO_COUNT_SLOT = 4;
 
-export const outro: OutroLine[] = [
-  O('Still here?', 2600, 6000),
-  O('The call does not actually end, by the way. Sit as long as you like.', 4200, 11_000),
-  O('Questions? My email is on the way out. Or the referral note, if you know somebody. 🙏', 4600, 17_000),
-  O('There is nothing more to see here. I swear.', 3400, 24_000),
-  /*
-   * N67. This said "two easter eggs", which was already wrong for anybody who
-   * had found one, and said nothing at all about the bugs. {left} is filled in
-   * at speaking time from what THIS visitor has actually found, and the line is
-   * dropped entirely when the answer is nothing. See fillLeft() in tour/stage.ts.
-   */
-  O('…okay. There are still {left} out there. That is all I am saying.', 4000, 32_000, 'left'),
-  O('You are unusually patient. That is a promising sign for a code review.', 4400, 41_000),
-  /* The last thing said, and the only line with no silence after it: the captions
-     go off instead — see the note on the outro in src/tour/stage.ts — which is the
-     only way to signal "I have actually stopped now" without saying it a seventh
-     time. */
-  O('Alright. Genuinely, thank you for your time. Good luck with the rest of the pile. 👋', 4800, 0),
+/** Always first. The question the whole segment is about. */
+export const outroOpen = L('Still here?', 2600);
+
+/**
+ * Always last, and the only line with no silence after it: the captions go off
+ * instead, which is the only way to say "I have actually stopped now" without
+ * saying it a seventh time.
+ */
+export const outroClose = L('Alright. Genuinely, thank you for your time. Good luck with the rest of the pile. 👋', 4800);
+
+/**
+ * The tease, which counts.
+ *
+ * `{left}` is filled in when the line is spoken, from what THIS visitor has
+ * found: the clips still in the calendar and the bugs still in the build.
+ */
+export const outroTease = L('…okay. There are still {left} out there. That is all I am saying.', 4000);
+
+/**
+ * And what it says instead when there is nothing left.
+ *
+ * Nam: "when everything is found, we should acknowledge it." The first version
+ * simply dropped the line, which was the safe answer and the wrong one: a
+ * visitor who has cleared the calendar AND the drawer has done the single
+ * hardest thing here, and the response to that cannot be silence.
+ */
+export const outroAllFound = L('You have found everything. Literally nothing left to do!', 4000);
+
+/**
+ * THE POST-CREDITS POOL, and the reason it is a pool.
+ *
+ * Nam: "we need more of these, cause these are banters and they shouldnt repeat
+ * so much. The script during the interview, yes, that is a script we dont need
+ * to make it replayable. But the post credit should be playful and much less
+ * repetitive. Now that we introduce a layer of replayability with the bugs, we
+ * need to find a way to make the post credit more fun."
+ *
+ * That is the whole argument and it turns on the bugs. Before them, nobody came
+ * back: one visit, one script, and a fixed outro was exactly right. The drawer
+ * gives a reason to return, and the moment a second visit is expected, a line
+ * that was funny once becomes a line the app is repeating at you.
+ *
+ * So the interview stays a script and only this part is drawn. Four are used a
+ * run and which four is remembered across visits, so five visits pass before
+ * anybody sees a repeat, and the repeats start with the ones they saw first.
+ *
+ * Every line has to survive being the ONLY thing on screen with no context,
+ * which is what rules out callbacks to whatever was said a minute ago.
+ */
+export interface Banter extends Line { id: string }
+
+const B = (id: string, text: string, ms: number): Banter => ({ id, text, ms });
+
+export const banter: Banter[] = [
+  B('b1', 'The call does not actually end, by the way. Sit as long as you like.', 4200),
+  B('b2', 'Questions? My email is on the way out. Or the referral note, if you know somebody. 🙏', 4600),
+  B('b3', 'There is nothing more to see here. I swear.', 3400),
+  B('b4', 'You are unusually patient. That is a promising sign for a code review.', 4400),
+  B('b5', 'I did not write a line for this part. You are in the improvised bit.', 4000),
+  B('b6', 'Somewhere there is a recruiter with two hundred PDFs open. Spare a thought.', 4400),
+  B('b7', 'The clock on that desktop is real, incidentally. It is the only thing here that is.', 4600),
+  B('b8', 'I could tell you about the stylesheet. I can see that you would rather I did not.', 4600),
+  B('b9', 'Most people have closed the tab by now. I am not most people either.', 4200),
+  B('b10', 'If you are reading this on a phone, I am genuinely sorry about the desktop.', 4400),
+  B('b11', 'There is a test suite in here you can break on purpose. I am just saying.', 4400),
+  B('b12', 'Nobody has sat through this bit before. You are setting a record nobody will verify.', 4800),
+  B('b13', 'I keep thinking of one more thing. That is the weakness answer, live.', 4200),
+  B('b14', 'This is the part of a call where somebody says "well, unless there is anything else".', 4800),
+  B('b15', 'Somewhere in here a beetle is sitting on a control you have not pressed twice.', 4600),
+  B('b16', 'You know you can drag the windows around? Sorry. That was the last one.', 4400),
+  B('b17', 'I am told the correct move now is to stop talking. Noted.', 3600),
+  B('b18', 'The red button is right there and I am still going. Read into that what you like.', 4600),
+  B('b19', 'Every number on this page came off a real measurement. Even the wrong one.', 4400),
+  B('b20', 'I am going to sit here quietly now and let you get on with it.', 4000),
 ];
+
+/** Slots filled from the pool, which is every slot but the three fixed ones. */
+export const BANTER_SLOTS = OUTRO_GAPS.length - 3;
 
 // ---------------------------------------------------------------------------
 // THE CLOCK — board ticket N46

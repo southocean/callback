@@ -256,6 +256,71 @@ export function unseenEggs(): Egg[] {
  */
 const INTERVIEW_KEY = 'callback.interview';
 
+/* ------------------------------------------------------------------ banter */
+
+/**
+ * Which post-credit lines this visitor has already heard.
+ *
+ * Same shape and same reasoning as the clips above: a list of ids, parsed
+ * defensively because it comes out of storage, and a pure chooser so the rule
+ * can be tested against a fixed random source rather than observed.
+ */
+const BANTER_KEY = 'callback.banter';
+
+export function seenBanter(): string[] {
+  try {
+    return readSeenEggs(localStorage.getItem(BANTER_KEY));
+  } catch {
+    return [];
+  }
+}
+
+export function markBanterSeen(ids: string[]): void {
+  try {
+    const now = new Set(seenBanter());
+    for (const id of ids) now.add(id);
+    localStorage.setItem(BANTER_KEY, JSON.stringify([...now]));
+  } catch {
+    /* ignore */
+  }
+}
+
+/**
+ * `n` lines nobody has heard yet, and what to remember afterwards.
+ *
+ * THE POOL RESETS RATHER THAN RUNNING DRY. Somebody on their sixth visit has
+ * earned more banter than the app has, and the alternatives are both worse than
+ * repeating: saying less each time, or saying nothing. When it wraps it wraps
+ * whole, so the second cycle is as varied as the first rather than degrading
+ * into whichever four were left over.
+ *
+ * Pure, with the randomness injected, because "does it avoid what it has
+ * already said" is exactly the kind of rule that is easy to get subtly wrong and
+ * impossible to notice going wrong.
+ */
+export function chooseBanter<T extends { id: string }>(
+  all: T[], seen: string[], n: number, rnd: () => number,
+): { picks: T[]; reset: boolean } {
+  let pool = stillUnseen(all, seen);
+  const reset = pool.length < n;
+  if (reset) pool = [...all];
+  const bag = [...pool];
+  const picks: T[] = [];
+  while (picks.length < n && bag.length) {
+    const i = Math.min(bag.length - 1, Math.floor(rnd() * bag.length));
+    picks.push(bag.splice(i, 1)[0]!);
+  }
+  return { picks, reset };
+}
+
+export function clearBanter(): void {
+  try {
+    localStorage.removeItem(BANTER_KEY);
+  } catch {
+    /* ignore */
+  }
+}
+
 export interface Interview {
   /** The most recent completed run, ms. */
   lastMs: number;
@@ -322,4 +387,52 @@ export function recordInterview(ms: number): void {
 export function clockMs(ms: number): string {
   const total = Math.round(ms / 1000);
   return `${Math.floor(total / 60)}:${String(total % 60).padStart(2, '0')}`;
+}
+
+// ---------------------------------------------------------------------------
+// ADMIN, which is a joke with a lock on it
+// ---------------------------------------------------------------------------
+
+/**
+ * Whether the reader has been through the gate.
+ *
+ * PERSISTED, like everything else in this file, and for the same reason: making
+ * somebody perform an eleven click cheat code again because they reloaded is a
+ * punishment for having found it. It is also the only pref here whose absence is
+ * the interesting state, so it is stored as a single stamp and read as a
+ * boolean; anything unparseable reads as locked, which is the safe direction.
+ *
+ * Not a security boundary and this file will not pretend otherwise. Everything
+ * behind the gate ships in the same bundle, and a reader who opens the console
+ * is one setItem away. It is a spoiler curtain, and the threat model is a
+ * first-time visitor being handed the bug hunt's answer key unasked.
+ */
+const ADMIN_KEY = 'callback.admin';
+
+export function readAdmin(raw: string | null): boolean {
+  return raw === '1';
+}
+
+export function isAdmin(): boolean {
+  try {
+    return readAdmin(localStorage.getItem(ADMIN_KEY));
+  } catch {
+    return false;
+  }
+}
+
+export function grantAdmin(): void {
+  try {
+    localStorage.setItem(ADMIN_KEY, '1');
+  } catch {
+    /* ignore: the session still has its in-memory grant. */
+  }
+}
+
+export function revokeAdmin(): void {
+  try {
+    localStorage.removeItem(ADMIN_KEY);
+  } catch {
+    /* ignore */
+  }
 }

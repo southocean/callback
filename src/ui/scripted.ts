@@ -33,7 +33,8 @@
 
 import { h } from '../dom.js';
 import {
-  parts, quips, acks, story, asides, outro, timeline, runtimeMs, OUTRO_CAP_MS,
+  parts, quips, acks, story, asides, timeline, runtimeMs, OUTRO_CAP_MS,
+  banter, outroOpen, outroClose, outroTease, outroAllFound, OUTRO_GAPS, BANTER_SLOTS,
   type Part, type Quip, type Beat,
 } from '../data/tour.js';
 import { QUEUE_BRIEF, QUEUE_HANDOVER } from '../tour/director.js';
@@ -323,28 +324,44 @@ export function renderScriptEditor(): HTMLElement {
     /* --- after the goodbye ------------------------------------------------ */
     h('h2', { class: 'dp-head2' }, 'After the goodbye'),
     h('p', { class: 'dp-note' },
-      `${outro.length} lines that only play if the visitor does not leave. Each one is up for an ordinary `
+      `${OUTRO_GAPS.length} slots that only play if the visitor does not leave. Each line is up for an ordinary `
       + 'reading time and then the strip GOES AWAY, and the silence that follows is what grows: '
-      + `${outro.slice(0, -1).map((l) => `${Math.round(l.gap / 1000)}s`).join(' then ')}, and then nothing. `
-      + `Total ${Math.round(outro.reduce((a, l) => a + l.ms + l.gap, 0) / 1000)}s against a `
-      + `${OUTRO_CAP_MS / 1000}s cap, and any input at all abandons it.`),
+      + `${OUTRO_GAPS.slice(0, -1).map((g) => `${Math.round(g / 1000)}s`).join(' then ')}, and then nothing. `
+      + `Against a ${OUTRO_CAP_MS / 1000}s cap, and any input at all abandons it.`),
     h('p', { class: 'dp-note' },
       'The silence is the point, and the first version got it wrong by leaving the bubble up for the whole gap. A '
       + 'caption sitting on screen with its ring filling for twenty-six seconds announces that another line is '
       + 'coming, so the surprise was spent before the joke arrived. With the strip gone the call looks finished, '
       + 'which is the only state a visitor can be surprised out of.'),
     h('p', { class: 'dp-note' },
-      '{left} is filled in when the line is spoken, from what this visitor has actually found: the easter '
-      + 'eggs still in the calendar and the bugs still in the build. When the answer is nothing, the line is '
-      + 'dropped rather than said, because a tease with a zero in it takes away the reward for finishing.'),
+      `Three slots are fixed and ${BANTER_SLOTS} are drawn from a pool of ${banter.length}, remembered across visits so a `
+      + 'second run is not a repeat of the first. The interview itself is a script and stays one; only this part '
+      + 'is shuffled, because only this part has a reason to be heard twice.'),
     h('div', { class: 'sc-alts' },
       h('div', { class: 'sc-alt is-head' },
-        h('span', {}, 'up for'),
+        h('span', {}, 'slot'),
         h('span', {}, 'says'),
         h('span', {}, 'then silent for')),
-      ...outro.map((l) => h('div', { class: 'sc-alt' },
-        h('span', { class: 'sc-ms' }, secs(l.ms)),
+      h('div', { class: 'sc-alt' },
+        h('span', { class: 'sc-ms' }, 'first'),
+        h('span', {}, outroOpen.text),
+        h('span', { class: 'sc-ms' }, secs(OUTRO_GAPS[0] ?? 0))),
+      h('div', { class: 'sc-alt' },
+        h('span', { class: 'sc-ms' }, 'counts'),
+        h('span', {}, `${outroTease.text}  ·  or, with nothing left: ${outroAllFound.text}`),
+        h('span', { class: 'sc-ms' }, secs(OUTRO_GAPS[4] ?? 0))),
+      h('div', { class: 'sc-alt' },
+        h('span', { class: 'sc-ms' }, 'last'),
+        h('span', {}, outroClose.text),
+        h('span', { class: 'sc-ms' }, 'the captions go off'))),
+    h('h2', { class: 'dp-head2' }, 'The banter pool'),
+    h('p', { class: 'dp-note' },
+      `${banter.length} lines, ${BANTER_SLOTS} a visit, so it is ${Math.floor(banter.length / BANTER_SLOTS)} runs before anybody hears one twice.`),
+    h('div', { class: 'sc-alts' },
+      ...banter.map((l) => h('div', { class: 'sc-alt' },
+        h('span', { class: 'sc-ms' }, l.id),
         h('span', {}, l.text),
-        h('span', { class: 'sc-ms' }, l.gap ? secs(l.gap) : 'the captions go off')))),
+        h('span', { class: 'sc-ms' }, secs(l.ms)))),
+    ),
   );
 }

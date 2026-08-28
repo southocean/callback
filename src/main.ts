@@ -160,8 +160,32 @@ function render(): void {
   //
   // An early return paints nothing, so it has nothing to invalidate. Only a
   // render that is about to replace the screen may declare earlier work stale.
+  /*
+   * LEAVING THE CALL HAS TO END THE CONVERSATION, and for six commits it did
+   * not. call.ts has exported stopTour since the tour landed, with a comment
+   * saying "Called from main.ts on leave", and nothing ever called it.
+   *
+   * The symptom was a dead call on the second visit, which QA reproduced: join,
+   * go home, join again, and you get captions on, no share, no narration, and a
+   * mouse pointer sitting in the middle of the screen doing nothing. Three
+   * things add up to it. `tourStarted` is module-scoped, so the guard that stops
+   * two narrators talking over each other also stops the second one ever
+   * starting. The stage that is still running holds a podium whose caption strip
+   * was thrown away with the old screen, so it goes on speaking into a detached
+   * node. And the hand is mounted on document.body rather than on the call, so
+   * it survives the swap and is the one visible piece of the ghost.
+   *
+   * Read off the previous key rather than from a store subscription, because
+   * this is the one place that knows a screen is about to be replaced.
+   */
+  const leftCall = lastKey === 'call' && key !== 'call';
+
   renderTicket += 1;
   lastKey = key;
+
+  // The chunk is already resolved -- you cannot have left a call you never
+  // reached -- so this is a cached module lookup rather than a fetch.
+  if (leftCall) void import('./ui/call.js').then((m) => m.stopTour());
 
   document.body.classList.toggle('plain', key === 'plain');
 
@@ -169,7 +193,7 @@ function render(): void {
   // exactly two and a third would be the tell.
   if (key === 'calls') {
     mount('calls', () => import('./ui/calls.js').then((m) => m.renderCalls({}))
-      .then((node) => renderHome(store, store.get().reducedMotion, node)));
+      .then((node) => renderHome(store, store.get().reducedMotion, node, bugs)));
     return;
   }
 
@@ -216,7 +240,7 @@ function render(): void {
   // for. Nobody who reads the plain document ever downloads the WebGL pipeline.
   if (key === 'home') {
     clear(root);
-    root.appendChild(renderHome(store, s.reducedMotion));
+    root.appendChild(renderHome(store, s.reducedMotion, undefined, bugs));
     quests.mount(root);
     bugs.mount(root);
     return;

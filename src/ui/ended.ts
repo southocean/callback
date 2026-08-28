@@ -303,11 +303,17 @@ export function renderEnded(store: Store, quests: Quests, bugs: Bugs): HTMLEleme
           h(
             'p',
             {},
+            /*
+             * NO NUMBER HERE. Nam: "Including the amount of times you have to do
+             * it is way too on the nose, remove that." The card can say that
+             * there is something to find and that persistence is the shape of
+             * it; the moment it says how many presses, the hunt is a chore list.
+             */
             caught.got === caught.total
               ? 'The whole drawer. Nobody was supposed to get all of them, so consider the QA position filled.'
               : caught.got === 0
-                ? 'There are bugs hidden in this build on purpose. They are caught by doing the same thing three times, which is what testing software actually looks like.'
-                : 'The rest are still out there. Each one is caught by doing one thing three times, and every empty slot in the case keeps its hint.',
+                ? 'There are bugs hidden in this build on purpose, and they do not turn up for anyone who tries something once. Testing software looks a lot like this.'
+                : 'The rest are still out there. Every empty slot in the case keeps its hint, and the harder ones say so.',
           ),
           h(
             'button',

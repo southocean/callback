@@ -42,10 +42,12 @@
 import { h } from '../dom.js';
 import { prefersReducedMotion } from '../a11y.js';
 import {
-  parts, story, acks, asides, outro,
+  parts, story, acks, asides,
+  banter, outroOpen, outroClose, outroTease, outroAllFound,
+  OUTRO_GAPS, OUTRO_COUNT_SLOT, BANTER_SLOTS,
   type Bail, type Beat, type Line, type Surface,
 } from '../data/tour.js';
-import { markEggSeen, unseenEggs } from '../prefs.js';
+import { markEggSeen, unseenEggs, seenBanter, markBanterSeen, chooseBanter, clearBanter } from '../prefs.js';
 import { currentPitch } from '../data/companies.js';
 import { makeHand, type Hand, type Scroller } from './cursor.js';
 import {
@@ -195,6 +197,27 @@ export function startTour(root: HTMLElement, podium: Podium): TourHandle {
     class: 'tour-stop', type: 'button', 'aria-label': 'Stop him talking',
   }, 'Stop talking') as HTMLButtonElement;
   const bar = h('div', { class: 'tour-bar' }, stopBtn) as HTMLElement;
+
+  /**
+   * THE STOP CONTROL GOES WITH THE GOODBYE, not with the last word.
+   *
+   * Nam: "when you finish the script with the goodbye, like after we have
+   * answered all the questions not in the CV, this is like post credit part, we
+   * should remove the stop talking button, cause now its not really active
+   * talking anymore, also to signal that that was the timing."
+   *
+   * It used to survive to the end of the outro, and the reasoning for that was
+   * about the segment BEFORE it: the personal answers are uninterruptible except
+   * by Stop, so taking the control away early would leave ninety seconds with no
+   * exit. The moment those answers finish, that reason expires. Everything after
+   * is post-credits, abandoned by any input at all, so an offer to stop it is an
+   * offer to stop something that is barely happening.
+   *
+   * And it carries information. The control disappearing is the clearest signal
+   * available that the timed part is over, which is the second half of what Nam
+   * is asking for: it marks the end without a caption saying so.
+   */
+  const dropBar = (): void => { bar.remove(); };
 
   root.appendChild(bar);
   root.appendChild(meter);
@@ -532,13 +555,26 @@ export function startTour(root: HTMLElement, podium: Podium): TourHandle {
     const b = tile.getBoundingClientRect();
     const hb = host.getBoundingClientRect();
     const from = { x: b.left + b.width / 2, y: b.top + b.height / 2 };
-    // The opposite side, horizontally: the tile lives bottom right by default,
-    // so this reads as a move rather than a twitch, and the corner it latches to
-    // is decided by the handler rather than asserted here.
-    const to = {
-      x: from.x < hb.left + hb.width / 2 ? hb.right - b.width / 2 - 24 : hb.left + b.width / 2 + 24,
-      y: from.y,
-    };
+    /*
+     * A NUDGE, AND THEN IT SNAPS BACK. Nam: "when we are moving the video tile,
+     * don't move it all the way, we can just move a little bit then release, so
+     * it should snap back to place."
+     *
+     * He is right, and it is not only about restraint. Carrying the tile to the
+     * far corner LEAVES it there, so a line meant to demonstrate that the tile
+     * moves ends by rearranging the visitor's screen for them. A short pull that
+     * springs back shows the same two things, the drag and the latch, and gives
+     * the corner back.
+     *
+     * The distance is bounded by how far the tile's centre can travel while
+     * staying in its own quadrant, because the handler latches to the nearest
+     * corner by centre. Eighty pixels or a third of the way to the middle,
+     * whichever is smaller: big enough to read as a drag, never big enough to
+     * cross the line that would make it a move.
+     */
+    const midX = hb.left + hb.width / 2;
+    const pull = Math.min(80, Math.abs(from.x - midX) / 3);
+    const to = { x: from.x + (from.x < midX ? pull : -pull), y: from.y - Math.min(28, pull / 2) };
 
     const send = (type: string, x: number, y: number): void => {
       tile.dispatchEvent(new PointerEvent(type, {
@@ -563,9 +599,43 @@ export function startTour(root: HTMLElement, podium: Podium): TourHandle {
     await hand.retreat(tile);
   };
 
+  /**
+   * ZOOM THE MOCK BROWSER OUT, with the wheel.
+   *
+   * Nam: "the browser when showing the project spec I think we should zoom out a
+   * little bit just so we can see everything. do the zoom with the mouse too,
+   * kinda like you intentionally zoom out."
+   *
+   * So it is a real gesture, not a style change: the hand goes to the page and
+   * ctrl-wheels, and the browser's own handler does the rest. Same principle as
+   * the share (N29) and the drag (N64) -- every step is a step a person takes,
+   * and nothing in the demo reaches past the interface to set a value.
+   *
+   * Two notches, which is Chrome's 90 then 80 per cent. Three would be 75 and
+   * start to look like a problem with the page rather than a choice about it.
+   */
+  const doZoom = async (notches = 2): Promise<void> => {
+    const page = document.querySelector<HTMLElement>('.shot .cb-page');
+    if (!page) return;
+    const r = page.getBoundingClientRect();
+    if (r.width === 0) return;
+    await hand.to(r.left + r.width / 2, r.top + r.height / 3);
+    for (let i = 0; i < notches; i += 1) {
+      if (dead) return;
+      page.dispatchEvent(new WheelEvent('wheel', {
+        deltaY: 120, ctrlKey: true, bubbles: true, cancelable: true,
+        clientX: Math.round(r.left + r.width / 2), clientY: Math.round(r.top + r.height / 3),
+      }));
+      // A wheel notch at a time, at the speed a finger actually turns one.
+      await wait(reduced ? 0 : 260);
+    }
+    await hand.retreat(page);
+  };
+
   const runCue = async (cue: string): Promise<void> => {
     if (cue === 'share') return doShare();
     if (cue === 'drag') return dragTile();
+    if (cue === 'zoom') return doZoom();
     if (cue === 'maximise') return doMaximise();
     if (cue === 'eggs') return doEggs();
     if (cue === 'park') { await hand.park(); return; }
@@ -791,30 +861,57 @@ export function startTour(root: HTMLElement, podium: Podium): TourHandle {
     return bits.join(' and ');
   };
 
+  /**
+   * THE POST-CREDITS, ASSEMBLED FOR THIS VISIT.
+   *
+   * Three fixed slots and four drawn ones. The opener and the goodbye never
+   * change because they are the frame; the counting slot is the one that knows
+   * about this visitor; everything else comes out of the pool and is remembered
+   * so the next visit gets four different ones.
+   *
+   * Built at the moment it starts playing, not at mount, because what is left to
+   * find can change during the call: catch a bug in the last minute and the
+   * tease has to know.
+   */
+  const buildOutro = (): { line: Line; gap: number }[] => {
+    const { picks, reset } = chooseBanter(banter, seenBanter(), BANTER_SLOTS, Math.random);
+    if (reset) clearBanter();
+    markBanterSeen(picks.map((b) => b.id));
+
+    const left = leftToFind();
+    const counted: Line = left
+      ? { ...outroTease, text: outroTease.text.replace('{left}', left) }
+      : outroAllFound;
+
+    const out: { line: Line; gap: number }[] = [];
+    let drawn = 0;
+    for (let i = 0; i < OUTRO_GAPS.length; i += 1) {
+      const gap = OUTRO_GAPS[i] ?? 0;
+      if (i === 0) { out.push({ line: outroOpen, gap }); continue; }
+      if (i === OUTRO_GAPS.length - 1) { out.push({ line: outroClose, gap }); continue; }
+      if (i === OUTRO_COUNT_SLOT) { out.push({ line: counted, gap }); continue; }
+      const pick = picks[drawn];
+      drawn += 1;
+      // A pool that could not fill a slot leaves it empty rather than repeating
+      // itself into it. Cannot happen with the pool as it stands, and the day it
+      // shrinks below four lines this fails quietly instead of stuttering.
+      if (pick) out.push({ line: pick, gap });
+    }
+    return out;
+  };
+
   let outroRan = false;
 
   const runOutro = async (): Promise<void> => {
     outroRan = true;
     const at = visitor.lastInput;
-    for (const line of outro) {
+    for (const { line, gap } of buildOutro()) {
       if (dead || stopped) return;
       // Abandoned by anything at all. Checked before the line rather than after,
       // so a visitor who clicks during a twenty-second gap is not talked at once
       // more before being let go.
       if (visitor.lastInput !== at) return;
-      /*
-       * A line that counts what is left, and is skipped when the answer is
-       * nothing. Skipped means skipped: its silence goes with it, because the
-       * previous line's gap has already run and a second one back to back would
-       * read as the outro having stalled.
-       */
-      let text = line.text;
-      if (line.needs === 'left') {
-        const left = leftToFind();
-        if (!left) continue;
-        text = text.replace('{left}', left);
-      }
-      await voice(text, line.ms);
+      await voice(line.text, line.ms);
       if (visitor.lastInput !== at) return;
       /*
        * THE STRIP GOES AWAY, and then the silence. This is the whole fix for
@@ -827,9 +924,9 @@ export function startTour(root: HTMLElement, podium: Podium): TourHandle {
        * beat is authored and a patient visitor stretching it to half again is how
        * the two-minute cap gets broken.
        */
-      if (line.gap > 0) {
+      if (gap > 0) {
         podium.hush();
-        await wait(line.gap);
+        await wait(gap);
       }
     }
     if (dead) return;
@@ -869,6 +966,8 @@ export function startTour(root: HTMLElement, podium: Podium): TourHandle {
       }
     }
     tour = reduceTour(tour, { t: 'toldDone' });
+    // The answers are done, so the reason for keeping an exit is done with them.
+    dropBar();
   };
 
   /* ------------------------------------------------------------------ the run */

@@ -250,6 +250,42 @@ const PLANS: Record<Bug['plan'], (c: Palette) => string> = {
 
 /* ------------------------------------------------------------------ draw --- */
 
+/**
+ * A 24px beetle, for the rail.
+ *
+ * The icon set this project ships is a 7 kB subset of Material Symbols and it
+ * has no bug in it, so the choice was a wrong glyph or a right drawing. The
+ * rail's other two items are font glyphs at 24px in a 56x32 pill, so this is
+ * built to sit in that hole: one weight, currentColor, no detail that dies
+ * below 24px. It is deliberately NOT one of the twelve, because a rail item
+ * that is also a specimen would be claiming to be a particular bug.
+ */
+export function bugGlyph(size = 24): SVGSVGElement {
+  const svg = document.createElementNS(NS, 'svg');
+  svg.setAttribute('viewBox', '0 0 24 24');
+  svg.setAttribute('width', String(size));
+  svg.setAttribute('height', String(size));
+  svg.setAttribute('aria-hidden', 'true');
+  svg.setAttribute('class', 'rail-bug');
+  /*
+   * OUTLINED, not filled, because its two neighbours are. Meetings and Calls are
+   * Material Symbols at weight 400, which is a 1.5px stroke and no solid masses,
+   * and a filled beetle beside them reads as the selected item even when it is
+   * not. The only fills are the two dots that make it a face.
+   */
+  svg.innerHTML =
+    '<g fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">'
+    // Antennae, then the three pairs of legs.
+    + '<path d="M9.5 6.6 7 4.2M14.5 6.6 17 4.2"/>'
+    + '<path d="M8.2 11.5H4.2M8.2 15.2l-3.3 2.1M15.8 11.5h4M15.8 15.2l3.3 2.1"/>'
+    // Head, then the wing cases, then the seam between them.
+    + '<path d="M12 5.4c1.7 0 3 1.1 3.2 2.6H8.8C9 6.5 10.3 5.4 12 5.4Z"/>'
+    + '<path d="M12 8.6c2.3 0 3.9 2 3.9 5s-1.7 5.4-3.9 5.4-3.9-2.4-3.9-5.4 1.6-5 3.9-5Z"/>'
+    + '<path d="M12 8.8v9.8"/>'
+    + '</g>';
+  return svg;
+}
+
 /** Every colour replaced by one, which is what makes an outline a silhouette. */
 const SHADOW: Palette = ['currentColor', 'currentColor', 'currentColor', 'currentColor'];
 

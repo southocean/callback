@@ -26,10 +26,15 @@ import {
   columns, tasks, type Task, type Column,
 } from '../data/project.js';
 import { START } from '../data/cv.js';
-import { bugs as collection } from '../data/bugs.js';
+import { bugs as collection, RARITY_LABEL } from '../data/bugs.js';
 import { bugArt } from './bugart.js';
+import { isAdmin } from '../prefs.js';
+import {
+  challenges, wrongRoasts, rightRoasts, grantedLines, alreadyAdminLines,
+  KIND_LABEL, ADMIN_PASSWORD, ADMIN_CLICKS, ADMIN_HINT_FROM, type ChallengeKind,
+} from '../data/admin.js';
 
-type Tab = 'overview' | 'process' | 'reviews' | 'board' | 'script' | 'bugs';
+type Tab = 'overview' | 'process' | 'reviews' | 'board' | 'script' | 'bugs' | 'gate';
 
 /*
  * Timeline is gone as a tab and lives inside Overview instead. Nam: "I actually
@@ -39,7 +44,23 @@ type Tab = 'overview' | 'process' | 'reviews' | 'board' | 'script' | 'bugs';
  * Which is the better shape anyway: the chart is the answer to "how was this
  * built", and Overview is where that question gets asked.
  */
-const TABS: { id: Tab; label: string }[] = [
+/*
+ * N60. THREE OF THESE ARE BEHIND THE ADMIN GATE.
+ *
+ * Nam: "the project spec has some info I dont want to show everyone. Let's hide
+ * it behind the admin mode."
+ *
+ * Which two, and why, was already written down here before the gate existed. The
+ * Collection tab's own note calls itself the answer key and says out loud that
+ * publishing it "is a real cost to the hunt"; Scripts is the whole running order
+ * with its timings, which is the ending of a thing the reader is in the middle
+ * of. Both were shipped open because the alternative was hiding them from the
+ * author too. A gate is the third option, and it is the one that was missing.
+ *
+ * The gate's own page joins them, because a hidden page describing the lock is
+ * the only page that cannot spoil anything by being hidden.
+ */
+const TABS: { id: Tab; label: string; admin?: true }[] = [
   { id: 'overview', label: 'Overview' },
   { id: 'process', label: 'Process' },
   { id: 'reviews', label: 'Design reviews' },
@@ -49,7 +70,7 @@ const TABS: { id: Tab; label: string }[] = [
    * "Scripts", plural, since it also carries the call's own caption loop — a
    * script the tour suspends and hands back, and the one Nam wants to fold in.
    */
-  { id: 'script', label: 'Scripts' },
+  { id: 'script', label: 'Scripts', admin: true },
   /*
    * N59. Nam: "List of bugs, where they are hidden and the image for them, add
    * these info in the project spec."
@@ -61,7 +82,8 @@ const TABS: { id: Tab; label: string }[] = [
    * would spoil something is a mechanic being marketed rather than specified.
    * Anyone who does not want the answers is one tab away from not reading them.
    */
-  { id: 'bugs', label: 'Collection' },
+  { id: 'bugs', label: 'Collection', admin: true },
+  { id: 'gate', label: 'The gate', admin: true },
 ];
 
 export type PortalMode = 'light' | 'dark';
@@ -95,21 +117,39 @@ export type PortalMode = 'light' | 'dark';
  * this was extracted, which is the only version of it that has been looked at.
  */
 export function specBody(): { tabs: HTMLElement; body: HTMLElement } {
+  /*
+   * Resolved once, when the panel is built, rather than read per draw. The grant
+   * cannot change while this is on screen: the gesture that grants it is on the
+   * home screen, which is behind this dialog. Reading it once means the tab strip
+   * and the view guard cannot disagree with each other mid-session.
+   */
+  const admin = isAdmin();
+  const shown = TABS.filter((t) => !t.admin || admin);
+
   let tab: Tab = 'overview';
   const body = h('div', { class: 'dp-body' });
 
   const tabs = h(
     'div',
     { class: 'dp-tabs', role: 'tablist', 'aria-label': 'Project spec' },
-    ...TABS.map((t) =>
+    ...shown.map((t) =>
       h('button', {
-        class: 'dp-tab', type: 'button', role: 'tab', 'aria-selected': 'false', 'data-t': t.id,
+        class: t.admin ? 'dp-tab is-admin' : 'dp-tab',
+        type: 'button', role: 'tab', 'aria-selected': 'false', 'data-t': t.id,
         onclick: () => { tab = t.id; draw(); },
       }, t.label),
     ),
   );
 
   function draw(): void {
+    /*
+     * The guard, and not only the filter. A tab id can arrive here from something
+     * other than a press on a rendered button -- a deep link, a future caller,
+     * this function being asked to open on a tab -- and a hidden view that is one
+     * assignment away from rendering is not hidden, it is unlisted.
+     */
+    if (!shown.some((t) => t.id === tab)) tab = 'overview';
+
     for (const b of tabs.querySelectorAll('button')) {
       b.setAttribute('aria-selected', b.getAttribute('data-t') === tab ? 'true' : 'false');
     }
@@ -120,6 +160,7 @@ export function specBody(): { tabs: HTMLElement; body: HTMLElement } {
       : tab === 'reviews' ? reviewsView()
       : tab === 'script' ? renderScriptEditor()
       : tab === 'bugs' ? collectionView()
+      : tab === 'gate' ? gateView()
       : boardView(),
     );
     body.scrollTop = 0;
@@ -368,11 +409,74 @@ function collectionView(): HTMLElement {
       ...collection.map((b) => h('div', { class: 'bugspec-row' },
         h('div', { class: 'bugspec-art' }, bugArt(b, { size: 72 })),
         h('div', { class: 'bugspec-txt' },
-          h('h3', {}, b.name),
+          h('div', { class: 'bugspec-head' },
+            h('h3', {}, b.name),
+            h('span', { class: `bug-rar is-${b.rarity}` }, RARITY_LABEL[b.rarity])),
           h('div', { class: 'bugspec-sp' }, b.species),
           h('p', {}, h('b', {}, 'Hidden in: '), b.where),
           h('p', {}, h('b', {}, 'Hint shown: '), b.hint),
           h('p', { class: 'bugspec-fact' }, b.fact))))),
+  );
+}
+
+/**
+ * THE GATE, WRITTEN DOWN.
+ *
+ * Nam: "All these banters related to the admin code challenge, the problems, the
+ * answers and different roasts in different scenarios, please put all these in
+ * the project spec too, also as a hidden tab."
+ *
+ * It is the one page in this panel that can be complete without cost. Every other
+ * hidden tab is hidden because publishing it would spoil something a reader is in
+ * the middle of; this one is hidden because it is the inside of the joke, and the
+ * only person who can reach it has already heard the joke.
+ *
+ * So it prints the answers next to the questions, which no quiz should do and
+ * this one must: the decoy's whole risk is that a question turns out to be
+ * ambiguous or wrong, and a table nobody can read is a table nobody can check.
+ */
+function gateView(): HTMLElement {
+  const kinds: ChallengeKind[] = ['math', 'history', 'sense'];
+
+  return h('div', { class: 'dp-col' },
+    h('p', { class: 'dp-lead' },
+      `The avatar on the home screen opens this panel's hidden tabs after ${ADMIN_CLICKS} presses. `
+      + `From press ${ADMIN_HINT_FROM} each click drops a number, which is the only signal the gesture exists. `
+      + 'The dialog that opens then asks a general knowledge question, and the question is a decoy.'),
+    h('p', { class: 'dp-note' },
+      'Answering it correctly is a dead end: it pays out in applause and an insult, rerolls, and leaves the '
+      + `door shut. The password is the word "${ADMIN_PASSWORD}", which the dialog never asks for. It is `
+      + 'findable only because the gesture that opened the box was itself a cheat code, which is the whole '
+      + 'of the puzzle. The lock is checked before the decoy, so the password wins even if a question ever '
+      + 'grows it as an answer.'),
+    h('p', { class: 'dp-note' },
+      'Not a security boundary, and the code says so in as many words. Everything behind the gate ships in '
+      + 'the same bundle. It is a spoiler curtain: the threat model is a first-time reader being handed the '
+      + "bug hunt's answer key and the script's ending without asking for either."),
+
+    h('h3', { class: 'ag-h' }, `The question bank (${challenges.length})`),
+    ...kinds.map((k) => h('div', { class: 'ag-bank' },
+      h('h4', { class: 'ag-bank-h' }, KIND_LABEL[k]),
+      h('div', { class: 'ag-rows' },
+        ...challenges.filter((c) => c.kind === k).map((c) => h('div', { class: 'ag-row' },
+          h('span', { class: 'ag-row-q' }, c.q),
+          h('span', { class: 'ag-row-a' }, c.answers.join(' / '))))))),
+
+    h('h3', { class: 'ag-h' }, `Roasts, wrong answer (${wrongRoasts.length})`),
+    h('ol', { class: 'ag-list' }, ...wrongRoasts.map((r) => h('li', {}, r))),
+
+    h('h3', { class: 'ag-h' }, `Roasts, right answer (${rightRoasts.length})`),
+    h('p', { class: 'dp-note' },
+      'Each of these has to congratulate and deflate in the same breath. This is the moment the reader '
+      + 'learns they were solving the wrong problem, so a line that only praises loses the turn and a line '
+      + 'that only mocks reads as the form rejecting a correct answer.'),
+    h('ol', { class: 'ag-list' }, ...rightRoasts.map((r) => h('li', {}, r))),
+
+    h('h3', { class: 'ag-h' }, `On the password landing (${grantedLines.length})`),
+    h('ol', { class: 'ag-list' }, ...grantedLines.map((r) => h('li', {}, r))),
+
+    h('h3', { class: 'ag-h' }, `Pressing the avatar once already admin (${alreadyAdminLines.length})`),
+    h('ol', { class: 'ag-list' }, ...alreadyAdminLines.map((r) => h('li', {}, r))),
   );
 }
 

@@ -11,9 +11,13 @@
 import { h, clear } from '../dom.js';
 import { sym, lockup, spinner, focusRing, playLockup, settleLockup } from './icons.js';
 import { openDev } from './devopen.js';
+import { bugGlyph } from './bugart.js';
+import type { Bugs } from '../bugs.js';
 import { currentPitch } from '../data/companies.js';
 
 import { openPlain } from './plainoverlay.js';
+import { avatarPressed, onAdminGranted } from './admingate.js';
+import { isAdmin } from '../prefs.js';
 import { tip, tipAll, tipAllAbove, hideTip, rearm } from './tooltip.js';
 import { eggMap, key as dayKey, type Egg } from '../data/eggs.js';
 import type { Store } from '../state.js';
@@ -43,6 +47,38 @@ let boot: Boot = 'cold';
 let selectedCard: HTMLElement | null = null;
 let isSelected = false;
 let wired = false;
+
+/**
+ * The account avatar, which is also the door.
+ *
+ * Board ticket N60. It stays a plain account button in every respect a reader
+ * can see: same class, same label, same G. The eleven press gesture is the only
+ * thing that distinguishes it, and the only tell before the fourth press is that
+ * nothing happens, which is what the real one does too.
+ *
+ * The letter is rebuilt from the stored grant on every mount rather than being
+ * flipped in place, so arriving already-admin from a reload shows the A without
+ * anybody having to remember to sync it.
+ */
+function avatarBtn(): HTMLElement {
+  const letter = h('span', {}, isAdmin() ? 'A' : 'G');
+  const btn = h(
+    'button',
+    {
+      class: isAdmin() ? 'avatar-btn is-admin' : 'avatar-btn',
+      type: 'button',
+      'aria-label': isAdmin() ? 'Admin account: you' : 'Google Account: you',
+    },
+    letter,
+  );
+  btn.addEventListener('click', (e) => avatarPressed(e as MouseEvent, btn));
+  onAdminGranted(() => {
+    letter.textContent = 'A';
+    btn.classList.add('is-admin');
+    btn.setAttribute('aria-label', 'Admin account: you');
+  });
+  return btn;
+}
 
 /** Re-adding the class restarts the ring animation, which is the pulse. */
 function showRing(el: HTMLElement): void {
@@ -157,7 +193,7 @@ function slot(on: Date): { day: string; date: number; label: string; week: { n: 
 }
 
 
-export function renderHome(store: Store, reducedMotion = false, body?: HTMLElement): HTMLElement {
+export function renderHome(store: Store, reducedMotion = false, body?: HTMLElement, bugs?: Bugs): HTMLElement {
   let s = slot(viewing);
   const marks = eggMap(TODAY);
 
@@ -263,11 +299,7 @@ export function renderHome(store: Store, reducedMotion = false, body?: HTMLEleme
         sym('settings', 24),
       ),
       h('button', { class: 'icon-btn', type: 'button', 'aria-label': 'Google apps' }, sym('apps', 22)),
-      h(
-        'button',
-        { class: 'avatar-btn', type: 'button', 'aria-label': 'Google Account: you' },
-        h('span', {}, 'G'),
-      ),
+      avatarBtn(),
     ),
   );
 
@@ -302,6 +334,33 @@ export function renderHome(store: Store, reducedMotion = false, body?: HTMLEleme
       h('span', { class: 'rail-label' }, 'Calls'),
     ),
   );
+
+  /*
+   * A THIRD RAIL ITEM, and only for somebody who has caught something.
+   *
+   * Nam: "Once we have found a bug, we should add a bug button to the left side
+   * bar, under Calls, so we can quickly check the bug collection again."
+   *
+   * Conditional for the same reason the secret quests are hidden until found: a
+   * permanent item labelled Bugs on the first screen announces a mechanic
+   * nobody has met yet, and turns a thing you stumble into a thing you were
+   * assigned. Once one is caught it stops being a spoiler and starts being a
+   * shortcut, which is exactly when it appears.
+   *
+   * It opens the case rather than navigating, because the case is a dialog
+   * everywhere else it opens from, and a rail item that changed screen would be
+   * the only one of the three that did something different.
+   */
+  if (bugs && bugs.count().got > 0) {
+    const item = h(
+      'button',
+      { class: 'rail-item', type: 'button', 'aria-current': 'false' },
+      h('span', { class: 'rail-pill' }, bugGlyph(24)),
+      h('span', { class: 'rail-label' }, 'Bugs'),
+    ) as HTMLButtonElement;
+    item.addEventListener('click', () => { void import('./bugframe.js').then((m) => m.openBugFrame(bugs)); });
+    rail.appendChild(item);
+  }
 
   // --- main ----------------------------------------------------------------
 

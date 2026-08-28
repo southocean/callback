@@ -34,8 +34,6 @@ import { sample } from '../net/degrade.js';
 import type { Profile } from '../net/degrade.js';
 import type { Quests } from '../achievements.js';
 import type { Bugs } from '../bugs.js';
-import { bugById } from '../data/bugs.js';
-import { bugArt } from './bugart.js';
 import { noteReadyShown, noteReadyClosed, markEggSeen, recordInterview } from '../prefs.js';
 import { signal } from './signal.js';
 
@@ -1843,26 +1841,6 @@ export function renderCall(store: Store, quests: Quests, deps: CallDeps, bugs: B
   const SCARE = 0.85;
 
   /**
-   * A scarab on the glass, briefly.
-   *
-   * Timed against slap-rush in styles.css rather than guessed: the hand's
-   * keyframe peaks at 46% of 1.25s, so impact is 575ms after the class lands.
-   * The bug crawls in for half a second, is flat at 580, and is gone before the
-   * hand has finished retreating. Every number here is that one number.
-   *
-   * The drawing is the same drawing the frame and the toast use, at 64px. A
-   * second illustration of the same animal is how two of them start disagreeing.
-   */
-  function squash(): void {
-    const bug = bugById('goldbug');
-    if (!bug) return;
-    const el = h('div', { class: 'bug-squash', 'aria-hidden': 'true' }, bugArt(bug, { size: 64 })) as HTMLElement;
-    layer.appendChild(el);
-    window.setTimeout(() => el.classList.add('is-flat'), 580);
-    window.setTimeout(() => el.remove(), 1600);
-  }
-
-  /**
    * `trusted` is not decoration -- QA found the leak it closes.
    *
    * Every other bug is caught through one delegated listener that ignores
@@ -1876,17 +1854,25 @@ export function renderCall(store: Store, quests: Quests, deps: CallDeps, bugs: B
     quests.unlock('hand');
     quests.unlock('slap');
     /*
-     * THE GILDED SCARAB -- board ticket N59, and Nam's own example: "if you get
-     * the raise hand animation 3 times, on the third time you get a bug, then
-     * the hand smashes it LOL."
+     * THE GILDED SCARAB, and Nam's own example: "if you get the raise hand
+     * animation 3 times, on the third time you get a bug, then the hand smashes
+     * it LOL."
      *
-     * The order is the joke. The bug is on screen BEFORE the hand arrives, the
-     * hand lands on it, and the toast is held back until after the impact so the
-     * notice is a post-mortem rather than a spoiler. `hit` is what decides which
-     * raise this is, and it says no on every other one.
+     * WHO WAITS FOR WHOM, which is the only interesting part. The scarab flies
+     * out of this button and takes 620ms to reach the middle of the screen, so
+     * the hand cannot start when the press does or it arrives at an empty
+     * screen and swats nothing. The catcher therefore owns the clock: it calls
+     * back the moment the bug has landed, and THAT is when the hand launches.
+     * 575ms later the hand peaks, which is where the flattening is scheduled.
+     *
+     * Every other raise is unchanged, and `hit` is what tells them apart.
      */
-    const scarab = trusted && bugs.hit('goldbug', 1000);
-    if (scarab) squash();
+    const scarab = trusted && bugs.hit('goldbug', { from: handBtn, smash: true, onArrive: strike });
+    if (!scarab) strike();
+  }
+
+  /** The hand itself, which happens on every raise, bug or no bug. */
+  function strike(): void {
     const hand = h('div', { class: 'slap-hand', 'aria-hidden': 'true' }, '✋');
     const flash = h('div', { class: 'slap-flash', 'aria-hidden': 'true' });
     const wrap = h('div', { class: 'slap' }, flash, hand);

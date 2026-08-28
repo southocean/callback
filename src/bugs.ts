@@ -26,11 +26,42 @@
 //     you were part way.
 
 import { h } from './dom.js';
+import { prefersReducedMotion } from './a11y.js';
 import { sym } from './ui/icons.js';
 import { bugs, bugById, type Bug } from './data/bugs.js';
 import { bugArt } from './ui/bugart.js';
 
-export { bugs, bugById, BUG_COUNT, type Bug } from './data/bugs.js';
+export { bugs, bugById, BUG_COUNT, RARITY_LABEL, type Bug, type Rarity } from './data/bugs.js';
+
+/**
+ * What catching one looks like.
+ *
+ * Nam, on the first version: "The bug appearing: barely visible at all, it
+ * should be animated from where the place we should have clicked ... an
+ * animation of the bug coming to the middle of the screen, a bit of shaking
+ * animation and a bit of glow, then it quickly moves into the toast that
+ * appears. Timing here is important for this to feel polished."
+ *
+ * So there are three movements, and they are the reason this is not simply a
+ * toast with a picture in it:
+ *
+ *   FLIGHT, from the control that was pressed to the middle of the screen. The
+ *   origin is the point of the whole thing: it answers "where did that come
+ *   from" without a caption, and it is why `from` is threaded all the way down
+ *   from the click listener rather than being guessed at here.
+ *
+ *   THE BEAT, in the middle, big, glowing and shaking. This is the reward, and
+ *   the only moment the drawing is large enough to actually look at.
+ *
+ *   DELIVERY, into the notice, which appears the instant the bug lands in it.
+ *   The toast is built and measured BEFORE the flight starts, so the last leg
+ *   flies to a real position rather than to an estimate of one.
+ */
+const FLY_MS = 620;
+const BEAT_MS = 900;
+const DELIVER_MS = 460;
+/** The hand's own impact, read off slap-rush in styles.css: 46% of 1.25s. */
+const SMASH_MS = 575;
 
 const KEY = 'callback.bugs';
 
@@ -52,6 +83,15 @@ const BY_CLICK: { sel: string; id: string }[] = [
 ];
 
 /** The gestures that are not a press on anything. See ui/signal.ts. */
+export interface CatchOpts {
+  /** The control that was pressed. The bug flies out of it. */
+  from?: HTMLElement | null;
+  /** The hand comes down on this one instead of it shaking in the middle. */
+  smash?: boolean;
+  /** Fired the moment the bug reaches the middle of the screen. */
+  onArrive?: () => void;
+}
+
 const BY_SIGNAL: Record<string, string> = {
   'desk:min': 'mantis',
   'desk:resize': 'leaf',
@@ -107,7 +147,7 @@ export class Bugs {
    * exactly that case: the gilded scarab is smashed by the raised hand before it
    * is announced, and a notice arriving mid-smash steps on the joke.
    */
-  hit(id: string, after = 0): boolean {
+  hit(id: string, opts: CatchOpts = {}): boolean {
     if (this.got.has(id)) return false;
     const bug = bugById(id);
     if (!bug) return false;
@@ -122,9 +162,91 @@ export class Bugs {
     }
     if (this.live) this.live.textContent = `New bug caught: ${bug.name}, ${bug.species}.`;
     for (const fn of this.onChange) fn();
-    if (after > 0) window.setTimeout(() => this.toast(bug), after);
-    else this.toast(bug);
+    this.announce(bug, opts);
     return true;
+  }
+
+  /**
+   * The flight, and then the notice.
+   *
+   * Reduced motion gets the notice and nothing else. There is no toned-down
+   * version of "it flew across your screen" worth shipping: the movement IS the
+   * feature, so the honest accommodation is to skip it rather than slow it.
+   */
+  private announce(bug: Bug, opts: CatchOpts): void {
+    const card = this.toast(bug);
+    if (!card) return;
+    const land = (): void => { card.classList.remove('is-arriving'); };
+    if (prefersReducedMotion()) { land(); opts.onArrive?.(); return; }
+
+    const slot = card.querySelector<HTMLElement>('.qt-bug');
+    const dest = slot?.getBoundingClientRect();
+    if (!dest || dest.width === 0) { land(); opts.onArrive?.(); return; }
+
+    const start = opts.from?.getBoundingClientRect();
+    const mid = { x: window.innerWidth / 2, y: window.innerHeight / 2 };
+    const from = start && start.width > 0
+      ? { x: start.left + start.width / 2, y: start.top + start.height / 2 }
+      : { x: mid.x, y: window.innerHeight - 140 };
+
+    const fly = h('div', { class: 'bug-fly', 'aria-hidden': 'true' }, bugArt(bug, { size: 176 })) as HTMLElement;
+    const put = (x: number, y: number, scale: number): void => {
+      fly.style.transform = `translate(-50%, -50%) translate(${x}px, ${y}px) scale(${scale})`;
+    };
+    // It starts small, at the control: a full-size beetle appearing on a 48px
+    // button reads as a glitch rather than as something coming out of it.
+    put(from.x, from.y, 0.22);
+    document.body.appendChild(fly);
+
+    const hold = (ms: number): Promise<void> => new Promise((ok) => { window.setTimeout(ok, ms); });
+    const step = (ms: number, ease: string, run: () => void): Promise<void> => new Promise((ok) => {
+      // A frame between the start position and the end one, or the browser
+      // coalesces both writes and there is no transition left to watch.
+      requestAnimationFrame(() => {
+        fly.style.transition = `transform ${ms}ms ${ease}, opacity ${ms}ms linear`;
+        run();
+        window.setTimeout(ok, ms);
+      });
+    });
+
+    void (async () => {
+      await step(FLY_MS, 'cubic-bezier(0.2, 0.8, 0.2, 1)', () => {
+        fly.classList.add('is-mid');
+        put(mid.x, mid.y, 1);
+      });
+
+      if (opts.smash) {
+        /*
+         * The hand, and then the flattening. Nam's own gag: "on the third time
+         * you get a bug, then the hand smashes it LOL." The strike is fired from
+         * here rather than on the caller's own clock, so the hand starts moving
+         * the instant the bug has landed and arrives on top of it 575ms later,
+         * which is where slap-rush peaks.
+         */
+        opts.onArrive?.();
+        await hold(SMASH_MS);
+        fly.classList.remove('is-mid');
+        fly.classList.add('is-flat');
+        await hold(420);
+      } else {
+        opts.onArrive?.();
+        // The shake and the glow are one animation on a class, so the transform
+        // set above has to be left alone while it runs.
+        fly.classList.add('is-beat');
+        await hold(BEAT_MS);
+        fly.classList.remove('is-beat');
+      }
+
+      fly.classList.remove('is-mid');
+      await step(DELIVER_MS, 'cubic-bezier(0.4, 0, 0.9, 0.6)', () => {
+        fly.style.opacity = '0.15';
+        put(dest.left + dest.width / 2, dest.top + dest.height / 2, 0.28);
+      });
+      fly.remove();
+      // The notice arrives WITH the bug. Showing it up front would hand over the
+      // answer while the animation is still pretending to deliver it.
+      land();
+    })();
   }
 
   /**
@@ -140,8 +262,8 @@ export class Bugs {
    * which is what forced that design; two bugs cannot, because each one needs
    * its own three presses on its own control.
    */
-  private toast(bug: Bug): void {
-    if (!this.tray) return;
+  private toast(bug: Bug): HTMLElement | null {
+    if (!this.tray) return null;
     const { got, total } = this.count();
 
     const fill = h('i', { class: 'qt-fill' }) as HTMLElement;
@@ -155,7 +277,9 @@ export class Bugs {
 
     const card = h(
       'div',
-      { class: 'quest-toast is-bug', role: 'status', 'aria-live': 'polite' },
+      // `is-arriving` holds it invisible until the bug lands in it. It is built
+      // now rather than later because the flight needs somewhere to go.
+      { class: 'quest-toast is-bug is-arriving', role: 'status', 'aria-live': 'polite' },
       h('span', { class: 'qt-bug' }, bugArt(bug, { size: 40 })),
       h('span', { class: 'qt-label' }, `New bug: ${bug.name}`),
       h('span', { class: 'qt-count' }, `${got}/${total}`),
@@ -177,6 +301,7 @@ export class Bugs {
     card.addEventListener('focusout', arm);
     close.addEventListener('click', () => { hold(); leave(); });
     arm();
+    return card;
   }
 }
 
@@ -197,13 +322,20 @@ export function wireBugs(catcher: Bugs): void {
     const el = e.target as Element | null;
     if (!el || typeof el.closest !== 'function') return;
     for (const { sel, id } of BY_CLICK) {
-      if (el.closest(sel)) { catcher.hit(id); return; }
+      const on = el.closest<HTMLElement>(sel);
+      // The element pressed, not the pointer that pressed it: a bug leaving the
+      // BUTTON is legible at any size, and one leaving the exact pixel somebody
+      // happened to hit looks like a coincidence.
+      if (on) { catcher.hit(id, { from: on }); return; }
     }
   }, true);
 
   document.addEventListener('tour:signal', (e) => {
     const key = (e as CustomEvent<{ key: string }>).detail?.key;
     const id = key ? BY_SIGNAL[key] : undefined;
-    if (id) catcher.hit(id);
+    // A gesture is not a press on anything, so there is no control to fly out
+    // of. It leaves from the middle of the desktop, which is where the window
+    // being dragged, resized, minimised or closed actually is.
+    if (id) catcher.hit(id, { from: document.querySelector<HTMLElement>('.dk-surface') });
   });
 }

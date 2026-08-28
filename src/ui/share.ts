@@ -1810,6 +1810,62 @@ function chromeWindow(o: { onEmpty: () => void }): { body: HTMLElement; select: 
   let at = -1;
   let replaying = false;
 
+  /**
+   * CTRL AND THE WHEEL, which this browser had no answer for at all.
+   *
+   * Nam: "Is it implemented at all? Ctrl + mouse wheel on the mock chrome? Maybe
+   * we should do that." It was not, and it is the one gesture people reach for
+   * inside a page that will not fit, so its absence is the kind of gap that
+   * makes an emulation feel like a picture of a browser.
+   *
+   * PER TAB, not per window. Chrome's zoom is per site, and in this browser a
+   * tab IS a document (see the history note above), so per tab is the same rule
+   * expressed in the units this thing actually has. It also avoids the obvious
+   * annoyance: zooming out to read the spec and then finding the CV shrunk.
+   *
+   * Chrome's own ladder, verbatim. Rounding a continuous scale would put 83% on
+   * the chip, which is a number no browser has ever shown anybody.
+   */
+  const STEPS = [0.5, 0.67, 0.75, 0.8, 0.9, 1, 1.1, 1.25, 1.5, 1.75, 2];
+  const zooms = new Map<string, number>();
+
+  /*
+   * `zoom`, not a transform. A scaled page keeps its old layout and merely
+   * draws it smaller, so the text stays on the same line breaks and the
+   * scrollable height lies; `zoom` reflows, which is what a browser's zoom
+   * does and the only version worth emulating.
+   */
+  const chip = h('span', { class: 'cb-zoom', 'aria-hidden': 'true' }) as HTMLElement;
+
+  const applyZoom = (): void => {
+    const z = zooms.get(active) ?? 1;
+    page.style.zoom = z === 1 ? '' : String(z);
+    chip.textContent = `${Math.round(z * 100)}%`;
+    chip.classList.toggle('is-on', z !== 1);
+  };
+
+  const stepZoom = (dir: number): void => {
+    if (!active) return;
+    const now = zooms.get(active) ?? 1;
+    const i = STEPS.indexOf(now);
+    const next = STEPS[Math.max(0, Math.min(STEPS.length - 1, (i < 0 ? STEPS.indexOf(1) : i) + dir))];
+    if (next === undefined || next === now) return;
+    zooms.set(active, next);
+    applyZoom();
+  };
+
+  /*
+   * Passive: false, because the whole point is preventDefault -- without it the
+   * host browser zooms the real page underneath and the visitor is left looking
+   * at a magnified screen share. Bound on the page rather than the window so a
+   * ctrl-wheel over the tab strip or the taskbar is left alone.
+   */
+  page.addEventListener('wheel', (e: WheelEvent) => {
+    if (!e.ctrlKey) return;
+    e.preventDefault();
+    stepZoom(e.deltaY < 0 ? 1 : -1);
+  }, { passive: false });
+
   const paint = (id: string): void => {
     const doc = docFor(id);
     active = id;
@@ -1823,6 +1879,7 @@ function chromeWindow(o: { onEmpty: () => void }): { body: HTMLElement; select: 
       t.el.setAttribute('aria-selected', String(on));
     }
     clear(page);
+    applyZoom();
     if (doc) page.appendChild(doc.page());
     else page.appendChild(h('div', { class: 'pg cb-newtab' }, h('h1', { class: 'pg-h' }, 'New tab')));
     // A page may carry outward links (see pageSide). They open in this browser
@@ -1918,7 +1975,7 @@ function chromeWindow(o: { onEmpty: () => void }): { body: HTMLElement; select: 
       // how pressing it on any tab took you to the first one.
       navBtn('Reload', '<path d="M17.65 6.35A8 8 0 1 0 19.73 14h-2.08A6 6 0 1 1 12 6c1.66 0 3.14.69 4.22 1.78L13 11h7V4z" fill="currentColor"/>',
         () => { if (active) paint(active); }),
-      h('div', { class: 'cb-omni' }, field)),
+      h('div', { class: 'cb-omni' }, field, chip)),
     page) as HTMLElement;
 
   /**

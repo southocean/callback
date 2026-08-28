@@ -1362,6 +1362,157 @@ export const tasks: Task[] = [
     },
   },
 
+  /* ------------------------------------------------------------------------
+   * Nam's review of the collection, 28 August. He drove the whole thing and
+   * came back with nine notes, one of which was a dead call on the second visit
+   * (N73) and one of which cannot be fixed here at all (N76).
+   * --------------------------------------------------------------------- */
+  {
+    id: 'N68', col: 'done', size: 'M', tag: 'call',
+    title: 'Catching a bug is something you watch, not something you are told',
+    note: 'It flies out of the control you pressed, holds in the middle of the screen, and goes into the notice.',
+    detail: {
+      why: 'Nam: "The bug appearing: barely visible at all, it should be animated from where the place we should have clicked ... an animation of the bug coming to the middle of the screen, a bit of shaking animation and a bit of glow, then it quickly moves into the toast that appears. Timing here is important for this to feel polished." The first version put a 64px beetle behind the raise-hand gag and everything else got a notice in the corner, which is the same reward a checkbox gets.',
+      done: [
+        'The origin is the control that was pressed, threaded down from the click listener',
+        '620ms out to the middle, 900ms of shake and glow at full size, 460ms into the notice',
+        'The notice is built and measured first, so the last leg flies to a real position',
+        'It stays hidden until the bug lands in it',
+        'The scarab keeps its gag: the hand launches when the bug arrives and flattens it 575ms later',
+        'Reduced motion gets the notice and nothing else',
+      ],
+      raised: 'Nam, review 28 Aug',
+      notes: 'The ordering was the whole job. The hand used to fire on the press, which put its impact at 575ms and the bug arriving at 620, so it swatted an empty screen and the beetle turned up afterwards. The catcher owns the clock now and calls back when the bug has landed, which is the only arrangement where the two animations can be authored independently and still agree.',
+    },
+  },
+  {
+    id: 'N69', col: 'done', size: 'L', tag: 'specs',
+    title: 'The collection becomes a Meet dialog',
+    note: 'The wood went, the pins went, the height stopped jumping, and it gained a rail item.',
+    detail: {
+      why: 'Nam: "Please make sure this collection fully follows the design principles of google meet. The colors, the hovering and click effects, the label popup ... I want this collection frame to be BEAUTIFUL, and in the same design language as google meet." The first pass took the photograph literally and built a varnished case, which was the one surface in this build with a texture on it.',
+      done: [
+        'M3 dialog: 28px radius, elevation 3, the light shell palette, .08 and .12 state layers',
+        'The header is symmetric, which Nam measured and it was not',
+        'The pin heads are gone',
+        'The case is a fixed height sized for the longest entry, so selecting a specimen never resizes it',
+        'Slots use Meet tooltips rather than title attributes',
+        'A Bugs item appears in the rail under Calls once one is caught',
+        'Rarity is shown on the card, caught or not',
+      ],
+      raised: 'Nam, review 28 Aug',
+      notes: 'Verified by clicking all twelve and measuring the dialog after each: 550px, twelve times. The rail glyph had to be drawn, since the 7 kB Material subset this project ships has no bug in it, and it is outlined rather than filled because its two neighbours are and a solid mass beside them reads as the selected item.',
+    },
+  },
+  {
+    id: 'N70', col: 'done', size: 'M', tag: 'content',
+    title: 'The hints stop handing over the answer',
+    note: 'Riddles instead of instructions, no repeat counts, and a rarity tier that says how hard each one is.',
+    detail: {
+      why: 'Nam: "Including the amount of times you have to do it is way too on the nose, remove that. Then some hints are also very on the nose. Keep pressing the thing that is a picture of wifi. What the heck, this is like giving away exactly where the bug is." Both halves were true. A hint carrying the count turns a discovery into an instruction, and one naming the control turns it into a link.',
+      done: [
+        'All twelve hints rewritten as riddles, none of them naming a control or a number',
+        'A rarity tier per bug: four common, four uncommon, three rare, one legendary',
+        'Rarity shows on the card and in the answer key, whether or not it has been caught',
+        'The ended-screen card no longer says how many presses either',
+      ],
+      raised: 'Nam, review 28 Aug',
+      notes: 'Rarity is a property of the HINT rather than of the trigger, and saying so in the data module matters: every one of these is a few presses on something already on screen, so the only thing that can vary is how much of the riddle is left to the reader. A tier that only appeared after catching would be telling you something you no longer need.',
+    },
+  },
+  {
+    id: 'N71', col: 'done', size: 'M', tag: 'call',
+    title: 'Ctrl and the wheel, in the mock browser',
+    note: 'Real zoom, per tab, with Chrome’s own ladder. The conversation uses it to fit the spec on screen.',
+    detail: {
+      why: 'Nam: "the browser when showing the project spec I think we should zoom out a little bit just so we can see everything. do the zoom with the mouse too, kinda like you intentionally zoom out. Is it implemented at all? Ctrl + mouse wheel on the mock chrome? Maybe we should do that." It was not implemented at all, and it is the gesture people reach for inside a page that will not fit, so its absence is what makes an emulation feel like a picture of a browser.',
+      done: [
+        'Ctrl and the wheel steps through Chrome’s own ladder, 50% to 200%',
+        'Per tab, because in this browser a tab is a document',
+        'A percentage chip in the omnibox while it is not 100',
+        'preventDefault, so the host browser does not zoom the screen share instead',
+        'The conversation ctrl-wheels the spec down two notches with the hand, rather than setting a value',
+      ],
+      raised: 'Nam, review 28 Aug',
+      notes: 'CSS zoom rather than a transform. A scaled page keeps its old layout and merely draws it smaller, so the line breaks do not move and the scrollable height lies; zoom reflows, which is what a browser does and the only version worth emulating.',
+    },
+  },
+  {
+    id: 'N72', col: 'done', size: 'S', tag: 'call',
+    title: 'The video drag is a nudge, not a relocation',
+    note: 'It pulls the tile a little and lets it spring back to the corner it came from.',
+    detail: {
+      why: 'Nam: "when we are moving the video tile, don’t move it all the way, we can just move a little bit then release, so it should snap back to place." He is right about more than the restraint: carrying the tile to the far corner LEAVES it there, so a line meant to demonstrate that the tile moves ended by rearranging the visitor’s screen for them.',
+      done: [
+        'The pull is 80px or a third of the way to the midline, whichever is smaller',
+        'Bounded so the tile’s centre never leaves its own quadrant, so the latch returns it',
+        'Both halves are still shown: the drag and the snap',
+      ],
+      raised: 'Nam, review 28 Aug',
+    },
+  },
+  {
+    id: 'N73', col: 'done', size: 'M', tag: 'call',
+    title: 'BUG: the second visit to the call was dead',
+    note: 'stopTour has been exported since the conversation shipped, with a comment saying main.ts calls it. Nothing did.',
+    detail: {
+      why: 'Nam: "after going back to home, then I join the call again, it freezes here. could it be some kind of leaked state? That the call was not closed properly when we left it?" Exactly that, and reproduced on the first try: join, go home, join again, and you get captions on, no share, no narration, and a mouse pointer sitting in the middle of the screen doing nothing.',
+      done: [
+        'Leaving the call tears the conversation down',
+        'Rejoining starts a fresh one, verified by driving join, home, join in a browser',
+        'The stage’s own teardown was already complete: hand, timers and five listeners',
+      ],
+      raised: 'Nam, review 28 Aug',
+      notes: 'Three things add up to it, and only the first is obvious. tourStarted is module-scoped, so the guard that stops two narrators talking over each other also stops the second one ever starting. The stage still running holds a podium whose caption strip went with the old screen, so it goes on speaking into a detached node. And the hand is mounted on document.body rather than on the call, which is why the one visible piece of the ghost is a cursor. The fix is the call site the comment already promised.',
+    },
+  },
+  {
+    id: 'N74', col: 'done', size: 'M', tag: 'content',
+    title: 'The post-credits stop repeating themselves',
+    note: 'Four lines a visit drawn from a pool of twenty, remembered across visits, and a line for having found everything.',
+    detail: {
+      why: 'Nam: "these are banters and they shouldnt repeat so much. The script during the interview, yes, that is a script we dont need to make it replayable. But the post credit should be playful and much less repetitive. Now that we introduce a layer of replayability with the bugs, we need to find a way to make the post credit more fun." The argument turns on the bugs: before them nobody came back, so a fixed outro was right. The drawer gives a reason to return, and the moment a second visit is expected, a line that was funny once becomes a line the app is repeating at you.',
+      done: [
+        'The gaps belong to the slot rather than to the line, since the lines now vary',
+        'Three fixed slots, the opener, the counter and the goodbye, and four drawn',
+        'A pool of twenty, so five visits pass before a repeat',
+        'Which have been heard is remembered, and the pool wraps whole when it runs dry',
+        '"You have found everything. Literally nothing left to do!" when there is nothing left to count',
+        'The cap is checked against the unluckiest draw rather than a fixed script',
+      ],
+      raised: 'Nam, review 28 Aug',
+      notes: 'Nam: "when everything is found, we should acknowledge it." The first version simply dropped the counting line, which was the safe answer and the wrong one: a visitor who has cleared the calendar AND the drawer has done the hardest thing here, and the response to that cannot be silence.',
+    },
+  },
+  {
+    id: 'N75', col: 'done', size: 'S', tag: 'call',
+    title: 'The Stop control goes with the goodbye',
+    note: 'It used to survive to the end of the post-credits, offering to stop something that was barely happening.',
+    detail: {
+      why: 'Nam: "when you finish the script with the goodbye, like after we have answered all the questions not in the CV, this is like post credit part, we should remove the stop talking button, cause now its not really active talking anymore, also to signal that that was the timing."',
+      done: [
+        'The control is removed the moment the personal answers finish',
+        'The post-credits keep their own exit, which is any input at all',
+      ],
+      raised: 'Nam, review 28 Aug',
+      notes: 'The reason it survived that long was about the segment BEFORE it: the personal answers are uninterruptible except by Stop, so taking the exit away early would leave ninety seconds with no way out. That reason expires with the answers. And its disappearance carries information, which is Nam’s second point: it marks the end of the timed part without a caption saying so.',
+    },
+  },
+  {
+    id: 'N76', col: 'backlog', size: 'S', tag: 'content',
+    title: 'The Robinson clip is square, and the 16:9 original is not in this repo',
+    note: 'Blocked on Nam. The file has been 480x480 since the first commit, so the crop happened before it got here.',
+    detail: {
+      why: 'Nam: "I realize the robinson video is actually 16:9. Somehow it was cropped down to a different ratio?" He is right that it is wrong and the crop is not something this build did.',
+      done: [
+        'Nam re-exports the clip at its native ratio and drops it in docs/media/',
+        'The poster is re-cut to match',
+      ],
+      raised: 'Nam, review 28 Aug',
+      notes: 'Probed with ffprobe: robinson.mp4 is 480x480, and git log over the file returns exactly one commit, the first one, at the size it is now. So there is no earlier version to recover and no amount of player work can put back sides that are not in the file. Worth saying that the player is not the problem: premiere.mp4 is 720x390 and zombie.mp4 is 640x1138, and both letterbox correctly, so a 16:9 replacement will simply work when it arrives.',
+    },
+  },
+
   /* Flagged rather than done. Still true as of this build. */
   { id: 'T24', col: 'backlog', size: 'M', tag: 'specs', title: 'Initial payload is halfway to the ceiling', note: '24.7 kB of a 50 kB gate, up from 18.2. Still green, and the growth is real, but two deferred chunks are 17 kB and 19 kB and deserve a splitting pass before it becomes urgent.' },
 ];
