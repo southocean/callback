@@ -5974,6 +5974,39 @@ body.set-open .cc { bottom: calc(var(--botbar) + 52px + 12px); }
   transform: scale(.7);
 }
 
+/* The name tag (N168). Nam: "that cursor should have a label underneath: Nam.
+   So we understand its Nams mouse."
+
+   Placed down and to the right of the tip, which is where every shared-document
+   cursor puts it: the arrow points up and left, so that quadrant is the one the
+   pointer is never covering and the one the eye is not already reading.
+
+   Meet has no second cursor, so there is nothing to measure this against. It is
+   built out of tokens the call already owns rather than invented -- the same
+   #a8c7fa action colour the reaction bubbles and the recommended lane use, at
+   the 500/12px weight this build gives nav labels, on the dark ground every
+   floating chip in the call sits on. Blue rather than neutral because it has to
+   read as somebody else's, over both the dark call and the white CV under it.
+
+   NOTHING HERE TRANSITIONS A TRANSFORM, which is the same rule .hand itself
+   follows and for the same reason: the arrow's path is a per-frame Bezier in
+   script, so a transform of this tag's own would be a second timeline drifting
+   against the first. Opacity is free of that -- it is not on the motion path --
+   so the one state change below is allowed to ramp rather than flip, which
+   section 2 of the design principles requires anyway. */
+.hand-tag {
+  position: absolute; left: 9px; top: 20px;
+  padding: 2px 7px; border-radius: 7px;
+  font: 500 12px/16px var(--font); letter-spacing: .1px; white-space: nowrap;
+  background-color: rgba(32, 33, 36, .92); color: var(--dark-blue);
+  box-shadow: 0 1px 4px rgba(0, 0, 0, .45);
+  transition: opacity .2s linear;
+}
+/* Standing down while the visitor drives. The arrow stays, at .45, because it
+   still says where he is; the name goes, because a label on a cursor nobody is
+   moving is a sticker rather than a signature. */
+.hand.is-idle .hand-tag { opacity: 0; }
+
 /* What the hand is over, since synthetic events do not produce :hover.
    The browser ties :hover to a real pointer and will not be talked out of it, so
    the hand paints its own and these mirror each control's own hover rule. */
@@ -9391,6 +9424,209 @@ body.bug-struck { animation: bug-shake 520ms cubic-bezier(0.36, 0.07, 0.19, 0.97
    Left-aligned under the rows rather than stretched, because it is one optional
    errand and not the panel's purpose. */
 .pr-acts { margin-top: 18px; display: flex; }
+
+/* --- the lane picker (N167) ----------------------------------------------- */
+/* Nam: "The styling should be google like, yet it should feel impactful here."
+   Those two pull against each other, and where the tension resolves is worth
+   writing down, because the temptation is to reach for something that is not in
+   this design language in order to get the impact.
+
+   WHERE THE IMPACT COMES FROM: size, a blurred scrim over a call the visitor can
+   still see, and one entrance. Not from a new radius, a gradient, a shadow this
+   build does not otherwise use, or a colour off the palette. Every token below is
+   one the dark call canvas already owns -- #202124 ground, #282a2c raised,
+   #a8c7fa action, #e3e3e3 and #8e918f ink, radius 8 on the dialog because
+   DESIGN-PRINCIPLES section 4 says dialogs are a Material 2 holdover and stay
+   there.
+
+   THE LANES ARE SURFACES, NOT BUTTONS WITH PARAGRAPHS IN THEM. A 48px pill
+   cannot hold the sentence that makes the choice honest, and there is no
+   bordered grey button in this language (section 7), so each lane is a raised
+   Meet surface with the state layer every other control here has. */
+.lane-scrim {
+  position: fixed; inset: 0; z-index: 340;
+  display: grid; place-items: center; padding: 24px;
+  background-color: rgba(0, 0, 0, .62);
+  backdrop-filter: blur(3px); -webkit-backdrop-filter: blur(3px);
+  animation: lanefade .18s cubic-bezier(0.4, 0, 0.2, 1) both;
+}
+.lane-scrim.is-out { animation: lanefade .2s cubic-bezier(0.4, 0, 0.2, 1) reverse both; }
+@keyframes lanefade { from { opacity: 0; } to { opacity: 1; } }
+
+.lane-card {
+  width: min(680px, 100%); box-sizing: border-box;
+  background-color: var(--panel); border-radius: 8px; padding: 30px 30px 26px;
+  box-shadow: 0 12px 40px rgba(0, 0, 0, .5);
+  /* The card arrives on the shape-morph curve, which is the one overshoot this
+     build owns (data/design.ts, read off Meet's own press). It is the same
+     impulse the rail arrival uses, so the two celebrations are related rather
+     than each being somebody's favourite bounce. */
+  animation: lanein .34s cubic-bezier(.4, .1, .5, 1.4) both;
+}
+@keyframes lanein {
+  from { opacity: 0; transform: translateY(14px) scale(.94); }
+  to   { opacity: 1; transform: none; }
+}
+/* Panel heading weight, per section 5, one step up because it is the only
+   sentence on the screen. */
+.lane-q { font: 400 24px/30px var(--font-title); color: var(--ctl-ink); letter-spacing: -.2px; }
+.lane-sub {
+  font: 400 14px/21px var(--font); color: var(--ctl-ink2);
+  margin: 8px 0 22px; max-width: 58ch;
+}
+
+.lane-opts { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.lane-opt {
+  position: relative; overflow: hidden;
+  display: flex; flex-direction: column; align-items: flex-start; gap: 8px;
+  text-align: left; cursor: pointer; border: 0;
+  padding: 20px 18px 18px; border-radius: 12px;
+  background-color: var(--ctl2); color: var(--ctl-ink);
+  font: inherit;
+}
+/* The state layer, in the control's own on-colour rather than a neutral black --
+   section 2, and the thing that most reliably gives a Material copy away. */
+.lane-opt::before {
+  content: ''; position: absolute; inset: 0; border-radius: inherit;
+  background-color: var(--ctl-ink); opacity: 0; pointer-events: none;
+  transition: opacity .075s linear;
+}
+.lane-opt:hover::before { opacity: .08; }
+.lane-opt:active::before { opacity: .1; }
+.lane-opt:focus-visible { outline: none; box-shadow: 0 0 0 3px var(--dark-blue); }
+/* The recommended lane, in the action colour of this room. It reads as the
+   primary without being a filled blue rectangle, which at this size would be a
+   billboard rather than a button. */
+.lane-opt.is-best { background-color: rgba(168, 199, 250, .14); }
+.lane-opt.is-best::before { background-color: var(--dark-blue); }
+.lane-ico { color: var(--ctl-ink2); display: grid; place-items: center; }
+.lane-opt.is-best .lane-ico { color: var(--dark-blue); }
+.lane-top { display: flex; align-items: center; gap: 10px; width: 100%; min-height: 26px; }
+.lane-t { font: 500 15px/21px var(--font); color: var(--ctl-ink); }
+.lane-chip {
+  margin-left: auto; font: 500 10.5px/1 var(--font); letter-spacing: .5px; text-transform: uppercase;
+  padding: 4px 7px; border-radius: 6px;
+  background-color: rgba(168, 199, 250, .22); color: var(--dark-blue);
+}
+.lane-b { font: 400 13px/19px var(--font); color: var(--ctl-ink2); }
+
+/* One column when two would put four words on a line. Measured against the copy
+   rather than against a device: below this the body text starts wrapping every
+   three words and the two lanes stop being comparable at a glance. */
+@media (max-width: 620px) {
+  .lane-opts { grid-template-columns: 1fr; }
+  .lane-card { padding: 24px 20px 20px; }
+  .lane-q { font-size: 21px; line-height: 27px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  /* The scrim and the card are still there; they simply do not travel. */
+  .lane-scrim, .lane-card { animation: none; }
+}
+
+/* --- a rail item arriving for the first time (N163) ----------------------- */
+/* Nam: "I want the bug and the progression bar to appear more dramatically the
+   first time they are to be shown ... pops up with a little shake or whatever."
+
+   THE SHAKE IS A ROTATION, NOT A TRANSLATION, and that is the whole of why this
+   reads as a thing landing rather than as a glitch. Shifting a 56px item left and
+   right inside a 104px column moves it out of the alignment the whole rail is
+   built on -- and the ended screen's copy of this rail exists precisely so that
+   nothing in it moves by a pixel between here and the home screen. A few degrees
+   of wobble around the item's own centre costs no alignment at all: it ends where
+   it started, and the column either side of it never notices.
+
+   The curve is the build's own overshoot, cubic-bezier(.4, .1, .5, 1.4) -- read
+   off Meet's shape morph and recorded in data/design.ts. Reusing it is what keeps
+   a celebration inside the house style instead of importing a bounce from
+   somewhere else.
+
+   scale, rotate and opacity only. Per design.ts: never height, never top/left. */
+@keyframes railin {
+  0%   { opacity: 0; transform: scale(.3) rotate(-14deg); }
+  55%  { opacity: 1; transform: scale(1.18) rotate(7deg); }
+  72%  { transform: scale(.94) rotate(-5deg); }
+  86%  { transform: scale(1.04) rotate(2deg); }
+  100% { opacity: 1; transform: scale(1) rotate(0); }
+}
+/* `both` so the item is already invisible during its delay: without it the thing
+   appears at full size, waits, and then plays its own entrance, which is the one
+   failure mode a delayed entrance has. The delay is set per item in ui/rail.ts so
+   the three stagger rather than landing in one frame. */
+.rail-new {
+  animation: railin .62s cubic-bezier(.4, .1, .5, 1.4) both;
+  animation-delay: var(--rail-in, 360ms);
+}
+/* Less movement, not less content -- the rule the rest of this build follows.
+   The item is simply there, at full size, from the first frame. `both` is what
+   makes this necessary: dropping the animation without this would be fine, but
+   dropping it while a fill-mode was holding opacity at 0 would not. */
+@media (prefers-reduced-motion: reduce) {
+  .rail-new { animation: none; }
+}
+
+/* --- the side quest board (N166) ------------------------------------------ */
+/* Nam asked for the bug case's twin for the quests: a list of everything, with
+   the ones done marked, opened from a rail item that appears once you have one.
+
+   IT IS A LIST AND THE CASE IS A GRID, which is the one place the two collections
+   are allowed to differ, because the contents differ. A bug is a drawing and a
+   drawing wants a cell; a quest is three words. Seventeen cells of three words
+   each is a lot of furniture around very little, so this is rows -- and rows in
+   two columns, because seventeen of them in one is a scroll on a dialog whose
+   entire job is to be read at a glance.
+
+   Everything else comes off the same shell the completion panel and the Project
+   spec use: the .dp scrim, .dp-card at radius 8, the --dp-* tokens so the board
+   wears the palette of whichever room opened it. */
+.qb-frame { justify-content: center; }
+.qb-frame .dp-card { flex: 0 1 auto; max-width: 640px; }
+/* The 60px floor under .dp-body is scroll headroom for a long document. This
+   list is measured to its contents like the completion panel is (N137). */
+.qb-frame .dp-body { padding-bottom: 22px; }
+
+.qb-list {
+  display: grid; grid-template-columns: repeat(auto-fill, minmax(232px, 1fr));
+  gap: 2px 14px;
+}
+.qb-row {
+  display: flex; align-items: center; gap: 12px;
+  min-height: 38px; padding: 5px 4px;
+}
+/* The tick. Filled and green once done, an empty outline until then -- which is
+   the checkbox language Material already speaks, at the one size where it reads
+   as a state rather than as a control somebody could press. It is not a control:
+   nothing on this board is pressable, because there is nothing to press it FOR. */
+.qb-tick {
+  flex: 0 0 auto; width: 20px; height: 20px; border-radius: 50%;
+  display: grid; place-items: center;
+  transition: background-color .12s linear;
+}
+.qb-tick i {
+  display: block; width: 14px; height: 14px; border-radius: 50%;
+  border: 2px solid var(--dp-line);
+}
+.qb-row.is-done .qb-tick { background-color: #1e8e3e; color: #fff; }
+/* Green 600 on #282a2c is under 3.5:1, which is the same trap .pr-row.is-done
+   fell into: Google's dark-theme green, with dark ink on it. */
+.dp-dark .qb-row.is-done .qb-tick { background-color: #81c995; color: #202124; }
+
+/* The name IS the hint, so an unfinished quest still shows it -- see the header
+   note in ui/questframe.ts. What separates the two states is weight and ink, the
+   same pair Meet uses for a read and an unread row. */
+.qb-name {
+  font: 400 14px/20px var(--font); color: var(--dp-ink3);
+  min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.qb-row.is-done .qb-name { font-weight: 500; color: var(--dp-ink); }
+/* A found secret says so, in the same tonal chip the bug case gives a rarity.
+   It only ever appears on a row that is already done, because a secret is not
+   listed until it is found. */
+.qb-secret {
+  margin-left: auto; flex: 0 0 auto;
+  font: 500 10.5px/1 var(--font); letter-spacing: .5px; text-transform: uppercase;
+  padding: 4px 7px; border-radius: 6px;
+  background-color: var(--dp-pill); color: var(--dp-pill-ink);
+}
 
 /* --- the rail item (N137) ------------------------------------------------- */
 /* It was a pill reading "44%" with the word "Progress" under it. Nam, with a

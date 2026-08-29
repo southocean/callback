@@ -42,7 +42,7 @@ import { quests } from '../data/quests.js';
 import { bugs as allBugs } from '../data/bugs.js';
 import { eggs as allEggs } from '../data/eggs.js';
 import { eggs, eggMap, weekendMark, lastWeekendMark, key as dayKey, type Egg } from '../data/eggs.js';
-import { VISIBLE_QUESTS } from '../data/quests.js';
+import { VISIBLE_QUESTS, board as questBoard } from '../data/quests.js';
 import { bugs as bugList, bugById, BUG_COUNT } from '../data/bugs.js';
 import { codeFromUrl, pitchFor, DEFAULT_CODE, NEUTRAL_CODE } from '../data/companies.js';
 
@@ -1018,6 +1018,62 @@ suite('the bug collection', () => {
       for (const text of [b.name, b.species, b.hint, b.where, b.fact]) {
         ok(!/[—–]/.test(text), `an em dash is in the collection: "${text.slice(0, 48)}"`);
       }
+    }
+  });
+});
+
+/* ------------------------------------------------------------------------- */
+
+suite('the side quest board', () => {
+  /*
+   * Board ticket N166. Three rules interact here and all three are the kind that
+   * look obviously right and are off by one, which is exactly why the arithmetic
+   * lives in data/quests.ts rather than inside the dialog that draws it.
+   */
+  const secretIds = quests.filter((q) => q.secret).map((q) => q.id);
+  const openIds = quests.filter((q) => !q.secret).map((q) => q.id);
+
+  test('an empty board lists every promised quest and no secrets', () => {
+    const b = questBoard([]);
+    eq(b.rows.length, VISIBLE_QUESTS, 'the board is not showing the quests that were promised');
+    eq(b.got, 0);
+    eq(b.extra, 0, 'a secret was listed before it was found');
+    ok(b.rows.every((r) => !r.done), 'an empty board has something marked done');
+  });
+
+  test('a secret appears only once it is found, and does not inflate the total', () => {
+    const first = secretIds[0]!;
+    const b = questBoard([openIds[0]!, first]);
+    eq(b.rows.length, VISIBLE_QUESTS + 1, 'the found secret did not join the list');
+    eq(b.extra, 1);
+    /*
+     * The number that matters. The opening line of the conversation says the
+     * visible count out loud, so a denominator that grew with a secret would make
+     * the script wrong -- the same disagreement N137 fixed on the ended screen,
+     * where a ring counting 21 sat above a card counting 17.
+     */
+    eq(b.got, 1, 'a secret was counted toward the promised total');
+    ok(b.rows.find((r) => r.quest.id === first)?.done === true, 'the found secret is not marked found');
+  });
+
+  test('an id that no longer names a quest counts for nothing', () => {
+    const b = questBoard(['a-quest-that-was-renamed', openIds[0]!]);
+    eq(b.rows.length, VISIBLE_QUESTS, 'a stale id conjured a row');
+    eq(b.got, 1);
+  });
+
+  test('the rows come back in declared order, not the order they were found', () => {
+    const shuffled = [...openIds].reverse();
+    const b = questBoard(shuffled);
+    eq(b.rows.map((r) => r.quest.id).join(','), openIds.join(','), 'the board reordered itself');
+    eq(b.got, VISIBLE_QUESTS);
+  });
+
+  /* Every row prints its name and nothing else, so an empty one says nothing. */
+  test('every quest has a name short enough to be the hint', () => {
+    for (const q of quests) {
+      ok(q.name.trim().length > 0, `${q.id} has no name, and the name is the whole row`);
+      ok(q.name.length <= 28, `"${q.name}" is too long to sit in a two-column row`);
     }
   });
 });

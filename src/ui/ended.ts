@@ -13,9 +13,7 @@ import { profile } from '../data/cv.js';
 import type { Quests } from '../achievements.js';
 import type { Bugs } from '../bugs.js';
 import { openBugFrame } from './bugframe.js';
-import { loadInterview, clockMs } from '../prefs.js';
 import { openPlain } from './plainoverlay.js';
-import { runtimeMs } from '../data/tour.js';
 import { buildRail } from './rail.js';
 import { passFinds, type PassPart } from '../pass.js';
 
@@ -128,15 +126,31 @@ export function renderEnded(store: Store, _quests: Quests, bugs: Bugs): HTMLElem
    */
   const pass = passFinds();
   /*
-   * HOW LONG IT TOOK — board ticket N51.
+   * HOW LONG IT TOOK IS NO LONGER ASKED — board ticket N164, which retires N51.
    *
-   * Read, not measured, here: the clock is kept by the conversation and written
-   * to storage the moment it reaches its last line, so this screen can be arrived
-   * at by any route — Rejoin, an easter egg, a reload — without the number
-   * changing meaning. Null for anybody who has not heard the whole thing, and the
-   * card is simply absent for them rather than showing a zero.
+   * A card stood here reading "You did the interview in 6:12", with the visitor's
+   * own best under it and the authored runtime beside that. It was the honest
+   * version of a scoreboard and it was still a scoreboard, and a scoreboard on the
+   * last screen of a visit is an instruction about the next one.
+   *
+   * Nam: "I dont think we should incentivize that either. We want users to spend
+   * more time in the call, in this CV. We built up a whole progression with side
+   * quests and bug hunting to keep users around. So turning this into a speedrun
+   * is against our other goals."
+   *
+   * He is describing a conflict between two things this build shipped, and the
+   * timer is the one that loses. Everything else on this screen rewards having
+   * stayed: the tiles name what was found, the ring counts what is left, the case
+   * has a door. A best time rewards having left, and it was eighteen pixels above
+   * a tile congratulating somebody for poking around.
+   *
+   * THE CLOCK ITSELF IS NOT GONE, and that is deliberate rather than a leftover.
+   * recordInterview is what the rail asks in order to decide whether the
+   * completion ring may exist at all, so deleting the write would quietly take the
+   * ring off every visitor. And Host controls keeps a LIVE readout, which says
+   * where you are in the conversation rather than how fast you got there. What
+   * went is the one surface that turned the number into a target.
    */
-  const run = loadInterview();
 
   /*
    * THE REFERRAL CARD IS GONE. Its copy button went first, then the card with
@@ -313,7 +327,7 @@ export function renderEnded(store: Store, _quests: Quests, bugs: Bugs): HTMLElem
      * animateRing, and only here: this is the surface that reports the pass, so
      * this is the one allowed to count the ring up and write the new baseline.
      */
-    buildRail(store, bugs, { ghostNav: true, animateRing: true }),
+    buildRail(store, bugs, { ghostNav: true, animateRing: true, announce: true }),
     h(
       'div',
       { class: 'ended-in' },
@@ -360,41 +374,6 @@ export function renderEnded(store: Store, _quests: Quests, bugs: Bugs): HTMLElem
           ),
         ),
       ),
-
-      /*
-       * Only for somebody who actually finished it. Nam wanted the gamification
-       * and this is the honest version of it: a time, their own best, and the
-       * authored benchmark to measure both against — which is the number that
-       * makes the first two interesting, because beating it takes knowing that
-       * lines can be skipped and that triggering a segment early cuts the one
-       * being spoken short.
-       *
-       * No leaderboard. See board ticket N52 for why: this page promises no
-       * backend in four separate places, and its own CSP forbids the request.
-       */
-      run
-        ? h(
-          'div',
-          { class: 'safe' },
-          // 'speed' rather than a stopwatch: the subset has no timer glyph, and
-          // this card is about how fast rather than how long anyway.
-          sym('speed', 24),
-          h(
-            'div',
-            {},
-            h('h2', {}, `You did the interview in ${clockMs(run.lastMs)}`),
-            h(
-              'p',
-              { style: 'margin:0' },
-              run.lastMs <= run.bestMs
-                ? `That is your best of ${run.runs} ${run.runs === 1 ? 'run' : 'runs'}. `
-                : `Your best is ${clockMs(run.bestMs)}, over ${run.runs} runs. `,
-              `Unhurried, it runs ${clockMs(runtimeMs())}. Every line can be skipped with a click, so `
-              + 'faster than that is a choice rather than a glitch.',
-            ),
-          ),
-        )
-        : h('span', {}),
 
       /*
        * WHAT THEY JUST FOUND -- board ticket N137.

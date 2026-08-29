@@ -1330,6 +1330,56 @@ export function startTour(root: HTMLElement, podium: Podium): TourHandle {
   });
 
   /**
+   * TURNING THE CAPTIONS OFF IS STOP TALKING -- board ticket N169.
+   *
+   * Nam: "when the script is running, if we click stop talking, it works all
+   * fine. But if I disable CC, its effectively the same as stop talking, cause I
+   * can continue talking but there is no output. so yeah this is a bug vertical
+   * in our product. We need to make sure turning off CC also means they want us
+   * to stop talking."
+   *
+   * THIS IS THE COST OF HAVING ONE OUTPUT, and having one output was the right
+   * call. The conversation speaks through Meet's own caption strip rather than a
+   * bar of its own -- a second bar was built first, and QA found the empty
+   * reserved strip it left behind. But one surface means the captions control is
+   * not a display preference, it is the volume knob, and turning it to zero is
+   * the same sentence as pressing Stop. The script had no idea: the pause was
+   * entered from exactly one place, the button, so it carried on saying lines
+   * into a hidden element, marking parts played and spending the walkthrough on
+   * somebody looking at a blank strip. Nothing crashed, which is why it survived
+   * this long.
+   *
+   * POLLED, for the same reason captionsBack above is polled: the control belongs
+   * to the call and already reports its state through the podium, and an event
+   * for one listener would be a second way to know one thing. 300ms rather than
+   * the idle timer's second, because this one has to feel like a press.
+   *
+   * FOUR GUARDS, and each one is load-bearing:
+   *   · `startedAt` -- the pre-roll presses this button itself to turn captions
+   *     ON, and until it has, "captions are off" is the starting condition rather
+   *     than a request.
+   *   · `paused` -- pauseHere turns them off by hand on the way into a pause.
+   *   · `pauseWanted` -- a request already in flight must not be made twice.
+   *   · `delivering()` -- once the flow is finished or handed over there is
+   *     nothing to stop, and the outro turns the captions off itself at the end.
+   */
+  let pauseSilent = false;
+  const ccWatch = window.setInterval(() => {
+    if (dead || !startedAt || paused || pauseWanted) return;
+    if (!delivering() || podium.captionsOn()) return;
+    pauseSilent = true;
+    pauseWanted = true;
+    /*
+     * The same two levers the Stop button pulls, and for the same reason (N127):
+     * `skip` ends the dwell on the line being read, `hurry` runs any beat under
+     * it at a third of the time rather than abandoning it mid-gesture. Silence
+     * arriving while the cursor is still opening windows is a haunted room.
+     */
+    hand.hurry(true);
+    podium.skip();
+  }, 300);
+
+  /**
    * THE SAFE POINT, and it is shared now -- board ticket N127.
    *
    * A requested pause is taken here and nowhere else: after a line, and after any
@@ -1350,7 +1400,11 @@ export function startTour(root: HTMLElement, podium: Podium): TourHandle {
     if (!pauseWanted || dead) return;
     pauseWanted = false;
     hand.hurry(false);
-    await pauseHere();
+    // N169. Consumed here rather than read inside pauseHere, so a later pause
+    // taken from the button does not inherit the silence of an earlier one.
+    const silent = pauseSilent;
+    pauseSilent = false;
+    await pauseHere(silent);
   };
 
   /**
@@ -1365,24 +1419,35 @@ export function startTour(root: HTMLElement, podium: Podium): TourHandle {
    *
    * The Stop control goes with it. It offers to stop something that is no longer
    * happening, and it comes back with him.
+   *
+   * `silent` IS THE HALF OF N169 THAT NEEDED THOUGHT. When the pause was asked
+   * for by the captions going off, neither of the two moves above survives the
+   * journey: the acknowledgement would be spoken into a strip that is already
+   * hidden, so nobody would ever read it, and the press would turn the captions
+   * back ON -- undoing the visitor's own action and starting a fight between the
+   * hand and the person holding the mouse. So that route skips both and goes
+   * straight to parking, which is the state the other route spends a line and a
+   * gesture getting to.
    */
-  const pauseHere = async (): Promise<void> => {
+  const pauseHere = async (silent = false): Promise<void> => {
     paused = true;
     const since = performance.now();
     pauseSince = since;
     bar.classList.add('is-away');
 
-    const ack = voice(asides.stopped.text, asides.stopped.ms);
-    // Set off roughly a travel-and-press before the line is due to end. The
-    // authored duration is scaled the same way voice() scales it, or the hand
-    // would leave early for a patient visitor and late for a restless one.
-    const dwell = Math.round(asides.stopped.ms * pace(visitor));
-    await wait(Math.max(0, dwell - 900));
-    const off = (async () => {
-      if (podium.captionsOn()) await pressSel('[data-ctl="captions"]', true);
-    })();
-    await Promise.all([ack, off]);
-    if (dead) return;
+    if (!silent) {
+      const ack = voice(asides.stopped.text, asides.stopped.ms);
+      // Set off roughly a travel-and-press before the line is due to end. The
+      // authored duration is scaled the same way voice() scales it, or the hand
+      // would leave early for a patient visitor and late for a restless one.
+      const dwell = Math.round(asides.stopped.ms * pace(visitor));
+      await wait(Math.max(0, dwell - 900));
+      const off = (async () => {
+        if (podium.captionsOn()) await pressSel('[data-ctl="captions"]', true);
+      })();
+      await Promise.all([ack, off]);
+      if (dead) return;
+    }
     podium.hush();
     /*
      * N127. park() takes the arrow off the right-hand edge and drops `is-on`, so
@@ -2222,6 +2287,9 @@ export function startTour(root: HTMLElement, podium: Podium): TourHandle {
     window.clearTimeout(meterTimer);
     window.clearTimeout(scrollTimer);
     window.clearInterval(idleTimer);
+    // N169. It polls a control that outlives the tour, so leaving it running
+    // would be a timer with no owner asking a question with no answer.
+    window.clearInterval(ccWatch);
     hand.destroy();
     meter.remove();
     bar.remove();

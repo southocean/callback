@@ -2170,11 +2170,30 @@ export function renderCall(store: Store, quests: Quests, deps: CallDeps, bugs: B
    */
   if (!eggId && !tourStarted) {
     tourStarted = true;
-    window.setTimeout(() => {
-      void import('../tour/stage.js').then((m) => {
-        // The visitor may have left in the second it took to get here.
-        if (store.get().screen !== 'call') { tourStarted = false; return; }
-        tour = m.startTour(shell, {
+    /**
+     * BUT NOT UNTIL THE VISITOR HAS SAID SO -- board ticket N167.
+     *
+     * Nam: "After entering the call, you get a prompt, asking you to choose
+     * between 2 modes: lazy walkthrough and let me explore ... You are either
+     * sitting back and watching like a movie vs doing everything yourself."
+     *
+     * The question is put once per session and answered from memory after that,
+     * so a Rejoin does not re-ask it. See ui/lane.ts for why it is a session
+     * rather than a machine.
+     *
+     * IF THEY CHOSE TO EXPLORE, NOTHING STARTS -- and `tourStarted` deliberately
+     * stays true, so a re-render cannot quietly start one behind them. The way
+     * back is the captions control, watched below: the conversation has exactly
+     * one output, so turning that output on is the whole of "start talking", in
+     * the same way N169 makes turning it off the whole of "stop".
+     */
+    const begin = (): void => {
+      window.setTimeout(() => {
+        void import('../tour/stage.js').then((m) => {
+          // The visitor may have left in the second it took to get here.
+          if (store.get().screen !== 'call') { tourStarted = false; return; }
+          if (tour) return;
+          tour = m.startTour(shell, {
           /*
            * EVERY BUBBLE IS WRITTEN DOWN -- board ticket N129. The chat panel's
            * live transcript is a record of what appeared on this strip, so the
@@ -2217,9 +2236,50 @@ export function renderCall(store: Store, quests: Quests, deps: CallDeps, bugs: B
           // but the drawing, which is why it can sit in the control bar without
           // the control bar knowing what a part is.
           progress: drawProgress,
+          });
         });
+      }, 1000);
+    };
+
+    void import('./lane.js').then((m) => m.askLane()).then((lane) => {
+      if (store.get().screen !== 'call') { tourStarted = false; return; }
+      if (lane === 'walkthrough') { begin(); return; }
+      /*
+       * THEY WANTED THE ROOM TO THEMSELVES, so the captions go off with him.
+       *
+       * FOUND IN QA, and it is the one thing about this that is not obvious from
+       * the source: captions default to ON (state.ts, on Nam's own instruction,
+       * because the walkthrough speaks through them). So choosing to explore left
+       * a caption strip reserved and permanently empty -- which is exactly the
+       * defect N29 fixed when the tour had a second bar of its own -- and it made
+       * the way back a two-press affair, off and then on again, for a control the
+       * visitor had never touched.
+       *
+       * Turning them off is not a liberty taken with somebody's settings. The
+       * strip has exactly one source, and they have just said they do not want
+       * it, so what is being turned off is an empty box. It also leaves the
+       * control saying one thing in both directions: on means he talks, off means
+       * he does not.
+       */
+      store.dispatch({ t: 'captions', on: false });
+      /*
+       * And the only thing left running is a listener for them changing their
+       * mind.
+       *
+       * Polled off the store rather than hung on the button, because the captions
+       * state is the store's and there are three ways to reach it: the control,
+       * the keyboard shortcut, and Settings. Watching the state catches all
+       * three; watching the button catches one. `off` unsubscribes the moment it
+       * fires, so this cannot start a second tour.
+       */
+      let off: (() => void) | null = null;
+      off = store.subscribe(() => {
+        if (!store.get().captionsOn || store.get().screen !== 'call') return;
+        off?.();
+        off = null;
+        begin();
       });
-    }, 1000);
+    });
   }
 
   return shell;

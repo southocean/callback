@@ -251,7 +251,28 @@ export function makeHand(root: HTMLElement, reduced: boolean): Hand {
      */
     + '<svg class="hand-arrow" viewBox="0 0 12 19" width="15" height="24" aria-hidden="true">'
     + '<path d="M1 1.2 L1 15.6 L4.6 12.4 L7 17.9 L9.6 16.8 L7.2 11.4 L11.6 11.1 Z"'
-    + ' fill="#fff" stroke="#111" stroke-width="1.1" stroke-linejoin="round"/></svg>';
+    + ' fill="#fff" stroke="#111" stroke-width="1.1" stroke-linejoin="round"/></svg>'
+    /*
+     * WHOSE HAND IT IS -- board ticket N168.
+     *
+     * Nam: "once we control the mock cursor, that cursor should have a label
+     * underneath: Nam. So we understand its Nams mouse."
+     *
+     * A pointer that moves on its own is a haunting until it is signed, and this
+     * is the convention that signs it: every shared document of the last decade
+     * labels the other person's cursor, so the tag needs no explanation. It is
+     * also the cheapest possible answer to the question the whole build is
+     * nervous about, which is a visitor wondering whether their machine has been
+     * taken over -- N158's own first tester read exactly that into it.
+     *
+     * INSIDE THE .hand ELEMENT, not beside it, and that is the whole of why it
+     * cannot lag. The arrow's motion is a per-frame Bezier written to this
+     * element's transform (see the note in styles.css); a sibling tracking the
+     * same coordinates would be a second timeline and would drift on every frame
+     * the two were computed apart. A child inherits the transform for free and is
+     * therefore exactly as late as the arrow is, which is never.
+     */
+    + '<span class="hand-tag" aria-hidden="true">Nam</span>';
   root.appendChild(el);
 
   // Start off the bottom-right, the way a pointer that has been sitting

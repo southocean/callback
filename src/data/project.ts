@@ -2806,7 +2806,7 @@ export const tasks: Task[] = [
    * --------------------------------------------------------------------- */
 
   {
-    id: 'N163', col: 'doing', size: 'M', tag: 'call',
+    id: 'N163', col: 'done', size: 'M', tag: 'call',
     title: 'The collections arrive, they do not fade in',
     note: 'The first time the bug glyph and the ring exist, they should land like something was won.',
     detail: {
@@ -2822,7 +2822,7 @@ export const tasks: Task[] = [
   },
 
   {
-    id: 'N164', col: 'doing', size: 'S', tag: 'content',
+    id: 'N164', col: 'done', size: 'S', tag: 'content',
     title: 'The interview stops being a speedrun',
     note: 'The time card came off the ended screen. It was the one thing here arguing for a shorter visit.',
     detail: {
@@ -2838,7 +2838,7 @@ export const tasks: Task[] = [
   },
 
   {
-    id: 'N165', col: 'doing', size: 'S', tag: 'call',
+    id: 'N165', col: 'done', size: 'S', tag: 'call',
     title: 'The pass names what it found',
     note: 'Asked for, and already true. Verified against a real run rather than against the source.',
     detail: {
@@ -2854,7 +2854,7 @@ export const tasks: Task[] = [
   },
 
   {
-    id: 'N166', col: 'doing', size: 'M', tag: 'call',
+    id: 'N166', col: 'done', size: 'M', tag: 'call',
     title: 'The side quests get a board of their own',
     note: 'The bugs have a case. The quests had a toast and nothing to come back to.',
     detail: {
@@ -2872,7 +2872,7 @@ export const tasks: Task[] = [
   },
 
   {
-    id: 'N167', col: 'doing', size: 'L', tag: 'onboarding',
+    id: 'N167', col: 'done', size: 'L', tag: 'onboarding',
     title: 'Sit back, or drive',
     note: 'The first thing the call asks is whether it should be doing the clicking.',
     detail: {
@@ -2890,7 +2890,7 @@ export const tasks: Task[] = [
   },
 
   {
-    id: 'N168', col: 'doing', size: 'S', tag: 'call',
+    id: 'N168', col: 'done', size: 'S', tag: 'call',
     title: 'The cursor says whose hand it is',
     note: 'A pointer moving by itself is a haunting until it is signed.',
     detail: {
@@ -2907,7 +2907,7 @@ export const tasks: Task[] = [
   },
 
   {
-    id: 'N169', col: 'doing', size: 'M', tag: 'call',
+    id: 'N169', col: 'done', size: 'M', tag: 'call',
     title: 'BUG: turning captions off left him talking to nobody',
     note: 'Stop talking stops him. The captions switch did the same thing and told him nothing.',
     detail: {
@@ -2920,6 +2920,22 @@ export const tasks: Task[] = [
       ],
       raised: 'Nam, QA 29 Aug, point 7',
       notes: 'THE SCRIPT ONLY EVER HAD ONE OUTPUT and this is the cost of that. The conversation speaks through Meet\u2019s own caption strip -- deliberately, because a second bar was built first and QA found the empty reserved strip it left behind. One surface means the captions control is not a display preference, it is the volume knob, and turning it to zero is the same sentence as pressing Stop. It had no idea: the pause is entered from exactly one place, the button, so the script carried on saying lines into a hidden element, marking parts played, and burning the walkthrough for somebody who was watching a blank screen.\n\nTHE ACKNOWLEDGEMENT IS THE PART THAT NEEDED THOUGHT. pauseHere says a line, then reaches over and presses the captions button itself, so the goodbye and the silence land together. Neither half survives this route: the line would be spoken into a strip already hidden, and the press would turn the captions back ON. So the pause is told it was already made silent, skips both, and goes straight to parking the hand. The resume is unchanged, because captions coming back was always the way to ask him back and now it is the only sentence the control speaks.',
+    },
+  },
+
+  {
+    id: 'N170', col: 'done', size: 'S', tag: 'specs',
+    title: 'BUG: the visual gate was skipping on the only machine that runs it',
+    note: 'It looks for Chrome. This machine has Edge. It printed a line and exited zero.',
+    detail: {
+      why: 'Found while QA-ing N163 to N169 in a real browser. tools/spec-layout.mjs and tools/print-cv.mjs each carry a list of five Chrome paths and bail if none of them exist. There is no Chrome on Nam machine, so `npm run qa` had been printing "no Chrome found, skipping" and exiting ZERO, and `npm run pdf` could not run at all. Seventeen layout assertions that exist specifically because Nam asked for visual QA had not executed here.',
+      done: [
+        'Both tools accept Edge, on Windows, Linux and macOS',
+        'npm run qa runs its seventeen assertions instead of skipping',
+        'The message names Chromium rather than Chrome, so the next miss is diagnosable',
+      ],
+      raised: 'QA of N163 to N169, 29 Aug',
+      notes: 'THE PROTOCOL IS CHROMIUM, NOT CHROME. Both tools speak the DevTools protocol over a debugging port, and Edge is the same engine answering the same calls -- the QA driver written for this pass ran all twenty-eight of its checks through Edge before this was even noticed as a defect in the repository tools. So the fix is four paths, not a rewrite.\n\nTHE EXIT CODE IS THE REAL BUG. A gate that cannot run and says so in a line nobody reads is worse than no gate: it is a green tick over an unchecked build. spec-layout exits zero deliberately, so a CI box with no browser does not fail a check it cannot perform, and that reasoning is sound -- it is just indistinguishable, from the outside, from the check having passed. Widening the search is the cheap half of the answer. The expensive half, a gate that knows whether it is on a developer machine or in CI, is not worth it while the list of browsers is this short.',
     },
   },
 

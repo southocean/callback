@@ -70,3 +70,42 @@ export const quests: Quest[] = [
 
 /** What "all of them" means in the opening line. Secrets are not advertised. */
 export const VISIBLE_QUESTS = quests.filter((q) => !q.secret).length;
+
+/** One row of the side quest board: a quest, and whether it has been earned. */
+export interface BoardRow {
+  quest: Quest;
+  done: boolean;
+}
+
+/**
+ * What the side quest board shows -- board ticket N166.
+ *
+ * PURE, AND HERE RATHER THAN IN ui/questframe.ts, because everything that can be
+ * wrong about this board is arithmetic over two lists and none of it is drawing.
+ * Three rules interact, and each one is the kind that looks obviously right and
+ * is off by one:
+ *
+ *   · A secret is not listed until it is found. Listing it as a locked box would
+ *     tell the visitor there is something to look for without telling them enough
+ *     to look, which is a worse spoiler than the secret itself.
+ *   · The tally counts only the ones that were PROMISED. The opening line of the
+ *     conversation says seventeen out loud, so a denominator that grew when a
+ *     secret turned up would make the script wrong -- which is exactly the
+ *     complaint N137 fixed on the old ended screen, where a ring counting 21 sat
+ *     above a card counting 17.
+ *   · A found id that no longer matches a quest -- something renamed or deleted
+ *     since -- must not be counted, because there is no row to count it against.
+ *     Filtering the quest list rather than the found list settles that for free,
+ *     and gives declared order rather than the order they were found in.
+ */
+export function board(found: string[]): { rows: BoardRow[]; got: number; extra: number } {
+  const have = new Set(found);
+  const rows = quests
+    .filter((q) => !q.secret || have.has(q.id))
+    .map((q) => ({ quest: q, done: have.has(q.id) }));
+  return {
+    rows,
+    got: rows.filter((r) => r.done && !r.quest.secret).length,
+    extra: rows.filter((r) => r.quest.secret).length,
+  };
+}

@@ -36,12 +36,25 @@ const CHROME = [
   '/usr/bin/google-chrome',
   '/usr/bin/chromium',
   '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome',
+  /*
+   * EDGE COUNTS, and leaving it out was a real hole -- found while QA-ing N163
+   * to N169 on Nam's own machine, which has no Chrome on it. Both of these tools
+   * drive the DevTools protocol, which is Chromium's rather than Chrome's, so
+   * Edge answers every call in this file identically. Without it the visual gate
+   * printed "no Chrome found, skipping" and exited ZERO on the one machine this
+   * project is built on: a check that cannot run is not a check, and one that
+   * says so in a line nobody reads is worse than one that fails.
+   */
+  'C:/Program Files (x86)/Microsoft/Edge/Application/msedge.exe',
+  'C:/Program Files/Microsoft/Edge/Application/msedge.exe',
+  '/usr/bin/microsoft-edge',
+  '/Applications/Microsoft Edge.app/Contents/MacOS/Microsoft Edge',
 ].find((p) => existsSync(p));
 
 if (!CHROME) {
   // Not a failure. CI without a browser should not fail a layout check it
   // cannot run; it should say so and let the rest of the gate stand.
-  console.log('spec-layout: no Chrome found, skipping.');
+  console.log('spec-layout: no Chromium browser found (Chrome or Edge), skipping.');
   process.exit(0);
 }
 
