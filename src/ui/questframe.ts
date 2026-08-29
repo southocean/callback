@@ -63,28 +63,69 @@ export function openQuestFrame(theme: 'light' | 'dark' = 'light'): void {
     frame.remove();
   };
 
-  const list = h('div', { class: 'qb-list', role: 'list' }) as HTMLElement;
-  for (const { quest: q, done } of rows) {
-    list.appendChild(h(
-      'div',
-      {
-        class: `qb-row${done ? ' is-done' : ''}`,
-        role: 'listitem',
-        // The tick is decorative, so the row states its own answer. Without this
-        // a screen reader reads seventeen names and no outcomes.
-        'aria-label': `${q.name}. ${done ? 'Done' : 'Not yet'}.`,
-      },
-      /*
-       * A CIRCLE RATHER THAN A GLYPH for the empty state, because the icon font
-       * here is a 7 kB subset of exactly the symbols this build uses and an
-       * outlined circle is two lines of CSS. `check` is already in the subset,
-       * so the done state is the real Material tick.
-       */
-      h('span', { class: 'qb-tick', 'aria-hidden': 'true' }, done ? sym('check', 16) : h('i', {})),
-      h('span', { class: 'qb-name' }, q.name),
-      q.secret ? h('span', { class: 'qb-secret' }, 'Secret') : h('span', {}),
-    ));
-  }
+  const row = ({ quest: q, done }: (typeof rows)[number]): HTMLElement => h(
+    'div',
+    {
+      class: `qb-row${done ? ' is-done' : ''}`,
+      role: 'listitem',
+      // The tick is decorative, so the row states its own answer. Without this
+      // a screen reader reads seventeen names and no outcomes.
+      'aria-label': `${q.name}. ${done ? 'Done' : 'Not yet'}.`,
+    },
+    /*
+     * A CIRCLE RATHER THAN A GLYPH for the empty state, because the icon font
+     * here is a 7 kB subset of exactly the symbols this build uses and an
+     * outlined circle is two lines of CSS. `check` is already in the subset,
+     * so the done state is the real Material tick.
+     */
+    h('span', { class: 'qb-tick', 'aria-hidden': 'true' }, done ? sym('check', 16) : h('i', {})),
+    h('span', { class: 'qb-name' }, q.name),
+    q.secret ? h('span', { class: 'qb-secret' }, 'Secret') : h('span', {}),
+  );
+
+  const listOf = (items: typeof rows): HTMLElement => {
+    const el = h('div', { class: 'qb-list', role: 'list' });
+    for (const r of items) el.appendChild(row(r));
+    return el;
+  };
+
+  /*
+   * TWO BLOCKS RATHER THAN ONE LIST, and this is the whole of what Nam caught:
+   * "I counted the side quests there are 21 here, but the text said we did 12 of
+   * 17, so what is it? very confusing counting."
+   *
+   * Both numbers were right and the board gave no way to see that. The tally
+   * counts the seventeen the opening line promises out loud, on purpose -- a
+   * denominator that grew when a secret turned up would make the script wrong,
+   * which is the argument in data/quests.ts. But the list under it ran all
+   * twenty-one rows together in one grid, so the only way to reconcile the
+   * header with the board was to spot four small chips and subtract. Nobody
+   * subtracts. They count, they get 21, and they conclude the number lied.
+   *
+   * This is the N137 mistake in a subtler place. That one was a ring counting 21
+   * eighteen pixels above a card counting 17, and the fix was to stop asking the
+   * second question on that screen. Here the second answer IS the list, so it
+   * cannot be removed -- it can only be separated, and labelled with the same
+   * two numbers the sentence uses. Seventeen rows under one heading, four under
+   * the other, and the header stops being a claim to be checked.
+   *
+   * Only when there is something to reconcile. With no secrets found the board
+   * is seventeen rows and seventeen promised, and a heading over a single block
+   * would be furniture explaining a question nobody asked.
+   */
+  const promised = rows.filter((r) => !r.quest.secret);
+  const secrets = rows.filter((r) => r.quest.secret);
+  const blocks: HTMLElement[] = extra === 0
+    ? [listOf(rows)]
+    : [
+      h('section', { class: 'qb-sec' },
+        h('h2', { class: 'qb-sec-h' }, `The ${VISIBLE_QUESTS} you were told about`),
+        listOf(promised)),
+      h('section', { class: 'qb-sec' },
+        h('h2', { class: 'qb-sec-h' },
+          extra === 1 ? 'The one you were not' : `The ${extra} you were not`),
+        listOf(secrets)),
+    ];
 
   const frame = h(
     'div',
@@ -110,13 +151,16 @@ export function openQuestFrame(theme: 'light' | 'dark' = 'light'): void {
            * disagree -- which is the exact complaint N137 fixed on the old ended
            * screen, where a ring counting 21 sat above a card counting 17.
            */
+          // "Plus one", not "Plus 1", and the heading below says "The one you
+          // were not" to match. A lone digit mid-sentence reads as a count from
+          // a system; the word reads as someone telling you.
           h('p', {}, `${got} of ${VISIBLE_QUESTS} done.`
-            + (extra > 0 ? ` Plus ${extra} nobody told you about.` : ''))),
+            + (extra > 0 ? ` Plus ${extra === 1 ? 'one' : extra} nobody told you about.` : ''))),
         h('button', {
           class: 'icon-btn dp-close', type: 'button', 'aria-label': 'Close', onclick: close,
         }, sym('close', 22))),
       h('div', { class: 'dp-body' },
-        h('div', { class: 'dp-col' }, list))),
+        h('div', { class: 'dp-col' }, ...blocks))),
   ) as HTMLElement;
 
   // The scrim closes it, the card does not. pointerdown rather than click, so a
