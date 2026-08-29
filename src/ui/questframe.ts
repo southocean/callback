@@ -33,7 +33,7 @@
 import { h } from '../dom.js';
 import { sym } from './icons.js';
 import { trapFocus } from '../a11y.js';
-import { board, VISIBLE_QUESTS } from '../data/quests.js';
+import { board } from '../data/quests.js';
 import { foundAll } from '../prefs.js';
 
 const ID = 'questframe';
@@ -55,7 +55,7 @@ export function openQuestFrame(theme: 'light' | 'dark' = 'light'): void {
    * rather than drawing, so they live in data/quests.ts where the suite can drive
    * them without a DOM. This function is left holding only the markup.
    */
-  const { rows, got, extra } = board(foundAll().quests);
+  const { rows, got, total } = board(foundAll().quests);
 
   let release: (() => void) | null = null;
   const close = (): void => {
@@ -83,49 +83,20 @@ export function openQuestFrame(theme: 'light' | 'dark' = 'light'): void {
     q.secret ? h('span', { class: 'qb-secret' }, 'Secret') : h('span', {}),
   );
 
-  const listOf = (items: typeof rows): HTMLElement => {
-    const el = h('div', { class: 'qb-list', role: 'list' });
-    for (const r of items) el.appendChild(row(r));
-    return el;
-  };
-
   /*
-   * TWO BLOCKS RATHER THAN ONE LIST, and this is the whole of what Nam caught:
-   * "I counted the side quests there are 21 here, but the text said we did 12 of
-   * 17, so what is it? very confusing counting."
+   * ONE LIST. The board carried two headed blocks for a day, a promised block
+   * and a secrets block, and Nam threw it out with the reason: "The 17 you were
+   * told about vs The 4 you were not is very redundant on this UI. We already
+   * have the secret label, it becomes very clear, you dont even need the
+   * horizontal line between them or any separation."
    *
-   * Both numbers were right and the board gave no way to see that. The tally
-   * counts the seventeen the opening line promises out loud, on purpose -- a
-   * denominator that grew when a secret turned up would make the script wrong,
-   * which is the argument in data/quests.ts. But the list under it ran all
-   * twenty-one rows together in one grid, so the only way to reconcile the
-   * header with the board was to spot four small chips and subtract. Nobody
-   * subtracts. They count, they get 21, and they conclude the number lied.
-   *
-   * This is the N137 mistake in a subtler place. That one was a ring counting 21
-   * eighteen pixels above a card counting 17, and the fix was to stop asking the
-   * second question on that screen. Here the second answer IS the list, so it
-   * cannot be removed -- it can only be separated, and labelled with the same
-   * two numbers the sentence uses. Seventeen rows under one heading, four under
-   * the other, and the header stops being a claim to be checked.
-   *
-   * Only when there is something to reconcile. With no secrets found the board
-   * is seventeen rows and seventeen promised, and a heading over a single block
-   * would be furniture explaining a question nobody asked.
+   * He is right, and the sectioning was treating a symptom. The reason 21 rows
+   * needed explaining was that the sentence above them said 17. Once the
+   * sentence counts the rows, there is nothing left to explain and the chip on
+   * each secret row is the only label the split was ever providing.
    */
-  const promised = rows.filter((r) => !r.quest.secret);
-  const secrets = rows.filter((r) => r.quest.secret);
-  const blocks: HTMLElement[] = extra === 0
-    ? [listOf(rows)]
-    : [
-      h('section', { class: 'qb-sec' },
-        h('h2', { class: 'qb-sec-h' }, `The ${VISIBLE_QUESTS} you were told about`),
-        listOf(promised)),
-      h('section', { class: 'qb-sec' },
-        h('h2', { class: 'qb-sec-h' },
-          extra === 1 ? 'The one you were not' : `The ${extra} you were not`),
-        listOf(secrets)),
-    ];
+  const list = h('div', { class: 'qb-list', role: 'list' });
+  for (const r of rows) list.appendChild(row(r));
 
   const frame = h(
     'div',
@@ -145,22 +116,26 @@ export function openQuestFrame(theme: 'light' | 'dark' = 'light'): void {
         h('div', { class: 'dp-title' },
           h('h1', {}, 'Side quests'),
           /*
-           * The tally counts the ones that were promised. A found secret is an
-           * extra sentence rather than a bigger denominator, because the opening
-           * line of the conversation says a number out loud and the two must not
-           * disagree -- which is the exact complaint N137 fixed on the old ended
-           * screen, where a ring counting 21 sat above a card counting 17.
+           * ONE SENTENCE, AND BOTH NUMBERS ARE ON THE BOARD. got is the ticks,
+           * total is the rows. It replaced "12 of 17 done. Plus 4 nobody told
+           * you about.", which was two numbers and an addition:
+           *
+           *   Nam: "saying 17 quests + 4 is very clunky, user has to do math to
+           *   find out what the quest count is and how many they have
+           *   completed."
+           *
+           * The denominator now moves as secrets turn up, 17 to 18 to 21. That
+           * is the trade and it was made on purpose: a total that changes is
+           * easier to read than a total you have to correct. The reasoning, and
+           * what it costs against the number the call says out loud, is in
+           * data/quests.ts.
            */
-          // "Plus one", not "Plus 1", and the heading below says "The one you
-          // were not" to match. A lone digit mid-sentence reads as a count from
-          // a system; the word reads as someone telling you.
-          h('p', {}, `${got} of ${VISIBLE_QUESTS} done.`
-            + (extra > 0 ? ` Plus ${extra === 1 ? 'one' : extra} nobody told you about.` : ''))),
+          h('p', {}, `${got} of ${total} done.`)),
         h('button', {
           class: 'icon-btn dp-close', type: 'button', 'aria-label': 'Close', onclick: close,
         }, sym('close', 22))),
       h('div', { class: 'dp-body' },
-        h('div', { class: 'dp-col' }, ...blocks))),
+        h('div', { class: 'dp-col' }, list))),
   ) as HTMLElement;
 
   // The scrim closes it, the card does not. pointerdown rather than click, so a

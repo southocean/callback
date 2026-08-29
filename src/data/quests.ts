@@ -88,24 +88,35 @@ export interface BoardRow {
  *   · A secret is not listed until it is found. Listing it as a locked box would
  *     tell the visitor there is something to look for without telling them enough
  *     to look, which is a worse spoiler than the secret itself.
- *   · The tally counts only the ones that were PROMISED. The opening line of the
- *     conversation says seventeen out loud, so a denominator that grew when a
- *     secret turned up would make the script wrong -- which is exactly the
- *     complaint N137 fixed on the old ended screen, where a ring counting 21 sat
- *     above a card counting 17.
+ *   · THE TALLY IS THE ROWS. got is the ticks you can see, total is the rows you
+ *     can see, and the denominator therefore grows by one each time a secret
+ *     turns up. That is deliberate and it is Nam's call:
+ *
+ *       "What I actually want is to report the total count of side quests that
+ *       are relevant to user. Not 12 of 17 but 16/21 ... So like 12 of 17, but
+ *       if you complete 1 secret quest then its 13/18 ... Yes, the total amount
+ *       of quests becomes inconsistent, but I think its intuitive enough for
+ *       user, they will understand the secret ones are not counted into the
+ *       progress."
+ *
+ *     It replaces a rule that held the denominator at seventeen so it would
+ *     agree with the number the opening line says out loud. That rule was
+ *     defensible and it cost more than it bought: the board showed 21 rows over
+ *     a sentence reading 17, and the visitor had to spot four chips and subtract
+ *     to see that both were true. A denominator you can count by looking needs
+ *     no reconciling. The script still promises seventeen, and still means the
+ *     seventeen it can talk about.
  *   · A found id that no longer matches a quest -- something renamed or deleted
  *     since -- must not be counted, because there is no row to count it against.
  *     Filtering the quest list rather than the found list settles that for free,
  *     and gives declared order rather than the order they were found in.
  */
-export function board(found: string[]): { rows: BoardRow[]; got: number; extra: number } {
+export function board(found: string[]): { rows: BoardRow[]; got: number; total: number } {
   const have = new Set(found);
   const rows = quests
     .filter((q) => !q.secret || have.has(q.id))
     .map((q) => ({ quest: q, done: have.has(q.id) }));
-  return {
-    rows,
-    got: rows.filter((r) => r.done && !r.quest.secret).length,
-    extra: rows.filter((r) => r.quest.secret).length,
-  };
+  // Both numbers off `rows` and nothing else, so neither can drift from what is
+  // drawn. Anyone counting the board by eye gets the same pair.
+  return { rows, got: rows.filter((r) => r.done).length, total: rows.length };
 }

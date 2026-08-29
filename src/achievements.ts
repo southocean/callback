@@ -11,12 +11,12 @@
 
 import { h } from './dom.js';
 import { sym } from './ui/icons.js';
-import { quests, type Quest } from './data/quests.js';
+import { quests, board, type Quest } from './data/quests.js';
 
 export { quests, VISIBLE_QUESTS, type Quest } from './data/quests.js';
 
 const KEY = 'callback.quests';
-const visible = quests.filter((q) => !q.secret);
+
 
 export class Quests {
   private got = new Set<string>();
@@ -43,8 +43,21 @@ export class Quests {
     return this.got.has(id);
   }
 
+  /**
+   * The pair the in-call toast prints, and it is the board's pair.
+   *
+   * Deferred to board() rather than counted again here, because this used to be
+   * its own arithmetic over the visible list and the two then answered different
+   * questions on two surfaces: the toast said 12/17 while the board it summarises
+   * said 16/21. Worse, finishing a SECRET moved neither number, so the one toast
+   * that should feel like a discovery was the one whose counter sat still.
+   *
+   * Now a found secret adds one to both sides, which is Nam's rule: the total is
+   * what you can see, and what you cannot see is not in it yet.
+   */
   count(): { got: number; total: number } {
-    return { got: visible.filter((q) => this.got.has(q.id)).length, total: visible.length };
+    const { got, total } = board([...this.got]);
+    return { got, total };
   }
 
   all(): { quest: Quest; got: boolean }[] {

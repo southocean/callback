@@ -1037,28 +1037,52 @@ suite('the side quest board', () => {
     const b = questBoard([]);
     eq(b.rows.length, VISIBLE_QUESTS, 'the board is not showing the quests that were promised');
     eq(b.got, 0);
-    eq(b.extra, 0, 'a secret was listed before it was found');
+    eq(b.total, VISIBLE_QUESTS, 'an unfound secret was counted into the total');
     ok(b.rows.every((r) => !r.done), 'an empty board has something marked done');
   });
 
-  test('a secret appears only once it is found, and does not inflate the total', () => {
+  /*
+   * THE INVARIANT THE WHOLE BOARD RESTS ON, and the one that would have caught
+   * the bug Nam reported by hand: he counted 21 rows under a sentence reading
+   * 17. Both numbers were right and neither could be checked against the other.
+   * Now the pair IS the board, so anyone counting ticks and rows by eye gets
+   * exactly what the header prints.
+   */
+  test('the tally is the board: got is the ticks, total is the rows', () => {
+    for (const found of [[], [openIds[0]!], secretIds, [...openIds, ...secretIds]]) {
+      const b = questBoard(found);
+      eq(b.total, b.rows.length, 'the denominator is not the number of rows drawn');
+      eq(b.got, b.rows.filter((r) => r.done).length, 'the numerator is not the number of ticks drawn');
+    }
+  });
+
+  test('a found secret joins the list AND the total', () => {
     const first = secretIds[0]!;
     const b = questBoard([openIds[0]!, first]);
     eq(b.rows.length, VISIBLE_QUESTS + 1, 'the found secret did not join the list');
-    eq(b.extra, 1);
     /*
-     * The number that matters. The opening line of the conversation says the
-     * visible count out loud, so a denominator that grew with a secret would make
-     * the script wrong -- the same disagreement N137 fixed on the ended screen,
-     * where a ring counting 21 sat above a card counting 17.
+     * 2 of 18, not 1 of 17. Nam: "So like 12 of 17, but if you complete 1 secret
+     * quest then its 13/18." The denominator moving is the point rather than a
+     * side effect: a secret nobody knows about cannot be in a total, and the
+     * moment it is found it is a quest like any other.
      */
-    eq(b.got, 1, 'a secret was counted toward the promised total');
+    eq(b.total, VISIBLE_QUESTS + 1, 'the found secret did not join the total');
+    eq(b.got, 2, 'the found secret was not counted as done');
     ok(b.rows.find((r) => r.quest.id === first)?.done === true, 'the found secret is not marked found');
+  });
+
+  /* The case in the report: twelve of the promised ones and all four secrets. */
+  test('twelve promised and four secrets reads as 16 of 21', () => {
+    const b = questBoard([...openIds.slice(0, 12), ...secretIds]);
+    eq(b.got, 16);
+    eq(b.total, VISIBLE_QUESTS + secretIds.length);
+    eq(b.total, 21, 'the board no longer has 21 rows to count');
   });
 
   test('an id that no longer names a quest counts for nothing', () => {
     const b = questBoard(['a-quest-that-was-renamed', openIds[0]!]);
     eq(b.rows.length, VISIBLE_QUESTS, 'a stale id conjured a row');
+    eq(b.total, VISIBLE_QUESTS, 'a stale id inflated the total');
     eq(b.got, 1);
   });
 
