@@ -8,7 +8,15 @@
  * 'company' is the unlisted index of per-company codes. Reachable only by
  * typing #company; nothing in the CV links to it.
  */
-export type Screen = 'home' | 'calls' | 'lobby' | 'call' | 'ended' | 'company';
+/**
+ * 'start' is the title card and the only screen that is not part of the clone.
+ *
+ * It is a screen rather than an overlay because it is a PLACE: it has a hash, it
+ * has a back button, and it is where a first visit begins. An overlay would have
+ * meant the home screen rendering behind it, which is the Meet chrome painting
+ * underneath the card that exists to arrive before the Meet chrome. See N158.
+ */
+export type Screen = 'start' | 'home' | 'calls' | 'lobby' | 'call' | 'ended' | 'company';
 // 'about' is the CV material that used to squat inside the People panel.
 // Nam: "This is a panel for the people in the meeting." Right — so the career
 // timeline moved out to its own, reached from the participant-count popup.
@@ -281,6 +289,15 @@ export function parseRoute(hash: string): Route {
   const raw = hash.replace(/^#\/?/, '');
   const [head = '', tail = ''] = raw.split('/');
 
+  /*
+   * #start reaches the title card on purpose, at any time, forever -- and that
+   * matters more than it looks. The card is shown once per machine, so the second
+   * person to see this CV is usually somebody the first person is showing it to,
+   * over their shoulder or over a screen share, and they get none of the framing.
+   * A permanent way back is what keeps 'once' from meaning 'once per machine, and
+   * never for anybody else who looks at that machine'.
+   */
+  if (head === 'start') return { screen: 'start', panel: 'none' };
   if (head === 'plain') return { screen: 'call', panel: 'none', plain: true };
   if (head === 'company') return { screen: 'company', panel: 'none' };
   if (head === 'ended') return { screen: 'ended', panel: 'none' };
@@ -305,6 +322,7 @@ export function parseRoute(hash: string): Route {
 
 export function routeToHash(s: State): string {
   if (s.plain) return '#plain';
+  if (s.screen === 'start') return '#start';
   if (s.screen === 'home') return '#home';
   if (s.screen === 'calls') return '#calls';
   if (s.screen === 'lobby') return '#lobby';

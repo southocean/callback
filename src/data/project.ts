@@ -2709,6 +2709,46 @@ export const tasks: Task[] = [
     },
   },
 
+
+  /* Nam's first live test, 29 August. One tester, three failures, and they turn
+     out to be one failure wearing three coats. */
+
+  {
+    id: 'N158', col: 'review', size: 'L', tag: 'onboarding',
+    title: 'The CV has a front door',
+    note: 'A title card that names the thing, then gets out of the way for good.',
+    detail: {
+      why: 'Nam gave the link to a friend, cold, with no context. The friend is a computer science PhD and his first reading was that it was a real meeting invitation: "he seems scared to join the meeting ... clicking join is seen as a risk for something you dont know what is." Nam: "maybe we need to be more apparent with that." The fine print on the scheduled card says interactive CV and it did not land, because the failure is not a missing sentence. Nobody had agreed to anything. A Start button is agreement, and agreement is what dissolves the fear.',
+      done: [
+        'A title card is the first screen on a naked URL, every time, remembering nothing',
+        'It names the thing, says nothing is recorded, and offers one Start button',
+        'A fragment in the URL is an explicit intent and is never intercepted, #home included',
+        'Start goes to the home screen, which is where the product begins',
+        'One quiet link out, the PDF, because that is what the first tester actually reached for',
+        'It is not dressed as Meet, so the clone lands as a reveal rather than as the status quo',
+      ],
+      raised: 'Nam, first external test, 29 Aug',
+      notes: 'THE DRONE SHOW HAS A PROGRAMME. Nam: "some shapes are not very exciting and we dont have many 2D images ... We should have a theme." Five of them now, on a second picker row that appears only with that variant: Geometry, Cinema, Places, Food and The call. Geometry stays the default, because it is the one that says nothing about him and everything about the craft, which is the right note for a title card. The call is the one worth watching -- every shape in it is something waiting on the far side of Start, and the cursor in it is the same hand that drives the shared screen later.\\n\\nEVERY PICTURE IS A GENERIC ARCHETYPE, and that is a drawing decision before it is anything else. Two hundred and sixty dots carry a silhouette and cannot carry a likeness, so a specific property rendered at this resolution reads as a worse version of the generic shape it is made of. A rocket, a ringed planet, a saucer, a sword and a star do the job that was asked for and belong to nobody.\\n\\nPLACEMENT IS THE OTHER HALF, and Nam raised it: "the drones dont only have to be making graphics in the center of the screen." For pictures it is not a nicety. A wireframe sphere the height of the viewport SURROUNDS the copy and reads fine through it; a coffee cup at that size sits behind the words and reads as neither. So a formation carries spots -- position and scale in fractions of the viewport half size -- and more than one spot splits the fleet, which is what puts three stars in three corners and gives the ringed planet a moon. The numbers are measured rather than felt: the column is 560px and centred, so a side spot has to be at 0.56 of the half width or past it and no larger than half scale. The first pass ignored that and it showed, with a sword running vertically through the entire card.\\n\\nIT REMEMBERS NOTHING, AND THAT WAS THE SECOND REVERSAL. It shipped showing the card once per machine, on a localStorage flag, with a reset in Settings and a permanent way back at #start. Nam: "we should always default to open #start on a naked url ... if you enter the naked link again, even on the same machine, you get the start. Or if you send the naked link to someone else they will see the start first." The gain is much larger than the one press it costs. Remembering meant hidden state nobody could see and everybody could be caught by: the second person shown this CV over somebody shoulder got no framing, a private window behaved differently from a normal one, storage denied needed an answer of its own, and testing the first minute needed a button in Settings. All four came from the memory, and all four went with it. The rule is now a pure function of the URL, and the fragment is what carries "I have been here" -- every navigation writes one, so only an address with nothing after it is a cold arrival. #home moved sides in the process: it used to count as bare, and it is now the marker of somebody who reached the home screen under their own steam.\n\nWHAT ABOUT A LINK PASTED WITH A FRAGMENT ON IT, which is Nam question and a fair one. Nothing at read time: gating #plain or #call behind the card would break the four deep links the README documents, break the one route recruiters are sent to directly, and break a test that asserts it. The fix is at write time and most of it already exists -- the copy control in Host controls copies SITE from data/cv.ts, which is the bare address with no fragment, so the link the app OFFERS is already the one that frames itself. What is left is a link copied by hand out of the address bar, and the answer to that one is N159: a preview card makes a pasted link say Nam Nguyen, interactive CV in Slack or in mail before anybody clicks it, whatever fragment is hanging off the end.\n\nONE BUTTON, NOT TWO, AND THAT WAS A REVERSAL. It shipped first with two lanes, a walkthrough and a look around, promoting the director handedOver state to a front door. Nam cut the second: "we only expose them once we are in the call, cause that is the only place its relevant." He is right, and the argument is stronger than tidiness -- a choice about being narrated at, offered to somebody who has not yet seen anything to narrate, is a choice made on no information, and the control that answers it honestly is Stop talking, in the bar, at the moment the question becomes real. The lane preference and its read in the call went with it rather than being left as plumbing for a UI that does not exist.\n\nONE LINK, NOT THREE, for a related reason. Read it as a document and How this was built both open Meet-styled panels in light mode, so opening them from here would put the Google surface in front of the visitor a screen early -- from the one screen whose entire argument is that it is not that. Nam: "they mirror the google style design so not really fitting with this start page either." Making them fit would have meant a dark variant of two large panels, which is a lot of stylesheet spent undoing the point of the screen; and the spec panel is a receipt for a claim that has not been made yet, which is exactly why it is the right primary button on the HOME screen and the wrong one here. The download stayed because it is not a surface at all, just an anchor with a download attribute, and because it is what the only real tester of this CV reached for first.\n\nTHE DEFAULT ANIMATION WAS A BLACK SCREEN, and the cause is worth writing down because it is a trap any canvas in this codebase can fall into. paint() runs while the canvas is still detached -- renderStart builds the tree and main.ts appends it -- so clientWidth is 0 for the first frame or two. At 0 by 0 the Tiles variant computes a negative tile width, that reaches arcTo, and arcTo THROWS on a negative radius. The next frame is requested after the draw, so a throw there does not drop a frame, it ends the animation forever. Nam saw a black page until he pressed the Tiles button himself, which restarted paint() against a canvas that by then had a size -- and only Tiles, because it is the only variant that draws a rounded rectangle. Fixed at the class rather than the instance: frame() draws nothing at a degenerate size, so no variant has to be correct at zero.\n\nTHE FLASH IS THE WHOLE PROBLEM AND IT IS NOT OBVIOUS. The home screen ships as static markup so first paint does not wait for the bundle (review U9), and the bundle is a deferred module. So the naive version paints Google Meet, then replaces it with a card explaining that this is not Google Meet, which on a slow connection is the exact ambush the ticket exists to remove. The CSP is script-src self with no unsafe-inline, so an inline decision script is not available either. What actually works is a separate blocking script in the head -- boot.ts, its own iife entry -- which reads one localStorage key and puts a class on the html element. The critical CSS then hides the static home and paints the start ground before anything else renders. Nothing is duplicated: the card itself still comes from one place, ui/start.ts, so there is no second copy of the copy to drift.\n\nTHE SECOND BUTTON IS NOT A COURTESY. The same test found the interaction chaos this build already has an adaptive answer for: the director drops to a brief register at three queued parts and hands over entirely at five. Asking the lane at the front door promotes handedOver from an emergent state to a front door, which is a cheaper answer than locking the interface -- and locking it would have recreated the other half of the same test, since clicks that do nothing while a cursor moves by itself is precisely what being locked out of your own machine feels like.\n\nEIGHT ANIMATIONS ARE SHIPPED AND SEVEN OF THEM ARE TEMPORARY. Nam wants to choose on the real screen rather than from a description, so the picker and the other three variants come out once he has, which also takes the chunk back down. Keys 1 to 8, and the choice is remembered. Seven of them are textures that live in the margins; the eighth, Drones, is a formation flight that builds a ring, a sphere, a torus, a helix, a cube, a swelling sheet and a spiral in the middle of the screen, and it is the only one that needs the scrim relaxed to be seen at all. Nam asked for it and gave the reason: he has never been to a drone show, which makes it the one thing on this page he can talk about in the interview without talking about the build.',
+    },
+  },
+
+  {
+    id: 'N159', col: 'backlog', size: 'S', tag: 'trust',
+    title: 'The link preview is the front door, photographed',
+    note: 'og:image is an SVG, which every unfurler rejects. The link arrives naked.',
+    detail: {
+      why: 'index.html points og:image at share-card.svg. Slack, iMessage, LinkedIn, X, Discord and WhatsApp all refuse SVG preview images, and the path is relative where most of them want an absolute URL. So the link Nam pastes to a recruiter unfurls as a bare github.io address with no title card and no image, which is the condition the first external test ran under and half of what went wrong in it.',
+      done: [
+        'A 1200x630 PNG, screenshotted headless from the start screen itself',
+        'og:image absolute, with width, height and alt, plus og:url',
+        'The title leads with the name rather than with the word Meet',
+        'It runs in the build, so the card and the screen cannot drift',
+      ],
+      raised: 'Read off index.html while working N158, 29 Aug',
+      notes: 'IT IS ALSO THE ANSWER TO A ROUTING QUESTION N158 COULD NOT SOLVE. The title card only intercepts a naked URL, so a link copied by hand out of the address bar with a fragment on it reaches the clone with no framing at all. That cannot be fixed at read time without breaking the documented deep links. A preview card fixes it somewhere better: a pasted link unfurls as the title card, with the name on it, BEFORE anybody clicks, whatever is hanging off the end of the address.\n\nThe generator is a short reuse of what is already here: tools/print-cv.mjs and tools/spec-layout.mjs both drive headless Chrome over CDP and already resolve a Chrome path across three platforms. Screenshotting the start screen rather than drawing a separate card is the point of doing it this way -- the preview and the landing page become the same image by construction, so somebody sees the frame in Slack and then lands on the thing they just saw.',
+    },
+  },
+
   {
     id: 'N160', col: 'done', size: 'S', tag: 'onboarding',
     title: 'The home buttons go back the way they were',
@@ -2756,6 +2796,130 @@ export const tasks: Task[] = [
       ],
       raised: 'Nam, QA 29 Aug',
       notes: 'THE RIPPLE STARTS AT THE RIGHT EDGE because that is where the fill finished, which is the whole of why it reads as caused rather than decorative: the light comes from the place the last line landed and washes back over the section it completed. From the middle it would be a generic pulse that happens to be on a bar. The delay is the other half of the same idea. The flash used to fire in the same frame the count incremented, which is while the fill is still sliding to a hundred per cent, so it celebrated an arrival that had not happened yet and the two motions fought. A beat of stillness between them is what makes the second one read as a consequence of the first.',
+    },
+  },
+
+  /* ------------------------------------------------------------------------
+   * Nam's QA and feature pass of 29 August, evening. Seven points: three on the
+   * ended screen, two new pieces of agency inside the call, and one bug that had
+   * been sitting behind a control nobody thought of as a control.
+   * --------------------------------------------------------------------- */
+
+  {
+    id: 'N163', col: 'doing', size: 'M', tag: 'call',
+    title: 'The collections arrive, they do not fade in',
+    note: 'The first time the bug glyph and the ring exist, they should land like something was won.',
+    detail: {
+      why: 'Nam: "in #ended screen, I want the bug and the progression bar to appear more dramatically the first time they are to be shown (probably after the first call ended). This means some kind of dramatic appear animation in place, like pops up with a little shake or whatever." Both rail items are conditional -- the bug glyph on having caught one, the ring on having finished a call -- so the first ended screen after a first call is the exact moment two new things appear in a column that had two items in it a minute ago. Appearing silently is the one thing that guarantees nobody notices.',
+      done: [
+        'A rail item appearing for the FIRST time pops in and settles',
+        'It happens once per item, ever, and never again on later visits',
+        'Only on the ended screen, never on the home rail',
+        'Reduced motion gets the item, with no theatre',
+      ],
+      raised: 'Nam, QA 29 Aug, point 1',
+    },
+  },
+
+  {
+    id: 'N164', col: 'doing', size: 'S', tag: 'content',
+    title: 'The interview stops being a speedrun',
+    note: 'The time card came off the ended screen. It was the one thing here arguing for a shorter visit.',
+    detail: {
+      why: 'Nam: "I think we remove the time to finish the interview, I dont think its relevant now, since we built in a lot of memory to the CV so the emphasis is no longer on completing the interview fast. Also I dont think we should incentivize that either. We want users to spend more time in the call, in this CV. We built up a whole progression with side quests and bug hunting to keep users around. So turning this into a speedrun is against our other goals."',
+      done: [
+        'No time, no best, no run count on the ended screen',
+        'The clock is still kept, because two other things read it',
+        'The live readout in Host controls stays: it says where you are, not how fast',
+      ],
+      raised: 'Nam, QA 29 Aug, point 2',
+      notes: 'THE RECORD STAYS EVEN THOUGH THE CARD GOES, which looks like a half-measure and is not. recordInterview is what the rail asks in order to decide whether the completion ring may exist at all -- the ring is only shown to somebody who has finished a call, so that a first-time visitor is not handed a scoreboard for a game nobody mentioned. Deleting the write would take the ring off everybody. What went is the one surface that turned the number into a target.',
+    },
+  },
+
+  {
+    id: 'N165', col: 'doing', size: 'S', tag: 'call',
+    title: 'The pass names what it found',
+    note: 'Asked for, and already true. Verified against a real run rather than against the source.',
+    detail: {
+      why: 'Nam: "Regarding the new things you have found, I want a list of it. The list of side quests you have accomplished, and the list of bugs. And if none is found, I think what we have works."',
+      done: [
+        'Every new side quest is named on the ended screen, not counted',
+        'Every new bug is named, with the way into the case beside them',
+        'A pass that found nothing gets the one quiet tile it already had',
+      ],
+      raised: 'Nam, QA 29 Aug, point 3',
+      notes: 'N137 built this and it is doing what he is asking for: pass.ts diffs the three collections against a snapshot taken when the call was entered, and ended.ts prints the NAMES in a sentence rather than a count. So the honest answer to point 3 is that it already works, and the honest way to give that answer is to go and look at it in a browser rather than to read the source and say so -- which is the failure mode this repo has a ship-check for. Checked on a real run.',
+    },
+  },
+
+  {
+    id: 'N166', col: 'doing', size: 'M', tag: 'call',
+    title: 'The side quests get a board of their own',
+    note: 'The bugs have a case. The quests had a toast and nothing to come back to.',
+    detail: {
+      why: 'Nam: "Similar to the bug collection, I want a side quest board, or achievements if that is a better name for it ... after the call if you have managed to get any side quest ... we pops up the button to open up the list of side quests, in which we list out all the quests along with which one you have accomplished and which one not, each should have a short name - the name is the hint. Make sure to follow the same design principles from google. The order of buttons: bugs, then this, then progression bar."',
+      done: [
+        'A Side quests rail item, between Bugs and the ring, once one is earned',
+        'It opens a board listing every quest, done and not done',
+        'A quest not yet done shows its hint and not its name',
+        'Secret quests stay hidden until found, as everywhere else',
+        'Same dialog shape, palette and state layers as the bug case',
+      ],
+      raised: 'Nam, QA 29 Aug, point 4',
+      notes: 'SIDE QUESTS, NOT ACHIEVEMENTS, and Nam explicitly did not care which -- "or achievements if that is a better name for it - whatever I dont really care but make sure its consistent". Consistency is the whole of the decision, and the build has already chosen: the toast says "Side quest complete", the completion breakdown row is labelled Side quests, the ended screen tile says "3 new side quests", and data/quests.ts is called what it is called. Achievements would have meant renaming five surfaces to gain nothing.\n\nTHE NAME IS THE HINT, WHICH IS THE INVERSE OF THE BUG CASE, and it is worth saying why the two collections differ. A bug has a name and a species that are jokes in themselves, so the case hides both and shows a riddle. A quest name IS the riddle -- "Hotel wifi", "Talk to the hand", "Break it on purpose" -- and printing it next to a locked slot is exactly the amount of hint the quest wants. So an unearned quest shows its short hint line and holds the name back; an earned one shows the name it earned.',
+    },
+  },
+
+  {
+    id: 'N167', col: 'doing', size: 'L', tag: 'onboarding',
+    title: 'Sit back, or drive',
+    note: 'The first thing the call asks is whether it should be doing the clicking.',
+    detail: {
+      why: 'Nam: "After entering the call, you get a prompt, asking you to choose between 2 modes: lazy walkthrough and let me explore. The styling should be google like, yet it should feel impactful here, and the walkthrough is the recommended action. I was thinking of using the end call screen in the original meet, end for me or end for everybody, but then I realize that promp panel doesnt carry as much impact as this one. You are either sitting back and watching like a movie vs doing everything yourself."',
+      done: [
+        'A choice, once per session, the moment the call is entered',
+        'Two lanes: the walkthrough, recommended, and exploring alone',
+        'Choosing to explore means nothing narrates and nothing moves the cursor',
+        'It is remembered for the session and never asked twice',
+        'Meet tokens throughout, and it is dismissible by keyboard',
+      ],
+      raised: 'Nam, QA 29 Aug, point 5',
+      notes: 'THIS IS THE SECOND TIME THE QUESTION HAS BEEN ASKED AND THE FIRST TIME IT IS IN THE RIGHT PLACE. N158 shipped two lanes on the start screen and Nam cut them the same day: "we only expose them once we are in the call, cause that is the only place its relevant." That reasoning is exactly what makes this version work -- a visitor standing in a call that is about to start narrating has seen the thing being offered, so the choice is made on information rather than on a promise.\n\nNOT THE LEAVE DIALOG, WHICH NAM RAISED AND THEN TALKED HIMSELF OUT OF. Meet\u2019s End for me / End for everybody is a 312px alert: it is built to be small because it is asking permission for something you already decided. This is the opposite shape of decision and gets the opposite treatment -- two full-width lanes with room for a sentence each, so the difference between watching and doing is legible before it is chosen.\n\nSESSION, NOT MACHINE. sessionStorage rather than localStorage, for the same reason N158 ended up remembering nothing across visits: a choice about how this visit should go is not a fact about the person, and a returning visitor who wanted the walkthrough last week must not be silently locked out of it. Within a session it is asked once, because rejoining a call is not a new decision.',
+    },
+  },
+
+  {
+    id: 'N168', col: 'doing', size: 'S', tag: 'call',
+    title: 'The cursor says whose hand it is',
+    note: 'A pointer moving by itself is a haunting until it is signed.',
+    detail: {
+      why: 'Nam: "In case player chooses walkthrough, once we control the mock cursor, that cursor should have a label underneath: Nam. So we understand its Nams mouse."',
+      done: [
+        'A name tag under the arrow while the walkthrough drives it',
+        'It travels with the cursor and does not lag it',
+        'It is gone while the visitor is driving, and while the hand is parked',
+        'It never takes a pointer event',
+      ],
+      raised: 'Nam, QA 29 Aug, point 6',
+      notes: 'IT IS THE MULTIPLAYER CURSOR CONVENTION, which is why it works with no explanation: every shared document of the last decade puts a name on the other pointer. Meet has nothing to copy here because Meet has no second cursor, so the tag is built from the tokens the rest of the call already uses rather than invented.',
+    },
+  },
+
+  {
+    id: 'N169', col: 'doing', size: 'M', tag: 'call',
+    title: 'BUG: turning captions off left him talking to nobody',
+    note: 'Stop talking stops him. The captions switch did the same thing and told him nothing.',
+    detail: {
+      why: 'Nam: "when the script is running, if we click stop talking, it works all fine. But if I disable CC, its effectively the same as stop talking, cause I can continue talking but there is no output. so yeah this is a bug vertical in our product. We need to make sure turning off CC also means they want us to stop talking."',
+      done: [
+        'Captions off while he is talking is taken as Stop talking',
+        'The hand parks and the script goes quiet, as it does for the button',
+        'Captions back on resumes it, which is what it already meant',
+        'The acknowledgement is not spoken into a strip nobody can see',
+      ],
+      raised: 'Nam, QA 29 Aug, point 7',
+      notes: 'THE SCRIPT ONLY EVER HAD ONE OUTPUT and this is the cost of that. The conversation speaks through Meet\u2019s own caption strip -- deliberately, because a second bar was built first and QA found the empty reserved strip it left behind. One surface means the captions control is not a display preference, it is the volume knob, and turning it to zero is the same sentence as pressing Stop. It had no idea: the pause is entered from exactly one place, the button, so the script carried on saying lines into a hidden element, marking parts played, and burning the walkthrough for somebody who was watching a blank screen.\n\nTHE ACKNOWLEDGEMENT IS THE PART THAT NEEDED THOUGHT. pauseHere says a line, then reaches over and presses the captions button itself, so the goodbye and the silence land together. Neither half survives this route: the line would be spoken into a strip already hidden, and the press would turn the captions back ON. So the pause is told it was already made silent, skips both, and goes straight to parking the hand. The resume is unchanged, because captions coming back was always the way to ask him back and now it is the only sentence the control speaks.',
     },
   },
 

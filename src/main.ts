@@ -31,10 +31,32 @@ wireBugs(bugs);
  */
 onPlainOpened(() => quests.unlock('plain'));
 
+/**
+ * IS THE TITLE CARD THE FIRST SCREEN? -- board ticket N158.
+ *
+ * The rule is READ rather than reimplemented. src/boot.ts already decided this,
+ * in the document head, before anything painted, because the critical CSS needed
+ * the answer to know whether to hide the static home screen. Asking the same
+ * question a second time here would be two copies of a condition that have to
+ * agree forever, or the page paints one screen and then renders the other.
+ *
+ * The condition itself is now as small as it gets -- a naked URL, no fragment --
+ * since N158 dropped the once-per-machine memory it started with. The fragment
+ * is what carries "I have been here": every navigation inside the app writes one,
+ * so only an address with nothing after it is a cold arrival.
+ *
+ * It also fails in the right direction. If boot.js never arrives, the class is
+ * absent, no card is shown, and the site behaves exactly as it did before this
+ * ticket. A missing framing screen costs a visitor some context. A framing screen
+ * over a home screen that is already painted underneath it costs them the trust
+ * the screen exists to build.
+ */
+const atTheDoor = document.documentElement.classList.contains('pre-start');
+
 const route = parseRoute(location.hash);
 const boot: State = {
   ...initial,
-  screen: route.screen,
+  screen: atTheDoor ? 'start' : route.screen,
   panel: route.panel,
   reducedMotion: prefersReducedMotion(),
   ...(route.engTab ? { engTab: route.engTab } : {}),
@@ -202,6 +224,31 @@ function render(): void {
 
   document.body.classList.toggle('plain', key === 'plain');
 
+  /*
+   * The title card. Mounted with mount() like any other deferred screen, and
+   * deliberately NOT in the entry bundle: it is four canvas animations wide at
+   * the moment and only one of them survives Nam picking one, so paying for it
+   * in the initial payload would be paying for three animations nobody sees.
+   *
+   * There is no spinner behind it either, which is what the third argument to
+   * mount() is for. That loader is Meet's own wavy indicator, and putting a
+   * Google loading animation in front of the screen whose whole job is to arrive
+   * before Google does would hand the visitor the ambush a beat early.
+   */
+  if (key === 'start') {
+    mount(key, () => import('./ui/start.js').then((m) => m.renderStart(store, s.reducedMotion)), true);
+    return;
+  }
+
+  /*
+   * Anything else means the door has been passed, and the class that hid the
+   * static home screen has no further business on the page. It is removed rather
+   * than left: html.pre-start also paints the body near black, and a returning
+   * visitor who lands on #plain would otherwise read a white document through a
+   * dark page.
+   */
+  document.documentElement.classList.remove('pre-start');
+
   // The Calls tab. A real second tab rather than a link, because Meet has
   // exactly two and a third would be the tell.
   if (key === 'calls') {
@@ -280,12 +327,21 @@ function render(): void {
  * The loader also shows the same wavy indicator the product uses, so a slow
  * network reads as Meet loading rather than as nothing happening — which is
  * exactly what the real client does when you join.
+ *
+ * `quiet` is the one screen that must not have it: the title card (N158) is the
+ * screen that arrives BEFORE the visitor knows this is a Meet clone, and Meet's
+ * loading animation in front of it would give that away a beat early. It waits
+ * on the ground the critical CSS has already painted, which is a better wait
+ * anyway -- the card fades up onto a stage rather than replacing a spinner.
  */
-function mount(key: string, load: () => Promise<HTMLElement>): void {
+function mount(key: string, load: () => Promise<HTMLElement>, quiet = false): void {
   const ticket = ++renderTicket;
   clear(root);
-  const pad = h('div', { class: 'load-pad' });
-  pad.appendChild(spinner(true));
+  // The failure message below inherits the body's ink, which is #1f1f1f and
+  // invisible on the title card's near-black ground. A screen that fails to load
+  // silently is worse than one that fails loudly.
+  const pad = h('div', { class: quiet ? 'load-pad is-dark' : 'load-pad' });
+  if (!quiet) pad.appendChild(spinner(true));
   root.appendChild(pad);
   void load().then((node) => {
     if (ticket !== renderTicket) return;
@@ -296,7 +352,11 @@ function mount(key: string, load: () => Promise<HTMLElement>): void {
   }).catch(() => {
     if (ticket !== renderTicket) return;
     clear(root);
-    root.appendChild(h('div', { class: 'load-pad' }, 'That screen failed to load. Reload the page.'));
+    root.appendChild(h(
+      'div',
+      { class: quiet ? 'load-pad is-dark' : 'load-pad' },
+      'That screen failed to load. Reload the page.',
+    ));
   });
   void key;
 }

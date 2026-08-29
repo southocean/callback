@@ -42,6 +42,31 @@ if (result.errors.length) process.exit(1);
 
 const gz = (buf) => gzipSync(buf, { level: 9 }).length;
 
+/*
+ * boot.js -- its own build, and it has to be. Board ticket N158.
+ *
+ * It is an IIFE rather than an ESM module because it is loaded by a classic
+ * <script> in the head so that it BLOCKS: it decides whether the first paint is
+ * the static home screen or the title card's ground, and a module is deferred,
+ * which would put that decision after the paint it exists to get in front of.
+ * The main bundle is ESM with splitting on, and the two settings cannot coexist
+ * in one esbuild call.
+ *
+ * Its gzipped size joins the entry total below. It is a couple of hundred bytes,
+ * which is exactly why it would be easy to leave out of the budget, and the
+ * budget is only worth anything if it counts everything a visitor is made to
+ * download before the page is usable.
+ */
+await esbuild.build({
+  entryPoints: ['src/boot.ts'],
+  bundle: true,
+  minify: true,
+  format: 'iife',
+  target: 'es2022',
+  outfile: `${OUT}/boot.js`,
+  legalComments: 'none',
+});
+
 const entry = readFileSync(`${OUT}/app.js`);
 
 // Splitting factors shared code into chunks, and most of those are pulled in
@@ -60,7 +85,8 @@ const walk = (file) => {
 walk(`${OUT}/app.js`);
 
 const sizeOf = (file) => gz(readFileSync(file));
-const entryGz = [...staticGraph].reduce((a, f) => a + sizeOf(f), 0);
+const bootGz = sizeOf(`${OUT}/boot.js`);
+const entryGz = [...staticGraph].reduce((a, f) => a + sizeOf(f), bootGz);
 
 const deferred = readdirSync(OUT)
   .filter((f) => f.startsWith('chunk-') && f.endsWith('.js'))
@@ -155,7 +181,8 @@ for (const f of readdirSync('src/assets/fonts')) {
 }
 
 const pct = ((entryGz / BUDGET) * 100).toFixed(1);
-console.log(`initial  ${entryGz} gzip across ${staticGraph.size} file(s)   (${pct}% of ${BUDGET} budget)`);
+console.log(`initial  ${entryGz} gzip across ${staticGraph.size + 1} file(s)   (${pct}% of ${BUDGET} budget)`);
+console.log(`boot     ${bootGz} gzip, blocking in the head so the first screen is the right one`);
 for (const c of deferred) console.log(`deferred ${c.f} — ${c.gz} gzip, fetched only when reached`);
 console.log(`css      ${cssGz} gzip`);
 console.log(`fonts    ${fontBytes} bytes self-hosted woff2 (already compressed)`);

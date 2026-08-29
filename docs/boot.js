@@ -1,0 +1,1 @@
+"use strict";(()=>{if(!location.hash||location.hash==="#"){document.documentElement.className+=" pre-start";let t=document.querySelector('meta[name="theme-color"]');t&&t.setAttribute("content","#0b0b0d")}})();

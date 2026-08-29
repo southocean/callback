@@ -9455,3 +9455,431 @@ body.bug-struck { animation: bug-shake 520ms cubic-bezier(0.36, 0.07, 0.19, 0.97
 @media (prefers-reduced-motion: reduce) {
   .pr-bar i { transition: none; }
 }
+
+/* ==========================================================================
+   THE FRONT DOOR -- board ticket N158
+   ==========================================================================
+
+   The one screen in this build that is not a clone of anything, and the one
+   screen that must not look like one. Nam: "it shouldnt have the same google
+   meet vibe ... very minimalistic yet interestingly artistic."
+
+   So: near black, a system serif for the name, a single hairline accent, and
+   nothing from the Google font stack anywhere on it. That last part is not
+   pedantry. Google Sans on a card explaining that this is not Google would
+   cancel itself out the same way the copy would if it said "not a scam", and it
+   would also mean the first paint of the whole site waiting on a webfont from a
+   third-party CDN for a screen whose entire job is to arrive first.
+
+   THE PALETTE IS FOUR VARIABLES because the canvas reads one of them at runtime
+   (--st-line, in ui/start.ts) and because retuning a title card is exactly the
+   kind of thing that should not require touching TypeScript. */
+
+.start {
+  --st-bg: #0b0b0d;
+  --st-ink: #f2f0ec;
+  --st-dim: #8b8a87;
+  /* The colour every animation draws in. ui/start.ts reads this off the canvas
+     with getComputedStyle, so this declaration is the single source for it. */
+  --st-line: #f2f0ec;
+  --st-accent: #d8b46a;
+  --st-serif: ui-serif, Georgia, "Times New Roman", Times, serif;
+  --st-mono: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+
+  position: relative;
+  min-height: 100dvh;
+  display: grid;
+  place-items: center;
+  padding: 48px 24px 88px;
+  background: var(--st-bg);
+  color: var(--st-ink);
+  overflow: hidden;
+}
+
+/* A very slight vignette, so the animation fades out at the edges rather than
+   being cropped by them. Drawn here instead of in the canvas because a radial
+   gradient in CSS costs nothing per frame and the same thing in canvas costs a
+   composite. */
+.start::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: radial-gradient(120% 90% at 50% 45%, transparent 38%, var(--st-bg) 100%);
+}
+
+/* DRONES IS THE EXCEPTION, and it is the only one -- board ticket N158.
+
+   Seven of the eight animations are textures: they live in the margins, and the
+   scrim below pushes them out of the way of the words, which is what a texture
+   is for. Drones is a SUBJECT. It builds a sphere, a torus, a cube in the middle
+   of the sky, and the middle of the sky is where the copy is -- so the scrim that
+   saves the other seven hid this one almost entirely. The first render came out
+   as four dots in the corners.
+
+   So the pool of dark gets smaller and much softer here, and the corner vignette
+   eases off so a formation the height of the viewport does not fade out at both
+   poles. The copy stays readable because of what this variant is made of: sparse
+   points of light behind text are the one thing that never fights it, which is
+   why every star field ever put behind a title works. */
+.start[data-art="drones"]::after {
+  background: radial-gradient(135% 105% at 50% 50%, transparent 55%, var(--st-bg) 100%);
+}
+
+.start[data-art="drones"] .st-col::before {
+  inset: -26% -34%;
+  /* Stronger in the middle than the first pass, because the pictures moved out
+     to the margins where they belong. What is left in the centre is either a ring
+     framing the copy or a formation on its way somewhere, and neither needs the
+     scrim to get out of its way. */
+  background: radial-gradient(50% 46% at 50% 50%,
+    rgba(11, 11, 13, 0.9) 0%, rgba(11, 11, 13, 0.66) 46%, rgba(11, 11, 13, 0) 100%);
+}
+
+.st-art {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+
+.st-col {
+  position: relative;
+  z-index: 1;
+  max-width: 560px;
+  text-align: center;
+}
+
+/* The copy sits in its own pool of dark.
+
+   Every one of the four animations is full bleed, which is what makes them read
+   as a ground rather than as a widget -- and all four of them crossed the type on
+   the first look. Measure sweeps a hairline through the middle by design, Tiles
+   drifts over whatever is there, and Signal drew its line straight behind the one
+   sentence about cameras and microphones, which is the one sentence on the screen
+   that has to be readable at a glance.
+
+   A radial rather than a panel, and no border: the animation should look as
+   though it is passing BEHIND something, not as though it stops at a box. Sized
+   past the column on both axes so the falloff finishes off screen rather than
+   drawing a visible edge. */
+.st-col::before {
+  content: "";
+  position: absolute;
+  z-index: -1;
+  /* Much larger than the column, and the first pass was not. A scrim sized to
+     the text reaches only about a quarter opacity by the time it gets to the
+     corners of the block, which measured out at 27% over the second lane button
+     -- so the art still crossed the copy and the scrim was doing nothing but
+     costing a paint. Sized past the copy on both axes it stops being a patch
+     behind the words and becomes what it should have been from the start: the
+     art lives in the margins and the middle belongs to the type. */
+  inset: -42% -58%;
+  pointer-events: none;
+  background: radial-gradient(62% 58% at 50% 50%,
+    rgba(11, 11, 13, 0.95) 0%, rgba(11, 11, 13, 0.88) 48%, rgba(11, 11, 13, 0) 100%);
+}
+
+/* --- the type ------------------------------------------------------------- */
+
+.st-eyebrow {
+  margin: 0 0 22px;
+  font: 500 11px/1 var(--st-mono);
+  letter-spacing: 0.28em;
+  text-transform: uppercase;
+  color: var(--st-accent);
+}
+
+.st-name {
+  margin: 0;
+  font: 300 clamp(46px, 9vw, 92px) / 1.02 var(--st-serif);
+  letter-spacing: -0.025em;
+  /* Two words, so this only ever matters at the narrowest widths -- and there it
+     is the difference between a name and a name with an orphan under it. */
+  text-wrap: balance;
+}
+
+.st-sub {
+  margin: 20px auto 0;
+  max-width: 42ch;
+  font: 400 16.5px/1.6 var(--st-serif);
+  color: var(--st-ink);
+  opacity: 0.82;
+  /* Left to itself this broke as "...from a measured / spec of Google Meet",
+     which splits the one noun phrase carrying the whole claim. Balanced rather
+     than hand-tuned with a max-width in ch, because the copy is company-dependent
+     and a measure tuned to one sentence is a measure that breaks on the next. */
+  text-wrap: balance;
+}
+
+/* The reassurance, set as the quietest thing on the screen. Deliberate: it has
+   to be READ, not announced. A pill or a banner around this would make safety
+   the subject of the page, and a page whose subject is its own safety is the one
+   shape a suspicious reader already distrusts. */
+.st-calm {
+  /* THE RULE ABOVE THIS IS GONE, and it was the only real line in the layout. It
+     read as a divider on a blank ground and as damage on a busy one -- Nam, on
+     Tiles: "the tiles have the line in the middle of the screen cutting through
+     them not in the most flattering way". A hairline drawn across an animation
+     made of hairlines is not a separator, it is a seam. Space does the same job
+     and cannot collide with anything. */
+  margin: 34px auto 0;
+  /* NO MEASURE OF ITS OWN. The column is 560px and the longest sentence here
+     sets to about 534px, so the column is already the right bound -- and a ch
+     measure on top of it was the wrong bound twice: 44ch broke this into three
+     ragged lines mid-phrase, and 68ch was still four characters short of holding
+     the first sentence. Each sentence is its own block, so what is needed is
+     room to wrap honestly, not a number to tune. */
+  font: 400 12.5px/1.7 var(--st-mono);
+  letter-spacing: 0.01em;
+  color: var(--st-dim);
+}
+
+.st-calm span { display: block; }
+
+/* --- the one button ------------------------------------------------------ */
+
+/* It was two side by side, a walkthrough lane and a look-around lane. Nam cut
+   the second: a choice about narration belongs in the room where the narration
+   happens, not in front of somebody who has not seen anything yet.
+
+   What is left is centred and sized to its own text rather than stretched, which
+   is the difference between a button and a bar. A single full-width control on a
+   title card reads as a form field waiting to be filled in. */
+.st-acts {
+  display: flex;
+  justify-content: center;
+  margin: 36px 0 0;
+}
+
+.st-go {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  padding: 15px 34px;
+  border: 1px solid var(--st-accent);
+  border-radius: 3px;
+  background: rgba(216, 180, 106, 0.09);
+  color: var(--st-ink);
+  font: inherit;
+  text-align: center;
+  cursor: pointer;
+  transition: border-color 160ms ease, background-color 160ms ease, transform 160ms ease;
+}
+
+.st-go:hover { background: rgba(216, 180, 106, 0.17); }
+.st-go:active { transform: translateY(1px); }
+
+/* On :focus-visible only. This is the first thing a keyboard reaches on the whole
+   site, and it is autofocused, so a permanent ring would greet every visitor with
+   an outline -- which is the fastest way to make a title card look unfinished. */
+.st-go:focus-visible {
+  outline: 2px solid var(--st-accent);
+  outline-offset: 3px;
+}
+
+/* The word, in the display face, and big. Nam: "I want the Start text much
+   bigger." He is right and it is not only emphasis -- this is the only thing on
+   the card you are meant to do, and at 17px it was the same weight as the copy
+   around it. At 30px it is the second voice on the screen after the name, which
+   is the correct hierarchy for a page with exactly two things on it.
+
+   Serif, like everything else here. A button that reached for a UI sans would be
+   the one element on the card that looked like software. */
+.st-go-t {
+  font: 400 30px/1.15 var(--st-serif);
+  letter-spacing: 0.005em;
+}
+
+/* The commitment, in the accent, because it is the half somebody actually needs
+   before they press: ten minutes is not a trap. */
+.st-go-s {
+  margin-top: 2px;
+  font: 400 11.5px/1.45 var(--st-mono);
+  color: rgba(216, 180, 106, 0.8);
+}
+
+/* The footnote, and it is set like one. Nam's line, qualifying the ten minutes
+   with what actually happens to anyone who takes to this. It has to be smaller
+   and quieter than the promise it qualifies -- a caveat louder than its promise
+   stops being a caveat and starts being a warning. */
+.st-go-f {
+  font: 400 9.5px/1.4 var(--st-mono);
+  letter-spacing: 0.02em;
+  color: rgba(216, 180, 106, 0.42);
+}
+
+/* --- the way out --------------------------------------------------------- */
+
+/* One link now, where there were three. The other two opened Meet-styled panels
+   in light mode, which is the Google surface arriving a screen early on the one
+   screen that exists to not be it; the argument is in ui/start.ts.
+
+   This one is an anchor with a download attribute, so it has no theme to get
+   wrong -- and it is what the only real tester of this CV reached for first. */
+.st-links {
+  margin: 22px 0 0;
+  font: 400 12.5px/1.7 var(--st-mono);
+  color: var(--st-dim);
+}
+
+.st-links a {
+  color: var(--st-dim);
+  text-decoration: none;
+  border-bottom: 1px solid rgba(139, 138, 135, 0.35);
+  padding-bottom: 1px;
+}
+
+.st-links a:hover {
+  color: var(--st-ink);
+  border-bottom-color: var(--st-ink);
+}
+
+.st-links a:focus-visible {
+  outline: 2px solid var(--st-accent);
+  outline-offset: 2px;
+  border-bottom-color: transparent;
+}
+
+/* --- the picker, which is temporary -------------------------------------- */
+
+/* Four animations ship so Nam can choose between them at the real size. This
+   control and the three he does not pick come out together -- the ticket says so,
+   and so does the chunk size. */
+.st-pick {
+  position: absolute;
+  z-index: 2;
+  bottom: 20px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  gap: 4px;
+}
+
+.st-pick-b {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 7px 12px;
+  border: 1px solid rgba(242, 240, 236, 0.13);
+  border-radius: 3px;
+  background: none;
+  color: var(--st-dim);
+  font: 400 11px/1 var(--st-mono);
+  letter-spacing: 0.06em;
+  cursor: pointer;
+  transition: color 140ms ease, border-color 140ms ease;
+}
+
+.st-pick-b:hover { color: var(--st-ink); border-color: rgba(242, 240, 236, 0.34); }
+.st-pick-b.is-on { color: var(--st-accent); border-color: rgba(216, 180, 106, 0.5); }
+.st-pick-b:focus-visible { outline: 2px solid var(--st-accent); outline-offset: 2px; }
+
+.st-pick-n { opacity: 0.45; }
+.st-pick-b.is-on .st-pick-n { opacity: 0.8; }
+
+/* The programme row, which belongs to Drones and appears with it. Sitting above
+   the variant row rather than below it, because it is a property OF the thing
+   selected there and reading order should say so. Hidden rather than removed:
+   switching variants should not make the bar under the card change height. */
+.st-themes {
+  position: absolute;
+  z-index: 2;
+  bottom: 58px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: none;
+  gap: 4px;
+}
+
+.st-themes.is-on { display: flex; }
+
+.st-theme-b {
+  padding: 6px 11px;
+  border: 1px solid rgba(242, 240, 236, 0.1);
+  border-radius: 3px;
+  background: none;
+  color: rgba(139, 138, 135, 0.8);
+  font: 400 10.5px/1 var(--st-mono);
+  letter-spacing: 0.06em;
+  cursor: pointer;
+  transition: color 140ms ease, border-color 140ms ease;
+}
+
+.st-theme-b:hover { color: var(--st-ink); border-color: rgba(242, 240, 236, 0.3); }
+.st-theme-b.is-on { color: var(--st-accent); border-color: rgba(216, 180, 106, 0.45); }
+.st-theme-b:focus-visible { outline: 2px solid var(--st-accent); outline-offset: 2px; }
+
+/* The loading pad, on the dark ground. main.ts mounts the title card without a
+   spinner, and the failure message it can put there instead inherits the body ink
+   -- #1f1f1f on #0b0b0d, which is a screen that failed to load AND failed to say
+   so. */
+.load-pad.is-dark { background: #0b0b0d; color: #f2f0ec; }
+
+/* --- arrival ------------------------------------------------------------- */
+
+/* The card rises into a ground that is already painted, which is why there is no
+   fade on the background: html.pre-start in the critical CSS has been showing
+   --st-bg since before the bundle arrived, so this animates the CONTENT onto a
+   stage rather than animating a whole page in from white. See src/boot.ts.
+
+   Staggered, and the stagger is the whole effect. Six elements arriving together
+   is a page loading; six arriving in sequence over half a second is a title
+   card. */
+@keyframes st-rise {
+  from { opacity: 0; transform: translateY(14px); }
+  to { opacity: 1; transform: none; }
+}
+
+.st-col > * {
+  animation: st-rise 620ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.st-col > .st-name { animation-delay: 90ms; }
+.st-col > .st-sub { animation-delay: 200ms; }
+.st-col > .st-calm { animation-delay: 320ms; }
+.st-col > .st-acts { animation-delay: 430ms; }
+.st-col > .st-links { animation-delay: 540ms; }
+
+.st-art {
+  animation: st-fade 1600ms ease both;
+}
+
+.st-pick {
+  animation: st-fade 900ms ease 900ms both;
+}
+
+@keyframes st-fade {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+/* Narrow: the name gives up some of its tracking, because negative
+   letter-spacing on a wrapped serif line reads as a rendering fault rather than
+   as a choice. */
+@media (max-width: 599px) {
+  .start { padding: 32px 20px 84px; }
+  .st-name { letter-spacing: -0.015em; }
+  /* Two rows of two, so four labels do not run off a phone. */
+  .st-pick { flex-wrap: wrap; justify-content: center; max-width: calc(100% - 32px); }
+  /* Both rows wrap, and the programme row has to clear whatever the variant row
+     grew to. Measured rather than guessed is not available here -- it depends on
+     how many buttons each row has, which is temporary -- so the card simply gets
+     more room at the bottom while the pickers exist. */
+  .st-themes { bottom: auto; top: 8px; flex-wrap: wrap; max-width: calc(100% - 32px); justify-content: center; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  /* The stagger is the one thing on this screen that is purely decorative, so it
+     is the one thing that goes. The animation behind it does not: it draws a
+     single still frame instead, which is the rule the rest of this build follows
+     -- less movement, not less content. */
+  .st-col > *,
+  .st-art,
+  .st-pick {
+    animation: none;
+  }
+  .st-go, .st-pick-b { transition: none; }
+}

@@ -394,7 +394,19 @@ export function storedCount(key: string): number {
     const v = JSON.parse(raw) as unknown;
     return Array.isArray(v) ? v.length : 1;
   } catch {
-    return 0;
+    /*
+     * Not every record is JSON. N158 introduced the first keys that are bare
+     * strings rather than arrays, and a throw here used to report them as EMPTY:
+     * a Settings row for a key that is set, offering to forget nothing, with a
+     * button that looks inert.
+     *
+     * No row hits this path today -- the front-door key parses as a number by
+     * luck, and the variant key is not forgettable -- so this is a correctness
+     * fix rather than a bug report. A key that exists holds one thing whether or
+     * not it happens to be valid JSON, and the alternative is a counter that is
+     * wrong and waiting for the next non-array preference to prove it.
+     */
+    return 1;
   }
 }
 
@@ -568,4 +580,61 @@ export function foundAll(): { quests: string[]; quips: string[]; bugs: string[];
     bugs: read('callback.bugs'),
     eggs: seenEggs(),
   };
+}
+
+// ---------------------------------------------------------------------------
+// THE FRONT DOOR -- board ticket N158
+// ---------------------------------------------------------------------------
+
+/**
+ * Which title-card animation is showing.
+ *
+ * TEMPORARY, and the ticket says so. Four variants ship so Nam can choose on the
+ * real screen at the real size rather than from four descriptions, and three of
+ * them come out afterwards along with the picker and this key. It is stored
+ * rather than held in memory because choosing between four animations means
+ * reloading and looking again, and a choice that does not survive the reload
+ * cannot be compared against the thing it is competing with.
+ */
+const VARIANT_KEY = 'callback.startart';
+
+export function loadVariant(): string | null {
+  try {
+    return localStorage.getItem(VARIANT_KEY);
+  } catch {
+    return null;
+  }
+}
+
+export function saveVariant(id: string): void {
+  try {
+    localStorage.setItem(VARIANT_KEY, id);
+  } catch {
+    /* ignore */
+  }
+}
+
+/**
+ * Which drone-show programme is running.
+ *
+ * Same argument as the variant key above and the same expiry: it is a choice
+ * being made at the real size on the real screen, it has to survive the reload
+ * that comparing two of them requires, and it goes when Nam has picked.
+ */
+const THEME_KEY = 'callback.startheme';
+
+export function loadTheme(): string | null {
+  try {
+    return localStorage.getItem(THEME_KEY);
+  } catch {
+    return null;
+  }
+}
+
+export function saveTheme(id: string): void {
+  try {
+    localStorage.setItem(THEME_KEY, id);
+  } catch {
+    /* ignore */
+  }
 }

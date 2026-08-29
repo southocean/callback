@@ -57,6 +57,15 @@
   .ms{font-family:'Material Symbols Outlined';font-weight:normal;line-height:1;display:inline-block;
       white-space:nowrap;direction:ltr;font-feature-settings:'liga';flex:0 0 auto;user-select:none;
       -webkit-font-smoothing:antialiased}
+  /* THE FRONT DOOR, decided before anything paints -- board ticket N158.
+     src/boot.js puts .pre-start on <html> when this is a first visit to a bare
+     URL. Without these two lines the page paints the static home screen and then
+     replaces it with a card explaining that this is not Google Meet, which on a
+     slow connection is two seconds of exactly the ambush the card exists to
+     remove. No copy is duplicated here: this paints the GROUND, and ui/start.ts
+     is still the only place the card itself is written. */
+  html.pre-start #static-home{display:none}
+  html.pre-start body{background:#0b0b0d}
   .skip{position:absolute;left:-9999px;top:0;z-index:200;background-color:var(--blue);color:#fff;padding:10px 18px;border-radius:0 0 8px 0;font-weight:500;text-decoration:none}
   .skip:focus{left:0}
   .home{min-height:100%;display:flex;flex-direction:column}
@@ -123,6 +132,15 @@
   }
 </style>
 <link rel="stylesheet" href="styles.css">
+
+<!-- One decision, and it has to be made before the body paints: is this a first
+     visit to a bare URL, in which case the title card is the first screen. It is
+     a FILE and not an inline script because the CSP above is script-src self with
+     no unsafe-inline, and weakening that to save a request would trade a real
+     defence for a small convenience. It is a classic script and not a module so
+     that it blocks -- a module is deferred, which would put it after the paint it
+     exists to get in front of. See src/boot.ts. -->
+<script src="boot.js"></script>
 
 <!-- Critical CSS, inlined: the first screen paints before the bundle arrives,
      and it paints with JavaScript disabled. Values are Meet's own, measured. -->
