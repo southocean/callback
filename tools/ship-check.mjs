@@ -59,6 +59,14 @@ const ABSENT = [
     text: 'fact-only, no superlatives',
     why: 'N130 shortened the referral intro.',
   },
+  {
+    text: 'awkward administrative things',
+    why: 'N142 removed the host panel’s explanation of itself.',
+  },
+  {
+    text: 'Print this page for a one-page PDF',
+    why: 'N143 removed the CV footer. The page still prints as a one-pager; it no longer says so.',
+  },
 ];
 
 const PRESENT = [

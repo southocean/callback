@@ -34,7 +34,7 @@ import { sample } from '../net/degrade.js';
 import type { Profile } from '../net/degrade.js';
 import type { Quests } from '../achievements.js';
 import type { Bugs } from '../bugs.js';
-import { noteReadyShown, noteReadyClosed, markEggSeen, recordInterview, clockMs } from '../prefs.js';
+import { markEggSeen, recordInterview, clockMs } from '../prefs.js';
 import type { Clock, TourHandle } from '../tour/stage.js';
 import { progressNow } from './progress.js';
 import { startMeeting, noteSaid } from './record.js';
@@ -878,11 +878,154 @@ export function renderCall(store: Store, quests: Quests, deps: CallDeps, bugs: B
   const toolsBtn = named(sideBtn('Meeting tools', 'apps', 'tools'), 'tools');
   const hostBtn = named(sideBtn('Host controls', 'lock_person', 'host'), 'host');
 
-  const questLine = h('div', {});
+  /**
+   * HOW FAR THROUGH THE CONVERSATION THIS IS -- board ticket N147.
+   *
+   * This corner used to hold "Side quests 12/17" and a link into the spec panel,
+   * and it was arguing against the thing standing next to it. Nam: "remove it.
+   * Instead, I want to show the progress of the interview as a progress bar, so
+   * user can see that we are making progress in the interview, which helps them
+   * tolerate the urge to click around."
+   *
+   * That is the whole design brief and it is a good one. A quest counter under a
+   * person who is mid sentence is an invitation to go hunting; the entire
+   * adaptive layer in tour/stage.ts exists to cope with visitors who take it. A
+   * progress bar makes the opposite argument with less copy: this is finite, and
+   * you are already part of the way through.
+   *
+   * IT DRAWS NOTHING UNTIL THE TOUR REPORTS. A call opened on an easter-egg clip
+   * has no conversation in it (see the guard on startTour below), and a bar
+   * sitting at 0 of 6 in front of somebody watching a stand-up clip would be
+   * promising a thing that is not going to happen.
+   */
+  const ivLabel = h('span', { class: 'ivp-label' }, '') as HTMLElement;
+  const ivCount = h('span', { class: 'ivp-n' }, '') as HTMLElement;
+  const ivTrack = h('span', { class: 'ivp-track' }) as HTMLElement;
+  const ivBar = h(
+    'div',
+    {
+      class: 'ivp', hidden: true,
+      role: 'progressbar', 'aria-valuemin': '0', 'aria-valuenow': '0', 'aria-valuemax': '6',
+    },
+    h('span', { class: 'ivp-head' }, ivLabel, ivCount),
+    ivTrack,
+  ) as HTMLElement;
+
+  /**
+   * ONE SEGMENT PER SECTION, FILLED BY THE CLOCK -- board ticket N155.
+   *
+   * The first version stepped once per part, six times in three minutes, which
+   * meant the bar was motionless for thirty seconds at a stretch. Nam: "I want
+   * the progress update on each caption line instead of on the parts. 1 of 6 is
+   * still nice to have, but that shouldnt be the driver of the progress bar."
+   *
+   * So the section count is still what the bar is DIVIDED into, and authored time
+   * is what moves it. The stage hands over both: how many sections are behind us,
+   * and how far through the one being spoken -- see TourProgress.within, which is
+   * measured in milliseconds precisely so that skipping a line still advances it.
+   *
+   * SEGMENTS ARE EQUAL WIDTH, and the time is measured within a section rather
+   * than against one clock for the whole script. Nam described the position as
+   * "section 2.5", and that sentence is only legible when the dividers land at
+   * regular intervals: two and a half of six is readable at a glance off a 168px
+   * bar. Sizing each segment by its section's duration would be more literally a
+   * measure of total time remaining, and would produce six irregular marks that
+   * read as decoration rather than as structure.
+   *
+   * A FINISHED SECTION KEEPS A DIFFERENT COLOUR, and lights once as it lands.
+   * Nam: "as we completely filled up one section, we run the bar to fill that
+   * section with a different color, once filled it pulses once ... and then the
+   * color stays there." The sequence falls out of the data without being
+   * choreographed: the section's last line takes `within` to 1, so the segment is
+   * already full when `done` goes up a moment later and turns it. All the drawing
+   * has to add is the flash.
+   */
+  /**
+   * How long `is-lit` stays on, and it is NOT the length of the animation.
+   *
+   * The landing waits 700ms for the fill to reach a hundred per cent and for a
+   * beat of stillness after it, then runs for 620 (N162). Both numbers live in
+   * styles.css as the delay and duration of ivp-ripple and ivp-land; this is the
+   * one place script has to agree with them, so it is a named constant with the
+   * sum written down rather than a magic number at the call site.
+   */
+  const IVP_LIT_MS = 1400;
+  const ivSegs: HTMLElement[] = [];
+  let ivTotal = 0;
+  let ivDone = 0;
+
+  const drawProgress = (p: { phase: 1 | 2; done: number; total: number; within: number }): void => {
+    ivBar.hidden = false;
+    ivBar.dataset['phase'] = String(p.phase);
+    ivLabel.textContent = p.phase === 1 ? 'The walkthrough' : 'The questions';
+    ivCount.textContent = `${p.done} of ${p.total}`;
+
+    // Rebuilt only when the number of sections changes, which happens once a
+    // visit: six for the walkthrough, eight for the questions.
+    if (p.total !== ivTotal) {
+      ivTotal = p.total;
+      ivDone = 0;
+      clear(ivTrack);
+      ivSegs.length = 0;
+      ivTrack.style.setProperty('--n', String(p.total));
+      for (let i = 0; i < p.total; i += 1) {
+        const fill = h('i', { class: 'ivp-fill' }) as HTMLElement;
+        const seg = h('span', { class: 'ivp-seg' }, fill) as HTMLElement;
+        ivSegs.push(seg);
+        ivTrack.appendChild(seg);
+      }
+    }
+
+    for (let i = 0; i < ivSegs.length; i += 1) {
+      const seg = ivSegs[i]!;
+      const fill = seg.firstElementChild as HTMLElement;
+      const behind = i < p.done;
+      seg.classList.toggle('is-done', behind);
+      fill.style.width = behind ? '100%' : i === p.done ? `${Math.round(p.within * 1000) / 10}%` : '0%';
+    }
+
+    /*
+     * The landing, on exactly the segments that just finished. A range rather
+     * than one index because `done` can move by more than one: the visitor
+     * opening three sections themselves marks all three played at once, and
+     * lighting only the last of them would be a worse lie than lighting none.
+     *
+     * The class is taken off afterwards so the same segment can land again in a
+     * second phase, and so a segment that is merely finished is not carrying a
+     * spent animation for the rest of the visit. `is-done` is what holds the
+     * colour once `is-lit` goes; see .ivp-seg.is-done::after.
+     *
+     * LIT_MS has to outlast the DELAY PLUS the animation, or the class is pulled
+     * off mid-ripple and the segment snaps back to the live colour for a frame
+     * before .is-done catches it. 700 + 620, rounded up to 1400 (N162).
+     */
+    if (p.done > ivDone) {
+      for (let i = ivDone; i < p.done && i < ivSegs.length; i += 1) {
+        const seg = ivSegs[i]!;
+        seg.classList.remove('is-lit');
+        // Reading offsetWidth between the two is what makes a repeat restart the
+        // animation rather than being coalesced into no change at all.
+        void seg.offsetWidth;
+        seg.classList.add('is-lit');
+        window.setTimeout(() => seg.classList.remove('is-lit'), IVP_LIT_MS);
+      }
+    }
+    ivDone = p.done;
+
+    ivBar.setAttribute('aria-valuenow', String(p.done));
+    ivBar.setAttribute('aria-valuemax', String(p.total));
+    // The one thing a screen reader cannot get from the numbers alone is which
+    // of the two runs they are counting. `within` is deliberately NOT announced:
+    // it moves every few seconds, and a live region reciting a percentage over a
+    // person who is talking is the opposite of an accessible readout.
+    ivBar.setAttribute('aria-label',
+      `${p.phase === 1 ? 'The walkthrough' : 'The interview questions'}, ${p.done} of ${p.total}`);
+  };
+
   const bar = h(
     'div',
     { class: 'bar' },
-    h('div', { class: 'bar-left' }, questLine),
+    h('div', { class: 'bar-left' }, ivBar),
     h(
       'div',
       { class: 'bar-group', 'aria-label': 'Call controls', role: 'group' },
@@ -892,18 +1035,6 @@ export function renderCall(store: Store, quests: Quests, deps: CallDeps, bugs: B
     ),
     h('div', { class: 'bar-right' }, chatBtn, toolsBtn, hostBtn),
   );
-
-  const drawQuests = (): void => {
-    const { got, total } = quests.count();
-    clear(questLine);
-    questLine.append(
-      h('span', {}, `Side quests ${got}/${total}`),
-      h('button', { type: 'button', onclick: () => store.dispatch({ t: 'engTab', tab: 'spec' }) },
-        got === total ? 'all done, see the main quest' : 'see the list'),
-    );
-  };
-  drawQuests();
-  quests.subscribe(drawQuests);
 
   // ------------------------------------------------------------- top bar ----
 
@@ -1038,7 +1169,17 @@ export function renderCall(store: Store, quests: Quests, deps: CallDeps, bugs: B
   const countWrap = h('div', { class: 'count-wrap' }, countChip) as HTMLElement;
   const addPeople = h('button', { class: 'pop-primary', type: 'button' }, 'Add people') as HTMLButtonElement;
   ripple(addPeople);
-  addPeople.addEventListener('click', () => store.dispatch({ t: 'readyCard', on: true }));
+  /*
+   * N153. Both this and the Meeting details glyph used to open the "Your
+   * meeting's ready" card. That card is gone, and its two pieces of content --
+   * the referral note with its Copy button, and the copyable link -- were always
+   * also in Host controls, under headings that say what they are for. So the
+   * controls keep working and point at the one place that still holds the thing
+   * they promise. "Add people" landing on the referral note is the closest this
+   * build has to adding somebody: there is nobody to invite, and the paragraph a
+   * referrer has to write is the real version of that action.
+   */
+  addPeople.addEventListener('click', () => store.dispatch({ t: 'panel', panel: 'host' }));
   const allMuted = h('button', { type: 'button' }, 'All muted') as HTMLButtonElement;
   const hostCtl = h('button', { type: 'button' }, 'Host controls') as HTMLButtonElement;
   ripple(allMuted); ripple(hostCtl);
@@ -1171,7 +1312,9 @@ export function renderCall(store: Store, quests: Quests, deps: CallDeps, bugs: B
     h('span', { class: 'call-code' }, CODE),
     h(
       'button',
-      { class: 'icon-btn on-dark', type: 'button', 'aria-label': 'Meeting details', onclick: () => store.dispatch({ t: 'readyCard', on: true }) },
+      // N153, with Add people above: Host controls is where the meeting's
+      // details now live, and where they always also lived.
+      { class: 'icon-btn on-dark', type: 'button', 'aria-label': 'Meeting details', onclick: () => store.dispatch({ t: 'panel', panel: 'host' }) },
       // 17px, which is what Meet's own info glyph measured inside this 29x29
       // button. Ours was 20, and at that size a 29px circle leaves 4.5px of ring
       // where the original leaves 6 -- centred correctly since the UA padding fix,
@@ -1181,153 +1324,6 @@ export function renderCall(store: Store, quests: Quests, deps: CallDeps, bugs: B
     h('div', { class: 'call-top-right' }, presChip, handWrap, netChip, countWrap),
   );
 
-  // ------------------------------------------------- "meeting's ready" card --
-
-  // Reaching the call screen with the card armed IS the automatic open, so this
-  // is where it gets counted. The view is built once per join — render() returns
-  // early for an already-mounted call — so one arrival is one show, and going
-  // home and joining again counts as the second one it is.
-  //
-  // Deliberately NOT counted: the two buttons below that open the card on
-  // request (Meeting details, and Add people). Asking to see it is not the same
-  // event as being shown it unprompted, and only the unprompted one is annoying.
-  if (store.get().readyCard) noteReadyShown();
-
-  /**
-   * THE SHARE SHEET CLOSES ITSELF, AND SAYS SO.
-   *
-   * Nam: "we have the share this meeting window - we auto close this in 8sec -
-   * add some kind of indicator that its auto closing, and pause this timer if
-   * user hovers on it."
-   *
-   * Eight seconds is long enough to read the link and short enough that it stops
-   * being the first thing in the way of the call. The indicator matters more than
-   * the timer: a panel that vanishes on its own with no warning reads as a bug,
-   * and the same panel with a draining ring reads as considerate.
-   *
-   * Hover pauses BOTH halves. The ring pauses via animation-play-state in CSS;
-   * this pauses the count. Doing only the first would leave a frozen ring over a
-   * card that closed anyway, which is worse than not pausing at all.
-   */
-  const READY_MS = 8000;
-  const RC_R = 9.5;
-  const RC_C = 2 * Math.PI * RC_R;
-
-  const readyCountdown = (onDone: () => void): HTMLElement => {
-    const ns = 'http://www.w3.org/2000/svg';
-    const svg = document.createElementNS(ns, 'svg');
-    svg.setAttribute('viewBox', '0 0 22 22');
-    svg.setAttribute('aria-hidden', 'true');
-    const arc = document.createElementNS(ns, 'circle');
-    arc.setAttribute('cx', '11');
-    arc.setAttribute('cy', '11');
-    arc.setAttribute('r', String(RC_R));
-    arc.setAttribute('class', 'rc-arc');
-    svg.appendChild(arc);
-
-    const label = h('span', {}, 'Closing in 8s');
-    const wrap = h('div', { class: 'ready-count' }, svg as unknown as Node, label) as HTMLElement;
-    /*
-     * IN PIXELS. The same trap as the ended screen's ring: a unitless custom
-     * property inside calc() stays a <number>, so the keyframe never resolves to
-     * a length and Chrome falls back to a two-frame discrete animation. That one
-     * cost a QA session; it is not costing another.
-     */
-    wrap.style.setProperty('--rc', RC_C + 'px');
-    wrap.style.setProperty('--rc-dur', READY_MS + 'ms');
-
-    let left = READY_MS;
-    let last = Date.now();
-    let paused = false;
-    const tick = window.setInterval(() => {
-      if (!wrap.isConnected) { window.clearInterval(tick); return; }
-      const now = Date.now();
-      if (!paused) left -= now - last;
-      last = now;
-      label.textContent = paused ? 'Paused' : `Closing in ${Math.max(0, Math.ceil(left / 1000))}s`;
-      if (left <= 0) { window.clearInterval(tick); onDone(); }
-    }, 200);
-
-    /*
-     * Bound to the CARD rather than to the ring: the whole panel is what a reader
-     * trying to read the link will actually be hovering. Deferred a tick because
-     * the card does not exist yet when this runs -- this element is one of its
-     * children being built.
-     */
-    window.setTimeout(() => {
-      const card = wrap.closest('.ready');
-      card?.addEventListener('pointerenter', () => { paused = true; });
-      card?.addEventListener('pointerleave', () => { paused = false; });
-    }, 0);
-
-    return wrap;
-  };
-
-  const readyHost = h('div', {});
-  const drawReady = (): void => {
-    clear(readyHost);
-    if (!store.get().readyCard) return;
-    readyHost.appendChild(
-      h(
-        'div',
-        { class: 'ready', role: 'region', 'aria-label': "Your meeting's ready" },
-        h(
-          'button',
-          {
-            class: 'icon-btn',
-            type: 'button',
-            'aria-label': 'Close',
-            onclick: () => {
-              // Closing it is the clearest signal there is: mute for an hour.
-              noteReadyClosed();
-              store.dispatch({ t: 'readyCard', on: false });
-            },
-          },
-          sym('close', 20),
-        ),
-        h('h2', {}, "Your meeting's ready"),
-        h(
-          'button',
-          {
-            class: 'm-btn m-filled',
-            type: 'button',
-            onclick: () => {
-              void navigator.clipboard?.writeText(referralBlurb + SITE).then(
-                () => toast('Copied', 'A fact-only referral paragraph, ready to paste into the form.'),
-                () => toast('Clipboard blocked', 'It is in Host controls too, where you can select it by hand.'),
-              );
-              quests.unlock('host');
-            },
-          },
-          sym('person_add', 18),
-          'Copy the referral note',
-        ),
-        h('p', { style: 'margin-top:14px' }, 'Or share this link with anyone who should see it'),
-        readyCountdown(() => store.dispatch({ t: 'readyCard', on: false })),
-        h(
-          'div',
-          { class: 'ready-link' },
-          h('span', {}, SITE.replace(/^https?:\/\//, '')),
-          h(
-            'button',
-            {
-              class: 'icon-btn',
-              type: 'button',
-              'aria-label': 'Copy link',
-              onclick: () => { void navigator.clipboard?.writeText(SITE); toast('Link copied', ''); },
-            },
-            sym('content_copy', 20),
-          ),
-        ),
-        h(
-          'div',
-          { class: 'ready-fine' },
-          sym('shield', 18),
-          h('p', {}, 'Nothing here is uploaded and there is no backend. Open the Network tab and watch nothing happen.'),
-        ),
-      ),
-    );
-  };
 
   // ------------------------------------------------------ toasts, menus ----
 
@@ -1404,16 +1400,13 @@ export function renderCall(store: Store, quests: Quests, deps: CallDeps, bugs: B
     card.style.setProperty('--tail', `${tail}px`);
   }
 
-  function toast(title: string, body: string): void {
-    const el = h(
-      'div',
-      { class: 'snack', role: 'status' },
-      h('div', {}, h('b', {}, title), body ? h('span', {}, body) : null),
-      h('button', { type: 'button', onclick: () => el.remove() }, 'Dismiss'),
-    );
-    layer.appendChild(el);
-    window.setTimeout(() => el.remove(), 6000);
-  }
+  /*
+   * `toast()` used to live here, and its only two callers were the ready card's
+   * two Copy buttons (N153). The card's copy actions have a home in Host
+   * controls, where the button relabels itself to "Copied" in place rather than
+   * throwing a snack bar across the call, so nothing needed the helper once the
+   * card went. `.snack` went with it.
+   */
 
   /**
    * Reactions, and this is the one Nam asked about directly. Measured on the
@@ -2064,7 +2057,6 @@ export function renderCall(store: Store, quests: Quests, deps: CallDeps, bugs: B
     // hides it rather than silencing a second voice. See the note above.
 
     if (s.chaos) quests.unlock('chaos');
-    drawReady();
   };
 
   store.subscribe(() => { sync(); drawPanel(); });
@@ -2092,7 +2084,6 @@ export function renderCall(store: Store, quests: Quests, deps: CallDeps, bugs: B
     trayWrap,
     shareHost,
     bar,
-    readyHost,
     reactClip,
     layer,
   );
@@ -2222,6 +2213,10 @@ export function renderCall(store: Store, quests: Quests, deps: CallDeps, bugs: B
           stayed: () => quests.unlock('stayed'),
           // The tease counts the real ones (N67), and it is the app that knows.
           bugsLeft: () => { const c = bugs.count(); return c.total - c.got; },
+          // N147. The stage owns the phase and the count; the bar owns nothing
+          // but the drawing, which is why it can sit in the control bar without
+          // the control bar knowing what a part is.
+          progress: drawProgress,
         });
       });
     }, 1000);
@@ -2251,11 +2246,45 @@ export function interviewClock(): Clock | null {
   return tour?.clock() ?? null;
 }
 
-/** Leaving the call ends the tour with it. Called from main.ts on leave. */
-export function stopTour(): void {
+/**
+ * LEAVING THE CALL PUTS THE ROOM BACK -- board ticket N154.
+ *
+ * Called from main.ts the moment the screen stops being the call. It used to be
+ * `stopTour` and to do only the first half of what its name now says.
+ *
+ * Nam found the second half missing: "if I end the meeting and rejoin the
+ * meeting, the meeting starts with my video tile in the state as if we are
+ * sharing screen - but we havent hit the screen sharing yet ... Make sure any
+ * subsequent joining of the meeting get the meeting in the same state as the
+ * first time we join."
+ *
+ * THE CALL KEEPS TWO KINDS OF STATE and only one of them was being reset.
+ *
+ *   In the STORE: panel, camera, mic, hand, pinned, minimized. The leave reducer
+ *   clears these, and sync() writes them back onto the body on the way in. These
+ *   were never the problem, and they are listed below anyway -- see why.
+ *
+ *   On the BODY, outside the store: `presenting` is added by startShare and
+ *   removed by stopShare, and leaving calls neither. So the class outlives the
+ *   view that set it, and the next join renders a fresh full-stage tile into a
+ *   stylesheet that still believes a share is running: the tile snaps to its
+ *   235x132 presenting corner with nothing behind it, which is exactly what he
+ *   saw. `tray-open` and `set-open` are the same shape and had not been caught
+ *   yet -- both would have left the next call's caption band lifted by 52px for
+ *   a tray that is not there.
+ *
+ * So the list is EVERY class the call writes, including the ones sync() would
+ * have corrected anyway. A teardown that clears the leaky ones and trusts the
+ * rest is a teardown that has to be re-audited every time somebody adds a class,
+ * and the difference in cost is six tokens.
+ */
+export function leaveCall(): void {
   tour?.stop();
   tour = null;
   tourStarted = false;
+  document.body.classList.remove(
+    'presenting', 'tray-open', 'set-open', 'has-panel', 'is-pinned', 'is-min', 'cc-on',
+  );
 }
 
 // --------------------------------------------------------------------------
@@ -2352,7 +2381,13 @@ function hostControls(): HTMLElement {
   return h(
     'div',
     {},
-    h('p', { class: 'pnote' }, 'Meet keeps the awkward administrative things behind this door. So does this.'),
+    /*
+     * N142. A line explaining what Meet keeps behind this door, printed on the
+     * door once it is already open. Nam: "=> remove". Everything under it is
+     * self-describing -- a session readout, a referral blurb with a Copy button,
+     * two ways to take the CV away -- so the paragraph was describing a category
+     * rather than helping anybody use the panel in front of them.
+     */
     h('div', { class: 'shead' }, 'This session'),
     sessionRow(),
     h('div', { class: 'shead' }, 'For my referrer'),

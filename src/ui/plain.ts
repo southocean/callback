@@ -147,25 +147,26 @@ export function renderPlain(onBack: () => void, embedded = false): HTMLElement {
             : h('span', {}, s.text)))))),
     ),
 
-    h(
-      'footer',
-      { class: 'doc-foot no-print' },
-      /*
-       * WHAT A CV FOOTER IS FOR. Nam: "Whats up with the footer in the CV? ...
-       * Idk if they are relevant at all. We can remove them I think."
-       *
-       * Right. Three things were in there and two were talking to the wrong
-       * reader. The build receipts -- commit hash, gzip size, no dependencies --
-       * are a good boast in the Project spec panel, where someone has chosen to
-       * read about the build; on the CV they interrupt a document about seven
-       * years of work to mention a kilobyte count. And meta.disclaimer was
-       * separately wrong: it asserted "No Google marks are used" while the shell
-       * renders the Meet mark, which the perception doc had already filed as R13.
-       *
-       * What survives is the one line that helps the reader in front of it: this
-       * page prints as a one-pager. Everything else moved to where it belongs.
-       */
-      h('p', {}, 'Print this page for a one-page PDF.'),
-    ),
+    /*
+     * THE CV HAS NO FOOTER, and this is the second time it has been cut back.
+     *
+     * The first pass took out two of three lines. Nam: "Whats up with the footer
+     * in the CV? ... Idk if they are relevant at all. We can remove them I
+     * think." The build receipts -- commit hash, gzip size, no dependencies --
+     * are a good boast in the Project spec panel, where somebody has chosen to
+     * read about the build; on the CV they interrupt a document about seven
+     * years of work to mention a kilobyte count. And meta.disclaimer was
+     * separately wrong: it asserted "No Google marks are used" while the shell
+     * renders the Meet mark, which the perception doc had already filed as R13.
+     *
+     * What survived was "Print this page for a one-page PDF.", kept on the
+     * argument that it was the one line helping the reader in front of it. N143
+     * takes that one too, on Nam's list of copy to cut. It was not helping: every
+     * browser prints, the ways in are the menu and Ctrl+P, and a document whose
+     * closing sentence announces that it is printable is furniture wearing the
+     * costume of a tip. The BEHAVIOUR it described is a print stylesheet (see the
+     * @media print block in styles.css) and is untouched. The page still prints
+     * as a one-pager; it just no longer says so out loud.
+     */
   );
 }

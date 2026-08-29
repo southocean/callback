@@ -749,7 +749,7 @@ export function renderHome(store: Store, reducedMotion = false, body?: HTMLEleme
         // Nam: say what it is immediately, and use the second line for a reason
         // to keep reading rather than for mechanics the reader can already see.
         h('div', { class: 'banner-t' }, "Short on time? Here's my CV."),
-        h('div', { class: 'banner-s' }, 'Lead front-end developer, 7 years · Agentic programming wizard · PhD in going the extra miles'),
+        h('div', { class: 'banner-s' }, 'Lead front-end developer, 7 years · Equal part an entertainer · PhD in going the extra miles'),
       ),
       // Opens over the app rather than navigating to it -- Meet never leaves
       // itself. The href stays so the link is still a real link for anyone who
@@ -767,6 +767,31 @@ export function renderHome(store: Store, reducedMotion = false, body?: HTMLEleme
     h(
       'div',
       { class: 'home-alt' },
+      /*
+       * WHICH OF THE TWO IS THE OFFER, AND THE ANSWER IS THE ONE THAT WAS ALWAYS
+       * HERE -- board tickets N151 and N160.
+       *
+       * N151 swapped them on a good argument: a PDF download is the EXIT, the
+       * thing somebody takes when they are finished, and anybody who wants one
+       * will find it however it is dressed; the spec panel is the argument, and
+       * the half of this site a reader has no way to guess is there. On that
+       * reasoning the panel should carry the outline.
+       *
+       * Nam looked at it: "revert the swap of the two buttons Download the PDF
+       * and How this was built. The swapped version doesnt work, very strange."
+       *
+       * He is right, and the reason is a thing the argument did not account for.
+       * Emphasis is not a property of a button, it is a property of the row and
+       * of what sits above it. Eighty pixels up is the meeting card with Join in
+       * it, which is the one action this screen is asking for. An outlined pill
+       * with a flask in it, directly underneath, reads as a second call to
+       * action competing with the first -- so the quiet footer stops being a
+       * footer. The PDF in the outline does not compete, because "download the
+       * CV" is furniture everybody already knows how to ignore.
+       *
+       * So: back as it was, and the argument is kept here rather than deleted,
+       * because it will be made again by somebody reading the same evidence.
+       */
       h(
         'a',
         { class: 'm-btn m-outlined', href: 'NamNguyen_CV_2026.pdf', download: true },

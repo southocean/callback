@@ -75,6 +75,17 @@ export type TourEvent =
   | { t: 'quipDone' }
   /** Enough silence has passed to start the personal segment. */
   | { t: 'tell' }
+  /**
+   * The visitor asked for the questions NOW -- board ticket N148.
+   *
+   * Separate from `tell` because the two have opposite preconditions and only
+   * one of them is a request. `tell` fires on its own and is deliberately fussy:
+   * the flow must have finished, nothing else may hold the floor, and the
+   * visitor must have been quiet. Every one of those exists to stop the segment
+   * ambushing somebody. A press is the visitor saying they want it, which
+   * answers all three at once.
+   */
+  | { t: 'skipIntro' }
   | { t: 'toldDone' }
   /** The visitor has gone quiet. Drop a stale backlog and get back to the script. */
   | { t: 'settle' }
@@ -174,6 +185,39 @@ export function reduceTour(s: TourState, e: TourEvent): TourState {
       // when nothing else is holding the floor.
       if (s.told || s.mode !== 'finished' || !story.length) return s;
       return { ...s, mode: 'telling', current: null, queue: [], interject: null };
+    }
+
+    /**
+     * Skip the walkthrough and go straight to the questions -- board ticket N148.
+     *
+     * Nam: "If we end the meeting mid phase 2, then come back, instead of stop
+     * talking we have a skip intro button, which skips directly to the second
+     * phase and continuing where we were. This allows users to skip the redundant
+     * parts and speed up the process, and we also get higher chance of showing
+     * our interview answers, which are also very important."
+     *
+     * IT MARKS EVERY PART PLAYED, which is the half that is easy to leave out and
+     * expensive to leave out. Without it the running order still has six unplayed
+     * parts sitting in it, so `nextScripted` keeps answering and any later route
+     * back into `playing` -- a visit, a partDone -- would start narrating the
+     * walkthrough the visitor just declined. Skipping is a decision about those
+     * parts, so it has to be recorded against them.
+     *
+     * `told` is the one state it will not run from: somebody who has heard all
+     * eight has nothing to skip TO, and the control is not offered to them (see
+     * the button in stage.ts). The guard is here as well because a reducer that
+     * relies on its caller not asking is a reducer with a hole in it.
+     */
+    case 'skipIntro': {
+      if (locked(s) || s.told || !story.length) return s;
+      return {
+        ...s,
+        mode: 'telling',
+        played: parts.map((p) => p.id),
+        current: null,
+        queue: [],
+        interject: null,
+      };
     }
 
     case 'toldDone':

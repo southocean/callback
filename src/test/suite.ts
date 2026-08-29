@@ -14,7 +14,6 @@ import { tokenise } from '../ui/caption.js';
 import type { State } from '../state.js';
 import { sample, policy, rng, profiles } from '../net/degrade.js';
 import {
-  readyCardOpens, afterReadyShown, afterReadyClosed, READY_MUTE_MS, READY_MAX_SHOWS,
   readInterview, afterInterview, clockMs, INTERVIEW_MIN_MS, INTERVIEW_MAX_MS,
   readAdmin,
 } from '../prefs.js';
@@ -300,76 +299,6 @@ suite('effects', () => {
 
 });
 
-suite("the meeting's ready card", () => {
-  // The whole point of splitting prefs.ts into pure rules plus two lines of
-  // storage is that the rules can be driven against a fixed clock. T0 is
-  // arbitrary; every case below is relative to it.
-  const T0 = 1_700_000_000_000;
-  const HOUR = READY_MUTE_MS;
-
-  test('a first-time visitor sees it', () => {
-    ok(readyCardOpens(null, T0), 'nothing remembered should mean it opens');
-  });
-
-  test('it opens a second time if the first went unread', () => {
-    const g = afterReadyShown(null, T0);
-    eq(g.shows, 1);
-    ok(readyCardOpens(g, T0 + 60_000), 'one unread show is not enough to mute it');
-  });
-
-  test('two shows mute it', () => {
-    const g = afterReadyShown(afterReadyShown(null, T0), T0 + 60_000);
-    eq(g.shows, READY_MAX_SHOWS);
-    ok(!readyCardOpens(g, T0 + 120_000), 'it should be muted after the second show');
-  });
-
-  test('closing it mutes it immediately, after only one show', () => {
-    const g = afterReadyClosed(afterReadyShown(null, T0), T0 + 5_000);
-    ok(g.closed);
-    ok(!readyCardOpens(g, T0 + 6_000), 'closing it is the clearest possible signal');
-  });
-
-  test('the mute expires after exactly an hour', () => {
-    const g = afterReadyClosed(null, T0);
-    ok(!readyCardOpens(g, T0 + HOUR - 1), 'still muted one millisecond early');
-    ok(readyCardOpens(g, T0 + HOUR), 'the hour is up, so it may open again');
-  });
-
-  test('an expired record resets the count rather than carrying it', () => {
-    // Otherwise a visitor who saw it twice yesterday gets one show today
-    // instead of two, and the count would only ever ratchet upward.
-    const stale = afterReadyShown(afterReadyShown(null, T0), T0 + 1);
-    eq(afterReadyShown(stale, T0 + HOUR * 2).shows, 1);
-  });
-
-  test('closing it survives a reload inside the window', () => {
-    // The bug this guards: reading the flag but rebuilding the record from
-    // scratch on the next visit, which un-mutes it on every page load.
-    const g = afterReadyClosed(null, T0);
-    const roundTripped = JSON.parse(JSON.stringify(g)) as typeof g;
-    ok(!readyCardOpens(roundTripped, T0 + 30 * 60_000));
-  });
-
-  test('junk in storage reads as a first visit rather than throwing', () => {
-    // localStorage is hand-editable, so none of these may take the card down.
-    for (const junk of [{}, { shows: 'lots' }, { shows: 1 }, { at: T0 }, null]) {
-      ok(readyCardOpens(junk as never, T0), `junk ${JSON.stringify(junk)} should open`);
-    }
-  });
-
-  test('a clock that jumped backwards does not mute it forever', () => {
-    // A record stamped in the future would otherwise never satisfy now - at >= HOUR.
-    const future = afterReadyClosed(null, T0 + HOUR * 24);
-    ok(readyCardOpens(future, T0), 'a future record is a moved clock, not a mute');
-  });
-
-  test('being closed always implies having been seen', () => {
-    // shows: 0 with closed: true is contradictory, and would read as muted
-    // forever to anything that counts shows instead of checking the flag.
-    ok(afterReadyClosed(null, T0).shows >= 1);
-  });
-});
-
 suite('content integrity', () => {
   /*
    * N58 retired the test that used to live here.
@@ -600,6 +529,51 @@ suite('the conversation director', () => {
     eq(s.mode, 'finished');
     eq(s.queue.length, 0);
     eq(s.current, null);
+  });
+
+  /*
+   * SKIP INTRO -- board ticket N148. The button is offered to a returning
+   * visitor who left part way through the questions, and this is the whole of
+   * what pressing it does to the running order.
+   */
+  test('skip intro goes straight to the questions', () => {
+    let s = started();
+    eq(s.mode, 'playing');
+    s = reduceTour(s, { t: 'skipIntro' });
+    eq(s.mode, 'telling', 'the press did not reach the questions');
+    eq(s.current, null);
+    eq(s.queue.length, 0);
+  });
+
+  /*
+   * The half that is easy to leave out. With the parts still unplayed the
+   * running order has six things in it, so any later route back into `playing`
+   * would start narrating the walkthrough the visitor had just declined.
+   */
+  test('skip intro records the parts as decided, not as pending', () => {
+    let s = reduceTour(started(), { t: 'skipIntro' });
+    eq(s.played.length, 6, 'the skipped parts were left in the running order');
+    eq(nextScripted(s), null, 'the walkthrough could still be narrated after a skip');
+  });
+
+  test('skip intro does not restart a segment that has already run', () => {
+    let s = started();
+    s = reduceTour(s, { t: 'skipIntro' });
+    s = reduceTour(s, { t: 'toldDone' });
+    eq(s.told, true);
+    eq(reduceTour(s, { t: 'skipIntro' }).mode, 'finished', 'a second press replayed the answers');
+  });
+
+  test('skip intro is ignored once the questions are running', () => {
+    const s = reduceTour(started(), { t: 'skipIntro' });
+    eq(reduceTour(s, { t: 'skipIntro' }), s, 'pressing again mid-segment changed the state');
+  });
+
+  test('skip intro cannot rescue a run that handed over', () => {
+    let s = started();
+    for (const id of ['cv', 'jobreq', 'built', 'offclock', 'close']) s = reduceTour(s, { t: 'visit', id });
+    eq(s.mode, 'handedOver');
+    eq(reduceTour(s, { t: 'skipIntro' }).mode, 'handedOver');
   });
 
   /*
@@ -852,6 +826,35 @@ suite('the conversation director', () => {
           `${p.id}: the bail protects line ${p.bail.at}, which is not there`);
       }
     }
+  });
+
+  /*
+   * N157. The close demonstrates controls that award nothing, and raising the
+   * hand is not one of them: it is a side quest AND one of the twelve bugs, so a
+   * script that performs it spends both on the visitor's behalf.
+   *
+   * Asserted against the BEATS rather than against the line text, because the
+   * spoiler is the gesture. A line reading "raise your hand" with nothing behind
+   * it is a suggestion, which is allowed; the hand actually pressing the control
+   * is the thing that hands the surprise over.
+   */
+  test('the script never performs the raised hand for you', () => {
+    for (const p of tourParts) {
+      for (const b of p.beats ?? []) {
+        ok(!/data-ctl="hand"/.test(b.move ?? ''),
+          `${p.id}: a beat presses the raise-hand control, which is a side quest and a bug`);
+      }
+    }
+  });
+
+  test('the close puts back the two controls it opens', () => {
+    const close = tourParts.find((p) => p.id === 'close');
+    ok(!!close, 'the close is gone');
+    const cues = (close?.beats ?? []).map((b) => b.cue).filter(Boolean);
+    // Both are cues rather than a bare move-and-click precisely so the stage can
+    // hold them open and then close them again. See showChat and sendHeart.
+    ok(cues.includes('chat'), 'the chat is opened by a raw press, so nothing closes it');
+    ok(cues.includes('heart'), 'the heart no longer runs through the cue that tidies up');
   });
 
   test('nextScripted returns nothing once everything is played', () => {

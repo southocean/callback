@@ -59,8 +59,10 @@ export type Cue =
   /** Maximise the browser window inside the shared desktop. */
   | 'maximise'
   | 'tab:cv' | 'tab:jobad' | 'tab:built' | 'tab:work'
-  /** Open the reaction tray and send the heart. */
+  /** Open the reaction tray and send the heart, then shut whatever was opened. */
   | 'heart'
+  /** Open the chat panel, hold it long enough to be read, then close it again. */
+  | 'chat'
   /**
    * Ctrl-wheel the mock browser out, `zoom:<notches>` of them.
    *
@@ -439,15 +441,35 @@ export const parts: Part[] = [
        * coordinates everywhere in this script.
        */
       L('Send a heart.', 3600),
-      L('Raise your hand.', 3600),
+      /*
+       * "Raise your hand." USED TO BE HERE, and it was a spoiler -- N157.
+       *
+       * Nam: "lets remove raise your hand, since it spoils the surprise. Lets
+       * trust the system and let user discover it."
+       *
+       * Raising the hand is a side quest AND one of the twelve bugs, and the
+       * script performing it hands both over on the visitor's behalf. That is
+       * the same argument N63 settled for everything a person can find for
+       * themselves: the conversation may show you the room, and the things
+       * hidden in the room are yours to find. The two lines that survive here
+       * demonstrate controls that award nothing.
+       */
       L('The CV is also available in home screen and after this meeting.', 4400),
       L('Thank you for your time. Genuinely.', 3000),
     ],
+    /*
+     * N157. Both of these now PUT BACK what they take out. The close is the last
+     * thing the script does, so whatever it leaves open is the state the visitor
+     * is abandoned in -- a chat drawer narrowing the stage, or a reaction tray
+     * holding the caption band 52px up -- with nobody left talking to explain
+     * why. See showChat and sendHeart in tour/stage.ts for the half that matters
+     * more: each closes only what it opened, so a panel the VISITOR opened is
+     * left exactly where they left it.
+     */
     beats: [
-      { at: 2, move: '[data-ctl="chat"]', click: true },
+      { at: 2, cue: 'chat' },
       { at: 3, cue: 'heart' },
-      { at: 4, move: '[data-ctl="hand"]', click: true },
-      { at: 6, cue: 'park' },
+      { at: 5, cue: 'park' },
     ],
     commentary: [L('The CV is in the home screen too, and on the way out. There is a PDF beside it.', 4200)],
     brief: [L("That's me. The CV is in the home screen too. Thanks for the time.", 3400)],

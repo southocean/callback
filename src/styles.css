@@ -659,9 +659,161 @@ button { font: inherit; }
   position: absolute; left: 16px; top: 50%; transform: translateY(-50%);
   font: 400 12px/16px var(--font); color: var(--on-dark2);
 }
-.bar-left button {
-  display: block; background: none; border: 0; padding: 0; color: var(--dark-blue);
-  font: 400 11px/16px var(--font); cursor: pointer; text-decoration: underline;
+
+/* --- how far through the conversation this is (N147) --------------------- */
+/* It replaced "Side quests 12/17, see the list", which is why it inherits the
+ * corner rather than claiming one. Two rows: a name and a count on the first,
+ * the track on the second. One row would have been tidier and could not hold
+ * the name, and the name is the half that says which of the two runs you are in.
+ *
+ * 168px of track, against the 92 the restlessness meter uses. That one is a
+ * flash that has to be read in under two seconds and never again; this one is
+ * read repeatedly, at a glance, to answer "how much is left" -- and at six steps
+ * a 92px track moves 15px a part, which is under the width of the word it sits
+ * beneath. It is still comfortably clear of the centred control group: the bar
+ * is 16 + 168 wide against a group whose left edge is past 500 at every width
+ * where .bar-left is drawn at all (it is hidden under 720, with the rest of the
+ * furniture). */
+/* IT IS A READOUT, NOT TEXT -- board ticket N161.
+ *
+ * Nam: "those texts still have pointer as text selection. They should not
+ * receive any special cursor, we are not supposed to be able to select them."
+ *
+ * Both were inherited from being a div with words in it, which is the right
+ * default for a page and the wrong one for a HUD. An I-beam is a promise that
+ * there is text here worth taking, and what is under it is a two-word status
+ * line rewritten every few seconds: anybody who acts on that promise gets a
+ * selection that disappears on the next line. The label still reaches a screen
+ * reader through aria-label on the progressbar, which is the readout that
+ * matters and is not what user-select governs. */
+.ivp {
+  display: grid; gap: 5px; width: 168px;
+  cursor: default; user-select: none; -webkit-user-select: none;
+}
+.ivp[hidden] { display: none; }
+.ivp-head { display: flex; align-items: baseline; gap: 6px; }
+.ivp-label {
+  font: 500 10.5px/1 var(--font); letter-spacing: .5px;
+  text-transform: uppercase; color: #9aa0a6;
+}
+/* Pushed to the right-hand end, so the number sits over the end of the track it
+   is counting towards rather than floating next to the name. */
+.ivp-n { margin-left: auto; font: 400 11px/1 var(--font); color: var(--on-dark2); }
+/* ONE SEGMENT PER SECTION -- board ticket N155.
+ *
+ * `--n` is set from script because it is the only thing about this bar that
+ * changes shape: six for the walkthrough, eight for the questions. Everything
+ * else divides itself.
+ *
+ * 3px gaps against roughly 25px segments (six) or 18px (eight). Wide enough to
+ * read as divisions at a glance, narrow enough that the row still reads as one
+ * bar rather than as a row of pills. */
+.ivp-track {
+  display: grid; grid-template-columns: repeat(var(--n, 6), 1fr); gap: 3px;
+  width: 100%; height: 4px;
+}
+/* THE TWO COLOURS ARE TOKENS, one per phase, because two layers need them and
+   the ripple below is the only thing that decides which is on top.
+
+   THE SECOND PHASE IS GREEN, and the colour is not decoration. Nam asked for
+   "a different color, like charged state, phase 2", and #81c995 is the one
+   positive accent this build already has: it is what .pr-row.is-done and the
+   admin grant use. The three warm tones are spoken for by the restlessness
+   tiers, where they mean the opposite thing.
+
+   A FINISHED SECTION KEEPS A MORE SATURATED VERSION OF THE SAME HUE. Same hue
+   rather than a fourth colour, because the two are stages of one thing: this
+   section filling, and this section filled. Google Blue 500 against Blue 300,
+   and Green 600 against Green 300 -- a clear step in saturation at the same
+   rough lightness, so both stay legible on a 4px bar over #202124. */
+.ivp { --ivp-live: #8ab4f8; --ivp-done: #4285f4; }
+.ivp[data-phase='2'] { --ivp-live: #81c995; --ivp-done: #34a853; }
+.ivp[data-phase='2'] .ivp-label { color: #a1cdb0; }
+
+.ivp-seg {
+  position: relative; display: block; height: 100%; border-radius: 3px;
+  overflow: hidden; background-color: rgba(255, 255, 255, .14);
+}
+.ivp-fill {
+  display: block; height: 100%; width: 0; border-radius: 3px;
+  background-color: var(--ivp-live);
+  /* Slower than the restlessness meter's .3s, because this one steps once per
+     spoken line and a fast fill reads as a jump rather than as progress. No
+     colour transition any more: the finished colour arrives on the layer below
+     as a ripple, not as a crossfade on this one. */
+  transition: width .5s cubic-bezier(0, 0, .2, 1);
+}
+
+/* THE FINISHED COLOUR ARRIVES AS A RIPPLE FROM THE RIGHT EDGE -- N162.
+ *
+ * Nam: "the color change is not a fade in of color, but a ripple effect from
+ * the middle of the segment, or actually even better if the ripple is from the
+ * right side, which is the last part it filled up."
+ *
+ * The right edge is the whole point, and it is why this reads as caused rather
+ * than decorative: the light starts where the last line landed and washes back
+ * over the section it just completed. From the centre it would be a generic
+ * pulse that happens to be on a bar.
+ *
+ * A SECOND LAYER rather than a colour change on the fill, because a clip-path
+ * can only reveal a thing that is already there. It sits over .ivp-fill at the
+ * finished colour with nothing showing, and the animation opens it.
+ *
+ * 160% rather than 100%: circle() is measured against the box's diagonal, and a
+ * 25x4 segment needs the radius to overrun its own width before the LEFT edge is
+ * covered. Under-reaching leaves a sliver of the live colour at the far end. */
+.ivp-seg::after {
+  content: ''; position: absolute; inset: 0; border-radius: inherit;
+  background-color: var(--ivp-done); pointer-events: none;
+  clip-path: circle(0% at 100% 50%);
+}
+/* Where it rests once the theatre is over, and where a segment that was
+   ALREADY finished on arrival starts -- a returning visitor whose first three
+   questions are behind them gets three finished segments and no light show. */
+.ivp-seg.is-done::after { clip-path: circle(160% at 100% 50%); }
+
+/* ...AND IT WAITS FOR THE FILL TO LAND BEFORE IT DOES ANY OF THIS.
+ *
+ * Nam: "The pulse when the bar is filled is a bit too soon. I want the bar
+ * filled, then we pause one beat, then we can pulse it."
+ *
+ * The delay is 700ms and it is two numbers added up: 500 for the width
+ * transition on .ivp-fill to reach a hundred per cent, and 200 of stillness
+ * after it. The flash used to fire in the same frame the count incremented,
+ * which is while the fill is still sliding, so it celebrated an arrival that had
+ * not happened and the two motions fought each other. The beat between them is
+ * what makes the second read as a consequence of the first.
+ *
+ * `both` is load-bearing with a delay this long: it holds the 0% start state
+ * through the wait, which is what stops .is-done::after painting the finished
+ * colour instantly and leaving the ripple with nothing to reveal. */
+.ivp-seg.is-lit::after { animation: ivp-ripple .52s cubic-bezier(.2, 0, 0, 1) .7s both; }
+@keyframes ivp-ripple {
+  from { clip-path: circle(0% at 100% 50%); }
+  to   { clip-path: circle(160% at 100% 50%); }
+}
+
+/* The segment swells while the ripple crosses it, and settles back. Nam: "The
+   segment scales up a little bit with the pulse ... Once all this dramatic
+   effect finishes, the segment is back to normal."
+
+   scaleY on a transform rather than a height, so nothing in the row reflows:
+   4px becomes 9 and back, and the label above it never moves. The glow rides
+   the same keyframes so the two peak together -- one event, not two. */
+.ivp-seg.is-lit { animation: ivp-land .62s cubic-bezier(.2, 0, 0, 1) .7s both; }
+@keyframes ivp-land {
+  0%   { transform: scaleY(1); box-shadow: 0 0 0 0 rgba(255, 255, 255, 0); }
+  38%  { transform: scaleY(2.25); box-shadow: 0 0 10px 2px rgba(255, 255, 255, .55); }
+  100% { transform: scaleY(1); box-shadow: 0 0 0 0 rgba(255, 255, 255, 0); }
+}
+
+/* The bar still reports, it just stops performing. The colour still arrives,
+   because it carries the information; the ripple, the swell and the slide are
+   the parts that only carry the drama. */
+@media (prefers-reduced-motion: reduce) {
+  .ivp-fill { transition: none; }
+  .ivp-seg.is-lit, .ivp-seg.is-lit::after { animation: none; }
+  .ivp-seg.is-done::after { clip-path: circle(160% at 100% 50%); }
 }
 .tip { font: 400 11px/16px var(--font); color: var(--on-dark2); text-align: center; }
 
@@ -698,44 +850,6 @@ button { font: inherit; }
 .side-body::-webkit-scrollbar-thumb:hover { background-color: #7f8386; }
 .side.is-tools .side-body { padding: 0 20px 24px; }
 
-/* ---- "Your meeting's ready" card ---------------------------------------- */
-
-.ready {
-  position: absolute; left: 16px; bottom: calc(var(--botbar) + 12px); z-index: 30;
-  width: 360px; background-color: var(--w); color: var(--ink2); border-radius: 8px;
-  padding: 22px 24px 18px; box-shadow: 0 4px 16px rgba(0,0,0,.4);
-}
-.ready h2 { font: 500 16px/24px var(--font); color: var(--ink2); margin-bottom: 16px; }
-.ready > .icon-btn { position: absolute; top: 12px; right: 10px; }
-.ready p { font: 400 14px/20px var(--font); color: var(--ink3); }
-.ready-link {
-  display: flex; align-items: center; gap: 8px; background-color: var(--surface);
-  border-radius: 8px; padding: 8px 8px 8px 14px; margin: 12px 0;
-}
-/* :not(.ms) is load-bearing. sym() returns a <span>, so a bare `.ready-link
-   span` selector matches the glyph too, and this rule's `font` shorthand
-   resets font-family off 'Material Symbols Outlined' — the ligature then never
-   resolves and the literal word "content_copy" renders in the box. The font is
-   not the problem: every one of the 56 names in the subset resolves. */
-.ready-link span:not(.ms) {
-  font: 400 13px/20px var(--font); color: var(--ink2); flex: 1 1 auto;
-  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
-}
-.ready-fine { display: flex; gap: 10px; align-items: flex-start; }
-.ready-fine svg { flex: 0 0 auto; color: var(--blue); margin-top: 1px; }
-.ready-fine p { font: 400 12px/16px var(--font); color: var(--sec2); letter-spacing: .1px; margin: 0; }
-
-/* ---- snackbar ----------------------------------------------------------- */
-
-.snack {
-  position: fixed; left: 50%; transform: translateX(-50%); bottom: calc(var(--botbar) + 16px);
-  z-index: 60; background-color: var(--toast); color: #fff; border-radius: 8px;
-  padding: 14px 18px; max-width: 420px; display: flex; gap: 14px; align-items: flex-start;
-  box-shadow: 0 4px 16px rgba(0,0,0,.45);
-}
-.snack b { font: 400 15px/22px var(--font); letter-spacing: .1px; display: block; }
-.snack span { font: 400 13px/18px var(--font); color: #dadce0; letter-spacing: .2px; }
-.snack button { background: none; border: 0; color: var(--dark-blue); font: 500 14px/1 var(--font); cursor: pointer; }
 
 /* ---- reaction fly-ups --------------------------------------------------- */
 
@@ -1431,7 +1545,6 @@ body.plain { background: #fff; color: #16181c; }
 @media (max-width: 960px) {
   .side { position: fixed; inset: 8px; width: auto; flex-basis: auto; z-index: 90; }
   .lobby-body { gap: 28px; padding: 8px 20px 48px; }
-  .ready { left: 8px; right: 8px; width: auto; }
 }
 @media (max-width: 720px) {
   .grid-wrap { overflow-y: auto; }
@@ -2335,13 +2448,17 @@ body.plain { background: #fff; color: #16181c; }
    overlap that was reported. Narrower and lower, and it never covers the tile
    in the bottom-right because it stops short of it. */
 .cc {
-  bottom: calc(var(--botbar) + 12px);
+  /* The SAME lift the reservation is built from, so the band and the bubble it
+     is reserved for cannot disagree. See --cc-band, above .grid-wrap.is-solo. */
+  bottom: calc(var(--botbar) + var(--cc-lift));
   width: min(640px, calc(100% - 320px));
   background: rgba(0,0,0,.72);
 }
 @media (max-width: 899px) {
-  /* No room to sit beside the tile, so it goes above it instead. */
-  .cc { width: calc(100% - 32px); bottom: calc(var(--botbar) + 116px); }
+  /* No room to sit beside the tile, so it goes above it instead. The lift that
+     moves it there is --cc-lift: 116px, set with the other caption variables so
+     the reservation moves with it (N146). Only the width is this rule's own. */
+  .cc { width: calc(100% - 32px); }
 }
 
 /* Hover wins over focus on the meeting card, and it has to be said last.
@@ -3341,16 +3458,6 @@ body.plain { background: #fff; color: #16181c; }
   background-color: rgba(221, 227, 234, .4);
 }
 
-/* 4. content_copy rendered as the literal text "content_copy". ----------- */
-/* Diagnosed twice. The first pass added a `:not(.ms)` twin of the offending
-   rule and left the original in place, so the glyph still matched the bare
-   `.ready-link span` selector and still lost its font-family. Fixed at source
-   instead — see the note on that rule. The glyph sits inside the copy button,
-   so it is not a direct child of .ready-link; this keeps it from being
-   stretched by the row's flex. */
-.ready-link .ms { flex: 0 0 auto; }
-/* And this selector never matched anything: sym() returns a span, not an svg. */
-.ready-fine > .ms { flex: 0 0 auto; color: var(--blue); margin-top: 1px; }
 
 /* 5. The achievement notice gets a progress bar. ------------------------- */
 /* Nam's request. Meet has no bar in a notice, so this is ours — built in its
@@ -4147,13 +4254,66 @@ body:has(.grid-wrap.is-solo) .count-chip[style*="transparent"] { display: none; 
   aspect-ratio: 16 / 9;
 }
 
-/* The reservations, measured: the tray takes 52, captions take 216. They
-   compose additively when both are on, which needs no special case — and the
-   caption band's top edge lands exactly on the tile's bottom, measured at
-   y 919 against a tile ending at 919. */
-body.tray-open .grid-wrap.is-solo { bottom: calc(var(--botbar) + 52px); }
-body.cc-on .grid-wrap.is-solo { bottom: calc(var(--botbar) + 216px); }
-body.tray-open.cc-on .grid-wrap.is-solo { bottom: calc(var(--botbar) + 268px); }
+/* THE CAPTION BAND IS MEASURED AGAINST THIS SCRIPT -- board ticket N146.
+ *
+ * The reservations compose additively when both are on, which needs no special
+ * case. The tray's 52 is a real measurement of a real tray and is unchanged.
+ * The captions' number was 216, also a real measurement, and that is exactly
+ * why it was wrong: it was read off Meet, which reserves for live recognition
+ * from several speakers at once and has to hold four or five lines at any
+ * moment. Every line here is authored and timed by hand, and there is one
+ * speaker.
+ *
+ * Nam: "because we carefully control and curate the CC, they are not very long,
+ * only usually 2 lines max, worst case probably 3 lines. So the space we make
+ * here is mostly empty, which is very inefficient use of space, not to mention
+ * the shared screen is smaller than it could have been."
+ *
+ * MEASURED, all 133 strings the caption strip can be handed -- every part line,
+ * commentary, brief, bail, aside, quip, story answer, and the two interpolated
+ * question forms -- rendered into the real bubble at every width the layout
+ * uses. 94 come out at one line and 39 at two. Nothing reaches three, at any
+ * width, including the narrow case where the bubble is 848px rather than 640.
+ * The tallest is 106px: "Where were we again? Oh, question 8. ..."
+ *
+ * So the band is built out of its two parts rather than being a constant:
+ *
+ *   --cc-lift  the caption's own offset above the control bar, which is the one
+ *              number .cc and the reservation MUST agree on. They are the same
+ *              declaration now, so they cannot drift.
+ *   --cc-tall  14 + 18 + 2 + 3*26 + 14 = 132, a THREE line bubble.
+ *
+ * Three rather than the two that are actually reached, because copy gets edited
+ * and a bubble one line taller than the band does not push the layout, it sits
+ * on top of the tile. A line of headroom is the cheap half of that trade: the
+ * band still drops from 216 to 144, which is 72px back to the share and the
+ * tile at every width.
+ *
+ * The narrow case needed the variable more than the wide one. Under 900px the
+ * caption moves ABOVE the self tile rather than beside it, so its lift goes from
+ * 12 to 116 -- and the reservation did not follow, which left a two-line caption
+ * overlapping the tile by 6px in the build before this one. */
+:root {
+  --cc-lift: 12px;
+  --cc-tall: 132px;
+  --cc-band: calc(var(--cc-lift) + var(--cc-tall));
+}
+@media (max-width: 899px) { :root { --cc-lift: 116px; } }
+
+/* THE SETTINGS ROW RESERVES WHAT THE TRAY RESERVES, found by the QA on this
+ * ticket. The rule below .cc already says "the tray reserves 52px and the
+ * settings row's top edge lands on the same line, so one value serves both",
+ * and the caption has always lifted for either. The STAGE only ever knew about
+ * the tray. That was survivable while the caption band carried 110px of slack:
+ * with the row open the caption lifted to bar + 64 and a two-line bubble topped
+ * out at bar + 170, comfortably inside a 216px reservation. Tightening the band
+ * to 144 is what turned the missing half of the pair into an overlap. Written as
+ * the same pair everywhere, so the next person to change one changes both. */
+body.tray-open .grid-wrap.is-solo,
+body.set-open .grid-wrap.is-solo { bottom: calc(var(--botbar) + 52px); }
+body.cc-on .grid-wrap.is-solo { bottom: calc(var(--botbar) + var(--cc-band)); }
+body.tray-open.cc-on .grid-wrap.is-solo,
+body.set-open.cc-on .grid-wrap.is-solo { bottom: calc(var(--botbar) + var(--cc-band) + 52px); }
 
 /* --- the reactions tray -------------------------------------------------- */
 /* 40x40 buttons on a 40px pitch, sitting above the bar in the 52 it reserves.
@@ -4614,6 +4774,15 @@ body.set-open .cc { bottom: calc(var(--botbar) + 52px + 12px); }
 .pg-frame {
   position: absolute; inset: 0; width: 100%; height: 100%;
   border: 0; display: block; background-color: #fff;
+}
+/* The framed page, loading -- board ticket N152. Underneath the iframe rather
+   than over it, so the document covers it the instant there is a document; the
+   element is removed on load as well, because a spinner that is merely hidden is
+   an animation still running behind a finished page. Same inset and same white
+   as .pg-frame, so nothing shifts when one replaces the other. */
+.pg-load {
+  position: absolute; inset: 0; display: grid; place-items: center;
+  background-color: #fff;
 }
 
 /* --- QA corrections on the reaction rewrite ------------------------------ */
@@ -5928,22 +6097,6 @@ body.set-open .cc { bottom: calc(var(--botbar) + 52px + 12px); }
  * animation-play-state, and the timer in script. Pausing only the animation
  * would leave a frozen ring over a card that closed anyway.
  */
-.ready-count {
-  display: flex; align-items: center; gap: 8px; margin-top: 12px;
-  font: 400 12.5px/16px var(--font); color: #5f6368;
-}
-.ready-count svg { width: 22px; height: 22px; display: block; transform: rotate(-90deg); }
-.ready-count circle { fill: none; stroke-width: 2.5; }
-.ready-count .rc-arc {
-  stroke: #1a73e8; stroke-linecap: butt;
-  stroke-dasharray: var(--rc); stroke-dashoffset: 0;
-  animation: rc-drain var(--rc-dur) linear both;
-}
-@keyframes rc-drain { to { stroke-dashoffset: calc(var(--rc) * -1); } }
-.ready:hover .ready-count .rc-arc { animation-play-state: paused; }
-@media (prefers-reduced-motion: reduce) {
-  .ready-count .rc-arc { animation: none; }
-}
 
 /* ================= THINGS I BUILT ======================================== */
 /* Two pages merged into one, so it needed a way to hold three groups without
@@ -6449,9 +6602,11 @@ body.presenting .shot { min-width: 0; }
  *
  * MEASURED at 1440x900 while presenting. Captions off the share is 1329x748,
  * ratio 1.777, which is right. Captions on it is 1329x532, ratio 2.498: the
- * caption band reserves 216 of height and the share keeps every pixel of its
+ * caption band reserved 216 of height and the share keeps every pixel of its
  * width, so the shape blows out instead of the box shrinking. On a 1920 stage
- * the same run reaches about 3.4:1.
+ * the same run reaches about 3.4:1. (The band is 144 since N146, which makes
+ * the blow-out milder and does not remove it: the cap below is still what
+ * keeps the shape honest.)
  *
  * This is the bug the solo tile already had, and the fix is the same shape: fit
  * a ratio box inside the area rather than stretching to fill it. See the long
@@ -7417,9 +7572,14 @@ body.presenting:not(.is-pinned) .solo.is-snapping {
   position: absolute; left: 0; right: 0; top: 0; bottom: var(--botbar);
   overflow: hidden; pointer-events: none; z-index: 8;
 }
-body.tray-open .react-clip { bottom: calc(var(--botbar) + 52px); }
-body.cc-on .react-clip { bottom: calc(var(--botbar) + 216px); }
-body.tray-open.cc-on .react-clip { bottom: calc(var(--botbar) + 268px); }
+body.tray-open .react-clip,
+body.set-open .react-clip { bottom: calc(var(--botbar) + 52px); }
+/* Same band as the stage, from the same variable, and the same tray/settings
+   pair (N146). These two used to be two copies of 216 and 268, which is exactly
+   the kind of pair that gets half updated. */
+body.cc-on .react-clip { bottom: calc(var(--botbar) + var(--cc-band)); }
+body.tray-open.cc-on .react-clip,
+body.set-open.cc-on .react-clip { bottom: calc(var(--botbar) + var(--cc-band) + 52px); }
 
 /* ====== ROUND 20: THE SHARED SCREEN IS A PICTURE, NOT A DOCUMENT ========= */
 /* Nam: "nothing on this screensharing is selectable (text wise)".

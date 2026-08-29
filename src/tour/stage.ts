@@ -169,6 +169,63 @@ export interface Podium {
    * owned by the app shell and the conversation is a guest in the call.
    */
   bugsLeft: () => number;
+  /**
+   * How far through the conversation this is -- board ticket N147.
+   *
+   * Pushed rather than pulled, unlike `clock()`. The clock repaints once a second
+   * on its own and only ever has one reader; this moves at the six or fourteen
+   * moments in a visit when something is actually finished, and the bar that
+   * draws it has nothing else to repaint for. Pulling would mean a second
+   * once-a-second timer computing a number that changed twice a minute.
+   *
+   * Called with the same tuple only once: the stage dedupes, so a caller can
+   * treat every invocation as a real change.
+   */
+  progress: (p: TourProgress) => void;
+}
+
+/**
+ * THE CONVERSATION HAS TWO PHASES, AND IT SAYS SO -- board ticket N147.
+ *
+ * Nam: "I want to show the progress of the interview as a progress bar, so user
+ * can see that we are making progress in the interview, which helps them tolerate
+ * the urge to click around."
+ *
+ * The two phases were already there and had never been named to the visitor.
+ * Phase 1 is the running order in `parts`: hello, the CV, the job requirements,
+ * how this was built, off the clock, the close. Phase 2 is `story`, the eight
+ * interview questions, which starts on its own after enough silence.
+ *
+ * WHY THE BAR RESTARTS RATHER THAN CONTINUING through fourteen. Nam asked for the
+ * restart and for a second colour, and the reason it is right is that the two
+ * halves are not the same kind of thing. Phase 1 is a walkthrough that a visitor
+ * can jump around inside; phase 2 is an interview being answered in order. One
+ * bar running 0 to 14 would say they are two halves of one errand, and it would
+ * also make the questions look like the tail of something rather than the part
+ * worth staying for.
+ */
+export interface TourProgress {
+  /** 1 while the walkthrough runs, 2 once the questions have started. */
+  phase: 1 | 2;
+  /** Sections finished: parts covered, or answers heard. */
+  done: number;
+  /** 6, or 8. */
+  total: number;
+  /**
+   * How far through the section being spoken, 0 to 1 -- board ticket N155.
+   *
+   * MEASURED IN AUTHORED MILLISECONDS, not in lines. Nam: "each script line we
+   * already know the time it appears ... using time measurement would also work
+   * with skipping line". That second clause is the reason it has to be time: a
+   * visitor can press past any line, so counting lines spoken would stall the
+   * bar for somebody moving fast and race it for somebody who is not. A line's
+   * authored duration is how much of the section it represents whether it was
+   * heard in full or skipped after a word.
+   *
+   * Zero between sections -- during the openers, and after the last answer --
+   * because there is no section in progress to be part of the way through.
+   */
+  within: number;
 }
 
 /**
@@ -241,10 +298,54 @@ export function startTour(root: HTMLElement, podium: Podium): TourHandle {
    * N44. Was "Stop the tour", which was the last visitor-facing use of the word
    * and the one that mattered most: it told the visitor what they were in.
    */
+  /**
+   * ONE CONTROL, AND IT OFFERS THE THING WORTH OFFERING -- board ticket N148.
+   *
+   * Nam: "instead of stop talking we have a skip intro button, which skips
+   * directly to the second phase and continuing where we were ... This allows
+   * users to skip the redundant parts and speed up the process, and we also get
+   * higher chance of showing our interview answers, which are also very
+   * important."
+   *
+   * WHO IT IS FOR is exactly the test below, and it is narrower than "anyone who
+   * has been here before". Somebody with NO answers heard has not seen the
+   * questions exist, so "Skip intro" would be offering to skip to a thing they
+   * have never been told about, and it would cost them the walkthrough the whole
+   * site is built around. Somebody with ALL EIGHT heard has nothing to skip to.
+   * In between is a person who has already sat through the walkthrough once,
+   * left part way through the answers, and come back: for them the six parts in
+   * front of the answers are a toll they have already paid.
+   *
+   * IT IS THE SAME BUTTON rather than a second one beside it, and that is the
+   * whole reason this stays one control in an empty corner. The two are never
+   * both the most useful thing: before the questions start, skipping to them is
+   * what a returning visitor wants and stopping is what the corner already
+   * offers everybody else; once they are running, the offer to skip is spent and
+   * the only thing left to want is out. So it swaps, once, and never back.
+   */
+  const heardAtStart = heardAnswers();
+  let skipOffered = heardAtStart.length > 0 && heardAtStart.length < story.length;
   const stopBtn = h('button', {
-    class: 'tour-stop', type: 'button', 'aria-label': 'Stop him talking',
-  }, 'Stop talking') as HTMLButtonElement;
+    class: 'tour-stop', type: 'button',
+    'aria-label': skipOffered ? 'Skip the walkthrough and go to the questions' : 'Stop him talking',
+  }, skipOffered ? 'Skip intro' : 'Stop talking') as HTMLButtonElement;
   const bar = h('div', { class: 'tour-bar' }, stopBtn) as HTMLElement;
+
+  /**
+   * The offer expires when the questions start, by whichever route.
+   *
+   * Called from the press AND from the top of tell(), because the questions can
+   * also arrive on their own: a returning visitor who never touches the control
+   * and simply waits gets the segment after the usual silence, and at that moment
+   * a button reading "Skip intro" would be offering to skip into the thing it is
+   * standing in front of.
+   */
+  const dropSkip = (): void => {
+    if (!skipOffered) return;
+    skipOffered = false;
+    stopBtn.textContent = 'Stop talking';
+    stopBtn.setAttribute('aria-label', 'Stop him talking');
+  };
 
   /**
    * THE STOP CONTROL GOES WITH THE GOODBYE, not with the last word.
@@ -266,6 +367,81 @@ export function startTour(root: HTMLElement, podium: Podium): TourHandle {
    * is asking for: it marks the end without a caption saying so.
    */
   const dropBar = (): void => { bar.remove(); };
+
+  /* ------------------------------------------------------- how far along -- */
+
+  /**
+   * Report the phase and the count, and only when one of them has moved.
+   *
+   * Board ticket N147. Called from the once-a-second idle timer AND from the
+   * moments that actually change it. The timer alone would be enough and would
+   * lag by up to a second at the two transitions a visitor is most likely to be
+   * looking at; the direct calls alone would need one at every site that can mark
+   * a part played, which includes the visitor opening one themselves. Both, with
+   * a dedupe, costs one string compare a second and cannot miss a transition.
+   *
+   * PHASE 2 IS `told` AS WELL AS `telling`, so the bar does not fall back to the
+   * walkthrough once the questions have finished. The last thing it showed was
+   * 8 of 8 and that is what it should keep showing: the outro is banter after the
+   * interview, not a third phase, and a bar that reverted to 6 of 6 would read as
+   * the whole thing starting again.
+   *
+   * The answers are counted out of storage rather than out of `tour`, because
+   * they are remembered across visits and the director is not. That is the same
+   * source the resume line reads, so the bar and "where were we again" cannot
+   * disagree about how many are left.
+   */
+  /**
+   * The section being spoken, in authored milliseconds -- board ticket N155.
+   *
+   * `secTotal` is the sum of the lines this section is ACTUALLY going to say,
+   * which is not the same as the part's `lines`: the register decides between
+   * lines, commentary and brief, and the questions add the asking line only when
+   * a resume has not already asked it (N149). So it is handed the real list at
+   * the moment the section starts rather than derived from the part.
+   *
+   * Both are zero between sections, which is what makes `within` honest during
+   * the openers instead of leaving the last section's figure on screen.
+   */
+  let secSpent = 0;
+  let secTotal = 0;
+
+  const beginSection = (lines: Line[]): void => {
+    secSpent = 0;
+    secTotal = lines.reduce((a, l) => a + l.ms, 0);
+    pushProgress();
+  };
+  /** A line is spent the moment it is done with, skipped or heard out. */
+  const lineDone = (l: Line): void => {
+    secSpent = Math.min(secTotal, secSpent + l.ms);
+    pushProgress();
+  };
+  const endSection = (): void => {
+    secSpent = 0;
+    secTotal = 0;
+  };
+
+  let lastProgress = '';
+  const pushProgress = (): void => {
+    const phase: 1 | 2 = (tour.mode === 'telling' || tour.told) ? 2 : 1;
+    const done = phase === 2
+      ? Math.min(heardAnswers().length, story.length)
+      : Math.min(tour.played.length, parts.length);
+    const total = phase === 2 ? story.length : parts.length;
+    const within = secTotal > 0 ? Math.min(1, secSpent / secTotal) : 0;
+    const p: TourProgress = { phase, done, total, within };
+    /*
+     * Rounded into the key, and only into the key. A bar 168px wide across six
+     * segments gives a segment 25px, so a thousandth of a section is a thirtieth
+     * of a pixel: below that, two pushes are the same drawing and the dedupe
+     * should say so. The value handed on is the unrounded one, because the CSS
+     * width it becomes is a percentage rather than a pixel count.
+     */
+    const key = `${phase}:${done}:${total}:${within.toFixed(3)}`;
+    if (key === lastProgress) return;
+    lastProgress = key;
+    podium.progress(p);
+  };
 
   root.appendChild(bar);
   root.appendChild(meter);
@@ -799,13 +975,66 @@ export function startTour(root: HTMLElement, podium: Podium): TourHandle {
    * the reaction quest out of it, which is the same generosity the rest of the
    * close already shows.
    */
+  /**
+   * How long a control the script opened stays open before it is put back.
+   *
+   * Long enough that the visitor sees what happened rather than a flicker, short
+   * enough that the next line is not waiting on it. Both cues below use it, so
+   * the two gestures have the same rhythm.
+   */
+  const SHOW_MS = 1400;
+
+  /**
+   * ONLY CLOSE WHAT YOU OPENED -- board ticket N157, and it applies to both cues.
+   *
+   * Nam, on the heart: "First, the emoji button is not on => then we enable it,
+   * emote the heart, wait a bit, then disable the emoji button. Case 2: emoji
+   * button is already on => we just emote the heart, wait a bit, then done."
+   *
+   * That second case is the whole rule and it generalises. A tray or a panel the
+   * VISITOR opened is theirs; the script borrowing the screen does not get to
+   * tidy it away on the way past. The old version pressed the control
+   * unconditionally, which meant a visitor who had the tray open watched the
+   * script shut it, and a visitor who had the chat open watched "Open the chat"
+   * close it -- the line doing the exact opposite of what it said.
+   */
   const sendHeart = async (): Promise<void> => {
-    if (!await pressSel('[data-ctl="react"]')) return;
-    if (!await appears('.tray-btn')) return;
-    await wait(reduced ? 0 : 220);
+    const wasOpen = document.body.classList.contains('tray-open');
+    if (!wasOpen) {
+      if (!await pressSel('[data-ctl="react"]')) return;
+      if (!await appears('.tray-btn')) return;
+      await wait(reduced ? 0 : 220);
+    }
     // The first swatch, which is the heart. Named by position because the tray
     // is authored as a list of emoji and none of them carries an id.
     await pressSel('.tray-btn', true);
+    if (wasOpen) return;
+    // The emoji has to finish rising out of the tray before the tray goes, or
+    // the gesture reads as the reaction being cancelled.
+    await wait(reduced ? 0 : SHOW_MS);
+    await pressSel('[data-ctl="react"]');
+  };
+
+  /**
+   * Open the chat, hold it, and put it back (N157).
+   *
+   * `aria-pressed` rather than a body class, because that is what the button
+   * itself publishes: sideBtn's sync writes it from the panel in state, so it is
+   * the same fact the control is already showing the visitor. `has-panel` would
+   * have been true for ANY open drawer and would have made the script leave the
+   * chat closed whenever the tools panel happened to be up.
+   */
+  const chatOpen = (): boolean =>
+    document.querySelector('[data-ctl="chat"]')?.getAttribute('aria-pressed') === 'true';
+
+  const showChat = async (): Promise<void> => {
+    const wasOpen = chatOpen();
+    if (!wasOpen && !await pressSel('[data-ctl="chat"]', true)) return;
+    await wait(reduced ? 0 : SHOW_MS);
+    if (wasOpen) return;
+    // Guarded, because the visitor can close it themselves inside the hold, and
+    // pressing again then would REOPEN the panel the beat is trying to put away.
+    if (chatOpen()) await pressSel('[data-ctl="chat"]', true);
   };
 
   /**
@@ -844,6 +1073,7 @@ export function startTour(root: HTMLElement, podium: Podium): TourHandle {
   const runCue = async (cue: string): Promise<void> => {
     if (cue === 'share') return doShare();
     if (cue === 'heart') return sendHeart();
+    if (cue === 'chat') return showChat();
     if (cue.startsWith('zoom:')) return doZoom(Number(cue.slice(5)) || 1);
     if (cue === 'maximise') return doMaximise();
     if (cue === 'files') { await openFiles(); return; }
@@ -953,6 +1183,18 @@ export function startTour(root: HTMLElement, podium: Podium): TourHandle {
 
   const speak = async (lines: Line[], bs: Beat[] | undefined, protect?: Bail): Promise<void> => {
     cut = false;
+    /*
+     * N148. The run loop checks the mode at the top of its iteration and there
+     * is one await between that check and this call: the shorten aside. A Skip
+     * intro press landing inside that window would have its `cut` cleared by the
+     * line above and then be narrated straight past, so the mode is re-read here
+     * rather than trusted from three statements ago.
+     */
+    if (tour.mode === 'telling' || tour.mode === 'handedOver') return;
+    // N155. The bar's section is the lines this part is about to say, in the
+    // register it is about to say them in -- which is why it is measured here,
+    // where the list is real, rather than off the part's authored `lines`.
+    beginSection(lines);
     for (let i = 0; i < lines.length; i += 1) {
       if (dead) return;
       await drain();
@@ -1033,6 +1275,13 @@ export function startTour(root: HTMLElement, podium: Podium): TourHandle {
        * finish it."
        */
       await takePause();
+      /*
+       * N155. The line is spent, so the bar moves. HERE rather than at the top of
+       * the next iteration, because a cut returns below and that line still
+       * happened: a visitor who skips through four sentences has spent those four
+       * sentences' worth of the section whether they read them or not.
+       */
+      lineDone(line);
       /*
        * Checked AFTER the line rather than before it, so a click always gets one
        * whole sentence finished before the subject changes. Cutting mid-sentence
@@ -1366,13 +1615,46 @@ export function startTour(root: HTMLElement, podium: Podium): TourHandle {
    * has heard all eight gets the openers anyway -- so they brace for another
    * ninety seconds -- and is then let off.
    */
-  const tell = async (): Promise<void> => {
+  /**
+   * @param skipped True when the visitor pressed Skip intro to get here.
+   *
+   * N148. The two openers are written for a silence, and after a press there has
+   * not been one. "Still here?" is a question about somebody who stayed put; it
+   * is answered by the press itself, and asking it anyway would be the script not
+   * listening. `opener.more` frames the segment for a visitor who does not know
+   * it is coming, which is the opposite of somebody who just asked for it.
+   *
+   * So a press drops both and lands on `resumeAt`, which opens "Where were we
+   * again?" and names the question by number. That reads as a direct answer to
+   * what was asked for, and it is also the line Nam described the feature with:
+   * "continuing where we were".
+   */
+  const tell = async (skipped = false): Promise<void> => {
+    // Whichever way the questions arrived, the offer to skip to them is spent.
+    dropSkip();
+    /*
+     * The press sets hurry so the beat it cut through finishes quickly. runBeats
+     * clears it when a beat lands, and a line with NO beats never reaches that
+     * call -- so the haste would otherwise be carried into the answers and read
+     * them at a third of their authored pace. Cleared here, which is the one
+     * place every skip passes through.
+     */
+    if (skipped) hand.hurry(false);
+    /*
+     * N155. The walkthrough's last section is behind us and the openers belong to
+     * no section, so the bar shows the phase-2 count with an empty current
+     * segment until the first question actually starts.
+     */
+    endSection();
+    pushProgress();
     const heard = new Set(heardAnswers());
     const left = story.filter((c) => !heard.has(c.id));
 
-    await voice(words(opener.stillHere), opener.stillHere.ms);
-    await takePause();
-    if (dead) return;
+    if (!skipped) {
+      await voice(words(opener.stillHere), opener.stillHere.ms);
+      await takePause();
+      if (dead) return;
+    }
 
     if (!left.length) {
       // The tease: same shape, and then he lets them off.
@@ -1388,16 +1670,24 @@ export function startTour(root: HTMLElement, podium: Podium): TourHandle {
       return;
     }
 
-    await voice(words(opener.more), opener.more.ms);
-    await takePause();
-    if (dead) return;
+    if (!skipped) {
+      await voice(words(opener.more), opener.more.ms);
+      await takePause();
+      if (dead) return;
+    }
 
     /*
      * Only when they are actually coming back to something. On a first hearing
      * "where were we" is a question about a conversation that has not happened.
+     *
+     * N148 leans on this rather than adding a line: after Skip intro this is the
+     * first thing said, and it is the right first thing. `heard.size > 0` is the
+     * same condition the control is offered under, so a press can never land on
+     * the silent branch.
      */
     const first = story.indexOf(left[0]!);
-    if (heard.size > 0) {
+    const resumed = heard.size > 0;
+    if (resumed) {
       const line = resumeAt(first + 1, left[0]!.q);
       await voice(words(line), line.ms);
       await takePause();
@@ -1407,16 +1697,45 @@ export function startTour(root: HTMLElement, podium: Podium): TourHandle {
     for (const chapter of left) {
       if (dead) return;
       const n = story.indexOf(chapter) + 1;
+      /*
+       * ASKED ONCE -- board ticket N149.
+       *
+       * `resumeAt` is not a preamble to the question, it IS the question: N110
+       * had it name the number AND the text precisely so somebody coming back
+       * knows which one they are about to hear. Asking it again in the next
+       * caption, word for word, reads as the script losing its place two lines
+       * after saying "where were we again".
+       *
+       * Only the FIRST one left, and only when a resume line actually ran. Every
+       * other question still gets announced before it is answered, because the
+       * numbering is what tells the visitor the list is finite (N110), and a
+       * first hearing has no resume line to have covered it.
+       */
+      const asks = !(resumed && chapter === left[0]);
       const ask = askQuestion(n, chapter.q);
-      await voice(words(ask), ask.ms);
-      await takePause();
+      /*
+       * N155. A question is a section, and its length is the asking plus the
+       * answering -- minus the asking on the one chapter the resume line already
+       * asked, which is why this is built from `asks` rather than assumed.
+       */
+      beginSection(asks ? [ask, ...chapter.lines] : chapter.lines);
+      if (asks) {
+        await voice(words(ask), ask.ms);
+        await takePause();
+        lineDone(ask);
+      }
       for (const line of chapter.lines) {
         if (dead) return;
         await voice(words(line), line.ms);
         await takePause();
+        lineDone(line);
       }
       // After the LAST line, which is the only honest place to credit it.
       markAnswerHeard(chapter.id);
+      // The section is behind us now, so the bar counts it in `done` rather than
+      // leaving it sitting at a hundred per cent of a section still in progress.
+      endSection();
+      pushProgress();
     }
     tour = reduceTour(tour, { t: 'toldDone' });
     // The answers are done, so the reason for keeping an exit is done with them.
@@ -1426,6 +1745,8 @@ export function startTour(root: HTMLElement, podium: Podium): TourHandle {
   /* ------------------------------------------------------------------ the run */
 
   let announcedShorten = false;
+  /** N148. Set by the Skip intro press, read once by the run loop. */
+  let skipRequested = false;
 
   const run = async (): Promise<void> => {
     /*
@@ -1451,7 +1772,14 @@ export function startTour(root: HTMLElement, podium: Podium): TourHandle {
 
     while (!dead) {
       if (tour.mode === 'handedOver') { await voice(asides.handOver.text, asides.handOver.ms); break; }
-      if (tour.mode === 'telling') { await tell(); continue; }
+      if (tour.mode === 'telling') {
+        // N148. Consumed here rather than read inside tell(), so a segment that
+        // starts on its own later in the same visit gets its openers back.
+        const bySkip = skipRequested;
+        skipRequested = false;
+        await tell(bySkip);
+        continue;
+      }
       if (tour.mode === 'finished') break;
       if (!tour.current) break;
 
@@ -1470,6 +1798,14 @@ export function startTour(root: HTMLElement, podium: Podium): TourHandle {
 
       await speak(lines, bs, protect);
       if (dead) return;
+      /*
+       * N155, and the order matters. `partDone` moves this part into `played`,
+       * so the bar's `done` goes up by one and the segment it just filled turns
+       * the finished colour. If `within` were still 1 when that happened, the
+       * NEXT segment would paint full for a section that has not started. So the
+       * section clock is cleared first, in the same tick.
+       */
+      endSection();
       tour = reduceTour(tour, { t: 'partDone' });
     }
 
@@ -1621,13 +1957,43 @@ export function startTour(root: HTMLElement, podium: Podium): TourHandle {
       note({ t: 'enter', at: performance.now(), id: part.id });
       note({ t: 'takeover', at: performance.now() });
       /*
-       * The hand acknowledges immediately even though the narration queues. A
-       * click that produces no visible response for four seconds reads as a
-       * click that did nothing.
+       * THE HAND ACKNOWLEDGES A CLICK ONLY WHEN THERE IS AN ANSWER COMING --
+       * board ticket N145.
+       *
+       * The gesture was written for one situation and was running in all of them.
+       * The situation it is right for: the visitor opens a section while the
+       * script is talking, the narration for it queues behind the current part,
+       * and nothing visible happens for several seconds. The hand going to the
+       * thing they pressed says "heard you" in the only channel that is free.
+       *
+       * Nam, on what it does everywhere else: "If I stop the script, then click
+       * around on the browser, the mock mouse would follow me, if I click say how
+       * this was built, the mouse would also move to that tab and click. Why do we
+       * have this behavior? Its a bit confusing cause it doesnt serve any
+       * purpose."
+       *
+       * He is right, and "doesn't serve any purpose" is the precise diagnosis
+       * rather than a complaint about polish. With the script stopped or spent
+       * there is no queued narration, so there is nothing to acknowledge; the arrow
+       * arriving a beat after the visitor's own pointer, on the control they just
+       * pressed, reads as the page mousing along behind them. It is also the one
+       * gesture in the build with no line attached to it, which is what makes it
+       * uncanny instead of merely redundant.
+       *
+       * `delivering()` is the existing test for "the running order is still
+       * running", and `paused` covers the gap between the Stop press and the
+       * captions coming back, which is exactly the window Nam was clicking in.
+       *
+       * WHAT DOES NOT CHANGE: the visit is still recorded either way. The
+       * director's resumption order depends on parts being marked played by
+       * whichever route reached them, so skipping the note here would quietly
+       * change what gets re-narrated later. Only the gesture is conditional.
        */
-      const first = part.triggers?.[0];
-      const target = first ? q(first) : null;
-      if (target) void hand.at(target);
+      if (delivering() && !paused) {
+        const first = part.triggers?.[0];
+        const target = first ? q(first) : null;
+        if (target) void hand.at(target);
+      }
       const before = tour;
       tour = reduceTour(tour, { t: 'visit', id: part.id });
       /*
@@ -1796,6 +2162,10 @@ export function startTour(root: HTMLElement, podium: Podium): TourHandle {
     // Cheap, and the only reliable moment to catch a frame that has just been
     // repainted. querySelector on a miss is a few microseconds once a second.
     watchFrame();
+    // N147. The backstop under the direct calls: it catches a part the visitor
+    // opened themselves, and the switch into the questions, without either site
+    // having to remember to report.
+    pushProgress();
     const now = performance.now();
     note({ t: 'idle', at: now });
     const quiet = now - visitor.lastInput;
@@ -1872,6 +2242,34 @@ export function startTour(root: HTMLElement, podium: Podium): TourHandle {
   };
 
   stopBtn.addEventListener('click', () => {
+    /*
+     * SKIP INTRO -- board ticket N148. Taken before the pause guard, because a
+     * skip is not a pause and the two states have nothing to do with each other.
+     */
+    if (skipOffered) {
+      const before = tour;
+      tour = reduceTour(tour, { t: 'skipIntro' });
+      // Refused. The reducer is the authority on whether there is anything to
+      // skip to, and a control that did nothing is worse than one that is gone.
+      if (tour.mode !== 'telling') { tour = before; dropSkip(); return; }
+      dropSkip();
+      skipRequested = true;
+      // The bar is repainted from the new phase before a word is said, so the
+      // press has a visible answer inside a frame rather than after a sentence.
+      pushProgress();
+      /*
+       * The same two levers Stop pulls, for the same reason and with the same
+       * limit: `cut` ends the part after the sentence being read, `skip` ends
+       * that sentence's dwell now, and a beat under it still finishes (N55) --
+       * a skip that abandoned the hand mid-gesture would leave the shared
+       * screen in a state the questions are then narrated over. `hurry` is what
+       * keeps that wait short. It is cleared by runBeats when the beat lands.
+       */
+      hand.hurry(true);
+      cut = true;
+      podium.skip();
+      return;
+    }
     if (paused || pauseWanted) return;
     pauseWanted = true;
     /*
@@ -1898,6 +2296,14 @@ export function startTour(root: HTMLElement, podium: Podium): TourHandle {
     hand.hurry(true);
     podium.skip();
   });
+
+  /*
+   * Report 0 of 6 before a word is said (N147). The bar is drawn from this, so
+   * without it the corner is empty for the second the pre-roll takes and then a
+   * bar appears -- which reads as something arriving rather than as the shape of
+   * what is about to happen. Empty and honest beats absent and then sudden.
+   */
+  pushProgress();
 
   void run();
 

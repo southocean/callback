@@ -11,7 +11,6 @@ import { Bugs, wireBugs } from './bugs.js';
 import { openDev } from './ui/devopen.js';
 import { togglePlain, onPlainOpened } from './ui/plainoverlay.js';
 import { codeFromUrl, pitchFor } from './data/companies.js';
-import { loadReadyGate, readyCardOpens } from './prefs.js';
 import { beginPass } from './pass.js';
 
 const root = must('#app');
@@ -38,11 +37,6 @@ const boot: State = {
   screen: route.screen,
   panel: route.panel,
   reducedMotion: prefersReducedMotion(),
-  // `initial` says true, because the reducer is pure and has no business reading
-  // storage. Whether the "meeting's ready" card actually opens is a decision
-  // about this visitor rather than about this state, so it is made here, once,
-  // at boot. See prefs.ts for the rule.
-  readyCard: readyCardOpens(loadReadyGate(), Date.now()),
   ...(route.engTab ? { engTab: route.engTab } : {}),
   ...(route.spotlight ? { spotlight: route.spotlight } : {}),
   ...(route.plain ? { plain: true } : {}),
@@ -163,8 +157,10 @@ function render(): void {
   // render that is about to replace the screen may declare earlier work stale.
   /*
    * LEAVING THE CALL HAS TO END THE CONVERSATION, and for six commits it did
-   * not. call.ts has exported stopTour since the tour landed, with a comment
-   * saying "Called from main.ts on leave", and nothing ever called it.
+   * not. call.ts had exported this since the tour landed -- as `stopTour`, with
+   * a comment saying "Called from main.ts on leave" -- and nothing ever called
+   * it. It is `leaveCall` now, because N154 found a second thing leaving has to
+   * do and the old name only described the first.
    *
    * The symptom was a dead call on the second visit, which QA reproduced: join,
    * go home, join again, and you get captions on, no share, no narration, and a
@@ -199,7 +195,9 @@ function render(): void {
 
   // The chunk is already resolved -- you cannot have left a call you never
   // reached -- so this is a cached module lookup rather than a fetch.
-  if (leftCall) void import('./ui/call.js').then((m) => m.stopTour());
+  // N154 widened this from stopping the tour to putting the whole room back:
+  // the body classes the call writes outlived it, and a rejoin inherited them.
+  if (leftCall) void import('./ui/call.js').then((m) => m.leaveCall());
   if (enteredCall) beginPass();
 
   document.body.classList.toggle('plain', key === 'plain');

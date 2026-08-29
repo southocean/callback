@@ -2469,6 +2469,296 @@ export const tasks: Task[] = [
     },
   },
 
+  /* Nam's QA pass of 29 August. Two copy cuts, two behaviours that served
+     nobody, one measurement, and the interview progress bar with the skip that
+     comes out of it. */
+
+  {
+    id: 'N142', col: 'done', size: 'S', tag: 'content',
+    title: 'Host controls stops explaining the door',
+    note: 'A line about what Meet keeps behind this panel, on a panel the visitor has already opened.',
+    detail: {
+      why: 'Nam: "Meet keeps the awkward administrative things behind this door. So does this. => remove"',
+      done: ['The pnote is gone from the host panel', 'Asserted absent in tools/ship-check.mjs'],
+      raised: 'Nam, QA 29 Aug',
+    },
+  },
+
+  {
+    id: 'N143', col: 'done', size: 'S', tag: 'content',
+    title: 'The CV footer stops narrating the print button',
+    note: 'The last line of the document explained that the document prints.',
+    detail: {
+      why: 'Nam: "In the CV: Print this page for a one-page PDF." Same cut as N142, in the second place he named.',
+      done: ['The footer paragraph is gone', 'Asserted absent in tools/ship-check.mjs', 'The print stylesheet is untouched: the page still prints as a one-pager'],
+      raised: 'Nam, QA 29 Aug',
+      notes: 'It was the one survivor of an earlier footer cut, kept on the argument that it helps the reader in front of it. It does not. Every browser prints, the ways in are the menu and Ctrl+P, and a document that tells you it can be printed is furniture. The behaviour it described is a print stylesheet and stays exactly as it was.',
+    },
+  },
+
+  {
+    id: 'N144', col: 'done', size: 'M', tag: 'trust',
+    title: 'There is one CV, not two',
+    note: 'An authored drawing of the CV sat behind the framed document and showed through while it loaded.',
+    detail: {
+      why: 'Nam: "sometimes when I open the CV I seem to get the old version of the CV with only a few lines, double check if that version still lingers around in the project and why it showed up at all."',
+      done: ['pageCv is deleted', 'The CV tab frames the document and nothing renders behind it', 'A frame that never loads says so in one line instead of drawing a shorter CV'],
+      raised: 'Nam, QA 29 Aug',
+      notes: 'It lingers and it is reachable, which answers both halves of the question. pageCv drew a name, a headline, the pitch and the first four roles, and frameOf rendered it FIRST with the iframe over the top, dropping it on the frame load event. So every open of that tab showed it for as long as a fresh app boot inside the iframe takes, and a load slower than four seconds left it up for good. The comment above the slot had already recorded the two copies drifting apart once: the drawing still said Mahjong Logic and carried the old socials line. A fallback that is a second copy of the primary content cannot be kept honest, so the fix is to stop having one rather than to update it again.',
+    },
+  },
+
+  {
+    id: 'N145', col: 'done', size: 'S', tag: 'call',
+    title: 'The hand stops chasing the visitor',
+    note: 'Click a tab after stopping the script and the cursor came over and pressed it too.',
+    detail: {
+      why: 'Nam: "If I stop the script, then click around on the browser, the mock mouse would follow me, if I click say how this was built, the mouse would also move to that tab and click. Why do we have this behavior? Its a bit confusing cause it doesnt serve any purpose."',
+      done: ['The acknowledging move is gone once the tour has been handed over or has finished', 'The hand still acknowledges while the script is actually speaking', 'The visit is still recorded, so resumption order is unchanged'],
+      raised: 'Nam, QA 29 Aug',
+      notes: 'It was written as an acknowledgement: a click that queues four seconds of narration reads as a click that did nothing, so the hand went to the thing you pressed to say it had been heard. That argument holds while there is narration coming. After Stop there is none, so the gesture answers a question nobody asked and reads as the cursor copying you.',
+    },
+  },
+
+  {
+    id: 'N146', col: 'done', size: 'M', tag: 'call',
+    title: 'The caption band reserves what the captions use',
+    note: '216px of reservation for a bubble that is two lines. The share and the tile paid for the difference.',
+    detail: {
+      why: 'Nam: "because we carefully control and curate the CC, they are not very long, only usually 2 lines max, worst case probably 3 lines. So the space we make here is mostly empty, which is very inefficient use of space, not to mention the shared screen is smaller than it could have been."',
+      done: ['One reservation, measured against the tallest line in the script', 'The share, the solo tile and the reaction clip all move by the same amount', 'The caption never covers the control bar or the self tile'],
+      raised: 'Nam, QA 29 Aug',
+      notes: 'The 216 is a real measurement and that is exactly why it is wrong here. It was read off Meet, which reserves for live recognition from several speakers at once and has to hold four or five lines. This script is authored, every line is timed by hand, and the bubble is one speaker. The number has to be measured against OUR captions rather than inherited from theirs.',
+    },
+  },
+
+  {
+    id: 'N147', col: 'done', size: 'L', tag: 'call',
+    title: 'The bottom left shows the interview, not the side quests',
+    note: 'A quest counter that invited clicking around, replaced by a bar that shows the conversation has an end.',
+    detail: {
+      why: 'Nam: "In the call we have this in the bottom left corner Side quests 12/17 see the list => remove it. Instead, I want to show the progress of the interview as a progress bar, so user can see that we are making progress in the interview, which helps them tolerate the urge to click around."',
+      done: [
+        'The side quest line and its way into the spec panel are gone from the bar',
+        'A bar that fills across the six parts of the opening, then refills across the eight questions in a second colour',
+        'The phase is legible without a legend: it says which phase and how far',
+        'It is driven from the director rather than from a timer',
+      ],
+      raised: 'Nam, QA 29 Aug',
+      notes: 'The counter was working against the thing it sat next to. "Side quests 12 of 17, see the list" is an invitation to go hunting, printed underneath a person who is mid sentence, and the whole adaptive layer above it exists to cope with visitors who do exactly that. A progress bar makes the opposite argument with less copy: this is finite, and you are already part of the way through it.',
+    },
+  },
+
+  {
+    id: 'N148', col: 'done', size: 'M', tag: 'call',
+    title: 'Skip intro, for anyone who has heard the intro',
+    note: 'Come back part way through the questions and the control offers the part you have not heard.',
+    detail: {
+      why: 'Nam: "If we end the meeting mid phase 2, then come back, instead of stop talking we have a skip intro button, which skips directly to the second phase and continuing where we were. This allows users to skip the redundant parts and speed up the process, and we also get higher chance of showing our interview answers, which are also very important."',
+      done: [
+        'The control reads Skip intro when answers have been heard and some are left',
+        'Pressing it goes straight to the first unheard question',
+        'The bar jumps to the second phase and reports the answers already heard',
+        'Once the questions are running the control is Stop talking again',
+      ],
+      raised: 'Nam, QA 29 Aug',
+      notes: 'The answers are the part of this that reads as an interview rather than as a demo, and they sit behind six parts and a nine second silence. Somebody on their second visit has already paid that toll once. The memory this needs already exists: chapters are written down by id after their last line, which is what the resume line reads.',
+    },
+  },
+
+  {
+    id: 'N149', col: 'done', size: 'S', tag: 'call',
+    title: 'The resumed question is asked once, not twice',
+    note: 'Where were we again? Oh, question 4. What are your weaknesses, honestly? 4. What are your weaknesses, honestly?',
+    detail: {
+      why: 'Found while QAing N148. The resume line asks the question by number AND by name, which is what N110 designed it to do, and then the loop underneath it asks the same question again in the same words. Two captions in a row carrying one sentence reads as the script having lost its place, which is the exact opposite of what a line called "where were we" is for.',
+      done: [
+        'The first question after a resume is asked once',
+        'Every other question is still announced before it is answered',
+        'A first hearing, which has no resume line, is unchanged',
+      ],
+      raised: 'QA of N148, 29 Aug',
+      notes: 'Older than N148 and not caused by it: the natural resume, after enough silence, has said it twice since N110 shipped. What N148 changed is how visible it is. The silent route puts "Still here?", a pause and a framing line in front of the repetition, so the two askings are eight seconds and two captions apart; Skip intro drops all three, which is correct, and lands the visitor on the duplication with nothing between the halves. A bug that was hard to notice became the first thing the feature does.',
+    },
+  },
+
+  /* Nam's QA pass of 29 August, second batch. Two copy moves, a loading state,
+     a card that went, a reset bug, the progress bar rebuilt on the script's own
+     clock, two more things Settings can forget, and the close learning to put
+     back what it takes out. */
+
+  {
+    id: 'N150', col: 'done', size: 'S', tag: 'content',
+    title: 'The banner stops calling itself a wizard',
+    note: 'Agentic programming wizard, on a page that is the evidence for it.',
+    detail: {
+      why: 'Nam: "Lead front-end developer, 7 years · Equal part an entertainer · PhD in going the extra miles. We dont need the agentic programming wizard, this CV already proves that."',
+      done: ['The banner subtitle names the entertainer instead', 'The same line in index.html moves with it, since that copy is duplicated for the first paint'],
+      raised: 'Nam, QA 29 Aug',
+      notes: 'The claim was not wrong, it was redundant, and redundant in the specific way that costs credibility: the page it sits on WAS built this way in a week and says so at length in the spec panel, with commit counts. A boast in front of its own proof reads as the boast doing the work. What replaces it is the one thing about him the CV genuinely cannot demonstrate, which is what a subtitle is for.',
+    },
+  },
+
+  {
+    id: 'N151', col: 'done', size: 'S', tag: 'onboarding',
+    title: 'How this was built is the primary button',
+    note: 'The outlined button pointed at a PDF download. The interesting door was the text one beside it.',
+    detail: {
+      why: 'Nam: "We swap the Download the PDF vs how this was built. So How this was built is the primary button here."',
+      done: ['How this was built comes first and carries the outline and the glyph', 'Download the PDF is the text button', 'The science glyph is the one the spec panel already uses for itself'],
+      raised: 'Nam, QA 29 Aug',
+      notes: 'The emphasis was backwards against what the page is for. A PDF download is the exit: it is what somebody takes when they are done, and anybody who wants one will find it whatever it is dressed as. The spec panel is the argument, and it is the half of this site a reader cannot guess is there.',
+    },
+  },
+
+  {
+    id: 'N152', col: 'done', size: 'S', tag: 'trust',
+    title: 'The framed CV loads like a page loads',
+    note: 'N144 removed the wrong CV and left a white rectangle. A blank frame is honest and still reads as broken.',
+    detail: {
+      why: 'Nam, on N144: "I\'d rather we have a loading animation than showing a strange CV then update it with the correct one, feels very bizarre and inconsistent. Feels like 2 different CV, even if the default one is shown for a split second."',
+      done: ['A spinner behind the frame, on the same motif the rest of the build loads with', 'It is gone the moment the frame is live', 'Nothing that could be mistaken for CV content is ever drawn there'],
+      raised: 'Nam, QA 29 Aug',
+      notes: 'The first sentence of his note is the whole specification and it is a sharper rule than the one N144 was fixed against. N144 argued that a wrong CV is worse than a blank frame, which is true and is not the same as saying a blank frame is right. A spinner says "this is one thing, arriving"; a shorter CV that is replaced says "this is two things, and one of them was a lie". Blank says nothing at all, which the reader fills in themselves.',
+    },
+  },
+
+  {
+    id: 'N153', col: 'done', size: 'M', tag: 'call',
+    title: 'The meeting is ready without saying so',
+    note: 'A card over the call, on arrival, holding a link to the page it is covering.',
+    detail: {
+      why: 'Nam: "this screenshot, the share meeting screen, this one does not add anything and only distract from the actual content. we can remove it."',
+      done: [
+        'No card on arrival, and no auto-close timer to explain',
+        'The two controls that opened it on request go with it, or point somewhere that still exists',
+        'The referral note and the copyable link keep their home in Host controls',
+        'The ready-gate memory and its tests go too, rather than being left dead',
+      ],
+      raised: 'Nam, QA 29 Aug',
+      notes: 'It is a faithful copy of a real Meet element and that is the only argument for it. Everything it carried has a better home: the referral note and the link are in Host controls under a heading that says what they are for, and the "nothing is uploaded" line is the disclaimer at the bottom of the same panel. What it added on top of that was an eight second countdown the visitor had to wait out or dismiss, in front of a conversation that starts on its own. Fidelity is worth a lot here and it is not worth the first ten seconds.',
+    },
+  },
+
+  {
+    id: 'N154', col: 'done', size: 'M', tag: 'call',
+    title: 'A second join is the same as the first',
+    note: 'Rejoin and the tile is in its presenting corner with nothing being presented.',
+    detail: {
+      why: 'Nam: "if I end the meeting and rejoin the meeting, the meeting starts with my video tile in the state as if we are sharing screen - but we havent hit the screen sharing yet. This tells me that the video view is not properly reset when we join. Make sure any subsequent joining of the meeting get the meeting in the same state as the first time we join."',
+      done: [
+        'Leaving clears every body class the call owns, not just the ones the store happens to hold',
+        'presenting, tray-open and set-open are all reset',
+        'A second join is byte-for-byte the layout of the first',
+      ],
+      raised: 'Nam, QA 29 Aug',
+      notes: 'The call keeps two kinds of state and only one of them is reset. What is in the store -- panel, camera, hand, pinned, minimized -- is cleared by the leave reducer and reapplied by sync() on the way back in. What is a body CLASS set outside the store is not: `presenting` is added by startShare and removed by stopShare, and leaving calls neither. So the class outlives the call view that set it, and the next join renders a fresh full-stage tile into a stylesheet that thinks a share is running. Two others have the same shape and had not been noticed yet: tray-open and set-open. The fix is a teardown that names all three rather than three more places remembering to tidy up.',
+    },
+  },
+
+  {
+    id: 'N155', col: 'done', size: 'L', tag: 'call',
+    title: 'The progress bar runs on the script\'s own clock',
+    note: 'Six steps became a segmented bar that moves on every line and lights each section as it lands.',
+    detail: {
+      why: 'Nam: "love it! But I want the progress update on each caption line instead of on the parts ... each script line we already know the time it appears ... using time measurement would also work with skipping line ... as we completely filled up one section, we run the bar to fill that section with a different color, once filled it pulses once, maybe glow or some fancy animation on that segment, and then the color stays there."',
+      done: [
+        'The fill advances after every line, by that line\'s authored duration',
+        'The track is drawn as one segment per section, and the count still says 1 of 6',
+        'A finished section keeps a more saturated colour and pulses once as it lands',
+        'The section being spoken fills in the regular colour',
+        'Resuming the questions shows the answers already heard as finished sections',
+        'Skipping a line moves the bar, because time spent is time spent',
+      ],
+      raised: 'Nam, QA 29 Aug',
+      notes: 'ONE DECISION WORTH WRITING DOWN: the segments are equal width and the time is measured WITHIN a section, rather than segments sized by their durations against one global clock. Nam described the position as "section 2.5", which is a sentence about section units, and the equal-width version is the one where that sentence is legible: dividers land at regular intervals, so "two and a half of six" is readable at a glance from a 168px bar. Proportional segments would be more literally a measure of total time left and would put the dividers at six irregular places, which reads as a bar with marks on it rather than as a thing with sections. Both satisfy the requirement that a skipped line still moves the bar, since either way the unit is authored milliseconds rather than parts.',
+    },
+  },
+
+  {
+    id: 'N156', col: 'done', size: 'S', tag: 'specs',
+    title: 'Settings can forget the interview and the admin grant',
+    note: 'Two records with no way to clear them, one of which now gates a feature.',
+    detail: {
+      why: 'Nam: "add the ability to clear progression on the project spec/settings too. And a button to clear admin right too so we can test the admin gate."',
+      done: [
+        'The answers heard are a row, so Skip intro and the second phase can be tested from a clean start',
+        'The commentary already heard is a row',
+        'The admin grant is a row, and clearing it puts the gate back',
+        'Each one still says how much it holds before it deletes it',
+      ],
+      raised: 'Nam, QA 29 Aug',
+      notes: 'The list was written when the only things worth resetting were first-visit surprises. N148 changed that: the answers record now decides whether the Skip intro control is offered at all, so a build with no way to clear it has a feature that cannot be tested twice on the same machine without devtools. The admin grant is the same argument pointed at the gate itself, and it is the one row that removes the panel it is pressed in, which is exactly what testing a gate means.',
+    },
+  },
+
+  {
+    id: 'N157', col: 'done', size: 'M', tag: 'call',
+    title: 'The close puts back what it takes out',
+    note: 'It opened a panel, opened a tray and raised a hand, and left all three sitting there.',
+    detail: {
+      why: 'Nam: "in the script, in section 6. lets remove raise your hand, since it spoils the surprise. Lets trust the system and let user discover it ... Then for the line 3 and 4, let\'s also close it after ... First, the emoji button is not on => then we enable it, emote the heart, wait a bit, then disable the emoji button. Case 2: emoji button is already on => we just emote the heart, wait a bit, then done."',
+      done: [
+        'Raise your hand is gone from the close, and the beat with it',
+        'The chat opens, holds, and closes again',
+        'The heart opens the tray only if it was shut, and shuts only what it opened',
+        'Neither gesture touches a panel or a tray the visitor opened themselves',
+      ],
+      raised: 'Nam, QA 29 Aug',
+      notes: 'TWO SEPARATE FAULTS THAT LOOK LIKE ONE. The hand is a spoiler: raising it is one of the twelve bugs to catch and one of the seventeen side quests, and a script that performs it hands over the surprise on the visitor\'s behalf, which is the exact thing N63 argued the conversation should not do with anything a person can find. The other two are a tidiness bug and a real one: the close is the last thing the script does, so whatever it leaves open is the state the visitor is abandoned in, with a chat drawer narrowing the stage and a reaction tray lifting the caption band. "Only close what you opened" is the half that keeps it from being a new bug: pressing the chat button when the chat is already open closes it, so the old unconditional press was already wrong for anybody who had opened the panel themselves.',
+    },
+  },
+
+  {
+    id: 'N160', col: 'done', size: 'S', tag: 'onboarding',
+    title: 'The home buttons go back the way they were',
+    note: 'N151 swapped the emphasis. Nam looked at it and reverted the request.',
+    detail: {
+      why: 'Nam: "revert the swap of the two buttons Download the PDF and How this was built. The swapped version doesnt work, very strange."',
+      done: [
+        'Download the PDF is the outlined button again, first, with the description glyph',
+        'How this was built is the text button again, second, with no glyph',
+        'The spec panel is still what it opens, and openDev is still how it opens it',
+      ],
+      raised: 'Nam, QA 29 Aug, on N151',
+      notes: 'Kept as its own card rather than folded back into N151, because the interesting part is not the diff, it is that the argument was good and the result was not. N151 reasoned that the PDF is the exit and the spec panel is the argument, so the emphasis was on the least surprising thing on screen. That reasoning still reads as correct and the rendering did not: an outlined pill with a flask in it, in a row under a meeting card, competes with the Join button eighty pixels above it and turns a quiet footer into a second call to action. "Very strange" is a precise report of exactly that. The lesson worth keeping is that emphasis is not a property of the button, it is a property of the row it is in and what is above the row.',
+    },
+  },
+
+  {
+    id: 'N161', col: 'done', size: 'S', tag: 'call',
+    title: 'The progress bar is a readout, not text',
+    note: 'A text caret over "THE WALKTHROUGH" and "1 of 6", on labels nobody should be selecting.',
+    detail: {
+      why: 'Nam: "The question, the walkthrough, 1 of 6, 4 of 8, those texts still have pointer as text selection. They should not receive any special cursor, we are not supposed to be able to select them."',
+      done: [
+        'The bar takes the default cursor, not the I-beam',
+        'Nothing in it is selectable by dragging across it',
+        'It is still readable to a screen reader, which reads the label rather than the selection',
+      ],
+      raised: 'Nam, QA 29 Aug',
+      notes: 'It inherited both from being a div with words in it, which is the default for a page and the wrong default for a HUD. An I-beam is a promise that there is text here to take, and the two words under it are a status readout that is rewritten every few seconds: a visitor who acts on that promise gets a highlight that vanishes on the next line. Every other readout in the call chrome has the same shape and the same answer.',
+    },
+  },
+
+  {
+    id: 'N162', col: 'done', size: 'M', tag: 'call',
+    title: 'A finished section lands like it means it',
+    note: 'The flash fired while the bar was still filling, and the colour arrived as a fade.',
+    detail: {
+      why: 'Nam: "The pulse when the bar is filled is a bit too soon. I want the bar filled, then we pause one beat, then we can pulse it. And I wonder if the pulse (change of color) can be done more dramatic. The segment scales up a little bit with the pulse, the color change is not a fade in of color, but a ripple effect from the middle of the segment, or actually even better if the ripple is from the right side, which is the last part it filled up. Once all this dramatic effect finishes, the segment is back to normal."',
+      done: [
+        'The flash waits for the fill to land, and then a beat longer',
+        'The finished colour arrives as a ripple from the right edge, not a crossfade',
+        'The segment swells while it lands and settles back',
+        'The colour stays once the effect is over',
+        'Reduced motion gets the colour and none of the theatre',
+      ],
+      raised: 'Nam, QA 29 Aug',
+      notes: 'THE RIPPLE STARTS AT THE RIGHT EDGE because that is where the fill finished, which is the whole of why it reads as caused rather than decorative: the light comes from the place the last line landed and washes back over the section it completed. From the middle it would be a generic pulse that happens to be on a bar. The delay is the other half of the same idea. The flash used to fire in the same frame the count incremented, which is while the fill is still sliding to a hundred per cent, so it celebrated an arrival that had not happened yet and the two motions fought. A beat of stillness between them is what makes the second one read as a consequence of the first.',
+    },
+  },
+
   /* Flagged rather than done. Still true as of this build. */
   { id: 'T24', col: 'backlog', size: 'M', tag: 'specs', title: 'Initial payload is halfway to the ceiling', note: '24.7 kB of a 50 kB gate, up from 18.2. Still green, and the growth is real, but two deferred chunks are 17 kB and 19 kB and deserve a splitting pass before it becomes urgent.' },
 ];

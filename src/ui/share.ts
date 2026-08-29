@@ -27,8 +27,12 @@
 import { h, clear, icon, icons } from '../dom.js';
 import { loadSound, saveSound } from '../prefs.js';
 import { ripple } from './gm3.js';
+// N152. The same spinner the home screen, the lobby and the router load with.
+import { spinner } from './icons.js';
 import { trapFocus } from '../a11y.js';
-import { profile, pitch, roles, caseStudies, requirementMap, offstage, skills, segments } from '../data/cv.js';
+// `pitch` left with pageCv (N144): it was the drawing's lead paragraph and the
+// only thing here that read it. The document the tab frames has its own.
+import { profile, roles, caseStudies, requirementMap, offstage, skills, segments } from '../data/cv.js';
 import { eggs } from '../data/eggs.js';
 import { games } from '../data/games.js';
 import { currentPitch } from '../data/companies.js';
@@ -95,7 +99,7 @@ const DOCS: Record<string, Doc> = {
   cv: {
     title: 'Nam Nguyen. Senior SWE, Web Development',
     host: 'southocean.github.io',
-    page: () => frameOf(`${location.search}#plain`, 'Nam Nguyen, the CV as a document', pageCv),
+    page: () => frameOf(`${location.search}#plain`, 'Nam Nguyen, the CV as a document'),
   },
   jobad: { title: 'Against the job requirement', host: 'careers.google.com', page: () => pageJobAd() },
   /* N3: one list, and it is not "four" any more. */
@@ -382,33 +386,78 @@ export function renderShared(
  * the authored version, so that one stays authored — a recreation from the real
  * posting rather than a broken grey box.
  */
-function frameOf(hash: string, title: string, fallback: () => HTMLElement): HTMLElement {
-  // The authored page renders first and the iframe goes over it. If the frame
-  // loads, the drawing is dropped; if it is refused — a policy change, an
-  // offline build, anything — the drawing is what stays. A blank grey frame is
-  // the one outcome worth engineering away.
-  const behind = fallback();
+/**
+ * THERE IS ONE CV, AND NOTHING IS DRAWN OVER THE TOP OF IT -- board ticket N144.
+ *
+ * This used to render an authored drawing FIRST and put the iframe over it,
+ * dropping the drawing on the frame's load event. The reasoning was that a blank
+ * grey frame is the one outcome worth engineering away, and the drawing was the
+ * insurance. Nam found what that insurance actually costs: "sometimes when I open
+ * the CV I seem to get the old version of the CV with only a few lines."
+ *
+ * It was not a stale build and it was not cached. It was this function. The
+ * drawing was on screen for as long as a fresh boot of the app inside the iframe
+ * takes, every single time the tab was opened, and a load slower than the timeout
+ * left it up permanently. So the fallback was not the rare case. It was the first
+ * thing most visitors saw of the CV, and it held four roles and no case studies.
+ *
+ * The deeper fault is that it was a SECOND COPY of the primary content, and the
+ * comment above the CV slot had already recorded the two drifting apart once: the
+ * drawing still said Mahjong Logic and carried the old socials line. A second copy
+ * cannot be kept honest by discipline, only by not existing.
+ *
+ * AND IT LOADS LIKE A PAGE LOADS -- board ticket N152. The first version of this
+ * fix left the frame's own white and nothing else, on the argument that a blank
+ * frame is at least honest. Nam: "I'd rather we have a loading animation than
+ * showing a strange CV then update it with the correct one, feels very bizarre
+ * and inconsistent. Feels like 2 different CV, even if the default one is shown
+ * for a split second."
+ *
+ * The second sentence is the rule and it is sharper than the one N144 was fixed
+ * against. Blank is not neutral: an empty white rectangle inside a browser frame
+ * is a thing the reader has to interpret, and the interpretations available are
+ * "broken" and "there is nothing here". A spinner says the one true thing --
+ * something is on its way, and it is one thing -- which is exactly what a second,
+ * shorter CV could never say however briefly it was shown.
+ *
+ * The same spinner the home screen and the lobby use, so a page loading inside
+ * the shared desktop looks like a page loading anywhere else in this build. Light
+ * variant, because it sits on the frame's white rather than on the call's dark.
+ */
+function frameOf(hash: string, title: string): HTMLElement {
   const f = h('iframe', {
     class: 'pg-frame', src: './' + hash, title,
     /*
      * EAGER. The same bug pageExternal already had: a lazy iframe inside a window
      * that is mid-animation counts as not-yet-visible, so it never starts loading,
-     * so is-live never fires, so the 3.5s timeout removes it and the authored
-     * fallback stays forever. QA caught the CV tab rendering the drawing instead
-     * of the document -- which is the one thing frameOf exists to avoid.
+     * so is-live never fires, and the timeout fires against a frame that was never
+     * given the chance to load.
      */
     loading: 'eager', referrerpolicy: 'no-referrer',
   }) as HTMLIFrameElement;
-  const wrap = h('div', { class: 'pg pg-live' }, behind, f);
-  f.addEventListener('load', () => { behind.remove(); wrap.classList.add('is-live'); });
-  window.setTimeout(() => { if (!wrap.classList.contains('is-live')) f.remove(); }, 4000);
+  /*
+   * BEHIND the frame rather than over it, and removed rather than faded. The
+   * iframe paints its own white the instant it has a document, so a spinner left
+   * on top would be a spinner over a finished page; underneath, it is covered at
+   * exactly the moment there is something to cover it.
+   */
+  const load = h('div', { class: 'pg-load', 'aria-hidden': 'true' }, spinner());
+  const wrap = h('div', { class: 'pg pg-live' }, load, f);
+  f.addEventListener('load', () => { load.remove(); wrap.classList.add('is-live'); });
+  window.setTimeout(() => {
+    if (wrap.classList.contains('is-live')) return;
+    load.remove();
+    f.remove();
+    wrap.append(h('p', { class: 'pg-lead' },
+      'This tab frames the CV document, and it did not load. It is the same page as Read as a document, in the host panel.'));
+  }, 4000);
   return wrap;
 }
 function contentFor(src: Source, onOpen: (id: string) => void, onClose: () => void, boot?: { egg?: string; cv?: boolean }): HTMLElement {
   switch (src.id) {
     // The real thing, framed. #plain is a standalone document view — it has no
     // call chrome, so framing it cannot nest the app inside itself.
-    case 'cv': return frameOf(`${location.search}#plain`, 'Nam Nguyen, the CV as a document', pageCv);
+    case 'cv': return frameOf(`${location.search}#plain`, 'Nam Nguyen, the CV as a document');
     // 'work' used to frame '#tools/tests' and Nam caught what that does: 'tools'
     // is a PANEL, so the hash resolves to { screen: 'call', panel: 'tools' } and
     // the iframe loaded the entire Meet clone — a call inside the call inside
@@ -504,18 +553,6 @@ function pageVideo(id: string): HTMLElement {
 // --------------------------------------------------------------- the pages --
 // All of this is real content from src/data/cv.ts. Nothing here is invented for
 // the sake of filling a mockup — if it says he did something, the CV says so too.
-
-function pageCv(): HTMLElement {
-  return h('div', { class: 'pg' },
-    h('h1', { class: 'pg-h' }, profile.name),
-    h('p', { class: 'pg-sub' }, `${profile.headline} · ${profile.place}`),
-    h('p', { class: 'pg-lead' }, pitch),
-    h('div', { class: 'pg-roles' },
-      ...roles.slice(0, 4).map((r) => h('div', { class: 'pg-role' },
-        h('b', {}, r.title),
-        h('span', {}, `${r.org} · ${r.from}–${r.to ?? 'present'}`)))),
-  );
-}
 
 /**
  * N39. BUG: this page rendered a heading, an apology and nothing else.

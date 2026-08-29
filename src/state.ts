@@ -45,8 +45,6 @@ export interface State {
    * -- on the full-stage tile it reports aria-disabled=true.
    */
   minimized: boolean;
-  /** Meet's "Your meeting's ready" card, dismissible. */
-  readyCard: boolean;
   net: NetProfile;
   /** Injects a deliberate fault so the test suite can be seen failing. */
   chaos: boolean;
@@ -89,7 +87,6 @@ export type Action =
   | { t: 'eggPlay'; id: string | null }
   | { t: 'presAudio'; on: boolean }
   | { t: 'minimize'; on: boolean }
-  | { t: 'readyCard'; on: boolean }
   | { t: 'net'; profile: NetProfile }
   | { t: 'chaos'; on: boolean }
   | { t: 'reducedMotion'; on: boolean }
@@ -115,7 +112,6 @@ export const initial: State = {
   pinned: false,
   presAudio: true,
   minimized: false,
-  readyCard: true,
   net: 'good',
   chaos: false,
   reducedMotion: false,
@@ -198,17 +194,11 @@ export function reduce(s: State, a: Action): State {
       // Joining the egg goes straight to the call -- no lobby. The clip is the
       // whole point of that meeting, so a green room in front of it is a wall.
       //
-      // And no "Your meeting's ready" card over the top of it. That card exists
-      // to tell a first-time visitor the link is copyable; an egg is a
-      // thirty-second clip someone clicked on purpose, and a share sheet parked
-      // over the video is exactly the clutter Nam reported. Suppressed HERE
-      // rather than at the call site so a future way into an egg cannot forget:
-      // the rule is a property of the state, not of one button.
-      //
-      // It also means the egg does not burn one of the card's two automatic
-      // shows, because call.ts only counts a show when the card is armed. The
-      // visitor was not shown it, so it was not shown.
-      return { ...s, screen: 'call', eggPlay: a.id, readyCard: a.id ? false : s.readyCard };
+      // The "Your meeting's ready" card used to be suppressed here too, on the
+      // grounds that a share sheet parked over a thirty-second clip is clutter
+      // the visitor did not ask for. N153 made that argument about every route
+      // rather than this one, and removed the card.
+      return { ...s, screen: 'call', eggPlay: a.id };
 
     case 'pin':
       // Pinning gives the tile the whole right column, so a collapsed bar makes
@@ -220,9 +210,6 @@ export function reduce(s: State, a: Action): State {
 
     case 'minimize':
       return { ...s, minimized: a.on };
-
-    case 'readyCard':
-      return { ...s, readyCard: a.on };
 
     case 'net':
       return { ...s, net: a.profile };
