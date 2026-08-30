@@ -8819,9 +8819,27 @@ body.bug-struck { animation: bug-shake 520ms cubic-bezier(0.36, 0.07, 0.19, 0.97
   --hm-4: #0b57d0;
   width: fit-content; max-width: 100%; margin: 6px auto 20px;
 }
-.hm-board { display: inline-block; max-width: 100%; overflow-x: auto; }
+/* IT CANNOT OVERFLOW, RATHER THAN SCROLLING WHEN IT DOES.
+
+   Twenty two columns come to 436px: 17 for the day labels, a 5px gap, then
+   22 cells of 15 and 21 gaps of 4. Trimming from twenty six weeks got the board
+   close to the panel and not inside it, and "close" buys a scrollbar just as
+   surely as "miles out" does -- Nam, on the second attempt: "this one still has a
+   small scroll bar, the width is like off a few pixels."
+
+   Guessing a third number would be the same bet again. Instead the columns are
+   allowed to SHRINK: at any width where 436 fits they sit at their natural 15px
+   and nothing moves, and where it does not they give up the difference between
+   them. A few pixels short now costs a fraction of a pixel per column rather than
+   a scrollbar, and the cells stay square to well past any width this panel has.
+
+   overflow-x is gone with it. There is nothing left to scroll. */
+.hm-board { display: block; max-width: 100%; }
 .hm-cell {
-  width: 15px; height: 15px; border-radius: 3px; background-color: var(--hm-0);
+  /* Width from the column rather than fixed, so a column that has given up a
+     fraction of a pixel is not overflowed by its own contents. The height is
+     still fixed, which is what keeps the rows lined up with the day labels. */
+  width: auto; height: 15px; border-radius: 3px; background-color: var(--hm-0);
   /* Inset, not a border: a border changes the box and knocks every column one
      pixel out of true. */
   box-shadow: inset 0 0 0 1px rgba(0, 0, 0, .05);
@@ -8856,16 +8874,18 @@ body.bug-struck { animation: bug-shake 520ms cubic-bezier(0.36, 0.07, 0.19, 0.97
 
 /* The month strip is offset by the weekday gutter so its labels sit over their
    own columns rather than one gutter to the left. */
-.hm-mons { display: flex; gap: 4px; margin: 0 0 4px 22px; }
+/* The 22px indent is the day column plus its gap, so the months stay over their
+   own weeks. The labels shrink on the same terms as the cells below them. */
+.hm-mons { display: flex; gap: 4px; margin: 0 0 4px 22px; min-width: 0; }
 .hm-mon {
-  width: 15px; flex: 0 0 15px;
+  flex: 0 1 15px; min-width: 0;
   font: 400 10px/12px var(--font); color: var(--dp-ink3); white-space: nowrap;
 }
 .hm-grid-wrap { display: flex; gap: 5px; align-items: flex-start; }
 .hm-days { display: grid; grid-template-rows: repeat(7, 15px); gap: 4px; flex: 0 0 17px; }
 .hm-day { font: 400 10px/15px var(--font); color: var(--dp-ink3); text-align: right; }
-.hm-grid { display: flex; gap: 4px; }
-.hm-col { display: grid; grid-template-rows: repeat(7, 15px); gap: 4px; }
+.hm-grid { display: flex; gap: 4px; flex: 0 1 auto; min-width: 0; }
+.hm-col { display: grid; grid-template-rows: repeat(7, 15px); gap: 4px; flex: 0 1 15px; min-width: 0; }
 
 /* Two facts at the two ends of the board, where the Less/More key used to be.
    Both are derived: the commits from git log at build time, the tickets from the
