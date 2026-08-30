@@ -157,6 +157,26 @@ export function openGate(granted: () => void, opts: GateOpts = {}): void {
     'aria-label': 'Password or answer', placeholder: 'Your answer',
   }) as HTMLInputElement;
 
+  /*
+   * THE TICK, WHICH IS HALF OF THE CELEBRATION -- board ticket N204.
+   *
+   * Nam: "when we get a wrong answer we get a very good feedback on the input
+   * dialogue, the nudge and flash. But when we get a correct answer its very
+   * anti climatic ... just a flash green, nothing like ta da."
+   *
+   * He is right and the asymmetry was structural rather than a matter of taste.
+   * Wrong had two channels, MOVEMENT and colour; right had colour alone. One
+   * channel against two reads as the dialog caring more about your mistakes than
+   * your progress, which is the wrong lesson for the screen whose entire job is
+   * to keep somebody answering twenty of these.
+   *
+   * So right gets its own movement -- a tick that lands, a field that swells,
+   * and the count popping as it goes up -- and none of it is confetti, because
+   * this is still a lock screen in a Google product.
+   */
+  const tick = h('span', { class: 'ag-tick', 'aria-hidden': 'true' }, sym('check', 18));
+  const field = h('span', { class: 'ag-field' }, input, tick);
+
   const go = h('button', {
     class: 'ag-go', type: 'submit', 'aria-label': 'Answer',
   }, 'Answer') as HTMLButtonElement;
@@ -203,7 +223,9 @@ export function openGate(granted: () => void, opts: GateOpts = {}): void {
       'aria-label': 'Questions answered correctly',
     },
     h('span', { class: 'ag-prog-head' },
-      h('span', { class: 'ag-prog-t' }, `Answer ${ADMIN_PASS_MARK} correctly to unlock`),
+      // "to unlock" is in the title since N204, and saying it twice in one
+      // 440px box reads as a form repeating itself.
+      h('span', { class: 'ag-prog-t' }, `Answer ${ADMIN_PASS_MARK} correctly`),
       barCount),
     h('span', { class: 'ag-track' }, barFill),
   ) as HTMLElement;
@@ -250,15 +272,35 @@ export function openGate(granted: () => void, opts: GateOpts = {}): void {
    * run to fifty characters and a chip sharing that row would be squeezed
    * between the text and the shuffle control on every long one.
    */
-  const panel = h('div', { class: 'ag-panel', role: 'dialog', 'aria-modal': 'true', 'aria-label': 'Admin only' },
+  /*
+   * THE TITLE DOES THE LEAD'S JOB -- board ticket N204, and it is a row removed
+   * rather than a row moved.
+   *
+   * Nam: "Idk I still think this screen is very clunky looking. One alternative
+   * is to change the title from Admin only => Put a password or answer to
+   * unlock, then we remove the Put down a password or answer to unlock line."
+   *
+   * Clunky here was six stacked rows on four different alignments, so the fix
+   * that helps is the one that DELETES a row. The heading and the lead were
+   * saying the same thing twice anyway -- one named the room, the other said how
+   * to get in -- and the lock glyph beside it already names the room.
+   *
+   * The instruction has to survive somewhere, which is why it is the title and
+   * not simply cut: "password" is the whole of the decoy. It is the only word in
+   * the dialog that makes a cheat code a plausible thing to type here, and
+   * without it the second door is the only door anybody would ever find.
+   */
+  const panel = h('div', {
+    class: 'ag-panel', role: 'dialog', 'aria-modal': 'true',
+    'aria-label': 'Put a password or answer to unlock',
+  },
     h('div', { class: 'ag-head' },
       h('span', { class: 'ag-lock', 'aria-hidden': 'true' }, '\u{1F512}'),
-      h('h2', { class: 'ag-title' }, 'Admin only')),
-    h('p', { class: 'ag-lead' }, 'Put down a password or answer to unlock.'),
+      h('h2', { class: 'ag-title' }, 'Put a password or answer to unlock')),
     h('div', { class: 'ag-ask' },
       kind,
       h('div', { class: 'ag-qrow' }, prompt, skip)),
-    h('form', { class: 'ag-form', onsubmit: (e: Event) => { e.preventDefault(); submit(); } }, input, go),
+    h('form', { class: 'ag-form', onsubmit: (e: Event) => { e.preventDefault(); submit(); } }, field, go),
     say,
     bar,
     closeBtn,
@@ -317,9 +359,24 @@ export function openGate(granted: () => void, opts: GateOpts = {}): void {
    */
   function flash(cls: 'is-bad' | 'is-good'): void {
     input.classList.remove('is-bad', 'is-good');
+    field.classList.remove('is-good');
     void input.offsetWidth;
     input.classList.add(cls);
-    window.setTimeout(() => input.classList.remove(cls), 700);
+    // The tick lives on the wrapper, because it has to outlast nothing and be
+    // positioned against the field rather than inside its text flow.
+    if (cls === 'is-good') field.classList.add('is-good');
+    window.setTimeout(() => {
+      input.classList.remove(cls);
+      field.classList.remove('is-good');
+    }, 900);
+  }
+
+  /** The count popping as it goes up. The other half of the ta-da. */
+  function cheer(): void {
+    barCount.classList.remove('is-up');
+    void barCount.offsetWidth;
+    barCount.classList.add('is-up');
+    window.setTimeout(() => barCount.classList.remove('is-up'), 600);
   }
 
   /** Draw the head of the queue, or the state where there is nothing left. */
@@ -413,6 +470,7 @@ export function openGate(granted: () => void, opts: GateOpts = {}): void {
     mark = score(solvedNow);
     queue = queue.slice(1);
     paint();
+    cheer();
 
     if (mark.passed) { open(pick(passedLines, attempts)); return; }
 

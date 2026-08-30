@@ -9290,10 +9290,17 @@ body.bug-struck { animation: bug-shake 520ms cubic-bezier(0.36, 0.07, 0.19, 0.97
   border-radius: 16px; padding: 24px 24px 22px;
   box-shadow: 0 1px 3px 0 rgba(0, 0, 0, .3), 0 4px 8px 3px rgba(0, 0, 0, .15);
 }
-.ag-head { display: flex; align-items: center; gap: 10px; margin-bottom: 6px; padding-right: 34px; }
-.ag-lock { font-size: 18px; line-height: 1; }
-.ag-title { font: 500 18px/24px var(--font-title); color: var(--dp-ink); }
-.ag-lead { font: 400 13px/19px var(--font); color: var(--dp-ink3); margin-bottom: 18px; }
+/* THE TITLE IS THE INSTRUCTION NOW (N204), so the lead line is gone and the row
+   count drops from six to five. align-items: flex-start rather than centre,
+   because a title that wraps on a narrow panel should keep the lock beside its
+   FIRST line rather than floating to the middle of two.
+
+   17px rather than 18: at 18 this title is 302px against about 330 of usable
+   width once the lock and the close button have taken theirs, which fits and
+   leaves nothing. 17 buys the margin back. */
+.ag-head { display: flex; align-items: flex-start; gap: 10px; margin-bottom: 18px; padding-right: 34px; }
+.ag-lock { font-size: 18px; line-height: 22px; flex: 0 0 auto; }
+.ag-title { font: 500 17px/22px var(--font-title); color: var(--dp-ink); }
 
 /* --- the question, and what belongs to it (N199) ------------------------- */
 /* The kind chip used to ride the header opposite the title, which was right
@@ -9307,8 +9314,11 @@ body.bug-struck { animation: bug-shake 520ms cubic-bezier(0.36, 0.07, 0.19, 0.97
    characters, and a chip sharing that row would be squeezed between the text
    and the shuffle control on every long one. */
 .ag-ask { margin-bottom: 16px; }
+/* 4px, not 8 (N204). Nam: "the vertical gap between the tag and the question
+   should be smaller." A label belongs to the thing under it, and at 8px against
+   the 16px gaps either side of the group it was reading as its own row. */
 .ag-kind {
-  display: inline-block; margin-bottom: 8px;
+  display: inline-block; margin-bottom: 4px;
   font: 500 11px/1 var(--font); letter-spacing: .3px;
   padding: 5px 9px; border-radius: 10px;
   background-color: var(--dp-pill); color: var(--dp-pill-ink);
@@ -9352,6 +9362,9 @@ body.bug-struck { animation: bug-shake 520ms cubic-bezier(0.36, 0.07, 0.19, 0.97
    because that one is sized to sit inside a 48px pill and this sits beside a
    44px field. */
 .ag-form { display: flex; gap: 8px; align-items: stretch; }
+/* The field is wrapped so the tick can be positioned against it rather than
+   pushed into its text flow (N204). */
+.ag-field { position: relative; flex: 1 1 auto; min-width: 0; display: flex; }
 .ag-input {
   flex: 1 1 auto; min-width: 0;
   font: 400 14px/20px var(--font);
@@ -9394,13 +9407,56 @@ body.bug-struck { animation: bug-shake 520ms cubic-bezier(0.36, 0.07, 0.19, 0.97
   border-color: #d93025; background-color: rgba(217, 48, 37, .12);
   animation: ag-shake .4s cubic-bezier(.36, .07, .19, .97) both;
 }
-.ag-input.is-good { border-color: #1e8e3e; background-color: rgba(30, 142, 62, .14); }
 @keyframes ag-shake {
   10%, 90% { transform: translateX(-2px); }
   20%, 80% { transform: translateX(3px); }
   30%, 50%, 70% { transform: translateX(-5px); }
   40%, 60% { transform: translateX(5px); }
 }
+
+/* --- getting it right, which used to be the quiet one (N204) ------------- */
+/* Nam: "when we get a wrong answer we get a very good feedback ... But when we
+   get a correct answer its very anti climatic, just a flash green, nothing like
+   ta da. Can you fix it so the correct and incorrect answer feedback have better
+   symmetry."
+
+   The asymmetry was structural rather than a matter of taste: wrong had two
+   channels, MOVEMENT and colour, and right had colour alone. One against two
+   reads as a dialog that cares more about your mistakes than your progress,
+   which is the wrong lesson on the screen whose whole job is to keep somebody
+   answering twenty of these.
+
+   So right gets movement of its own, in three places that fire together: the
+   field swells, a tick lands in it, and the count pops as it climbs. Padding
+   right on the input so the text never runs under the tick.
+
+   Not confetti. This is still a lock screen in a Google product, and the
+   vocabulary is Material's -- a spring on the emphasised curve, and a checkmark
+   that scales in the way every Google confirmation does. */
+.ag-input.is-good {
+  border-color: #1e8e3e; background-color: rgba(30, 142, 62, .14);
+  padding-right: 40px;
+  animation: ag-swell .42s cubic-bezier(.2, .7, .3, 1.5) both;
+}
+@keyframes ag-swell {
+  0% { transform: scale(1); }
+  38% { transform: scale(1.022); }
+  100% { transform: scale(1); }
+}
+.ag-tick {
+  position: absolute; right: 12px; top: 50%;
+  width: 22px; height: 22px; margin-top: -11px; border-radius: 50%;
+  display: grid; place-items: center;
+  background-color: #1e8e3e; color: #fff;
+  opacity: 0; transform: scale(.4); pointer-events: none;
+}
+.ag-field.is-good .ag-tick { animation: ag-land .42s cubic-bezier(.2, .7, .3, 1.5) both; }
+@keyframes ag-land {
+  0% { opacity: 0; transform: scale(.4) rotate(-25deg); }
+  55% { opacity: 1; transform: scale(1.12) rotate(0deg); }
+  100% { opacity: 1; transform: scale(1) rotate(0deg); }
+}
+.dp-dark .ag-tick { background-color: #81c995; color: #202124; }
 
 /* The line. One line each since N191, because the field has already answered. */
 .ag-say { font: 400 13px/19px var(--font); margin-top: 14px; min-height: 19px; }
@@ -9425,6 +9481,21 @@ body.bug-struck { animation: bug-shake 520ms cubic-bezier(0.36, 0.07, 0.19, 0.97
 .ag-count {
   font: 500 12px/16px var(--font); color: var(--dp-ink);
   font-variant-numeric: tabular-nums; flex: 0 0 auto;
+  transform-origin: right center;
+}
+/* The third channel. Small, because the number is 12px and a big bounce on a
+   12px label reads as a glitch rather than as applause. */
+.ag-count.is-up { animation: ag-up .5s cubic-bezier(.2, .7, .3, 1.5) both; }
+@keyframes ag-up {
+  0% { transform: scale(1); }
+  40% { transform: scale(1.28); color: #1e8e3e; }
+  100% { transform: scale(1); }
+}
+.dp-dark .ag-count.is-up { animation-name: ag-up-dark; }
+@keyframes ag-up-dark {
+  0% { transform: scale(1); }
+  40% { transform: scale(1.28); color: #81c995; }
+  100% { transform: scale(1); }
 }
 .ag-track {
   display: block; height: 4px; border-radius: 2px; overflow: hidden;
@@ -9437,9 +9508,12 @@ body.bug-struck { animation: bug-shake 520ms cubic-bezier(0.36, 0.07, 0.19, 0.97
 }
 @media (prefers-reduced-motion: reduce) {
   .ag-fill { transition: none; }
-  /* The shake goes; the red stays, because the colour was never the decoration. */
-  .ag-input.is-bad { animation: none; }
-  .ag-back { animation: none; }
+  /* Every movement goes and every colour stays, on both sides. The shake, the
+     swell, the tick's landing and the count's pop are all decoration on a signal
+     that is already carried by red, green and a number that changed. The tick
+     itself still APPEARS -- it is information, not motion. */
+  .ag-input.is-bad, .ag-input.is-good, .ag-count.is-up, .ag-back { animation: none; }
+  .ag-field.is-good .ag-tick { animation: none; opacity: 1; transform: scale(1); }
 }
 
 .ag-close {

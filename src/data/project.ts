@@ -3442,6 +3442,92 @@ export const tasks: Task[] = [
     },
   },
 
+  {
+    id: 'N200', col: 'review', size: 'S', tag: 'onboarding',
+    title: 'Models centre themselves, so nothing sits high',
+    note: 'The lotus and the ship both ride up. Neither is centred in its own space.',
+    detail: {
+      why: 'Nam: "some stuff sit quite high on the screen, fix it: the lotus flower, the vasa ship."',
+      done: [
+        'Every model is shifted so its bounding box is centred on its own origin',
+        'Hinges move with it, or every rig would tear',
+        'The spot\'s y goes back to being a nudge rather than a repair',
+        'Fitting radius is measured from the middle, so models get honestly larger',
+      ],
+      raised: 'Nam, QA of the motifs programme',
+      notes: 'TWO INSTANCES OF THE SAME FAULT, AND THE FIX IS FOR THE CLASS. Both models were authored around whatever origin was convenient while drawing them: the lotus around its seed pod, which sits well below the middle of the flower, and the ship around its waterline, with a mast reaching 1.24 above and a keel only 0.54 below. So both hung high, and the obvious fix each time is a hand tuned nudge which is really a correction for a mistake in the model.\n\nCentring every model on its own bounding box makes the spot\'s y an artistic nudge again instead of a repair, and it stops the next motif inheriting the same trap. It also makes the fitting radius MINIMAL -- measured from the middle of the thing rather than from a corner of it -- so a model grows as large as its margin honestly allows rather than being held back by an offset origin. The lotus and the ship both got visibly bigger as a side effect.\n\nTHE HINGES HAVE TO MOVE WITH IT. Every part pivot is in model space, so shifting the nodes without shifting the pivots would have every petal, ring, sail and pennant rotating about a point that is no longer on it. That is the sort of thing that looks like a physics bug and is a bookkeeping one.',
+    },
+  },
+
+  {
+    id: 'N201', col: 'review', size: 'S', tag: 'onboarding',
+    title: 'The crane is delivering something',
+    note: 'Nam: a pouch with a baby. It is the reading the shape was already reaching for.',
+    detail: {
+      why: 'Nam: "I know just what would add to the bird shape, I thought it was looking empty. Add to it a pouch with a baby its delivering. This is now the perfect imagery!"',
+      done: [
+        'A cloth bundle hangs from the beak, with a knot, seams and two corners of cloth',
+        'A head looks out of the top of it',
+        'It swings a beat behind the wingbeat rather than flapping with it',
+      ],
+      raised: 'Nam, QA of the motifs programme',
+      notes: 'THE BEST NOTE ANYONE HAS GIVEN ON THIS ROSTER, and it is worth saying why rather than just doing it. The shape was already a stork. A stork carrying nothing is a bird -- a well drawn one, but only a subject. The bundle turns it into a PICTURE, something with a story in it, and it does that for one node in fifteen.\n\nIt also fixes the composition complaint underneath the idea. Nam said the shape looked empty, and it did: a crane in flight is a long horizontal thing with a large hole under the neck where the legs have not started yet. The bundle fills exactly that hole, which is why the note reads as an addition and lands as a correction.\n\nIT SWINGS A BEAT BEHIND THE WINGS. A bundle that flapped in time with the wingbeat would read as welded on. Hung off the beak on its own part, lagging about a fifth of a cycle, it reads as something being carried.',
+    },
+  },
+
+  {
+    id: 'N202', col: 'review', size: 'M', tag: 'onboarding',
+    title: 'The dala horse, traced from the object',
+    note: 'Third attempt, and this time against a photograph rather than from memory.',
+    detail: {
+      why: 'Nam: "the horse looks horrible." Third failure to identify it, and this time he attached a photograph.',
+      done: [
+        'Traced against the photograph rather than from memory',
+        'The head is high and level with the back, where both earlier versions slung it low',
+        'One sharp ear, which neither earlier outline had at all',
+        'Blunt muzzle, short level back, thick untapered legs set wide',
+        'Mane and bridle are painted inside the outline, not carved out of it',
+      ],
+      raised: 'Nam, QA of the motifs programme',
+      notes: 'TWO ATTEMPTS FROM MEMORY AND BOTH FAILED, which in hindsight was the whole problem. A Dala horse is a flat carving, so the outline IS the object; there is nothing else for it to be recognised by, and an outline drawn from a general idea of a horse produces a general idea of a horse.\n\nWHAT THE PHOTOGRAPH SETTLED, and what memory kept getting wrong. The head is HIGH, level with the top of the back -- both earlier versions slung it low, which reads as a grazing animal rather than a toy. There is ONE sharp ear, a triangle pointing up and slightly forward, and it is the most distinctive thing on the object; neither earlier outline had an ear at all. The muzzle is BLUNT, cut off square, not tapered to a nose. The back is level and SHORT and the body is deep. The legs are thick, straight and barely tapered, set wide at the corners. And there is no tail worth drawing, because it is carved flush with the rump.\n\nA FIRST PASS AT THE NEW OUTLINE STILL HAD THE HEAD WRONG. The muzzle and the throat met within 0.07 of each other, so the head came out as a spike with an ear on it. On the real object the muzzle is a blunt vertical cut and the jaw sits well below it.\n\nTHE PAINT IS PAINT, NOT CARVING. The mane was a sawtooth ridge sticking out of the crest, which is what a carved mane would be and not what this object has -- on a Dala horse the mane and the bridle are white brushwork on the red. They sit just inside the outline now, along with a scalloped collar across the shoulder, which is the band the photograph leads with.\n\nStill unverified on a real screen. It reads as a horse in an orthographic dump, which neither of the last two did.',
+    },
+  },
+
+  {
+    id: 'N203', col: 'review', size: 'L', tag: 'onboarding',
+    title: 'Three more candidates, so eight can be chosen',
+    note: 'Liberty, a fairytale castle and an advent star. The roster becomes a shortlist.',
+    detail: {
+      why: 'Nam: "Idk Im still not sold on the vasa ship, doesnt look very nice in 3D. How about the statue of liberty ... Or maybe the disney castle with the swirl of fallen dust or fireworks ... Any other candidate for swedish culture in case the dalahast doesnt work out in 3D? We actually have quite a lot of candidate damn. Let\'s add all these into the shape list, then we can select the best 8 for the job."',
+      done: [
+        'A statue with a raised torch, a crown of spikes and a tablet',
+        'A fairytale castle with a thrown arc of sparks over it',
+        'An advent star, as the Swedish candidate that is a solid rather than a carving',
+        'Eleven candidates for eight slots, to be cut on the real screen',
+      ],
+      raised: 'Nam, QA of the motifs programme',
+      notes: 'ELEVEN FOR EIGHT, AND THE METHOD IS THE POINT. It is the same one that chose the animation in the first place: put them all on the real screen at the real size and cut the three that lose. Choosing between models from a description is exactly how the cherry branch, the cherry tree and the hot air balloons all got built and then thrown away.\n\nTHE STATUE IS RECOGNISED BY A POSE, NOT A PROFILE, which is why it should work where the ship does not. One arm straight up holding a light, a crown of spikes, a tablet held across the body: all three survive any viewing angle. The ship and the horse are silhouette objects and have exactly one view that carries them, which is a whole ticket of locked headings elsewhere on this board. The face is not attempted, on the same rule everything else here follows.\n\nTHE CASTLE IS A FAIRYTALE CASTLE, NOT THAT ONE. Generic archetype, never a particular property -- the rule this file has run on since N158. It started as a drawing argument, that 1400 craft cannot carry a likeness so a specific thing reads as a worse version of the generic shape it is made of, and it happens to also be the right answer for a silhouette somebody owns as a trademark. A public CV does not need that conversation. Everything that makes it read is generic anyway: round towers at different heights, conical roofs, pennants, a gatehouse arch.\n\nTHE ARC OF SPARKS IS THE MOST DRONE-SHAPED THING IN THE ROSTER, and it is what Nam actually pointed at. Every other motif here is an approximation of a solid object using points. A trail of sparks IS a trail of separate lights, so for once the medium is not standing in for anything.\n\nTHE ADVENT STAR IS THE SWEDISH ANSWER, and a better fit for this medium than the horse ever was. An adventsstjarna hangs in a Swedish window from the first Sunday of Advent until well after Christmas -- as ordinary and as specific to the place as the horse is. Unlike the horse it is a SOLID: a pierced paper ball with seven points, radially symmetric, lit from inside. So it reads from every angle, needs no locked heading, has no silhouette to get wrong, and its whole character is a lit thing seen through a pierced surface. Four of the things this roster has repeatedly found hard, all absent at once.\n\nAND THE SIZING WAS WRONG ON FIRST BUILD, twice in each direction. The horse and the castle both tripped the silent truncation, and the statue and the star were leaving over 770 craft parked -- more than half the fleet doing nothing. The density harness catches both in one line, which is the fourth time it has now paid for itself.',
+    },
+  },
+
+  {
+    id: 'N204', col: 'review', size: 'M', tag: 'trust',
+    title: 'Getting it right gets a ta-da, and the dialog loses a row',
+    note: 'Wrong had movement and colour. Right had colour. One channel against two is a dialog that notices your mistakes more than your progress.',
+    detail: {
+      why: 'Nam: "when we get a wrong answer we get a very good feedback on the input dialogue, the nudge and flash. But when we get a correct answer its very anti climatic, the feedback isnt very celebratory, just a flash green, nothing like ta da. Can you fix it so the correct and incorrect answer feedback have better symmetry" -- and, on the layout: "Idk I still think this screen is very clunky looking. One alternative is to change the title from Admin only => Put a password or answer to unlock, then we remove the Put down a password or answer to unlock line. then the question tag like history should stay closer to the question."',
+      done: [
+        'A right answer swells the field, lands a tick in it and pops the count',
+        'A wrong answer still shakes and flashes red, unchanged',
+        'Every movement is dropped under reduced motion; every colour stays',
+        'The title carries the instruction and the lead line is gone',
+        'The kind chip sits 4px above its question rather than 8',
+      ],
+      raised: 'Nam, QA 30 Aug',
+      notes: 'THE ASYMMETRY WAS STRUCTURAL, NOT A MATTER OF TASTE, which is what made it fixable rather than arguable. Wrong had two channels, MOVEMENT and colour. Right had colour alone. One against two reads as a dialog that cares more about your mistakes than your progress, and that is the wrong lesson on the one screen whose whole job is to keep somebody answering twenty questions. So right got three movements that fire together -- the field swells, a tick lands in it, the count pops as it climbs -- and it is still not confetti, because this is a lock screen in a Google product. The vocabulary is Material: one spring curve, and a checkmark that scales in the way every Google confirmation does.\\n\\nTWO LAYOUTS WERE PUT UP AND THE RENDERED ONES DECIDED IT. Nam offered a second: keep the title as Permission request, keep the lead, and move the kind chip up onto the lead line so it sits above the shuffle button and the three right-hand controls form a column. Both were built -- the second mocked on the live DOM -- and photographed at the same size before choosing, because this screen has now been argued about from descriptions three times.\\n\\nThe column turned out to be the weaker half of a good instinct. Flush right, the chip, the shuffle and the Answer button are 57 to 101, 40 and 90 pixels wide at irregular vertical intervals, so they read as three separate right-aligned things rather than as a column. And it put the chip about ninety pixels from the question it names, on a line belonging to a different sentence -- undoing N199, which moved it down for exactly that reason on Nam own argument that "whatever is contextualizing the question should be close to the question". Deleting a row beats rearranging one: clunky here was six stacked rows on four alignments.\\n\\nTHE INSTRUCTION HAD TO SURVIVE THE CUT, which is why the title is the long sentence and the lead is not simply deleted. "Password" is the whole of the decoy -- the only word in the box that makes typing a cheat code a plausible thing to do -- and without it the grind is the only door anybody would ever find. 17px rather than 18 because at 18 the title is 302px against about 330 of usable width once the lock and the close button have taken theirs, which fits and leaves nothing.',
+    },
+  },
+
   /* Flagged rather than done. Still true as of this build. */
   { id: 'T24', col: 'backlog', size: 'M', tag: 'specs', title: 'Initial payload is halfway to the ceiling', note: '24.7 kB of a 50 kB gate, up from 18.2. Still green, and the growth is real, but two deferred chunks are 17 kB and 19 kB and deserve a splitting pass before it becomes urgent.' },
 ];
