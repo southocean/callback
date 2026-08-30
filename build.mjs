@@ -10,6 +10,7 @@
 
 import * as esbuild from 'esbuild';
 import { gzipSync } from 'node:zlib';
+import { createHash } from 'node:crypto';
 import { readFileSync, writeFileSync, mkdirSync, copyFileSync, existsSync, readdirSync, rmSync, statSync } from 'node:fs';
 import { execSync } from 'node:child_process';
 
@@ -154,7 +155,25 @@ try {
   /* no git, or no history yet */
 }
 
+/*
+ * A CACHE BUSTER FOR THE TWO FILES THAT ARE NOT CONTENT HASHED.
+ *
+ * The chunks are hashed and so look after themselves. app.js and styles.css are
+ * named for what they are, which is right -- they are the entry -- but it means a
+ * returning visitor can be served a cached app.js that imports chunk hashes this
+ * build has already deleted. That fails as BROKEN rather than as stale.
+ *
+ * Stamping the build fingerprint into the URL makes the entry a new resource
+ * whenever its contents change, and leaves it alone when they do not.
+ */
+const stamp = createHash('sha256')
+  .update(entry)
+  .update(readFileSync(`${OUT}/styles.css`))
+  .digest('hex')
+  .slice(0, 8);
+
 const html = readFileSync('src/index.html', 'utf8')
+  .replaceAll('%STAMP%', stamp)
   .replaceAll('%JS_GZIP%', String(entryGz))
   .replaceAll('%JS_RAW%', String(entry.length))
   .replaceAll('%CSS_GZIP%', String(cssGz))

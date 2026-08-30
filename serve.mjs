@@ -53,6 +53,7 @@ const sendRange = async (req, res, path, size, type) => {
   }
 
   res.writeHead(206, {
+    'cache-control': 'no-store',
     'content-type': type,
     'content-length': end - start + 1,
     'content-range': `bytes ${start}-${end}/${size}`,
@@ -78,6 +79,26 @@ createServer(async (req, res) => {
       'content-type': type,
       'content-length': info.size,
       'accept-ranges': 'bytes',
+      /*
+       * NEVER CACHE, and this is a bug fix rather than a precaution.
+       *
+       * app.js, boot.js, styles.css and index.html all have STABLE names, and
+       * only the chunks are content hashed. A browser holding a cached app.js
+       * therefore keeps importing the chunk hashes that app.js was built with --
+       * and build.mjs deletes every old chunk on the way in, so those URLs are
+       * gone. The result is not a stale page, it is a BROKEN one: the imports
+       * 404 and the screen either stops updating or stops working, which looks
+       * exactly like the last change having been lost.
+       *
+       * Nam hit this and read it as the rebuild destroying his work. Nothing was
+       * ever lost; the browser was simply running the previous build against the
+       * current build's chunk names.
+       *
+       * No-store rather than no-cache: no-cache still stores and revalidates,
+       * and there is nothing to revalidate against here because the server sends
+       * no validators.
+       */
+      'cache-control': 'no-store',
     });
     res.end(body);
   } catch {

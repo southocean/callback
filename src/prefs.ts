@@ -657,40 +657,25 @@ export function foundAll(): { quests: string[]; quips: string[]; bugs: string[];
 // THE FRONT DOOR -- board ticket N158
 // ---------------------------------------------------------------------------
 
-/**
- * Which title-card animation is showing.
+/*
+ * `callback.startart` USED TO LIVE HERE and is deliberately not being cleaned up
+ * on read. It stored which of eight title-card animations was playing; Nam kept
+ * one, so the key, its two accessors and the picker that wrote it are all gone.
  *
- * TEMPORARY, and the ticket says so. Four variants ship so Nam can choose on the
- * real screen at the real size rather than from four descriptions, and three of
- * them come out afterwards along with the picker and this key. It is stored
- * rather than held in memory because choosing between four animations means
- * reloading and looking again, and a choice that does not survive the reload
- * cannot be compared against the thing it is competing with.
+ * Anyone who pressed one of those buttons still has the key in their storage. It
+ * is four bytes nobody reads, and the code that would delete it would be more
+ * code than the key is worth and would have to be kept forever to be worth
+ * having at all.
  */
-const VARIANT_KEY = 'callback.startart';
-
-export function loadVariant(): string | null {
-  try {
-    return localStorage.getItem(VARIANT_KEY);
-  } catch {
-    return null;
-  }
-}
-
-export function saveVariant(id: string): void {
-  try {
-    localStorage.setItem(VARIANT_KEY, id);
-  } catch {
-    /* ignore */
-  }
-}
 
 /**
  * Which drone-show programme is running.
  *
- * Same argument as the variant key above and the same expiry: it is a choice
- * being made at the real size on the real screen, it has to survive the reload
- * that comparing two of them requires, and it goes when Nam has picked.
+ * TEMPORARY, like the key above it was. Two programmes ship -- Geometry, which is
+ * the benchmark, and Motifs, which is the show -- and it is stored rather than
+ * held in memory because comparing them means reloading and looking again, and a
+ * choice that does not survive the reload cannot be compared against the thing it
+ * is competing with.
  */
 const THEME_KEY = 'callback.startheme';
 
