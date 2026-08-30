@@ -44,7 +44,8 @@
 // TWO PROGRAMMES, and the first has a job beyond being first. Nam: "the geometry
 // becomes the benchmark for how well the drone effect looks." A sphere becoming a
 // cube has a known correct answer, so a bad transit shows up there with nothing
-// to blame it on. Motifs is the cultural set -- the lotus and the midsommarstang.
+// to blame it on. Culture is the other, and it carries eleven candidates for the
+// eight slots it will end up with.
 //
 // STILL A PURE FUNCTION OF TIME. Nothing accumulates between frames. That is not
 // tidiness for its own sake: it is what makes reduced motion a one-line answer --
@@ -54,7 +55,7 @@
 
 import { h } from '../dom.js';
 import { loadTheme, saveTheme } from '../prefs.js';
-import { PROGRAMMES, drawShow } from './drones.js';
+import { PROGRAMMES, drawShow, jumpTo, shapeAt } from './drones.js';
 import type { Copy, Pal, Programme } from './drones.js';
 import type { Store } from '../state.js';
 
@@ -67,11 +68,21 @@ import type { Store } from '../state.js';
  * moment Start is pressed, and a requestAnimationFrame loop drawing into a
  * detached canvas is a leak nothing on the page would ever complain about.
  */
+interface Show {
+  stop: () => void;
+  /** Fly to a formation now. See jumpTo in ui/drones.ts. */
+  go: (i: number) => void;
+}
+
 function paint(
   canvas: HTMLCanvasElement, prog: Programme, reduced: boolean, col: HTMLElement,
-): () => void {
+  onShape: (i: number) => void,
+): Show {
   const c = canvas.getContext('2d');
-  if (!c) return () => { /* no 2d context, no animation, and no error either */ };
+  if (!c) {
+    return { stop: () => { /* no 2d context, no animation, no error either */ },
+      go: () => { /* nor anything to fly */ } };
+  }
 
   let w = 0;
   let hh = 0;
@@ -101,6 +112,8 @@ function paint(
    */
   let copy: Copy = { left: 0, right: 0 };
   let settleFrom = -1;
+  let shown = -1;
+  let clock = 0;
 
   const measure = (): void => {
     const box = col.getBoundingClientRect();
@@ -125,6 +138,13 @@ function paint(
     if (t - settleFrom < 1) measure();
     c.clearRect(0, 0, w, hh);
     drawShow(c, w, hh, t, pal, prog, copy);
+    /*
+     * Told, not polled. The dots need to know which formation is up, and the one
+     * place that knows is the frame that just drew it -- so the shape index is
+     * pushed out from here, and only when it actually changes.
+     */
+    const now = shapeAt(prog, t);
+    if (now !== shown) { shown = now; onShape(now); }
   };
 
   const size = (): void => {
@@ -147,7 +167,8 @@ function paint(
 
   const loop = (ms: number): void => {
     if (stopped) return;
-    frame(ms / 1000);
+    clock = ms / 1000;
+    frame(clock);
     raf = requestAnimationFrame(loop);
   };
 
@@ -179,10 +200,27 @@ function paint(
     raf = requestAnimationFrame(loop);
   }
 
-  return () => {
-    stopped = true;
-    cancelAnimationFrame(raf);
-    ro.disconnect();
+  return {
+    stop: () => {
+      stopped = true;
+      cancelAnimationFrame(raf);
+      ro.disconnect();
+    },
+    go: (i: number) => {
+      if (reduced) {
+        /*
+         * Reduced motion draws one frame and stops, so there is no flight to
+         * make. The still simply moves to the requested formation, which is the
+         * same rule the rest of this build follows: less movement, not less
+         * content.
+         */
+        prog.shift = i * prog.cycle + prog.cycle * 0.3 - prog.still;
+        prog.warp = null;
+        frame(prog.still);
+        return;
+      }
+      jumpTo(prog, i, clock);
+    },
   };
 }
 
@@ -228,6 +266,25 @@ export function renderStart(store: Store, reduced: boolean): HTMLElement {
    * known correct answer, and a transit that goes wrong there cannot be blamed
    * on how a lotus was drawn. Motifs is the show.
    */
+  /*
+   * ONE DOT PER FORMATION, and it is a control rather than an indicator.
+   *
+   * Nam: "if you click on these dots, you go directly to that shape ... This
+   * allows fine grain control on the shapes so we can fine tuning without waiting
+   * through the whole loop."
+   *
+   * Which is the real argument for it. Eleven motifs at twelve seconds is over
+   * two minutes to see one of them again, and every note on this roster has come
+   * from watching a particular shape. Waiting out ten others to check a change to
+   * the eleventh is most of the cost of tuning it.
+   *
+   * Temporary, like the row under it, and it goes at the same time.
+   */
+  const dots = h(
+    'div',
+    { class: 'st-dots', role: 'group', 'aria-label': 'Shape, for choosing' },
+  );
+
   const themes = h(
     'div',
     { class: 'st-themes', role: 'group', 'aria-label': 'Drone programme, for choosing' },
@@ -251,8 +308,26 @@ export function renderStart(store: Store, reduced: boolean): HTMLElement {
      * it is leaving.
      */
     wrap.dataset['prog'] = th.id;
+    // The dot row is rebuilt per programme: they do not have the same number of
+    // formations, and a stale dot would fly to a shape that is not there.
+    dots.replaceChildren(...th.forms.map((_, i) => h(
+      'button',
+      {
+        class: 'st-dot',
+        type: 'button',
+        'aria-label': 'Shape ' + String(i + 1),
+        onclick: () => show.go(i),
+      },
+    )));
     teardown();
-    teardown = paint(canvas, th, reduced, col);
+    const show = paint(canvas, th, reduced, col, (i) => {
+      for (const [n, b] of [...dots.children].entries()) {
+        const on = n === i;
+        b.classList.toggle('is-on', on);
+        b.setAttribute('aria-pressed', String(on));
+      }
+    });
+    teardown = show.stop;
     for (const b of themes.querySelectorAll<HTMLElement>('.st-theme-b')) {
       const on = b.dataset['theme'] === th.id;
       b.classList.toggle('is-on', on);
@@ -363,7 +438,7 @@ export function renderStart(store: Store, reduced: boolean): HTMLElement {
     ),
   );
 
-  const wrap = h('div', { class: 'start' }, canvas, col, themes);
+  const wrap = h('div', { class: 'start' }, canvas, col, dots, themes);
 
   runTheme(PROGRAMMES.find((th) => th.id === loadTheme()) ?? PROGRAMMES[0]!);
 

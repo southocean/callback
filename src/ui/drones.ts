@@ -2162,9 +2162,13 @@ function crane(): Model {
   for (let i = 0; i < 16; i += 1) {
     const k = i / 15;
     const x = -0.2 + k * 0.66;
-    const r = 0.185 * Math.sin(Math.PI * Math.pow(k, 0.72)) + 0.02;
-    // Slightly deeper than wide, and the belly hangs a little below the spine.
-    section(x, 0.02 * Math.sin(Math.PI * k), r, 1.12, 10, 0.9, i * 0.31);
+    /* 0.125 and not 0.185. The first pass at giving this bird a body overshot:
+       correcting a thing that was FLAT by making it thick produced a goose. A
+       stork is deep front to back and narrow across, which is a slim barrel
+       rather than a fat one. */
+    const r = 0.125 * Math.sin(Math.PI * Math.pow(k, 0.72)) + 0.016;
+    // Deeper than wide, and the belly hangs a little below the spine.
+    section(x, 0.02 * Math.sin(Math.PI * k), r, 1.18, 9, 0.9, i * 0.31);
   }
 
   /* The neck: short, thick, and straight out. It was 0.5 long and 0.03 thick,
@@ -2211,15 +2215,19 @@ function crane(): Model {
     const wp = parts.length;
     if (d < 0) wingL = wp; else wingR = wp;
     parts.push(part(0.02, -0.04, d * 0.09, 1, 0, 0, {
-      wave: 0.14, wx: 0, wy: 1, wz: 0,
+      // Nearly twice the flex, so the wing BENDS through the stroke rather than
+      // swinging as a board. Curvature is what a slow heavy wingbeat looks like.
+      wave: 0.26, wx: 0, wy: 1, wz: 0,
       // A third of a cycle of lag from shoulder to tip, at the beat's own rate.
       wfreq: 0.34, wrate: 0.62, phase: 0,
     }));
-    const span = 0.96;
+    // Long. A stork has an enormous span against a slim body, and that ratio is
+    // most of what separates an elegant bird from a stocky one.
+    const span = 1.34;
     for (let f = 0; f < 20; f += 1) {
       const u = f / 19;
       const rootX = 0.02 + u * 0.2;
-      const len = 0.34 * (1 - Math.pow(u, 2.4) * 0.55) + 0.06;
+      const len = 0.42 * (1 - Math.pow(u, 2.4) * 0.52) + 0.07;
       const z = d * (0.09 + u * span);
       for (let i = 0; i < 14; i += 1) {
         const k = i / 13;
@@ -2322,8 +2330,8 @@ function crane(): Model {
       // reads as a mechanism.
       const ph = wrap01(t * 0.62);
       const beat = ph < 0.42
-        ? -Math.sin((ph / 0.42) * Math.PI) * 0.52
-        : Math.sin(((ph - 0.42) / 0.58) * Math.PI) * 0.3;
+        ? -Math.sin((ph / 0.42) * Math.PI) * 0.82
+        : Math.sin(((ph - 0.42) / 0.58) * Math.PI) * 0.46;
       const bq = poses[body]!;
       bq.a = 0;
       // The body rises on the downstroke, a beat behind it.
@@ -2797,6 +2805,23 @@ export interface Programme {
   owed: number;
   /** Refinement generator state, carried across slices. */
   rng: number;
+  /**
+   * Seconds added to the clock, so a jump can move the running order.
+   *
+   * The show is a pure function of time and this keeps it one: the clock is
+   * still the only input, a jump just decides which moment of the running order
+   * that clock is pointing at.
+   */
+  shift: number;
+  /**
+   * A jump in flight: fly from this formation to that one, starting then.
+   *
+   * It exists because the alternative is worse. Winding the clock to the start of
+   * the transit INTO the target would make the fleet snap to whatever shape comes
+   * before it and then fly, which is a cut followed by a flight. A viewer asked
+   * for a flight.
+   */
+  warp: { from: number; to: number; at: number } | null;
 }
 
 function programme(
@@ -2804,7 +2829,7 @@ function programme(
 ): Programme {
   return {
     id, label, cycle, held, still, forms: models.map(formation),
-    slots: null, owed: 0, rng: 0,
+    slots: null, owed: 0, rng: 0, shift: 0, warp: null,
   };
 }
 
@@ -2839,6 +2864,61 @@ export const PROGRAMMES: Programme[] = [
     jellyfish(), armillary(), fountain(),
   ]),
 ];
+
+/** How long a handover takes, in seconds. */
+export function transitOf(p: Programme): number {
+  return p.cycle * (1 - p.held);
+}
+
+/** Which formation is showing, or arriving, at this moment. */
+export function shapeAt(p: Programme, t: number): number {
+  /*
+   * Time aware rather than trusting that a frame has been drawn to retire the
+   * warp. drawShow clears it on the frame the flight lands, so in the running
+   * app the two agree -- but a caller that asks about a moment further ahead
+   * than anything drawn yet would otherwise be told the fleet is still flying
+   * forever. Asking a pure function of time a question about the future should
+   * get a pure answer.
+   */
+  if (p.warp && t - p.warp.at < transitOf(p)) return p.warp.to;
+  const te = t + p.shift;
+  const N = p.forms.length;
+  const idx = Math.floor(te / p.cycle) % N;
+  const ph = (te % p.cycle) / p.cycle;
+  // Past the hold the fleet belongs to the shape it is on its way to, which is
+  // what makes the dot light up as the new formation lands rather than after it.
+  return ph <= p.held ? idx : (idx + 1) % N;
+}
+
+/**
+ * Fly to a formation now, from whatever is on screen.
+ *
+ * Sets a warp for the flight and winds the clock so that when the flight ends the
+ * ordinary running order is starting that formation's hold. The loop then carries
+ * on from there, which is what Nam asked for: fine tuning one motif without
+ * sitting through the other ten.
+ */
+export function jumpTo(p: Programme, to: number, t: number): void {
+  const from = shapeAt(p, t);
+  if (from === to && !p.warp) {
+    const ph = ((t + p.shift) % p.cycle) / p.cycle;
+    // Already here and settled: nothing to fly.
+    if (ph <= p.held) return;
+  }
+  const dur = transitOf(p);
+  const N = p.forms.length;
+  p.warp = { from, to, at: t };
+  /*
+   * Where the clock has to be when the flight lands: the top of the target's
+   * slot. Wound forward rather than back, so nothing that has already been drawn
+   * gets drawn again with a different answer.
+   */
+  const want = to * p.cycle;
+  const lap = p.cycle * N;
+  const end = t + dur;
+  const laps = Math.ceil((end - want) / lap);
+  p.shift = want + laps * lap - end;
+}
 
 /* --- the draw ---------------------------------------------------------------
  *
@@ -2998,10 +3078,31 @@ export function drawShow(
   }
   const slots = p.slots;
 
-  const idx = Math.floor(t / p.cycle) % N;
-  const nxt = (idx + 1) % N;
-  const ph = (t % p.cycle) / p.cycle;
-  const tr = ph <= p.held ? 0 : (ph - p.held) / (1 - p.held);
+  /*
+   * A JUMP IS JUST A DIFFERENT PAIR AND A DIFFERENT CLOCK. While one is in flight
+   * the show runs the transit part of a slot between two formations that are not
+   * neighbours in the running order; when it lands, the shift has already been set
+   * so the ordinary loop takes over at the top of that formation's hold.
+   *
+   * The pairing between two non-neighbours was never refined against each other,
+   * only seeded -- but both were seeded from the same Morton ordering, so
+   * neighbours still go to neighbours and the flight is coherent. It is the
+   * quality the whole show had before the 2-opt pass, for a flight nobody sees
+   * more than once.
+   */
+  // A landed jump is over: drop it before anything reads it.
+  if (p.warp && t - p.warp.at >= transitOf(p)) p.warp = null;
+  const flying = p.warp;
+  const te = t + p.shift;
+  const idx = flying ? flying.from : Math.floor(te / p.cycle) % N;
+  const nxt = flying ? flying.to : (idx + 1) % N;
+  const tr = flying
+    ? clamp01((t - flying.at) / transitOf(p))
+    : (() => {
+      const q = (te % p.cycle) / p.cycle;
+      return q <= p.held ? 0 : (q - p.held) / (1 - p.held);
+    })();
+  const ph = flying ? p.held + tr * (1 - p.held) : (te % p.cycle) / p.cycle;
 
   /*
    * A slice of refinement, and only while a formation is held. See ASSIGNMENT:
@@ -3044,7 +3145,7 @@ export function drawShow(
    * rather than switching at the handover. Both sets of points then get the same
    * matrix, which is what keeps the assignment valid -- see the note on Turn.
    */
-  const lap = Math.floor(t / (p.cycle * N));
+  const lap = Math.floor((t + p.shift) / (p.cycle * N));
   const [aYaw, aLean, aRoll, aZoom] = poseAt(A.m, ph, p.cycle, idx, lap);
   /*
    * The incoming shape is read at ph = 0, which is its NEUTRAL -- so whatever the

@@ -3596,6 +3596,41 @@ export const tasks: Task[] = [
     },
   },
 
+  {
+    id: 'N211', col: 'review', size: 'S', tag: 'onboarding',
+    title: 'The stork is elegant, not stocky',
+    note: 'Thinner body, longer wings, a deeper beat. It reads as a goose.',
+    detail: {
+      why: 'Nam: "the body is a bit too bulky now, please make it thinner. The wings now are short, I want them longer and flapping with higher curvature. Basically this is an elegant bird, not bulky with short stocky wings with low curvature."',
+      done: [
+        'The barrel is a third narrower and slightly deeper than wide',
+        'The span goes from 0.96 to 1.34, against a slimmer body',
+        'Nearly twice the flex along the wing, so it bends through the stroke',
+        'A deeper beat: the downstroke swings half again as far',
+      ],
+      raised: 'Nam, QA of the Culture programme',
+      notes: 'AN OVERCORRECTION, AND AN INSTRUCTIVE ONE. N210 found that this bird had no body at all -- it was a stack of horizontal discs, flat as paper -- and the fix went straight past the target. Correcting something that was FLAT by making it thick produced a goose. A stork is deep front to back and NARROW across, which is a slim barrel and not a fat one.\n\nTHE SPAN AGAINST THE BODY IS THE WHOLE RATIO. Elegance in a flying bird is not a property of any one part; it is the wing being enormous relative to the body. The wings were 0.96 against a 0.66 body, which is stocky. They are 1.34 against a body a third narrower, which is a stork.\n\nCURVATURE IS THE FLEX, NOT THE ANGLE, and it is worth separating the two because they look different. The beat is the shoulder swinging, and that went from 0.52 down and 0.30 up to 0.82 and 0.46 -- a deeper stroke. The curvature is the wing BENDING as it goes, which is the ripple travelling out along the span, and that nearly doubled. A wing that swings far without bending is a board on a hinge; a slow heavy wingbeat is mostly the bending.',
+    },
+  },
+
+  {
+    id: 'N212', col: 'review', size: 'M', tag: 'onboarding',
+    title: 'A dot per shape, and clicking one flies there',
+    note: 'Fine tuning a motif meant waiting out the whole running order to see it again.',
+    detail: {
+      why: 'Nam: "above the selection of geometry and culture, please add in a few dots corresponding to the amount of shapes ... if you click on these dots, you go directly to that shape - the drones get disassembled and reassembled to the correct shape ... This allows fine grain control on the shapes so we can fine tuning without waiting through the whole loop."',
+      done: [
+        'One dot per formation, rebuilt when the programme changes',
+        'The active dot grows and brightens over 260ms rather than switching',
+        'Pressing one flies the fleet there from whatever is on screen',
+        'The loop carries on from that formation afterwards',
+        'The dot is 6px and its hit box is 20px',
+      ],
+      raised: 'Nam, QA of the Culture programme',
+      notes: 'THE REASON IS THE INTERESTING PART. Eleven motifs at twelve seconds is over two minutes for one to come round again, and every note on this roster has come from watching one particular shape. Waiting out ten others to check a change to the eleventh has quietly been most of the cost of tuning any of them.\n\nA JUMP IS JUST A DIFFERENT PAIR AND A DIFFERENT CLOCK, which is what keeps this from being a second animation system. The show stays a pure function of time: a jump only decides which moment of the running order the clock is pointing at. It sets a shift, and while the flight is in the air it runs the transit half of a slot between two formations that are not neighbours.\n\nTHE OBVIOUS IMPLEMENTATION IS WORSE AND WORTH NAMING. Winding the clock straight to the start of the transit INTO the target would make the fleet snap to whatever shape precedes it and then fly -- a cut followed by a flight. Nam asked for a flight. So the source is whatever is actually on screen.\n\nTHE PAIRING FOR A NON-NEIGHBOUR WAS NEVER REFINED, only seeded, because the 2-opt pass optimises each formation against the two either side of it in the running order. It is still coherent: both were seeded from the same Morton ordering, so neighbours go to neighbours. It is the quality the whole show had before the refinement existed, for a flight nobody sees more than once.\n\nSHAPEAT HAD TO BECOME TIME AWARE, and the test caught it. It used to report the warp target whenever a warp existed, trusting that drawShow would have retired it. In the running app they agree, because a frame is drawn sixty times a second. But asking a pure function of time about a moment further ahead than anything drawn yet got the answer that the fleet is still flying, forever. Asking a pure function about the future should get a pure answer.\n\nAND THE DOT IS SIX PIXELS WHILE THE BUTTON IS TWENTY. A six pixel target is not a target. The dot is drawn with a pseudo element so the padding around it can be transparent and still catch the press.',
+    },
+  },
+
   /* Flagged rather than done. Still true as of this build. */
   { id: 'T24', col: 'backlog', size: 'M', tag: 'specs', title: 'Initial payload is halfway to the ceiling', note: '24.7 kB of a 50 kB gate, up from 18.2. Still green, and the growth is real, but two deferred chunks are 17 kB and 19 kB and deserve a splitting pass before it becomes urgent.' },
 ];
