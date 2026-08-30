@@ -54,6 +54,7 @@
 // frame cannot leave the animation somewhere it can never get out of.
 
 import { h } from '../dom.js';
+import { profile } from '../data/cv.js';
 import { loadTheme, saveTheme } from '../prefs.js';
 import { PROGRAMMES, drawShow, jumpTo, shapeAt } from './drones.js';
 import type { Copy, Pal, Programme } from './drones.js';
@@ -134,7 +135,22 @@ function paint(
      * Tiles variant used to paint a black page until you pressed its own button.
      */
     if (w <= 0 || hh <= 0) return;
-    if (settleFrom < 0) settleFrom = t;
+    if (settleFrom < 0) {
+      settleFrom = t;
+      /*
+       * EVERY MOUNT STARTS AT THE FIRST SHAPE. Nam: "moving between the two
+       * motifs geometry and culture should reset the dot from the first shape,
+       * the first dot."
+       *
+       * The clock never stops, so without this a programme picked up wherever
+       * the wall clock happened to leave it -- switch to Culture at forty
+       * seconds and it opens on the fourth motif for no reason anybody could
+       * see. Winding the shift back to this instant makes the first frame of a
+       * programme the first frame of its running order.
+       */
+      prog.shift = -t;
+      prog.warp = null;
+    }
     if (t - settleFrom < 1) measure();
     c.clearRect(0, 0, w, hh);
     drawShow(c, w, hh, t, pal, prog, copy);
@@ -376,7 +392,31 @@ export function renderStart(store: Store, reduced: boolean): HTMLElement {
     'main',
     { class: 'st-col', id: 'main' },
     h('p', { class: 'st-eyebrow' }, 'Interactive CV'),
-    h('h1', { class: 'st-name' }, 'Nam Nguyen'),
+    /*
+     * THE ONE LINE THIS SCREEN WAS MISSING. Nam: "I realize we never say which
+     * title I am." It never did -- the card named him and named the artifact and
+     * left out the job, which is the single fact a CV exists to state.
+     *
+     * IT SITS ABOVE THE NAME, and Nam chose the position on the SILHOUETTE rather
+     * than on the hierarchy: "I like the silhouette of the text that way better,
+     * rather than going wide, then narrow, then wide again, then narrow then
+     * narrower if you look at the width of all elements here vertically."
+     *
+     * Which is the better argument. Under the name the column measured narrow,
+     * wide, medium, wide, medium, narrow -- four changes of direction down six
+     * elements, and the eye counts every one of them. Above it, the block opens
+     * out to the name and closes again: one shape instead of four.
+     *
+     * It stays out of the eyebrow, which carries "Interactive CV". That string is
+     * load bearing -- it is what tells somebody this is not a real meeting
+     * invitation, which is the whole reason N158 built this screen.
+     *
+     * Read from data/cv.ts rather than typed here. It is the same string the
+     * document, the PDF and the timeline all use, and a job title that disagrees
+     * with itself across four surfaces is worse than one that is missing.
+     */
+    h('p', { class: 'st-role' }, profile.headline),
+    h('h1', { class: 'st-name' }, profile.name),
     h(
       'p',
       { class: 'st-sub' },

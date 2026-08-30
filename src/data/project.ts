@@ -3632,6 +3632,101 @@ export const tasks: Task[] = [
     },
   },
 
+  {
+    id: 'N213', col: 'review', size: 'S', tag: 'onboarding',
+    title: 'The dot waits until the fleet has committed',
+    note: 'It lights the next shape the instant the first craft leaves, which reads as a jump.',
+    detail: {
+      why: 'Nam: "the dot transitions a bit too early, even before the drones all get disassembled for the current shape, looks a bit jarring."',
+      done: [
+        'The dot hands over half way through the flight, not at the start of it',
+        'Checked across a whole transit: outgoing for the first half, incoming for the second',
+      ],
+      raised: 'Nam, QA of the Culture programme',
+      notes: 'IT WAS HANDING OVER THE MOMENT THE FIRST CRAFT LEFT. shapeAt returned the incoming formation as soon as the hold ended, so the dot announced the next shape while the current one was still perfectly legible on screen. A label disagreeing with the picture reads as a glitch rather than as a transition, which is exactly what Nam saw.\n\nIT HANDS OVER IN THE MIDDLE OF THE FLIGHT INSTEAD, where the fleet is a cloud and belongs to neither shape. That is the same instant the rotation swaps, for the same reason: it is the only moment in the cycle where changing your mind about what is on screen costs nothing.\n\nWorth noting that jumpTo reads the same function to decide where a flight starts FROM, so it moved too, and correctly: a jump made early in a transit now flies from the shape still visible rather than from the one barely begun.',
+    },
+  },
+
+  {
+    id: 'N214', col: 'review', size: 'S', tag: 'onboarding',
+    title: 'The fountain and the Vasa leave the roster',
+    note: 'Pretty, but one is easy and the other is hard to read. Nine left.',
+    detail: {
+      why: 'Nam: "for the Culture theme, please delete the waterfall. Its beautiful but not particularly technically difficult to make. we can also delete the vasa ship, I dont think its particularly beautiful either and is kinda hard to read."',
+      done: [
+        'The fountain and the tall ship are out',
+        'Nine motifs left, which is one over the eight the roster is aiming at',
+      ],
+      raised: 'Nam, QA of the Culture programme',
+      notes: 'THE FOUNTAIN IS CUT ON A STANDARD MOST ROSTERS NEVER GET HELD TO, and it is the right one for this artifact. It was genuinely pretty and it was argued for on exactly the grounds Nam is rejecting: that water is honestly a cloud of points, so the medium stops being a compromise. He is right that this makes it EASY rather than good. Falling droplets on a loop is a particle system, and a particle system is the first thing anyone builds. A CV should not lead with the part that was cheap.\n\nTHE SHIP HAD BEEN LIMPING SINCE N186. It needed a locked heading to be legible at all, which is the tell for a silhouette object, and then N196 had to brace its yards round because square sails set across the beam are edge on from the one angle it is allowed to be seen from. Two tickets spent making one motif survivable is a fair signal, and Nam is blunter: "kinda hard to read".\n\nNINE LEFT, WHICH IS ONE OVER. Lotus, sky lanterns, a carousel, a pagoda, a stork, a midsommarstang, an advent star, a jellyfish and an armillary sphere. The last cut is his to make on the screen, which is the whole reason the roster has been carrying spares.',
+    },
+  },
+
+  {
+    id: 'N215', col: 'review', size: 'M', tag: 'onboarding',
+    title: 'A jump starts from wherever the fleet is standing',
+    note: 'It was flying from a formation, so the shape fast forwarded before it set off.',
+    detail: {
+      why: 'Nam: "when clicking a dot, we currently fastforward the drone formation to that just before the dots, then do the transition into that shape. That is totally unnecessary. We program this as a drone swam so that we can transition to anything at anytime. When you click the dot, we disassemble directly from the current shape to that new shape, making it very seamless. If the drone is already in disassembled state, even more convenient for us!" Plus: "moving between the two motifs geometry and culture should reset the dot from the first shape, the first dot."',
+      done: [
+        'A jump flies from a frozen copy of wherever the fleet was, not from a formation',
+        'Its pose, placement and brightness all ease out of that copy',
+        'Clicking mid flight is now the cheap case rather than the broken one',
+        'Switching programme starts at the first shape',
+      ],
+      raised: 'Nam, QA of the Culture programme',
+      notes: 'HE IS RIGHT AND THE FIRST VERSION DESERVED THE COMPLAINT. It flew from a FORMATION -- so the outgoing shape was read at the end of its hold, which meant its rotation and its rig jumped forward to a pose it had not reached yet before setting off. And a click made mid flight snapped a dispersed cloud back into a solid shape and then dispersed it again. Both are fast forwards, and the second is worse.\n\nFLYING FROM A SNAPSHOT REMOVES THE WHOLE PROBLEM, and it is a smaller change than the thing it replaces. Every craft is told where it is now and where to be next, which is what a drone show IS. It needs no pairing at all, because the pairing is already baked into where each craft happens to be standing -- so the assignment machinery, which is the most expensive thing in this file, is simply not consulted.\n\nAnd it makes Nam\'s aside exactly true: a click during a handover is now the CHEAPEST case, because the fleet is already scattered and has less distance to cover.\n\nTHE POSITIONS WERE THE EASY HALF. Three things had to ease out of the snapshot rather than snapping to the target: the ROTATION, or the whole sky would swing to the new shape\'s heading before anything moved; the PLACEMENT, which matters now that the jellyfish is drawn much smaller than everything else, so a jump to or from it would change scale instantly; and the BRIGHTNESS, which also had to be computed before the culling rather than after, or any craft off screen on the frame somebody pressed a dot would be snapshotted with whatever was left in the array from an earlier frame.\n\nTHE PROGRAMME RESET IS THE SAME BUG IN A DIFFERENT COAT. The clock never stops, so a programme picked up wherever the wall clock happened to leave it -- switch to Culture forty seconds in and it opens on the fourth motif, for no reason a viewer could see. Winding the shift back to the moment of the mount makes the first frame of a programme the first frame of its running order.',
+    },
+  },
+
+  {
+    id: 'N216', col: 'review', size: 'S', tag: 'onboarding',
+    title: 'The dive ends inside the hole, and the jellyfish shrinks',
+    note: 'Backing out of the donut was the part that gave the trick away.',
+    detail: {
+      why: 'Nam: "the donut hole, I want the transition faster, like basically right after we enter the donut hole, give it a very short delay then we disassemble ... the exit part ruins the illusion, we want to give this illusion of zooming into this donut shape drone swam into the next." And: "the jelly fish should be of smaller scale, as if we zoom out a bit. It should read cute and adorable, not huge and a bit scary."',
+      done: [
+        'The dive finishes inside the hold and sits there about a second',
+        'The fleet leaves from inside the hole, and the camera lets go in the scramble',
+        'The jellyfish is drawn at 0.58 against everything else at 0.92',
+      ],
+      raised: 'Nam, QA of both programmes',
+      notes: 'THE EXIT WAS THE PART THAT GAVE IT AWAY. The dive used to peak exactly as the fleet started to leave and then pull straight back out over the first half of the flight -- so the camera backed out of the hole while the torus was still perfectly legible, and a viewer watched the trick being undone.\n\nNow the dive lands at four fifths of the way through the hold, sits inside for about a second, and the fleet disperses from IN there. The camera lets go in the middle of the flight, which is the same window the rotation swaps in and for the same reason: it is the only moment where a change that large cannot be seen happening. What is left is what Nam described -- falling into the donut and coming out somewhere else.\n\nTHE JELLYFISH IS CAPPED BY ITS OWN NUMBER RATHER THAN BY ITS MARGIN, which is the first motif to be. Everything else fills the space it is given, because the fit is what binds. This one stops well short, and that is what reading as a small thing at a distance actually requires: an animal drawn at the size of a building is a monster however friendly its shape is. It also came out DENSER for it, 11.7 pixels against 15.1, because the same craft are spread over less line.',
+    },
+  },
+
+  {
+    id: 'N217', col: 'review', size: 'S', tag: 'onboarding',
+    title: 'The card says what he does',
+    note: 'It named him and named the artifact and left out the job.',
+    detail: {
+      why: 'Nam: "I realize we never say which title I am. Lets add it too, front end lead developer."',
+      done: [
+        'The role sits under the name, above the pitch',
+        'Read from data/cv.ts rather than typed into the screen',
+      ],
+      raised: 'Nam, QA of the front door',
+      notes: 'IT NEVER DID SAY. The card named him, named the artifact and left out the job, which is the single fact a CV exists to state. Easy to miss precisely because N177 had just finished taking four lines off this screen -- and a cut that removes the reassurances is right where a cut that removes the job title would be wrong.\n\nUNDER THE NAME RATHER THAN IN THE EYEBROW, because the eyebrow is carrying "Interactive CV" and that string is load bearing: it is what tells somebody this is not a real meeting invitation, which is the entire reason N158 built the screen. Set in the mono face at the eyebrow\'s tracking so it reads as a label attached to the name rather than as another sentence to get through.\n\nREAD FROM data/cv.ts, not typed here. It is the same string the document, the PDF and the timeline all use. A job title that disagrees with itself across four surfaces is worse than one that is missing, and this file has already been caught once treating a number in the stylesheet as something worth copying.',
+    },
+  },
+
+  {
+    id: 'N218', col: 'review', size: 'S', tag: 'onboarding',
+    title: 'BUG: a jump stopped the world while it flew',
+    note: 'Positions had to be frozen. The pose did not, and freezing it read as a stall.',
+    detail: {
+      why: 'Nam: "when I press the dot, you pause the rotation completely as you disassemble the shape! Thats the opposite of seamless no? I want the current shape to TRANSITION into the new shape, meaning it continue doing what it does, as we disassemble it. We have time, the transition doesnt have to happen immediately. What I wanted to avoid anything that seems like a glitch."',
+      done: [
+        'The outgoing shape keeps turning, leaning and rolling for the whole flight',
+        'Its rig keeps running too, so a lotus goes on breathing as it comes apart',
+        'Only the positions are frozen, which is the part that had to be',
+        'Checked: the fleet is moving on the first frame after a dot is pressed',
+      ],
+      raised: 'Nam, QA of the Culture programme',
+      notes: 'TWO THINGS WERE CAPTURED TOGETHER THAT ARE NOT THE SAME KIND OF THING. N215 froze the fleet\'s positions so a jump would stop snapping to a formation the craft were not standing in -- which was right, and is the only way to fly from an arbitrary moment. But the pose was captured in the same breath, and freezing THAT stopped the world.\n\nThe positions have to be a snapshot: they are the answer to where every craft is, and that answer has no formula. The POSE is a function of time, and there was never a reason to stop time.\n\nSO THE WARP REMEMBERS WHICH FORMATION IT LEFT AND HOW FAR INTO ITS SLOT IT WAS, and the draw keeps evaluating that shape\'s pose forward from there for the whole flight. The rotation carries on at its own rate, the secondaries keep wandering, a scripted arc keeps running, and the rig keeps going -- so a lotus is still breathing as it comes apart and a carousel is still turning.\n\nAND THE FROZEN POSITIONS TURN WITH IT, which is the part that makes this cheap rather than clever: the snapshot is in MODEL space, taken before the rotation is applied, so a continuing rotation moves the whole frozen cloud exactly as it would have moved the formation. Nothing had to be re-derived.\n\nIt also deleted code rather than adding it. The special cases that read pose, placement and scale out of the snapshot are all gone, because the ordinary path now produces the right answer for both.\n\nNam\'s own framing is the one worth keeping: "We have time, the transition doesnt have to happen immediately." A jump is not an edit. It is the same handover the show does eleven times a lap, aimed somewhere else.',
+    },
+  },
+
   /* Flagged rather than done. Still true as of this build. */
   { id: 'T24', col: 'backlog', size: 'M', tag: 'specs', title: 'Initial payload is halfway to the ceiling', note: '24.7 kB of a 50 kB gate, up from 18.2. Still green, and the growth is real, but two deferred chunks are 17 kB and 19 kB and deserve a splitting pass before it becomes urgent.' },
 ];

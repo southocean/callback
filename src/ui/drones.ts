@@ -947,9 +947,19 @@ function torusArc(ph: number, lap: number): [number, number, number] {
   // Onto its back by half way, so there is time to see that it IS on its back
   // before anything else happens to it.
   const lean = smooth((ph - 0.06) / 0.4) * target;
-  // And the dive is the last stretch of the hold, peaking at the exact instant
-  // the fleet starts to leave, so the flight through the hole IS the departure.
-  const zoom = bold ? 1 + smooth((ph - 0.4) / 0.22) * 1.35 : 1;
+  /*
+   * THE DIVE FINISHES INSIDE THE HOLD, NOT AT THE END OF IT. Nam: "right after we
+   * enter the donut hole, give it a very short delay then we disassemble ... the
+   * exit part ruins the illusion, we want to give this illusion of zooming into
+   * this donut shape drone swarm into the next."
+   *
+   * So it lands at four fifths of the way through the hold, sits there for about
+   * a second, and the fleet then leaves from INSIDE. The camera does not come back
+   * out while anything is still recognisable -- see the note on the zoom blend in
+   * drawShow, which now holds the dive through the first half of the flight and
+   * drops it in the scramble where a change of scale cannot be seen.
+   */
+  const zoom = bold ? 1 + smooth((ph - 0.3) / 0.22) * 1.35 : 1;
   return [lean, zoom, 0];
 }
 
@@ -1956,165 +1966,6 @@ function carousel(): Model {
   });
 }
 
-/* --- the tall ship --------------------------------------------------------- */
-
-/**
- * A high-sterned warship under sail. Nam asked for the Vasa.
- *
- * GENERIC ON PURPOSE, and the plan predicted this would be the model most likely
- * to want a real mesh. It does not get one, and the reason it survives anyway is
- * that a ship of this period is recognised by three things a point cloud can
- * carry: a hull that curves up at both ends, a stern castle much taller than the
- * bow, and three masts of decreasing height with square sails on them. Rivets
- * were never going to be visible.
- *
- * IT ROLLS ON A SWELL, which is one hinge along the keel plus a heave. The sails
- * belly on the ripple, which is what the directed wave was generalised for.
- */
-function tallship(): Model {
-  const cl = new Cloud();
-  const parts: Part[] = [];
-  // Everything is one part, because a ship rolls as one thing.
-  const hull = parts.length;
-  parts.push(part(0, 0.5, 0, 0, 0, 1));
-  // Which parts are canvas, so the rig can brace them without counting indices.
-  const sails: number[] = [];
-
-  // Sheer and keel. The sheer sweeps up hard at the stern, which is the tell.
-  const sheer = (k: number): number => 0.34 - Math.pow(k, 2.2) * 0.42 - Math.pow(1 - k, 3) * 0.16;
-  for (let d = -1; d <= 1; d += 2) {
-    for (let i = 0; i < 26; i += 1) {
-      const k = i / 25;
-      const x = -0.86 + k * 1.72;
-      const beam = 0.13 * Math.sin(Math.PI * Math.pow(k, 0.85)) + 0.02;
-      cl.add(x, sheer(k), d * beam, hull, 0.1, 1);
-      cl.add(x, sheer(k) + 0.1, d * beam * 0.94, hull, 0.1, 0.62);
-      cl.add(x, sheer(k) + 0.2, d * beam * 0.8, hull, 0.1, 0.62);
-    }
-  }
-  for (let i = 0; i < 22; i += 1) {
-    const k = i / 21;
-    const x = -0.86 + k * 1.72;
-    cl.add(x, 0.54 - Math.pow(1 - k, 3) * 0.1 - Math.pow(k, 3) * 0.06, 0, hull, 0.1, 0.9);
-  }
-  // The stern castle, and it is deliberately overbuilt.
-  for (let i = 0; i < 4; i += 1) {
-    const y = 0.34 - i * 0.11;
-    run(cl, 0.6, y, -0.1, 0.86, y - 0.03, -0.06, 5, hull, 0.05, 0.05, 0.8);
-    run(cl, 0.6, y, 0.1, 0.86, y - 0.03, 0.06, 5, hull, 0.05, 0.05, 0.8);
-    run(cl, 0.6, y, -0.1, 0.6, y, 0.1, 4, hull, 0.05, 0.05, 0.7);
-    run(cl, 0.86, y - 0.03, -0.06, 0.86, y - 0.03, 0.06, 3, hull, 0.05, 0.05, 0.7);
-  }
-  // Bowsprit.
-  run(cl, -0.84, -0.02, 0, -1.16, -0.2, 0, 9, hull, 0.05, 0.05, 0.85);
-
-  // Three masts. Foremast shortest, main tallest, mizzen between.
-  const masts: [number, number, number[]][] = [
-    [-0.44, -1.0, [0.34, 0.24]],
-    [0.02, -1.22, [0.4, 0.3, 0.2]],
-    [0.44, -0.86, [0.28, 0.2]],
-  ];
-  for (let m = 0; m < masts.length; m += 1) {
-    const [mx, top, yards] = masts[m]!;
-    run(cl, mx, 0.2, 0, mx, top, 0, 20, hull, 0.1, 0.1, 1);
-    for (let y = 0; y < yards.length; y += 1) {
-      const yy = top * (0.34 + y * 0.3);
-      const half = yards[y]!;
-      run(cl, mx, yy, -half, mx, yy, half, 13, hull, 0.1, 0.1, 0.9);
-      // The sail under it, as a bellying rectangle. Its own part so it can flex.
-      const sp = parts.length;
-      sails.push(sp);
-      /*
-       * ABOUT THE MAST, so the rig can BRACE it. A square sail is bent to a yard
-       * set athwartships, and bracing swings that yard round the mast -- which is
-       * a rotation about the vertical, not the fore and aft axis it used to have.
-       *
-       * The ripple direction moves with it: canvas bellies along the ship's
-       * length once the yard is round, so the wave pushes on x rather than z.
-       */
-      parts.push(part(mx, yy, 0, 0, 1, 0, {
-        wave: 0.05, wx: 1, wy: 0, wz: 0, wfreq: 0.6, wrate: 0.3, phase: rnd(m * 7 + y),
-      }));
-      const drop = Math.abs(top) * 0.3;
-      for (let i = 0; i < 11; i += 1) {
-        const u = i / 10;
-        const z = -half * 0.92 + u * half * 1.84;
-        run(cl, mx, yy, z, mx, yy + drop, z * 0.86, 5, sp, 0, 1, 0.66);
-      }
-      run(cl, mx, yy + drop, -half * 0.8, mx, yy + drop, half * 0.8, 9, sp, 1, 1, 0.8);
-    }
-    // Shrouds down to the rail.
-    for (const d of [-1, 1]) {
-      for (let i = 0; i < 3; i += 1) {
-        run(cl, mx, top * 0.42, 0, mx - 0.06 + i * 0.06, 0.2, d * 0.13, 7, hull, 0.1, 0.1, 0.42);
-      }
-    }
-  }
-  // Stays fore and aft, which are what tie the three masts into one rig.
-  run(cl, -0.44, -1.0, 0, -1.12, -0.18, 0, 11, hull, 0.1, 0.1, 0.45);
-  run(cl, 0.02, -1.22, 0, -0.44, -1.0, 0, 8, hull, 0.1, 0.1, 0.45);
-  run(cl, 0.44, -0.86, 0, 0.02, -1.22, 0, 8, hull, 0.1, 0.1, 0.45);
-  run(cl, 0.44, -0.86, 0, 0.8, 0.2, 0, 9, hull, 0.1, 0.1, 0.45);
-
-  // Pennants, which ripple.
-  for (let m = 0; m < masts.length; m += 1) {
-    const [mx, top] = masts[m]!;
-    const fp = parts.length;
-    parts.push(part(mx, top, 0, 0, 1, 0, {
-      wave: 0.05, wx: 0, wy: 1, wz: 0.4, wfreq: 1.9, wrate: 1.1, phase: rnd(m * 3 + 2),
-    }));
-    run(cl, mx, top, 0, mx + 0.3, top + 0.02, 0, 9, fp, 0, 1, 0.9);
-  }
-
-  return bake(cl, parts, {
-    /*
-     * IT HOLDS ITS BROADSIDE. Nam: "the vasa ship, only looking good at a certain
-     * angle." True, and unavoidable: a ship is a silhouette object. Everything
-     * that says tall ship -- the sheer running up to a high stern, three masts of
-     * falling height, square sails -- is only there from the side. Bow on it is a
-     * vertical smear.
-     *
-     * So no yaw, the same answer the flat geometry shapes got. It is built
-     * broadside to the camera, and it swings a quarter of a radian either way so
-     * it is a ship at anchor rather than a decal.
-     */
-    rate: 0,
-    lean: 0.16,
-    swing: 0.26, swingRate: 0.035,
-    tilt: 0.09, tiltRate: 0.03,
-    sweepFreq: 1.2,
-    sweepRate: 0.24,
-    spot: { side: -1, y: 0, s: 0.92 },
-    rig: (t, poses) => {
-      // One swell, and everything on the ship answers to it.
-      const roll = Math.sin(t * 0.28 * TAU * 0.25) * 0.13;
-      const heave = Math.sin(t * 0.19 * TAU * 0.25 + 1.1) * 0.05;
-      for (let i = 0; i < poses.length; i += 1) {
-        const q = poses[i]!;
-        q.a = i === 0 ? roll : roll * 0.2;
-        q.oy = heave;
-        q.ox = Math.sin(t * 0.14 * TAU * 0.25) * 0.03;
-        q.b = 1;
-      }
-      /*
-       * THE YARDS ARE BRACED ROUND TOWARD THE VIEWER, which is Nam's note and is
-       * also just true of the geometry: square sails are set ACROSS the beam, and
-       * we watch this ship from abeam, so they were edge on -- three vertical
-       * lines where the canvas should be. It is the same fault the flat shapes
-       * had, on the one part of a ship that most says ship.
-       *
-       * A quarter turn would face them dead on and read as a cardboard cutout, so
-       * they sit a little short of it and work either side by a fifth of a radian.
-       * The hull swings on its own clock, which is what Nam was after: "the boat
-       * is going one way, the sail is being blown in a different way."
-       */
-      for (let j = 0; j < sails.length; j += 1) {
-        const q = poses[sails[j]!]!;
-        q.a = 1.32 + Math.sin(t * 0.16 * TAU + j * 0.7) * 0.2;
-      }
-    },
-  });
-}
 
 /* --- the stork --------------------------------------------------------------
  *
@@ -2556,7 +2407,18 @@ function jellyfish(): Model {
     rate: 0.1, lean: 0.2,
     tilt: 0.11, tiltRate: 0.03,
     sweepFreq: 1.2, sweepRate: 0.34,
-    spot: { side: -1, y: 0, s: 0.92 },
+    /*
+     * SMALLER THAN THE REST ON PURPOSE. Nam: "the jelly fish should be of smaller
+     * scale, as if we zoom out a bit. It should read cute and adorable, not huge
+     * and a bit scary."
+     *
+     * Everything else in the roster is capped by the margin it sits in, so it
+     * fills the space it is given. This one is capped by its own number instead,
+     * well under that, which is what reading as a small thing at a distance
+     * actually requires -- an animal drawn at the size of a building is a monster
+     * however friendly its shape is.
+     */
+    spot: { side: -1, y: 0, s: 0.58 },
     /*
      * IT SWIMS, which means it rises on the contraction and sinks on the recovery.
      * The lift is what makes it an animal rather than a lamp: a jellyfish that
@@ -2691,101 +2553,6 @@ function armillary(): Model {
   });
 }
 
-/* --- the fountain -----------------------------------------------------------
- *
- * WATER IS THE ONE SUBJECT THAT IS HONESTLY A CLOUD OF POINTS. A jet breaking
- * into droplets, arcs falling from a basin lip -- that is not a solid being
- * approximated, it is the thing itself, and it is the second motif in the set
- * where the medium stops being a compromise.
- *
- * It is also the only one whose animation is a FLOW rather than a wobble. Every
- * other rig here moves a shape and puts it back; this one has droplets travelling
- * a path and looping, which is a different kind of motion entirely and the reason
- * it is worth the slot.
- * -------------------------------------------------------------------------- */
-
-function fountain(): Model {
-  const cl = new Cloud();
-  const parts: Part[] = [];
-
-  // Two basins and a pedestal, which is the architecture the water needs.
-  const basins: [number, number][] = [[0.62, 0.3], [0.34, -0.28]];
-  for (let n = 0; n < basins.length; n += 1) {
-    const [r, y] = basins[n]!;
-    hoop(cl, 0, y, 0, r, 38, -1, 0.1, 0.95);
-    hoop(cl, 0, y + 0.09, 0, r * 0.84, 30, -1, 0.1, 0.6);
-    // A scalloped underside, so a basin is a bowl and not a disc.
-    for (let g = 0; g < 26; g += 1) {
-      const a = (g / 26) * TAU;
-      run(cl, Math.cos(a) * r, y, Math.sin(a) * r,
-        Math.cos(a) * r * 0.3, y + 0.16, Math.sin(a) * r * 0.3, 5, -1, 0.1, 0.1, 0.45);
-    }
-  }
-  // The column between them, and the foot.
-  for (let g = 0; g < 6; g += 1) {
-    const a = (g / 6) * TAU;
-    run(cl, Math.cos(a) * 0.07, 0.72, Math.sin(a) * 0.07,
-      Math.cos(a) * 0.05, -0.34, Math.sin(a) * 0.05, 14, -1, 0.15, 0.15, 0.8);
-  }
-  hoop(cl, 0, 0.78, 0, 0.42, 26, -1, 0, 0.85);
-  hoop(cl, 0, 0.72, 0, 0.34, 20, -1, 0, 0.6);
-
-  /* THE JET AND THE FALLING WATER. Each stream is a part, and its droplets are
-     spread along the path by their own u -- so setting the part's ripple to zero
-     and moving the droplets instead makes the water FLOW rather than wobble. */
-  const jets = 14;
-  for (let g = 0; g < jets; g += 1) {
-    const a = (g / jets) * TAU;
-    const jp = parts.length;
-    parts.push(part(0, -0.34, 0, 0, 1, 0, { phase: g / jets }));
-    // Up out of the top and over, into the upper basin.
-    for (let i = 0; i < 18; i += 1) {
-      const k = i / 17;
-      const r = Math.sin(k * Math.PI * 0.9) * 0.3;
-      const y = -0.34 - Math.sin(k * Math.PI) * 0.42 + k * 0.06;
-      cl.add(Math.cos(a) * r, y, Math.sin(a) * r, jp, k, 1 - k * 0.25);
-    }
-  }
-  // The falls: sheets of droplets from each basin lip to the one below.
-  for (let n = 0; n < basins.length; n += 1) {
-    const [r, y] = basins[n]!;
-    const drop = n === 0 ? 0.62 : 0.5;
-    for (let g = 0; g < 26; g += 1) {
-      const a = (g / 26) * TAU;
-      const fp = parts.length;
-      parts.push(part(Math.cos(a) * r, y, Math.sin(a) * r, 0, 1, 0,
-        { phase: rnd(n * 40 + g) }));
-      for (let i = 0; i < 10; i += 1) {
-        const k = i / 9;
-        // Falling and drifting outward a little, which is what a lip does.
-        cl.add(Math.cos(a) * (r + k * 0.07), y + k * drop, Math.sin(a) * (r + k * 0.07),
-          fp, k, 0.8 - k * 0.3);
-      }
-    }
-  }
-
-  return bake(cl, parts, {
-    rate: 0.12, lean: 0.26,
-    tilt: 0.1, tiltRate: 0.03,
-    sweepFreq: 1.1, sweepRate: 0.3,
-    spot: { side: -1, y: 0, s: 0.92 },
-    rig: (t, poses) => {
-      for (let i = 0; i < poses.length; i += 1) {
-        const q = poses[i]!;
-        q.a = 0;
-        /*
-         * The droplets fall on a loop. Each stream runs on its own phase, and the
-         * brightness rises and dies across the fall so nothing pops into being at
-         * the top or piles up at the bottom -- which is what makes it read as
-         * water passing through rather than as a fixed string of beads.
-         */
-        const ph = wrap01(t * 0.55 + parts[i]!.phase);
-        q.oy = (ph - 0.5) * 0.16;
-        q.b = 0.5 + 0.5 * Math.sin(Math.PI * ph);
-      }
-    },
-  });
-}
 
 /* --- the programmes --------------------------------------------------------- */
 
@@ -2814,14 +2581,32 @@ export interface Programme {
    */
   shift: number;
   /**
-   * A jump in flight: fly from this formation to that one, starting then.
+   * A jump in flight: fly from a FROZEN COPY of wherever the fleet was to a
+   * formation, starting then.
    *
-   * It exists because the alternative is worse. Winding the clock to the start of
-   * the transit INTO the target would make the fleet snap to whatever shape comes
-   * before it and then fly, which is a cut followed by a flight. A viewer asked
-   * for a flight.
+   * Nam: "when clicking a dot, we currently fastforward the drone formation to
+   * that just before the dots, then do the transition into that shape. That is
+   * totally unnecessary. We program this as a drone swarm so that we can
+   * transition to anything at anytime."
+   *
+   * Exactly right, and the first version deserved the complaint: it flew from a
+   * FORMATION, so the outgoing shape jumped to its end-of-hold pose before setting
+   * off, and a click made mid flight snapped a dispersed cloud back into a solid
+   * shape first. Both are fast forwards.
+   *
+   * Flying from a snapshot removes the whole problem. Each craft is simply told
+   * where it is now and where to be next, which is what a drone show is -- and it
+   * needs no pairing at all, because the pairing is already baked into where every
+   * craft happens to be standing.
    */
-  warp: { from: number; to: number; at: number } | null;
+  warp: {
+    to: number;
+    at: number;
+    /** The formation it left, and how far into that formation's slot it was. */
+    from: number;
+    fromPh: number;
+    snap: Snap;
+  } | null;
 }
 
 function programme(
@@ -2854,16 +2639,37 @@ export const PROGRAMMES: Programme[] = [
      *
      * Which is the same method that chose the animation in the first place: put
      * them all on the real screen at the real size and cut the three that lose.
-     * One round of that has already happened: the statue, the castle and the dala
-     * horse went, and a jellyfish, an armillary sphere and a fountain came in.
+     * Two rounds of that have happened. The statue, the castle and the dala horse
+     * went, and a jellyfish, an armillary sphere and a fountain came in. Then the
+     * fountain and the tall ship went too -- Nam on the fountain: "beautiful but
+     * not particularly technically difficult to make", which is the right standard
+     * for a portfolio piece and not one a roster usually gets held to; and on the
+     * ship, "not particularly beautiful either and is kinda hard to read", which
+     * had been true since it needed a locked heading to work at all.
+     *
+     * Nine, which is one over. The last cut is Nam's to make on the screen.
      * Choosing between models from a description is how the branch, the tree and
      * the balloons all got built and then thrown away.
      */
     lotus(), lanterns(), carousel(), pagoda(),
-    tallship(), crane(), maypole(), advent(),
-    jellyfish(), armillary(), fountain(),
+    crane(), maypole(), advent(), jellyfish(), armillary(),
   ]),
 ];
+
+/**
+ * Where every craft was on the last frame drawn, in model space.
+ *
+ * Kept every frame rather than captured on demand, because a click arrives
+ * between frames and the honest answer to "where is the fleet" is the last thing
+ * that was drawn. Three array writes a craft, which is nothing next to the rest
+ * of the loop.
+ */
+interface Snap { x: Float32Array; y: Float32Array; z: Float32Array; g: Float32Array }
+
+const lastX = new Float32Array(FLEET);
+const lastY = new Float32Array(FLEET);
+const lastZ = new Float32Array(FLEET);
+const lastG = new Float32Array(FLEET);
 
 /** How long a handover takes, in seconds. */
 export function transitOf(p: Programme): number {
@@ -2885,9 +2691,24 @@ export function shapeAt(p: Programme, t: number): number {
   const N = p.forms.length;
   const idx = Math.floor(te / p.cycle) % N;
   const ph = (te % p.cycle) / p.cycle;
-  // Past the hold the fleet belongs to the shape it is on its way to, which is
-  // what makes the dot light up as the new formation lands rather than after it.
-  return ph <= p.held ? idx : (idx + 1) % N;
+  if (ph <= p.held) return idx;
+  /*
+   * HALF WAY THROUGH THE FLIGHT, NOT THE START OF IT. Nam: "the dot transitions a
+   * bit too early, even before the drones all get disassembled for the current
+   * shape, looks a bit jarring."
+   *
+   * It was handing over the moment the first craft left, so the dot announced the
+   * next shape while the current one was still legible on screen -- the label
+   * disagreeing with the picture, which reads as a glitch rather than as a
+   * transition.
+   *
+   * It hands over in the middle of the flight instead, where the fleet is a cloud
+   * and belongs to neither shape. That is the same moment the rotation swaps for
+   * the same reason, and it is the only instant in the cycle where changing your
+   * mind about what is on screen costs nothing.
+   */
+  const tr = (ph - p.held) / (1 - p.held);
+  return tr < 0.5 ? idx : (idx + 1) % N;
 }
 
 /**
@@ -2899,15 +2720,40 @@ export function shapeAt(p: Programme, t: number): number {
  * sitting through the other ten.
  */
 export function jumpTo(p: Programme, to: number, t: number): void {
-  const from = shapeAt(p, t);
-  if (from === to && !p.warp) {
-    const ph = ((t + p.shift) % p.cycle) / p.cycle;
+  if (shapeAt(p, t) === to && !p.warp) {
+    const ph0 = ((t + p.shift) % p.cycle) / p.cycle;
     // Already here and settled: nothing to fly.
-    if (ph <= p.held) return;
+    if (ph0 <= p.held) return;
   }
   const dur = transitOf(p);
   const N = p.forms.length;
-  p.warp = { from, to, at: t };
+  /*
+   * POSITIONS ARE FROZEN, THE POSE IS NOT, and the difference is the whole of
+   * Nam's second complaint: "you pause the rotation completely as you disassemble
+   * the shape! Thats the opposite of seamless."
+   *
+   * He is right, and the first version froze both because they were captured
+   * together. But they are not the same kind of thing. The positions have to be a
+   * snapshot -- that is what stops the fleet snapping to a formation it is not
+   * standing in. The POSE is a function of time, and there is no reason to stop
+   * time: the outgoing shape keeps turning at its own rate for the whole flight,
+   * and because the frozen positions are in model space they turn with it.
+   *
+   * So the warp remembers WHICH formation it left and HOW FAR into that
+   * formation's slot it was, and the draw keeps evaluating its pose from there.
+   */
+  const te = t + p.shift;
+  const cur = shapeAt(p, t);
+  p.warp = {
+    to,
+    at: t,
+    from: cur,
+    fromPh: (te % p.cycle) / p.cycle,
+    // A copy, not a reference: the live arrays keep being overwritten.
+    snap: {
+      x: lastX.slice(), y: lastY.slice(), z: lastZ.slice(), g: lastG.slice(),
+    },
+  };
   /*
    * Where the clock has to be when the flight lands: the top of the target's
    * slot. Wound forward rather than back, so nothing that has already been drawn
@@ -3133,7 +2979,14 @@ export function drawShow(
    * The lotus assembling closed and then blooming is a side effect of this, and
    * it is a better opening than the one it replaces.
    */
-  const tA = ph * p.cycle;
+  /*
+   * How far into ITS OWN slot the outgoing side is. On an ordinary handover that
+   * is the phase of the running order; on a jump it is where the shape was when
+   * the dot was pressed, still advancing. Either way it never stops, so nothing
+   * on screen ever stops.
+   */
+  const fPh = flying ? flying.fromPh + (t - flying.at) / p.cycle : ph;
+  const tA = fPh * p.cycle;
   const tB = (ph - 1) * p.cycle;
   poseInto(A, tA);
   poseInto(B, tB);
@@ -3146,7 +2999,7 @@ export function drawShow(
    * matrix, which is what keeps the assignment valid -- see the note on Turn.
    */
   const lap = Math.floor((t + p.shift) / (p.cycle * N));
-  const [aYaw, aLean, aRoll, aZoom] = poseAt(A.m, ph, p.cycle, idx, lap);
+  const [aYaw, aLean, aRoll, aZoom] = poseAt(A.m, fPh, p.cycle, idx, lap);
   /*
    * The incoming shape is read at ph = 0, which is its NEUTRAL -- so whatever the
    * outgoing shape has wandered to, the handover eases onto a pose the viewer has
@@ -3185,6 +3038,12 @@ export function drawShow(
    * and they would jump.
    */
   const kRot = smooth((tr - 0.34) / 0.34);
+  /*
+   * On a JUMP the outgoing side is the snapshot, not a formation -- so the angle
+   * eases from wherever the fleet was actually pointing when the dot was pressed.
+   * Reading the target's pose for both ends, as an ordinary handover does, would
+   * snap the whole sky to the new shape's heading before anything had moved.
+   */
   const yaw = aYaw + (bYaw - aYaw) * kRot;
   const lean = aLean + (bLean - aLean) * kRot;
   const roll = aRoll + (bRoll - aRoll) * kRot;
@@ -3195,7 +3054,14 @@ export function drawShow(
    * the rotation blend, so it hung at full zoom through the first third of the
    * transit. Now the dive ends the moment the fleet starts to leave.
    */
-  const zoom = aZoom + (bZoom - aZoom) * smooth(tr / 0.45);
+  /*
+   * The camera holds the dive through the first half of the flight and lets go in
+   * the scramble, for the same reason the rotation swaps there: it is the only
+   * moment where a change this large cannot be seen happening. Pulling out over
+   * the first half, as it used to, meant backing out of the hole while the torus
+   * was still legible -- which is the exit Nam wanted gone.
+   */
+  const zoom = aZoom + (bZoom - aZoom) * smooth((tr - 0.3) / 0.36);
 
   const cy0 = Math.cos(yaw);
   const sy0 = Math.sin(yaw);
@@ -3245,11 +3111,21 @@ export function drawShow(
   // the screen is the most drone-show thing in the whole running order.
   const aLift = A.m.lift ? A.m.lift(tA) * asp : 0;
   const bLift = B.m.lift ? B.m.lift(tB) * bsp : 0;
+  /*
+   * And the same for placement. The jellyfish is drawn much smaller than the rest,
+   * so jumping to or from it would otherwise change scale instantly -- the snapshot
+   * carries the size the fleet was at, and the flight eases out of it.
+   */
   const spotX = axp + (bxp - axp) * tr;
-  const spotY = ayp + (byp - ayp) * tr + aLift + (bLift - aLift) * tr;
+  const spotY = ayp + aLift + (byp + bLift - ayp - aLift) * tr;
   // The dolly, which only the torus ever asks for. It multiplies the drawing
   // scale rather than moving anything in the scene, so it cannot push a point
   // through the near plane and it cannot shear the shape on its way past.
+  /*
+   * The snapshot's scale already has its dolly folded into it, which is why a
+   * flight multiplies by the zoom only on the ordinary path. Applying it again
+   * here would zoom a fleet that is already zoomed.
+   */
   const spotS = (asp + (bsp - asp) * tr) * zoom;
 
   const swA = A.m.sweepRate;
@@ -3270,14 +3146,47 @@ export function drawShow(
     // with mass and a flight controller does.
     const k = uu * uu * (3 - 2 * uu);
 
-    const s1 = sa[i]!;
     const s2 = sb[i]!;
-
-    posed(A, s1, tA);
-    const x1 = outX;
-    const y1 = outY;
-    const z1 = outZ;
+    /*
+     * WHERE THIS CRAFT IS COMING FROM. On an ordinary handover that is its place
+     * in the outgoing formation. On a jump it is simply where it was standing when
+     * the dot was pressed -- which needs no pairing, because the pairing is
+     * already baked into where it happens to be.
+     */
+    let x1: number;
+    let y1: number;
+    let z1: number;
+    let g1: number;
+    if (flying) {
+      x1 = flying.snap.x[i]!;
+      y1 = flying.snap.y[i]!;
+      z1 = flying.snap.z[i]!;
+      g1 = flying.snap.g[i]!;
+    } else {
+      const s1 = sa[i]!;
+      posed(A, s1, tA);
+      x1 = outX; y1 = outY; z1 = outZ;
+      const pA = A.fp[s1]!;
+      g1 = A.fg[s1]! * (pA >= 0 ? A.poses[pA]!.b : 1)
+        * (swA !== 0
+          ? 0.58 + 0.42 * (0.5 + 0.5 * Math.cos((A.fu[s1]! * A.m.sweepFreq - tA * swA) * TAU))
+          : 1);
+    }
     posed(B, s2, tB);
+
+    /*
+     * Brightness is settled here, ahead of the projection, because the snapshot
+     * has to hold a value for EVERY craft. Computed after the culls it would leave
+     * whatever was in the array from some earlier frame for anything currently off
+     * screen, and a jump would then start those craft at a stale brightness.
+     */
+    const p2 = B.fp[s2]!;
+    let g2 = B.fg[s2]! * (p2 >= 0 ? B.poses[p2]!.b : 1);
+    if (swB !== 0) {
+      g2 *= 0.58 + 0.42 * (0.5 + 0.5 * Math.cos((B.fu[s2]! * B.m.sweepFreq - tB * swB) * TAU));
+    }
+    const gl = g1 + (g2 - g1) * k;
+    lastG[i] = gl;
 
     /*
      * The bow. Real craft climb over each other rather than sliding along a
@@ -3289,6 +3198,14 @@ export function drawShow(
     let x = x1 + (outX - x1) * k + bow * 0.4;
     let y = y1 + (outY - y1) * k + bow;
     let z = z1 + (outZ - z1) * k + bow * 0.4;
+
+    /*
+     * Remembered before the rotation, so a jump can start from here. It has to be
+     * before every early exit below, or a craft that happened to be off screen on
+     * the frame somebody pressed a dot would be snapshotted at wherever it was
+     * standing the frame before that.
+     */
+    lastX[i] = x; lastY[i] = y; lastZ[i] = z;
 
     // Yaw about the model vertical, then lean about the screen horizontal, then
     // roll in the screen plane. All three shared. See the note above on Turn.
@@ -3328,25 +3245,7 @@ export function drawShow(
 
     // Brightness: the node's own, times what its part is doing, times the light
     // sweep travelling through the model, times depth, times a slow flicker.
-    let gl = A.fg[s1]! + (B.fg[s2]! - A.fg[s1]!) * k;
-    const p1 = A.fp[s1]!;
-    const p2 = B.fp[s2]!;
-    const b1 = p1 >= 0 ? A.poses[p1]!.b : 1;
-    const b2 = p2 >= 0 ? B.poses[p2]!.b : 1;
-    gl *= b1 + (b2 - b1) * k;
-    /*
-     * The light sweep travelling out through the model, blended rather than
-     * switched. The first version picked A's sweep below the halfway point of the
-     * transit and B's above it, which is a step of up to 0.42 in brightness at the
-     * moment a craft crosses -- and since every craft crosses at its own moment,
-     * it came out as scattered twinkling through the whole handover rather than as
-     * one honest cut.
-     */
-    if (swA !== 0 || swB !== 0) {
-      const wA = 0.58 + 0.42 * (0.5 + 0.5 * Math.cos((A.fu[s1]! * A.m.sweepFreq - tA * swA) * TAU));
-      const wB = 0.58 + 0.42 * (0.5 + 0.5 * Math.cos((B.fu[s2]! * B.m.sweepFreq - tB * swB) * TAU));
-      gl *= wA + (wB - wA) * k;
-    }
+
     // Small on purpose: a field of lights that all pulse together is a string of
     // fairy lights, and one that pulses fast is a hazard warning.
     const tw = 0.82 + 0.18 * Math.sin(t * 1.6 + i * 1.31);

@@ -10098,7 +10098,9 @@ body.bug-struck { animation: bug-shake 520ms cubic-bezier(0.36, 0.07, 0.19, 0.97
 /* --- the type ------------------------------------------------------------- */
 
 .st-eyebrow {
-  margin: 0 0 22px;
+  /* Tighter than it was, because the role now follows it and the two read as
+     one stacked label rather than as two separate lines. */
+  margin: 0 0 9px;
   font: 500 11px/1 var(--st-mono);
   letter-spacing: 0.28em;
   text-transform: uppercase;
@@ -10112,6 +10114,20 @@ body.bug-struck { animation: bug-shake 520ms cubic-bezier(0.36, 0.07, 0.19, 0.97
   /* Two words, so this only ever matters at the narrowest widths -- and there it
      is the difference between a name and a name with an orphan under it. */
   text-wrap: balance;
+}
+
+/* The job, which this screen never said.
+
+   Set between the name and the pitch, in the mono face the eyebrow uses, so it
+   reads as a label attached to the name rather than as another sentence. The
+   screen is deliberately short of words -- N177 took four lines off it -- and a
+   job title is the one fact a CV cannot leave out. */
+.st-role {
+  margin: 0 0 16px;
+  font: 400 12.5px/1.5 var(--st-mono);
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--st-dim);
 }
 
 .st-sub {
@@ -10358,8 +10374,9 @@ body.bug-struck { animation: bug-shake 520ms cubic-bezier(0.36, 0.07, 0.19, 0.97
   animation: st-rise 620ms cubic-bezier(0.22, 1, 0.36, 1) both;
 }
 
-.st-col > .st-name { animation-delay: 90ms; }
-.st-col > .st-sub { animation-delay: 200ms; }
+.st-col > .st-name { animation-delay: 210ms; }
+.st-col > .st-role { animation-delay: 150ms; }
+.st-col > .st-sub { animation-delay: 260ms; }
 .st-col > .st-acts { animation-delay: 320ms; }
 .st-col > .st-links { animation-delay: 430ms; }
 
