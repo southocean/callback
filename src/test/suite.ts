@@ -870,19 +870,45 @@ suite('the script: flow and commentary are separate', () => {
 
   test('a quip fires once, ever', () => {
     const q = tourQuips[0]!;
-    let s = reduceTour(initialTour, { t: 'start' });
-    s = reduceTour(s, { t: 'quip', id: q.id });
+    // Commentary belongs to exploring, so the floor has to be the visitor's.
+    let s: TourState = { ...initialTour, mode: 'finished' };
+    s = reduceTour(s, { t: 'quip', id: q.id, captions: true });
     eq(s.interject, q.id, 'the quip did not take the floor');
     s = reduceTour(s, { t: 'quipDone' });
-    const again = reduceTour(s, { t: 'quip', id: q.id });
+    const again = reduceTour(s, { t: 'quip', id: q.id, captions: true });
     eq(again.interject, null, 'a throwaway line was said twice');
+  });
+
+  test('the walkthrough is not talked over, and the line is spent anyway', () => {
+    /*
+     * N221, and both halves matter. A remark fired over a narrated tour is a
+     * second voice competing with the first, so it stays quiet -- and it is used
+     * up regardless, because a discovery made in silence is still a discovery and
+     * a line that waits around for its moment turns the visit into a backlog.
+     */
+    const q = tourQuips[0]!;
+    const playing = reduceTour(initialTour, { t: 'start' });
+    eq(playing.mode, 'playing', 'the tour did not start');
+    const s = reduceTour(playing, { t: 'quip', id: q.id, captions: true });
+    eq(s.interject, null, 'commentary talked over the walkthrough');
+    ok(s.quipped.includes(q.id), 'the discovery was not registered');
+    // And it never comes back, even once the visitor has the floor.
+    const later = reduceTour({ ...s, mode: 'finished' }, { t: 'quip', id: q.id, captions: true });
+    eq(later.interject, null, 'a spent line came back');
+  });
+
+  test('with the captions off there is nowhere to say it, and it is still spent', () => {
+    const q = tourQuips[0]!;
+    const s = reduceTour({ ...initialTour, mode: 'finished' }, { t: 'quip', id: q.id, captions: false });
+    eq(s.interject, null, 'commentary was raised with no captions to carry it');
+    ok(s.quipped.includes(q.id), 'the discovery was not registered');
   });
 
   test('a quip never enters the queue or changes the register', () => {
     let s = reduceTour(initialTour, { t: 'start' });
     const before = { queue: s.queue.length, register: s.register, current: s.current };
     for (const q of tourQuips.slice(0, 4)) {
-      s = reduceTour(s, { t: 'quip', id: q.id });
+      s = reduceTour(s, { t: 'quip', id: q.id, captions: true });
       s = reduceTour(s, { t: 'quipDone' });
     }
     eq(s.queue.length, before.queue, 'commentary was queued as if it were a part');
@@ -891,7 +917,7 @@ suite('the script: flow and commentary are separate', () => {
   });
 
   test('an unknown quip id is refused rather than half-played', () => {
-    const s = reduceTour(reduceTour(initialTour, { t: 'start' }), { t: 'quip', id: 'nope' });
+    const s = reduceTour(reduceTour(initialTour, { t: 'start' }), { t: 'quip', id: 'nope', captions: true });
     eq(s.interject, null);
     eq(s.quipped.length, 0);
   });
@@ -954,7 +980,7 @@ suite('the personal segment', () => {
   test('nothing interrupts it except Stop', () => {
     const telling: TourState = { ...initialTour, mode: 'telling' };
     eq(reduceTour(telling, { t: 'visit', id: 'cv' }).mode, 'telling');
-    eq(reduceTour(telling, { t: 'quip', id: tourQuips[0]!.id }).interject, null);
+    eq(reduceTour(telling, { t: 'quip', id: tourQuips[0]!.id, captions: true }).interject, null);
     eq(reduceTour(telling, { t: 'settle' }).mode, 'telling');
     eq(reduceTour(telling, { t: 'stop' }).mode, 'finished', 'Stop did not stop it');
   });

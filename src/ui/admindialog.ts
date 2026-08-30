@@ -11,7 +11,7 @@ import { tip } from './tooltip.js';
 import { grantAdmin, solvedGate, solveGate } from '../prefs.js';
 import {
   wrongRoasts, rightLines, passedLines, grantedLines, alreadyAdminLines,
-  judge, pick, normalise, remaining, score, shuffled, KIND_LABEL,
+  judge, pick, normalise, remaining, score, shuffled,
   ADMIN_PASS_MARK, ADMIN_PASSWORD,
 } from '../data/admin.js';
 
@@ -131,7 +131,7 @@ export function openGate(granted: () => void, opts: GateOpts = {}): void {
   let closed = false;
 
   const prompt = h('p', { class: 'ag-q' }, '');
-  const kind = h('span', { class: 'ag-kind' }, '');
+
   /*
    * THE BUTTON IS BACK, AND IT IS MEET'S -- board ticket N199.
    *
@@ -170,7 +170,7 @@ export function openGate(granted: () => void, opts: GateOpts = {}): void {
    */
   const input = h('input', {
     class: 'ag-input', type: 'text', autocomplete: 'off', spellcheck: 'false',
-    'aria-label': 'Password or answer', placeholder: 'Password or answer',
+    'aria-label': 'Your answer', placeholder: 'Your answer',
   }) as HTMLInputElement;
 
   /*
@@ -191,11 +191,25 @@ export function openGate(granted: () => void, opts: GateOpts = {}): void {
    * this is still a lock screen in a Google product.
    */
   const tick = h('span', { class: 'ag-tick', 'aria-hidden': 'true' }, sym('check', 18));
-  const field = h('span', { class: 'ag-field' }, input, tick);
+  /*
+   * AND A CROSS, WHICH MAKES THE PAIR SYMMETRIC -- Nam: "when you get the right
+   * answer, I like the tick check that flashes briefly on the input field. Lets
+   * make it symmetrical for the wrong answer, an x check that flashes briefly on
+   * the input field too."
+   *
+   * N204 gave right a second channel because wrong had two and right had one, and
+   * that fixed the asymmetry by adding to the better outcome. This closes it from
+   * the other end: both answers now land the same badge in the same place, and
+   * the only difference between them is which one it is. A screen that answers
+   * you differently depending on whether you were right is a screen with an
+   * opinion about you.
+   */
+  const cross = h('span', { class: 'ag-cross', 'aria-hidden': 'true' }, sym('close', 18));
+  const field = h('span', { class: 'ag-field' }, input, tick, cross);
 
   const go = h('button', {
-    class: 'ag-go', type: 'submit', 'aria-label': 'Answer',
-  }, 'Answer') as HTMLButtonElement;
+    class: 'ag-go', type: 'submit', 'aria-label': 'Submit',
+  }, 'Submit') as HTMLButtonElement;
 
   /**
    * Live only when there is something to judge.
@@ -316,13 +330,12 @@ export function openGate(granted: () => void, opts: GateOpts = {}): void {
    */
   const panel = h('div', {
     class: 'ag-panel', role: 'dialog', 'aria-modal': 'true',
-    'aria-label': 'Restricted',
+    'aria-label': 'Permission challenge',
   },
     h('div', { class: 'ag-head' },
       h('span', { class: 'ag-lock', 'aria-hidden': 'true' }, '\u{1F512}'),
-      h('h2', { class: 'ag-title' }, 'Restricted')),
+      h('h2', { class: 'ag-title' }, 'Permission challenge')),
     h('div', { class: 'ag-ask' },
-      kind,
       h('div', { class: 'ag-qrow' }, prompt, skip)),
     h('form', { class: 'ag-form', onsubmit: (e: Event) => { e.preventDefault(); submit(); } }, field, go),
     say,
@@ -383,15 +396,16 @@ export function openGate(granted: () => void, opts: GateOpts = {}): void {
    */
   function flash(cls: 'is-bad' | 'is-good'): void {
     input.classList.remove('is-bad', 'is-good');
-    field.classList.remove('is-good');
+    field.classList.remove('is-good', 'is-bad');
     void input.offsetWidth;
     input.classList.add(cls);
-    // The tick lives on the wrapper, because it has to outlast nothing and be
-    // positioned against the field rather than inside its text flow.
-    if (cls === 'is-good') field.classList.add('is-good');
+    // The badge lives on the WRAPPER rather than in the input, because it has to
+    // be positioned against the field instead of sitting in its text flow. Both
+    // outcomes get one, in the same place, since N221.
+    field.classList.add(cls);
     window.setTimeout(() => {
       input.classList.remove(cls);
-      field.classList.remove('is-good');
+      field.classList.remove('is-good', 'is-bad');
     }, 900);
   }
 
@@ -415,14 +429,10 @@ export function openGate(granted: () => void, opts: GateOpts = {}): void {
        * of testing it first and unconditionally in judge().
        */
       prompt.textContent = 'That is every question in the bank. The other way in is still open.';
-      kind.textContent = '';
-      kind.hidden = true;
       skip.disabled = true;
       return;
     }
     prompt.textContent = c.q;
-    kind.textContent = KIND_LABEL[c.kind];
-    kind.hidden = false;
     skip.disabled = queue.length < 2;
   }
 

@@ -71,7 +71,14 @@ export type TourEvent =
   /** The visitor clicked something that maps to a part. */
   | { t: 'visit'; id: string }
   /** The visitor did something a quip has an answer for. */
-  | { t: 'quip'; id: string }
+  /**
+   * The visitor did something a quip has an answer for.
+   *
+   * The caption switch is passed IN rather than read, because this reducer is
+   * pure and that switch belongs to the app. See the case below for why it gets
+   * to decide anything at all.
+   */
+  | { t: 'quip'; id: string; captions: boolean }
   | { t: 'quipDone' }
   /** Enough silence has passed to start the personal segment. */
   | { t: 'tell' }
@@ -167,14 +174,40 @@ export function reduceTour(s: TourState, e: TourEvent): TourState {
 
     case 'quip': {
       /*
-       * One shot, ever, and never over the story. A quip is worth a second of
-       * the floor and nothing more, so it does not get to interrupt the one
-       * segment that was written to run whole.
+       * ONE SHOT EVER, AND SPENT WHETHER OR NOT IT IS HEARD.
+       *
+       * Nam: "lets only show these in this condition: user chose to let them
+       * explore, and that caption is on - if caption is not on when they trigger
+       * something, the commentary is gone we wont show that the next time user
+       * does it. Does this mean a lot of lost content? Yes, but we dont want to
+       * make this shit bloated either."
+       *
+       * Two rules, and the second is the interesting one.
+       *
+       * FIRST, A QUIP BELONGS TO EXPLORING rather than to the walkthrough. That
+       * is a reversal: it used to speak DURING the tour and go quiet once the
+       * visitor took over, which is backwards. The walkthrough is already a great
+       * many words, and a remark fired over the top of a narrated tour is a second
+       * voice competing with the first. It now speaks only once the visitor has
+       * the floor -- handed over, or the script finished -- and says nothing while
+       * the tour is running.
+       *
+       * SECOND, IT IS SPENT EITHER WAY. A discovery made in silence is still a
+       * discovery, so the id is recorded and never comes back. That is a
+       * deliberate loss of content and it is the right trade: a line that waits
+       * around for its moment turns the visit into a backlog, and saying it later,
+       * out of context, over something else, is worse than never saying it.
+       *
+       * The captions carry the voice, so with them off there is nowhere for a quip
+       * to appear -- which is why it is the app's switch that decides, and why the
+       * reducer has to be told rather than allowed to look.
        */
-      if (s.mode === 'telling' || s.mode === 'handedOver') return s;
       if (s.quipped.includes(e.id)) return s;
       if (!quips.some((q) => q.id === e.id)) return s;
-      return { ...s, quipped: [...s.quipped, e.id], interject: e.id };
+      const spent = { ...s, quipped: [...s.quipped, e.id] };
+      if (!e.captions) return spent;
+      if (s.mode !== 'handedOver' && s.mode !== 'finished') return spent;
+      return { ...spent, interject: e.id };
     }
 
     case 'quipDone':

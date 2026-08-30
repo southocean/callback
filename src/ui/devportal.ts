@@ -402,7 +402,20 @@ const MONTH_ABBR = [
 
 /** How many weeks the board shows. Half a year, which is Claude's board and
  *  roughly GitHub's at half width. */
-const HM_WEEKS = 26;
+/*
+ * TWENTY TWO, NOT TWENTY SIX. Nam: "can we truncate it so we are showing from
+ * April and not mars, and make sure we fit it and dont need to have a scrollbar."
+ *
+ * Twenty six weeks reached back into a March with nothing in it -- the first
+ * commit is in August -- so a quarter of the board was empty grey being scrolled
+ * past. Twenty two columns at nineteen pixels each is 418 plus the day labels,
+ * which fits the panel without the horizontal scrollbar that was appearing.
+ *
+ * It is still far more empty than full, and that is the honest picture: the work
+ * happened in a burst, and a chart that cropped to the burst would be claiming a
+ * tempo that is not what happened.
+ */
+const HM_WEEKS = 22;
 
 /**
  * The commit board.

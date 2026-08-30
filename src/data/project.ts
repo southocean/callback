@@ -3727,6 +3727,71 @@ export const tasks: Task[] = [
     },
   },
 
+  {
+    id: 'N219', col: 'review', size: 'S', tag: 'specs',
+    title: 'The heatmap starts where the work does',
+    note: 'Twenty six weeks reached back into an empty March and needed a scrollbar to do it.',
+    detail: {
+      why: 'Nam: "this commit heatmap, can we truncate it so we are showing from April and not mars, and make sure we fit it and dont need to have a scrollbar here."',
+      done: [
+        'Twenty two columns rather than twenty six',
+        'It fits the panel, so the horizontal scrollbar is gone',
+      ],
+      raised: 'Nam, before the release',
+      notes: 'FOUR COLUMNS OF NOTHING, AND A SCROLLBAR TO REACH THEM. The board ran twenty six weeks back from the last Sunday, which lands in the first week of March -- and the first commit in this repository is in August. So a quarter of the chart was empty grey that had to be scrolled past to reach the part with anything in it.\n\nTwenty two columns at nineteen pixels each is 418 plus the day labels, which fits the panel outright.\n\nIT IS STILL FAR MORE EMPTY THAN FULL, and that is deliberate. Cropping tight to the burst would draw a chart claiming a steady tempo, when what actually happened is 221 commits in eleven days. The empty weeks either side are the honest part of the picture.',
+    },
+  },
+
+  {
+    id: 'N220', col: 'review', size: 'M', tag: 'specs',
+    title: 'Commentary belongs to exploring, and is spent either way',
+    note: 'It talked over the walkthrough and went quiet once the visitor took over. Backwards.',
+    detail: {
+      why: 'Nam: "lets only show these in this condition: user chose to let them explore, and that caption is on - if caption is not on when they trigger something, the commentary is gone we wont show that the next time user does it. Does this mean a lot of lost content? Yes, but we dont want to make this shit bloated either. The lazy walkthrough is already a lot of info, lets keep it simple there for user - if they discover stuff in that walkthrough that would trigger a commentary, we just keep silent and register the discovery as found."',
+      done: [
+        'A quip speaks only once the visitor has the floor, not during the walkthrough',
+        'With the captions off it says nothing, because there is nowhere to say it',
+        'Either way the line is spent and never comes back',
+        'Two new tests hold both halves',
+      ],
+      raised: 'Nam, before the release',
+      notes: 'THE OLD RULE WAS THE EXACT INVERSE, which is worth stating plainly: commentary fired DURING the narrated tour and went silent the moment the visitor took the floor. Backwards on both counts. The walkthrough is already a great many words and a remark thrown over the top of it is a second voice competing with the first; and the moment somebody starts clicking around on their own is exactly when a remark has room to land.\n\nSPENT EITHER WAY IS THE INTERESTING HALF. A discovery made in silence is still a discovery, so the id is recorded and the line never returns. Nam saw the cost and took it: "Does this mean a lot of lost content? Yes, but we dont want to make this shit bloated either." He is right, and the alternative is worse than the loss -- a line that waits around for its moment turns the visit into a backlog, and saying it later, out of context, over something else, is not the same line any more.\n\nTHE REDUCER IS TOLD ABOUT THE CAPTIONS RATHER THAN ALLOWED TO LOOK. It is pure, and the caption switch belongs to the app, so the flag is part of the event. That keeps the whole rule testable without a DOM, which is how both new tests can assert it.',
+    },
+  },
+
+  {
+    id: 'N221', col: 'review', size: 'M', tag: 'specs',
+    title: 'The gate is a challenge, and wrong is answered like right',
+    note: 'Restricted, a genre tag, and a placeholder that asked for two things at once.',
+    detail: {
+      why: 'Nam: "Lets change the title from Restricted to Permission challenge ... remove the question tag, its irrelevant to this. Now that we say this is a challenge, it doesnt really matter. Cleaner UI ... Lets change the placeholder to just Your answer, and the answer button text now to Submit ... when you get the right answer, I like the tick check that flashes briefly on the input field. Lets make it symmetrical for the wrong answer, an x check that flashes briefly on the input field too."',
+      done: [
+        'Restricted becomes Permission challenge',
+        'The genre tag is gone, and the gap above the question with it',
+        'The placeholder is Your answer and the button says Submit',
+        'A wrong answer lands a cross where a right one lands a tick',
+      ],
+      raised: 'Nam, before the release',
+      notes: 'THE TAG STOPPED MEANING ANYTHING THE MOMENT THE PANEL SAID CHALLENGE. It labelled the KIND of question -- Arithmetic, Wordplay -- which mattered when the dialog was a lock with one question behind it, and stopped mattering once the header said what the whole exercise was. Nam: "its irrelevant to this." Removing it also closes the gap he asked about, since the gap was the tag margin.\n\nTHE PLACEHOLDER WAS ASKING FOR TWO THINGS AT ONCE. "Password or answer" existed because N208 took the word password out of the title and this was the last place a reader could see it. Nam went round on it and landed somewhere better: "Lets keep the secret password secret. I wont be able to tell anyone that either and thats only for my comfort." So the field asks for one thing, and the decoy keeps its own counsel.\n\nTHE CROSS CLOSES A SYMMETRY FROM THE OTHER END. N204 gave a right answer a second channel because wrong had two -- movement and colour -- and right had colour alone. This finishes the job: both outcomes now land the same badge, in the same place, on the same curve, and the only difference is which glyph it is. A screen that answers you in a different LANGUAGE depending on whether you were right is a screen with an opinion about you.\n\nIt lands without the rotation the tick has, which is the one asymmetry kept on purpose. A tick that swings in reads as arriving; a cross that swings in reads as being wagged.',
+    },
+  },
+
+  {
+    id: 'N222', col: 'review', size: 'S', tag: 'specs',
+    title: 'Every live number is derived, and was checked',
+    note: 'A pass over anything that could drift: counts, sizes, assertions.',
+    detail: {
+      why: 'Nam, before the release: "check the number of commits, tickets, all the specs, anything that is live and changing with the project, lets nail them down now to be accurate, such as build size etc."',
+      done: [
+        'Every count shown to a reader is computed, not typed',
+        'Build size, gzip and commit hash are stamped by the build',
+        'The 17 assertions claim was checked against the driver and holds',
+      ],
+      raised: 'Nam, before the release',
+      notes: 'NOTHING WAS STALE, AND THE REASON IS STRUCTURAL RATHER THAN LUCKY. Every number a reader sees is derived at the point it is shown: the heatmap totals its own days, the board counts its own tickets, the engineering tab counts its own tests and checks, and the bundle sizes and commit hash are stamped into the HTML by build.mjs rather than typed into it. There is no number in this build that a person has to remember to update.\n\nThe two literal counts that turned up in a search -- 184 commits, 17 quests -- are both inside NOTES quoting what Nam said at the time. Those are a record of a conversation and are supposed to say what he said, not what is true now.\n\nCHECKED RATHER THAN ASSUMED: 221 commits, 246 tickets, 12 bugs, 21 quests, 5 clips, 197 tests, 17 layout assertions, 30,910 bytes gzipped against a 51,200 budget. The one claim that is prose rather than arithmetic -- "17 assertions across both hosts" -- was run and prints exactly seventeen.',
+    },
+  },
+
   /* Flagged rather than done. Still true as of this build. */
   { id: 'T24', col: 'backlog', size: 'M', tag: 'specs', title: 'Initial payload is halfway to the ceiling', note: '24.7 kB of a 50 kB gate, up from 18.2. Still green, and the growth is real, but two deferred chunks are 17 kB and 19 kB and deserve a splitting pass before it becomes urgent.' },
 ];

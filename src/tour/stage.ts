@@ -2080,7 +2080,7 @@ export function startTour(root: HTMLElement, podium: Podium): TourHandle {
 
     const quip = quipForElement(el);
     if (quip) {
-      tour = reduceTour(tour, { t: 'quip', id: quip.id });
+      tour = reduceTour(tour, { t: 'quip', id: quip.id, captions: podium.captionsOn() });
       if (tour.interject) void drain();
     }
   }
@@ -2126,7 +2126,7 @@ export function startTour(root: HTMLElement, podium: Podium): TourHandle {
     if (!key) return;
     const quip = quipForEvent(key);
     if (!quip) return;
-    tour = reduceTour(tour, { t: 'quip', id: quip.id });
+    tour = reduceTour(tour, { t: 'quip', id: quip.id, captions: podium.captionsOn() });
     if (tour.interject) void drain();
   }
 
