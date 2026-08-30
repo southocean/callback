@@ -114,15 +114,24 @@ export const challenges: Challenge[] = [
  * WHY A THRESHOLD RATHER THAN THE WHOLE BANK. Nam asked for all of them first
  * and then talked himself out of it in the same message, and he was right to.
  * Requiring forty out of forty makes one badly worded question a permanent wall,
- * and there is no appeal process on a dialog. Ten to spare is also the only
- * thing that makes Shuffle a decision: with no slack, skipping is deferral.
+ * and there is no appeal process on a dialog. Slack is also the only thing that
+ * makes Shuffle a decision: with none, skipping is deferral.
  *
- * WHY FORTY AND NOT FIFTY. This is a bit, not a certification. Forty questions
- * is about fifteen minutes from somebody who wants in, which is the right price
- * for a door whose reward is two tabs of build notes, and it is short enough
- * that the roasts do not have to carry an hour.
+ * TWENTY, NOT THIRTY -- board ticket N190, and the estimate is what killed it.
+ * This shipped at thirty with a note justifying it as "about fifteen minutes
+ * from somebody who wants in". Nam read that sentence and answered it: "damn
+ * that is a lot of time invested in here! Okay maybe 30 is too much, lets lower
+ * it down to 20 then." Writing the number down is what made it obvious that
+ * fifteen minutes is a long time to spend on a joke door. Twenty is around
+ * eight, which is still a real commitment and no longer a sitting.
+ *
+ * THE BANK STAYS AT FORTY, which is the half worth defending. The slack is what
+ * Shuffle spends: twenty to find in forty means HALF the bank can be skipped or
+ * wrong, so a question you have no idea about costs nothing to walk away from.
+ * Cutting the bank along with the mark would have put the ratio back where it
+ * started and made Shuffle a stall again.
  */
-export const ADMIN_PASS_MARK = 30;
+export const ADMIN_PASS_MARK = 20;
 
 /**
  * Questions not yet solved, in declared order.
@@ -164,58 +173,72 @@ export function shuffled(queue: Challenge[]): Challenge[] {
 }
 
 /**
- * WRONG ANSWER. Not cruel, and never about the person: the joke is the situation
- * they have talked themselves into, which is eleven deliberate clicks followed by
- * a failed sum.
+ * WRONG ANSWER, IN ONE LINE -- board tickets N190 and N191.
+ *
+ * The old set was written for a box whose only entrance was an eleven press
+ * gesture, and half of them said so: "You clicked a help button eleven times to
+ * get here and this is where it ends?" N179 gave it a second entrance, off a
+ * locked tab that anybody can find, and Nam caught the lines going stale with
+ * it: "now that we add an alternative much easier way to find this admin gate,
+ * this read becomes irrelevant."
+ *
+ * SHORTER, BECAUSE THE FIELD SAYS IT FIRST. The input shakes and flashes red
+ * before anybody has read a word, so these are no longer carrying the verdict --
+ * they are the joke that follows it. Nam, on the old three-liners: "keep them
+ * short and concise, ideally only on one line here", and on why: "as I notice
+ * when my friend tested the CV, he doesnt read all that text either."
+ *
+ * Never about the person. The joke is the situation, which is somebody standing
+ * at a locked door failing a general knowledge question.
  */
 export const wrongRoasts: string[] = [
-  'No. You clicked a help button eleven times to get here and this is where it ends?',
-  'Incorrect. Somewhere a hiring manager is reading the actual CV.',
+  'No. The bar was ankle height.',
   'Wrong, and confidently so. My favourite kind.',
-  'That is not it. The bar was ankle height and you limbo danced under it.',
-  'No. In fairness, nobody said the secret door would be guarded by a quiz you could pass.',
-  'Wrong. Eleven clicks of commitment and a zero percent conversion rate.',
-  'Not quite. Take your time, the site is not going anywhere and neither, apparently, are you.',
-  'No. I want you to know the question was the easy part of this dialog.',
-  'Incorrect. This is the part of the interview where I say we will be in touch.',
-  'Wrong. You have unlimited attempts, which is starting to feel less like generosity and more like a warning.',
+  'Not it. Unlimited attempts, which is starting to read as a warning.',
+  'No. Somewhere a hiring manager is reading the actual CV.',
+  'Incorrect. This is where I say we will be in touch.',
+  'Wrong. The question was the easy part of this dialog.',
+  'No. Take your time. Neither of us is going anywhere.',
+  'Nope. That one is going to bother you later.',
 ];
 
 /**
- * RIGHT ANSWER, AND IT NOW COUNTS -- board ticket N175.
+ * RIGHT ANSWER, AND IT COUNTS -- board ticket N175, re-cut in N191.
  *
- * These replace a set of lines whose entire job was to tell you that solving the
- * sum was a dead end: "Right answer. Wrong door." It was, and it is not any
- * more, so keeping them would have been the dialog lying about its own rules --
- * which is the one thing a decoy cannot afford, because a decoy only works while
- * everything it says is technically true.
+ * These replaced a set whose entire job was to say that solving the sum was a
+ * dead end: "Right answer. Wrong door." It was, and it is not any more, so
+ * keeping them would have been the dialog lying about its own rules -- the one
+ * thing a decoy cannot afford, because a decoy only works while everything it
+ * says is technically true.
  *
- * The turn survives in a smaller form. The password is still the short way in
- * and these lines still say so; what they no longer claim is that the long way
- * does not exist. Read in order they go from teasing to grudging respect, which
- * is the arc somebody grinding thirty of these actually earns.
+ * The turn survives in a smaller form: the password is still the short way in
+ * and these still say so. What they no longer claim is that the long way does
+ * not exist.
+ *
+ * ONE LINE EACH, AND NO NUMBER IN THEM. The line count used to name the mark --
+ * "that is one of thirty" -- which broke the moment N190 moved it to twenty.
+ * Copy that hardcodes a constant is copy that goes stale silently, and the bar
+ * underneath is already saying the number.
  */
 export const rightLines: string[] = [
-  'Correct. One down. There is a much shorter way into this room, but by all means.',
-  'Right. That is one of thirty, which is a sentence I did not expect to have to write.',
-  'Correct. I should mention the door also opens for a single word. No? Carry on then.',
-  'Yes. Banked. You will not see that one again.',
-  'Correct. You are doing this the long way and you appear to know it.',
-  'Right again. Somewhere there is a person who guessed the password in four seconds. This is not them.',
-  'Correct. I am contractually obliged to find this funny and I am running out of ways.',
-  'Yes. At this point I think you would rather do it this way.',
+  'Correct. There is a much shorter way in, but by all means.',
+  'Right. Banked. You will not see that one again.',
+  'Correct. I should mention the door also opens for a single word.',
+  'Yes. You are doing this the long way and you know it.',
+  'Right again. Somebody guessed the password in four seconds. Not you.',
+  'Correct. I am running out of ways to find this funny.',
+  'Yes. At this point I think you prefer it this way.',
   'Correct. Fine. You are clearly not going anywhere.',
-  'Right. Honestly, at this rate, you deserve the tabs more than the person who guessed.',
 ];
 
 /**
- * THE MARK, REACHED. The grind paid, so the line pays properly: no sting in it.
- * They have done thirty of these on purpose.
+ * THE MARK, REACHED. No sting in these: they ground it out on purpose when a
+ * single word would have done it, so the line is straight.
  */
 export const passedLines: string[] = [
-  'Thirty. You ground it out. The door is open and you never needed the password.',
-  'That is thirty. Nobody was supposed to actually do this. Welcome to admin.',
-  'Thirty correct. There was a four second version of this and you chose the long one. Respect. Come in.',
+  'You ground it out. The door is open and you never needed the password.',
+  'Nobody was supposed to actually do this. Welcome to admin.',
+  'There was a four second version of this. You chose the long one. Respect.',
 ];
 
 /** The word landed. Congratulate properly, because they earned this one. */

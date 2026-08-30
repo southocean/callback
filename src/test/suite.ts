@@ -1938,6 +1938,16 @@ suite('the admin gate', () => {
       challenges.length > ADMIN_PASS_MARK,
       'the mark needs every question, so one bad question is a permanent wall',
     );
+    /*
+     * N190. The slack is not a nicety, it is what Shuffle spends: skipping is
+     * only a decision if there are questions you can afford never to answer.
+     * Half the bank is the floor Nam set when he cut the mark to twenty and
+     * deliberately left the bank at forty.
+     */
+    ok(
+      challenges.length >= ADMIN_PASS_MARK * 2,
+      'less than half the bank is spare, which makes Shuffle a stall again',
+    );
   });
 
   test('a solved question is not asked again', () => {

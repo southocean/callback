@@ -446,7 +446,15 @@ export const FORGETTABLE: Forgettable[] = [
   { key: 'callback.answers', label: 'Interview answers', what: 'which of the eight questions have been heard, and with them the Skip intro control' },
   { key: 'callback.quips', label: 'Commentary heard', what: 'the one-off remarks, so he notices the same things again' },
   { key: 'callback.admin', label: 'Admin access', what: 'the grant behind the hidden tabs. Clearing it puts the gate back on the next load' },
-  { key: SOLVED_KEY, label: 'Gate questions solved', what: 'the correct answers banked toward the thirty that open the gate the long way' },
+  { key: SOLVED_KEY, label: 'Gate questions solved', what: 'the correct answers banked toward the twenty that open the gate the long way' },
+  /*
+   * N189. Only one of the two lanes is remembered -- the walkthrough -- so this
+   * row exists for the person who took it once and wants the question back.
+   * Without it that choice is permanent and there is no way to see the card
+   * again, which is the same "testable exactly once per machine" trap the
+   * answers record fell into.
+   */
+  { key: 'callback.lane', label: 'Walkthrough choice', what: 'the remembered decision to be walked through the call, so the question is asked again on the next join' },
 ];
 
 /** How many entries a record holds, for the button that is about to delete it. */

@@ -3114,6 +3114,215 @@ export const tasks: Task[] = [
     },
   },
 
+  {
+    id: 'N181', col: 'review', size: 'M', tag: 'onboarding',
+    title: 'The flat shapes stop showing the viewer their edge',
+    note: 'A disc yawing about the vertical becomes a line. It had been doing that all along.',
+    detail: {
+      why: 'Nam, with a screenshot: \\"if a shape is 2D, regular rotation is enough, but I want the shape to somewhat face the user, avoiding the 2D plane kinda showing the cut to the user, it looks very weird. Then for a 3D shape, I want to add more rotation, usually a different axis, either in parallel or one after another.\\"',
+      done: [
+        'A flat shape no longer yaws, so it can never turn its edge to the viewer',
+        'Solids get a second axis: a slow tilt, and a real second spin on the cube',
+        'The sphere alternates between two axes without needing a schedule',
+        'The helix leans its vertical axis left or right, drawn fresh each lap',
+        'The sheet waves, travelling, instead of carrying a frozen swell',
+        'Secondary axes are re-drawn every lap, so a second viewing is not the first',
+      ],
+      raised: 'Nam, QA of the geometry programme',
+      notes: 'THE 2D FAULT WAS REAL AND NAM SCREENSHOTTED IT. The ring and the spiral are built in the XY plane, and the primary rotation was a yaw about Y -- which is the one axis that turns that plane EDGE ON. A quarter turn in, a disc of 1080 craft is a line. It had been shipping that way since the set was written and nobody had named it.\n\nSO A FLAT SHAPE DOES NOT YAW AT ALL. It rolls, in the screen plane, where it stays fully visible from the front; and it gets a small yaw SWING rather than a yaw, so it still breathes in depth without ever presenting its edge. Measured over three laps, the ring and the spiral now hold between 0.62 and 0.75 on the ratio of their shorter drawn side to their longer one, where 1.0 is square on and 0 is the fault. It is a regression guard as much as a fix: that number is now checked.\n\nROLLING SUITS THE SPIRAL BETTER THAN IT SUITS THE RING, which is worth saying rather than pretending the same answer fits both. Three arms turning in the screen plane is the whole shape doing something. Three concentric circles turning is only the dots moving, because a circle is rotationally symmetric and its rotation is invisible by construction. The ring gets its interest from the swing instead.\n\nTHE SECONDARIES OSCILLATE AND THE PRIMARIES ACCUMULATE, and that is not an aesthetic choice. An accumulating angle has to be integrated from the start of time to stay continuous across a handover, and that integral has to have a closed form because this file is a pure function of time. A bounded sinusoid needs no integral at all -- which is exactly what lets the secondary axis be re-drawn at random every lap, while the primary keeps one rate per shape and never jumps.\n\nALL OF IT IS STILL ONE ROTATION. Every angle is crossfaded from the outgoing shape recipe to the incoming one and then applied, as a single matrix, to both sets of points. That is load-bearing rather than tidy: a common rotation is an isometry, so it moves every craft without changing any distance between two of them, and the assignment stays exactly as good as it was solved to be. Two shapes turning independently through a handover would leave the pairing optimal for a pose the show is never in.\n\nTHE CUBE IS THE ONE THAT GETS A TRUE SECOND SPIN rather than a nod, because it is the one shape where a tumble is legible: nothing gives a rotation away like two lines that are supposed to stay parallel. Everything else keeps Nam register for the secondary -- \\"a lot more subtle than the primary, like just a slight and gradual tilt so user knows this rotation is not just in one axis.\\"\n\nTHE SPHERE NEEDED NO SCHEDULE. Nam asked for it to alternate between two axes at the same pace. A constant yaw under a large, slow tilt does that on its own: at the ends of the tilt swing its velocity is zero and the yaw is the entire motion, and in the middle the tilt is the fastest thing happening. The alternation falls out of the arithmetic rather than being sequenced.\n\nTHE SHEET IS NOW MOVING RATHER THAN MOULDED. It carried a frozen sine in its baked positions, which is why it read as a surface someone had pressed a wave into. The bake is flat and the swell is put back by the rig, travelling: the node u channel carries the same combination of across and along that the frozen version used, so it is the shape it always was, now passing through itself. Measured, its drawn height varies by 86 pixels across a hold.',
+    },
+  },
+
+  {
+    id: 'N182', col: 'review', size: 'M', tag: 'onboarding',
+    title: 'The camera flies through the donut, half the time',
+    note: 'Tip it onto its back, then go through the hole. In the same slot as everything else.',
+    detail: {
+      why: 'Nam: \\"for the donut shape, can we also rotate vertically, such that we slowly transition to the top view of the donut, then we zoom into the donut, which then transition into the next shape\\" -- and separately, that every shape should dwell a little longer now there is more to watch.',
+      done: [
+        'The torus tips onto its back and the camera flies through the hole',
+        'It does that about half the time; the rest it tips part way and stops',
+        'The whole move fits the standard slot, costing no extra time at all',
+        'Every geometry shape holds for eight and a half seconds against six',
+      ],
+      raised: 'Nam, QA of the geometry programme',
+      notes: 'IT FITS THE STANDARD SLOT, WHICH IS THE WHOLE TRICK. Nam: \\"I dont want to dwell so much more time on that either, more like 10% max, or even better if you find a way to make it the same time as the rest.\\" It costs nothing extra. The lean ramps across the hold and the dolly peaks exactly as the fleet begins to leave, so the flight through the hole IS the departure rather than an event before it -- and the crossfade into the next shape then pulls the camera back out by itself, for free.\n\nA COIN, NOT A CUTSCENE. Nam asked for the full move about half the time: \\"this may happen only 50% of the time - the remaining time we do add the rotation to top view but much less aggressive and not to the point of fully showing top view then going into the donut hole.\\" So the bold version rolls the torus all the way onto its back and flies at the hole; the quiet one tips it most of the way and stops, which is enough to show that a hole is a hole without spending the trick. Drawn once a lap: measured over forty laps it comes up bold 53% of the time, in runs rather than alternating.\n\nTHE DOLLY MULTIPLIES THE DRAWING SCALE RATHER THAN MOVING THE CAMERA IN THE SCENE, and that is deliberate. Pushing a viewpoint forward through the geometry would drive points through the near plane, where the perspective divide flips sign and lands them somewhere absurd at enormous size; it would also shear the ring on the way past. Scaling the projection does neither, and at top view -- where the torus is a flat annulus -- expanding it past the frame edges reads as passing through the middle of it, because that is what passing through the middle of it would look like.\n\nMEASURED: on a bold lap the drawn spread goes from 870 to 1447 pixels through the hold and the lit count falls from 1400 to 595 as most of the ring leaves the frame. On a quiet lap the spread never moves off 855 and every craft stays lit. Both are what was asked for, and having the two numbers is how you can tell which lap you are watching without watching it.\n\nAND EVERY SHAPE DWELLS LONGER. Nam: \\"I want slightly longer, just a bit longer time dwelling on each shape ... The added dynamism will probably add some more interestingness to these shapes that we can extend their display on screen a bit longer.\\" Which is the honest version of the trade: N180 cut the slot to six seconds because a static wireframe is read in two and the rest was waiting. Give the shapes something to keep doing and the waiting stops being waiting. Eight and a half seconds, holding about five of them.',
+    },
+  },
+
+  {
+    id: 'N183', col: 'review', size: 'M', tag: 'onboarding',
+    title: 'The copy steps aside so the motifs stop pacing',
+    note: 'Left, right, left. Nam: the constant changing from left to right is very annoying.',
+    detail: {
+      why: 'Nam: "the constant changing from left to right screen is very annoying. Let\'s adjust the UI in this particular theme so we have better real estate on the site ... lets move all the text in the center towards the right side. Now we have more space on the left to show the drone swarms."',
+      done: [
+        'The copy slides right while the motifs are playing, and back for the geometry',
+        'All eight motifs sit in the left margin, so nothing travels between shapes',
+        'Each one fills the space that opens up, about a quarter larger than before',
+        'The show measures where the copy actually is rather than assuming it',
+      ],
+      raised: 'Nam, QA of the motifs programme',
+      notes: 'THE PACING WAS A CONSEQUENCE, NOT A CHOICE. Eight motifs were being alternated between the two margins, because with the copy dead centre neither margin alone is big enough to hold one at a decent size. So the fleet crossed the screen every twelve seconds, and the crossing is the most expensive thing it can do -- it is also the thing that made N178 look clever, which is exactly why it went unquestioned.\n\nMove the copy over and one margin is big enough for all eight. Nothing has to travel, and the transits become a shape unmaking itself into another shape in the same place, which is what a drone show actually looks like.\n\nTHE SHOW NOW MEASURES THE COPY RATHER THAN ASSUMING IT. There was a constant, 280, being half the column max-width in the stylesheet -- a second source of truth for a number the browser already knew. It could not have survived this change anyway: once the column slides, its edges are not symmetric about the centre and no constant describes them. paint() reads the element box and hands it down, so the stylesheet can move the copy wherever it likes and the show simply agrees.\n\nIT RE-READS FOR THE FIRST SECOND, because the slide is a CSS transition and the box moves for as long as it runs. A getBoundingClientRect every frame is a layout read and would be exactly the cost that was taken out of the palette lookup, so it stops as soon as the copy has landed.\n\nTHE SHIFT IS DERIVED. The column is 560px and the screen has 24px of padding, so its right edge after a shift S sits at 50vw + 280 + S and has to stay inside 100vw - 24, giving S at most 50vw - 304. The clamp stops 40px short of that and caps at 300px, past which the copy is hard against the right rail and reads as pushed rather than placed.\n\nAND THE MOTIFS GREW INTO IT. Their authored scales were chosen when the margin was half this wide, so they were leaving a third of the new space empty. They are all capped by the fit now instead: every one fills 94% of whatever is free, at every screen size. Measured spacing stays between 6.8 and 12.1 pixels.',
+    },
+  },
+
+  {
+    id: 'N184', col: 'review', size: 'M', tag: 'onboarding',
+    title: 'BUG: the hot air balloon was hanging from its basket',
+    note: 'The envelope is under it and the burner is on top. Nam spotted it in a screenshot.',
+    detail: {
+      why: 'Nam, on a screenshot: "the hot air baloon, are you getting the shape up side down here?" And separately, that it was "too similar to the floating lanterns".',
+      done: [
+        'Confirmed: the basket was hung above the envelope, not below it',
+        'The balloons are gone, and a pagoda takes the slot',
+        'It is radially symmetric, so it needs no locked angle and has no bad side',
+        'Five tiers, upturned eaves, pierced lattice, a finial, and a lantern at every eave corner',
+      ],
+      raised: 'Nam, QA of the motifs programme',
+      notes: 'HE WAS RIGHT, AND IT WAS WORSE THAN UPSIDE DOWN. Screen y points down, so the code that read as hanging the basket below the envelope -- yAt(1) plus a bit -- actually hung it off the TOP, because yAt(1) is the crown. The envelope profile was inverted too: it bulged in its lower half, where a balloon bulges in its upper. Two separate sign errors in the same object, both invisible without looking at it, which is the whole argument for looking at it.\n\nTHE BETTER REASON IS THE SECOND ONE. Fixing the orientation would have left two motifs that are both a glowing envelope hanging in the sky. One of them had to be something else, and the balloon was the one with less to say.\n\nA PAGODA IS THE RIGHT SOMETHING ELSE, for four reasons that all point the same way. It is the shape at the centre of the record show Nam sent as the brief, which is the closest thing this roster has to a stated target. It is radially symmetric, so it reads from any angle and needs none of the locked headings N186 had to hand out. It is TALL, which nothing else here is, so it occupies a shape of space the rest of the set does not. And its entire character is in feature lines -- roof ridges, upturned eaves, lattice bars, a finial -- which is exactly what a fleet of points is good at and what a smooth surface is not.\n\nTHE UPTURN AT THE EAVES IS THE WHOLE TELL. A straight cone reads as a tent. Each hip ridge sags through the middle and lifts hard at the tip, and the last quarter of every ridge is worth more than the rest of the roof.\n\nIT TRIPPED THE TRUNCATION TRAP THAT N179 DOCUMENTED, which is some comfort that writing it down was worth doing. Authored at about 1780 nodes against a fleet of 1400, so it silently lost the last 380 -- which happened to be the hung lanterns. The density harness reports a node count per model and a model sitting at exactly 1400 is the tell; it was caught in one pass rather than by looking.',
+    },
+  },
+
+  {
+    id: 'N185', col: 'review', size: 'L', tag: 'onboarding',
+    title: 'A branch is a flat thing, so the sakura becomes a tree',
+    note: 'Too dense to read as blossom, and only legible from one side. Both are the same fault.',
+    detail: {
+      why: 'Nam: "I dont like the sakura flowers. Not details enough to see they are sakura. The petals are too small and dense for me to tell them apart, we may need more density of drone for this shape?" And separately, that it "works better as a still image, maybe we need to setup the initial angle."',
+      done: [
+        'The branch is gone and a whole tree takes its place',
+        'A canopy is a volume, so it reads from any angle and needs no locked heading',
+        'Fourteen blossom clusters instead of twenty five, each half again as big',
+        'Petals fall from the canopy and turn as they go',
+      ],
+      raised: 'Nam, QA of the motifs programme',
+      notes: 'THE TWO COMPLAINTS ARE ONE FAULT. A BRANCH IS A FLAT THING. It was authored as a limb with flowers hung off it, which is a drawing rather than an object: it has a correct side, it turns to face away from you, and everything on it is small because a branch is mostly empty space with all its detail crowded along one line. Locking its angle would have answered the second complaint and left the first exactly where it was.\n\nA WHOLE TREE IS NOT FLAT. The canopy is a volume, so it reads from every angle and needed none of the locked headings that went out in N186. The blossom sits on the OUTSIDE of that volume, spread over a surface instead of crowded along a line. And the trunk gives it the thing the branch never had: a silhouette anybody recognises before they have looked at any detail at all.\n\nTHE FLOWERS GOT BIGGER BY GETTING FEWER, which is the same finding as the lotus petals arriving for the third time. Twenty five flowers at 49 nodes each was the density that could not be read. Fourteen clusters at about 60 is the same budget spent so each one is half again as large. At this fleet size, fewer and larger beats more and smaller every single time, and the instinct to answer "not detailed enough" with "more things" has now been wrong three times in a row.\n\nMORE DRONES WOULD NOT HAVE FIXED IT, which is worth saying because Nam asked whether it needed them. The branch was already carrying 1301 nodes, more than the lotus. They were being spent on twenty five flowers too small to resolve and a limb that pointed the wrong way half the time. The fleet was never the constraint.',
+    },
+  },
+
+  {
+    id: 'N186', col: 'review', size: 'M', tag: 'onboarding',
+    title: 'The shapes that only read from one angle now hold that angle',
+    note: 'The Vasa, the dala horse and the crane. Same fix as the flat geometry shapes.',
+    detail: {
+      why: 'Nam: "some shape work really well in 3D, like the lotus, the bird, the midsommarstang, the floating lanterns, and the rest require a certain angle to look good ... the vasa ship, only looking good at a certain angle. And then the remaining shape I have no idea what it is." And on the crane: "its better its flying into the z axis, then the rotating so that its flying to the left."',
+      done: [
+        'The tall ship holds its broadside and swings at anchor instead of yawing',
+        'The dala horse holds its side view, which is the only view it has',
+        'Its outline carries three times the craft, and the painted flank no longer outshines it',
+        'The crane arrives nose on and turns onto its heading, from either side',
+      ],
+      raised: 'Nam, QA of the motifs programme',
+      notes: 'IT IS THE SAME FIX THE FLAT GEOMETRY SHAPES GOT IN N181, and the same diagnosis one level up. A silhouette object has exactly one view that carries it, and a primary yaw is a machine for leaving that view. The ship is everything that says tall ship -- sheer running up to a high stern, three masts of falling height, square sails -- and every one of those is only there from the side. Bow on it is a vertical smear.\n\nSO NEITHER OF THEM YAWS. They swing instead, a quarter of a radian either way, which is enough to be a ship at anchor rather than a decal and never enough to lose the view.\n\nTHE HORSE WAS TWO FAULTS WEARING ONE COAT. The angle was one. The other was that its outline carried 132 positions across a nine unit path -- nineteen pixels between craft on the one line that has to read as a line -- while the kurbits scrollwork carried 350 nodes at nearly full brightness. The decoration outnumbered and outshone the thing it was decorating. Three hundred outline positions and the paint dropped to half brightness, so the carving wins and the scrollwork is texture, which is what it was always supposed to be.\n\nHONESTLY: THIS ONE IS STILL THE WEAKEST OF THE EIGHT. It is much better than the version Nam could not identify, and it has not been seen on a real screen. If it still does not land, the answer is not another pass at the silhouette -- it is that a Dala horse is a painted flat carving and this roster is happier with things that have volume.\n\nTHE CRANE TURNS ONTO ITS HEADING, and Nam\'s note is right for a reason beyond taste. A bird seen head on is a cross: two wings and nothing else. A bird seen broadside is a bird, because that is where the neck, the trailing legs and the sweep of the wing all are. Arriving on the unreadable view and turning onto the readable one makes the turn itself the reveal, and it lands facing the way it flies. It comes from the left on half the laps and the right on the other half, so the turn is not the same turn every time.',
+    },
+  },
+
+  {
+    id: 'N187', col: 'review', size: 'M', tag: 'onboarding',
+    title: 'Every shape assembles at the same angle it always does',
+    note: 'The rotation ran on wall clock, so a shape landed wherever the clock was.',
+    detail: {
+      why: 'Nam: "all the rotation axis continue whenever you reassemble a new shape, this creates for a very chaotic view where the shapes become different every time they are assembled, like the consistency is completely gone! Sometimes the shapes become completely off too! ... the shapes should all start at around the same angle to the camera every time, resetting the primary rotation (horizontally) and only start diverging on the additional rotation ... it repeats through the shapes looking both dynamic yet very familiar."',
+      done: [
+        'Every rotation restarts from the shape neutral when the shape assembles',
+        'Secondary axes start at zero and diverge, rather than starting anywhere',
+        'Rigs restart with their shape too, so the lotus lands closed and blooms',
+        'Six of seven geometry shapes now land pixel-identical on every lap',
+        'BUG: two out-parameters were being shadowed, flattening every shape to a line',
+        'The wavy sheet no longer approaches edge on',
+      ],
+      raised: 'Nam, QA of the geometry programme',
+      notes: 'THE CAUSE IS EXACTLY WHAT NAM SAID IT WAS. The primary yaw was integrated from the start of TIME -- one continuous number for the whole show -- so the angle a shape happened to land at was whatever the clock had reached when it got there. The secondaries were worse: they were sines of wall clock with a randomised phase, so they were at an arbitrary value at every assembly too. Nothing about any of it was WRONG, and all of it was arbitrary, which is worse. A viewer cannot learn a show whose shapes are never twice in the same place.\n\nSO EVERY ANGLE IS NOW A FUNCTION OF THE SLOT OWN PHASE. At the instant a shape lands its yaw is its neutral, its lean is its base, its roll is zero and every secondary is exactly zero, because they are all sines of a phase that starts at zero. Then they diverge, each on its own rate, with the per-lap draw deciding which WAY they diverge rather than where they begin. That is Nam description turned into arithmetic: the same opening pose every time and a different flight out of it.\n\nTHE HANDOVER HAS TO LAND IT, which is the part that needed care. During a transit the shared angle eases from wherever the outgoing shape has wandered to, onto the incoming shape neutral, so the new formation arrives already square. It eases on a smoothstep rather than a straight ramp so the unwinding happens in the middle of the flight, where the fleet is a cloud and there is no coherent shape to be seen turning backwards.\n\nTHE RIGS RESET TOO, and they had to. A rig on wall clock means the lotus lands at a different point in its breath every lap and the crane lands mid-beat or at the top of one at random, which is the same inconsistency arriving through a different door. A rig now runs on time-since-this-shape-assembled: the outgoing one is that many seconds in, and the incoming one is NEGATIVE, counting up to zero at the moment it lands, which is what makes it continuous across the handover instead of starting with a jolt. The lotus assembling closed and then blooming is a side effect, and it is a better opening than the one it replaces.\n\nAND A REAL BUG FELL OUT OF IT, which is the part worth remembering. The out-parameters that carry a posed node were named ax, ay and az at module scope. The new draw code destructured a pose into ay and az -- and silently shadowed two of them, so every craft read the yaw as its own height and the dolly as its own depth. Every geometry shape collapsed to a horizontal line at the instant it assembled. TypeScript is perfectly happy for a block const to shadow a module one, the tests do not render, and it survived a clean typecheck and a clean build. What caught it was a consistency harness printing bounding boxes, and a sphere with zero vertical extent being impossible. The names are outX, outY and outZ now.\n\nIT IS CHECKED RATHER THAN ASSERTED. Six of the seven geometry shapes are pure functions of their rotation once the rig resets, so their drawn points are IDENTICAL lap to lap -- not similar, identical -- and the harness compares them. Parked craft are filtered out first, because their flicker runs on wall clock and legitimately differs. Measured squareness across three laps now varies by at most two hundredths per shape, against tenths before.\n\nTHE SHEET GOT ONE MORE FIX ON TOP. It sat at 0.35 on the squareness measure, the flattest of the set, which is what Nam screenshotted as a diagonal streak. Its base lean goes up and its wander comes down, so it stays between 27 and 44 degrees: shallow enough that the swell reads across the surface, never shallow enough to collapse toward a line.',
+    },
+  },
+
+  {
+    id: 'N188', col: 'review', size: 'S', tag: 'onboarding',
+    title: 'The lane bodies break where the sentence does',
+    note: 'Two sentences, two lines, in both cards. The wrap was landing wherever the box ended.',
+    detail: {
+      why: 'Nam: "check out these intro lines, can we break them into two lines thks. Nam shows you around. / Stop him bla bla... Explore at your pace. / Turn the caption bla bla..."',
+      done: [
+        'Each lane body is two lines, split at the full stop',
+        'The break is authored rather than left to the width of the card',
+      ],
+      raised: 'Nam, QA 30 Aug',
+      notes: 'THE SPLIT IS THE MEANING. Both bodies are the same shape: what the lane IS, then how to leave it. Letting those two run together and wrap wherever 290px happens to end put half of the second sentence on the first line in one card and not the other, so two paragraphs meant to be compared did not even break in the same place. Authoring the break makes the parallel visible, which is the only reason the cards can be one sentence each.',
+    },
+  },
+
+  {
+    id: 'N189', col: 'review', size: 'M', tag: 'onboarding',
+    title: 'Only the recommended lane is remembered',
+    note: 'Choosing the walkthrough sticks. Choosing to explore asks again, because it is the answer people change.',
+    detail: {
+      why: 'Nam: "we already have lazy walkthrough as the recommended, so if user chose to explore themselves, we will show the choice next time they join the call - but if they chose the recommended choice, the lazy walkthrough, that will be remembered, and the choice is not shown again. add a setting to reset this choice in the dev settings in the project spec."',
+      done: [
+        'Choosing the walkthrough is remembered and the question stops being asked',
+        'Choosing to explore is not remembered, so the next join asks again',
+        'Escape still means explore, and is likewise not remembered',
+        'A row in Settings clears it, like every other record',
+      ],
+      raised: 'Nam, QA 30 Aug',
+      notes: 'THE ASYMMETRY IS THE POINT AND IT IS NOT A BUG. Remembering both answers equally treats them as equally settled, and they are not. Somebody who sat back and watched has told you how they like this and will like it that way again. Somebody who chose to explore was often answering a narrower question -- not now, I want to poke at this first -- and on the next join the honest thing is to ask again rather than to lock them out of the version with the conversation in it. It also fails in the kinder direction: the cost of asking somebody again is one press, and the cost of never offering the walkthrough again is the entire script.\\n\\nLOCALSTORAGE NOW, NOT SESSION. It was a session so that a preference could not follow somebody across visits, which was right while both answers were remembered. Only the sticky answer is stored now, and the whole value of that answer is that it survives the tab closing -- so it is a record, and it gets a row in Settings like every other record.',
+    },
+  },
+
+  {
+    id: 'N190', col: 'review', size: 'S', tag: 'trust',
+    title: 'The mark comes down to twenty',
+    note: 'Thirty was fifteen minutes of quiz. Nam read the estimate and cut it.',
+    detail: {
+      why: 'Nam, on the fifteen minute figure in N175: "damn that is a lot of time invested in here! Okay maybe 30 is too much, lets lower it down to 20 then. Also because we have a lot of different topics."',
+      done: [
+        'Twenty correct answers open the gate',
+        'The bank stays at forty, so half of it can be wrong or skipped',
+        'The bar, the target line and the tests all follow the constant',
+      ],
+      raised: 'Nam, QA 30 Aug',
+      notes: 'THE ESTIMATE WAS THE ARGUMENT AGAINST ITSELF. Writing down "about fifteen minutes" to justify forty questions is what made it obvious that fifteen minutes is a long time to spend on a joke door, and Nam said so the moment he read it. Twenty of forty is around eight minutes, which is still a real commitment and no longer a sitting.\\n\\nTHE BANK STAYS AT FORTY, which is the half of this worth defending. The slack is what Shuffle spends: twenty to find in forty means half the bank can be skipped or wrong, so a question you have no idea about costs nothing to walk away from. Cutting the bank with the mark would have put the ratio back where it started and made Shuffle a stall again.',
+    },
+  },
+
+  {
+    id: 'N191', col: 'review', size: 'L', tag: 'trust',
+    title: 'The gate is a Meet dialog, not a form',
+    note: 'It was a dark box with two buttons and a paragraph of jokes. Now it looks like the product it sits in.',
+    detail: {
+      why: 'Nam: "it looks very ugly and I dont think it aligns with the google meet design principles. Buttons should have hover and click button, label popup and so on. The shuffle button lets change it to just a shuffle icon ... This icon button should be next to the question to be intuitive. Do we need an unlock button per google design? I usually wouldnt like that button and would just check the answer on enter ... When your answer is wrong, I want the input to nudge with red flash ... Shouldnt it be on light mode instead?"',
+      done: [
+        'It wears the panel palette, so it is light on the home screen and dark in a call',
+        'Shuffle is a 40px icon button beside the question, with a tooltip',
+        'The Unlock button is gone. Enter submits, and the field says so',
+        'Every control has the state layer and the focus ring the rest of the build uses',
+        'A wrong answer shakes the field and flashes it red',
+        'A right answer flashes it green, and the bar moves',
+        'The lead reads Admin only. Put down a password or answer to unlock.',
+        'The lines are one line each, and none of them mentions eleven clicks',
+      ],
+      raised: 'Nam, QA 30 Aug',
+      notes: 'DARK WAS A LEFTOVER FROM WHEN IT HAD ONE DOOR. The gesture is on the home bar, the home screen is light, and the box was #202124 because it was written next to the call. Now that it also opens from the spec panel it has to do what the panel does, which the build already has an answer for: the --dp-* tokens, one class on the root, light on the home screen and dark inside a call. Nothing new was invented for this.\\n\\nTHE UNLOCK BUTTON IS GONE AND MEET WOULD HAVE KEPT IT, which is worth writing down because it is the one place this deliberately departs. Meet own code field has a Join button beside it, greyed until you type -- so a submit button IS the pattern here. Nam does not want it and the field is a single line with an obvious verb, so the button goes and the placeholder carries the instruction. Enter already worked; it is a form.\\n\\nTHE FEEDBACK MOVED ONTO THE INPUT, which is the part that actually answers the complaint. Nam: "if we have the result feedback on the input panel itself ... then we may not even need to show these correct and incorrect reads ... as I notice when my friend tested the CV, he doesnt read all that text either - he didnt care." The lines stay, cut to one line, because he also said they are nice -- but they are no longer carrying the verdict on their own. A shake and a red wash say wrong before anybody reads a word, and a green wash plus a bar that moves say right. Both are 240ms and both are dropped under prefers-reduced-motion, where the colour alone still lands.\\n\\nTHE SHUFFLE GLYPH IS AUTHORED. The icon font here is a 7 kB subset of exactly the symbols this build uses and it has no shuffle in it. Adding one means regenerating the subset for a single control, so the path is drawn inline instead -- which is the rule the spec already states for this case rather than an exception made for it.',
+    },
+  },
+
+  {
+    id: 'N192', col: 'review', size: 'S', tag: 'specs',
+    title: 'The gate takes the room, and gives it back',
+    note: 'A modal over a modal. The spec panel steps out while the gate is up and returns when it opens.',
+    detail: {
+      why: 'Nam: "when this gate panel open, I think per google design principle, the panel behind it, the project spec, should be closed, for a cleaner UI. Then once we get admin access, this gate panel is closed then the project spec should auto open back up."',
+      done: [
+        'Pressing a locked tab closes the spec panel and opens the gate alone',
+        'A grant closes the gate and reopens the spec panel, unlocked',
+        'Closing the gate without a grant reopens it too, on the tab you left',
+        'The panel comes back in the palette it left in',
+      ],
+      raised: 'Nam, QA 30 Aug',
+      notes: 'TWO SCRIMS IS THE TELL. Stacking a dialog on a full screen panel means two layers of dimming and two Escape targets, and it is the reason N179 shipped with the gate hidden underneath -- a z-index fight only exists because both things are on screen. Taking the panel down removes the fight rather than winning it.\\n\\nIT HAS TO COME BACK ON A CANCEL, not only on a grant. Somebody who presses a locked tab, reads the box and closes it has not asked to leave the spec; losing the panel would punish curiosity with a navigation. So the reopen is in the close path and the grant path both, and it restores the tab that was open rather than dropping them back on Overview.',
+    },
+  },
+
   /* Flagged rather than done. Still true as of this build. */
   { id: 'T24', col: 'backlog', size: 'M', tag: 'specs', title: 'Initial payload is halfway to the ceiling', note: '24.7 kB of a 50 kB gate, up from 18.2. Still green, and the growth is real, but two deferred chunks are 17 kB and 19 kB and deserve a splitting pass before it becomes urgent.' },
 ];

@@ -6,6 +6,8 @@
 
 import { h } from '../dom.js';
 import { trapFocus } from '../a11y.js';
+import { sym } from './icons.js';
+import { tip } from './tooltip.js';
 import { grantAdmin, solvedGate, solveGate } from '../prefs.js';
 import {
   wrongRoasts, rightLines, passedLines, grantedLines, alreadyAdminLines,
@@ -57,17 +59,60 @@ export function gateOpen(): boolean {
  * ONE FIELD for both the decoy answer and the real password, because two fields
  * would give the game away before the reader has typed anything.
  */
-export function openGate(granted: () => void): void {
+/**
+ * The shuffle glyph, authored.
+ *
+ * The icon font here is a 7 kB subset of exactly the symbols this build uses and
+ * there is no shuffle in it. Adding one means regenerating the subset for a
+ * single control, so the path is drawn instead -- which is the rule the spec
+ * already states for this case ("where the subset lacks a glyph, the path is
+ * authored and said to be authored") rather than an exception made for it.
+ *
+ * It is Material's own shuffle at 24: two arrows crossing. currentColor, so it
+ * takes the button's colour in both palettes without knowing which it is in.
+ */
+function shuffleGlyph(): SVGElement {
+  const ns = 'http://www.w3.org/2000/svg';
+  const svg = document.createElementNS(ns, 'svg');
+  svg.setAttribute('viewBox', '0 0 24 24');
+  svg.setAttribute('width', '20');
+  svg.setAttribute('height', '20');
+  svg.setAttribute('fill', 'currentColor');
+  svg.setAttribute('aria-hidden', 'true');
+  const path = document.createElementNS(ns, 'path');
+  path.setAttribute(
+    'd',
+    'M10.59 9.17 5.41 4 4 5.41l5.17 5.17 1.42-1.41zM14.5 4l2.04 2.04L4 18.59 5.41 20 17.96 7.46 20 9.5V4h-5.5z'
+    + 'm.33 9.41-1.41 1.41 3.13 3.13L14.5 20H20v-5.5l-2.04 2.04-3.13-3.13z',
+  );
+  svg.appendChild(path);
+  return svg;
+}
+
+export interface GateOpts {
+  /** The palette to wear. Light on the home screen, dark inside a call. */
+  mode?: 'light' | 'dark';
+  /**
+   * Fired once the box is gone, however it went -- granted, closed or escaped.
+   *
+   * Board ticket N192: the spec panel takes itself down before opening this and
+   * puts itself back here, so it has to be told on the cancel path as well as
+   * the grant path. Somebody who reads the box and closes it has not asked to
+   * leave the spec.
+   */
+  onClosed?: () => void;
+}
+
+export function openGate(granted: () => void, opts: GateOpts = {}): void {
   if (gateOpen()) return;
 
   /*
-   * TWO DOORS NOW, AND THE BOX ONLY ADMITS TO ONE -- board ticket N175.
+   * TWO DOORS, AND THE BOX ONLY ADMITS TO ONE -- board ticket N175.
    *
    * The password is still the short way in and the dialog still never names it.
-   * What is new is that the questions are no longer a dead end: thirty correct
+   * What is new is that the questions are no longer a dead end: twenty correct
    * out of forty opens the same door, for the reader who will never be told what
-   * `konami` is. See data/admin.ts for why thirty of forty rather than all of
-   * them.
+   * `konami` is. See data/admin.ts for why twenty of forty rather than all.
    *
    * The queue is built once, here, from what has already been banked. Shuffling
    * the opening order matters more than it looks: without it every visitor meets
@@ -83,17 +128,31 @@ export function openGate(granted: () => void): void {
 
   let mark = score(solved);
   let attempts = 0;
+  let closed = false;
 
   const prompt = h('p', { class: 'ag-q' }, '');
   const kind = h('span', { class: 'ag-kind' }, '');
+  /*
+   * NO UNLOCK BUTTON, AND MEET WOULD HAVE KEPT ONE -- board ticket N191.
+   *
+   * This is the one place the dialog deliberately departs from the product it
+   * copies: Meet's own code field has a Join button beside it, greyed until you
+   * type, so a submit button IS the pattern here. Nam: "Do we need an unlock
+   * button per google design? I usually wouldnt like that button and would just
+   * check the answer on enter."
+   *
+   * So the button goes and the placeholder carries the instruction, which is the
+   * only thing the button was really providing on a single-line form. Enter
+   * already worked -- this is a <form>, and it always submitted.
+   */
   const input = h('input', {
     class: 'ag-input', type: 'text', autocomplete: 'off', spellcheck: 'false',
-    'aria-label': 'Answer', placeholder: 'Answer',
+    'aria-label': 'Password or answer', placeholder: 'Answer, then press Enter',
   }) as HTMLInputElement;
 
-  /* aria-live so the roast is spoken, not just drawn. The whole payload of this
-     dialog is its copy, and a screen reader that announces the question and then
-     goes silent on the answer has been handed the setup without the joke. */
+  /* aria-live so the line is spoken, not just drawn. The verdict itself no
+     longer depends on it -- the field flashes and shakes -- but a screen reader
+     gets nothing from a flash, so this is the whole of the feedback there. */
   const say = h('p', { class: 'ag-say', role: 'status', 'aria-live': 'polite' });
 
   /*
@@ -104,8 +163,8 @@ export function openGate(granted: () => void): void {
    * many, that many, and the door opens. Without it the grind is unsignposted
    * and nobody would start, which is the whole reason the second door exists.
    *
-   * It is a count and not a percentage. "12 of 30" tells you what to do next;
-   * "40%" tells you how you are being measured, and the first is the useful one
+   * It is a count and not a percentage. "12 of 20" tells you what to do next;
+   * "60%" tells you how you are being measured, and the first is the useful one
    * when the units are questions you have to sit and answer.
    */
   const barFill = h('i', { class: 'ag-fill' }) as HTMLElement;
@@ -131,32 +190,52 @@ export function openGate(granted: () => void): void {
    * this trivial quiz ... we put the skipped question to the end of the list, so
    * its unlikely to reoccur."
    *
+   * An icon button beside the question rather than a text button under the form,
+   * which is N191 and is the more intuitive of the two: it is an action ON this
+   * question, so it belongs next to it. It is a real .icon-btn, so it inherits
+   * the state layer, the press and the focus ring every other control has, and
+   * it carries a tooltip because a lone glyph has to say its own name.
+   *
    * Disabled with one question left, because rotating a queue of one hands back
-   * the same question and a button that visibly does nothing is worse than a
-   * button that says it cannot.
+   * the same question and a control that visibly does nothing is worse than one
+   * that says it cannot.
    */
   const skip = h('button', {
-    class: 'ag-skip', type: 'button',
+    class: 'icon-btn ag-shuffle', type: 'button', 'aria-label': 'Another question',
     onclick: () => { queue = shuffled(queue); ask(); input.focus(); },
-  }, 'Shuffle') as HTMLButtonElement;
+  }, shuffleGlyph()) as HTMLButtonElement;
+  tip(skip, undefined, 'above');
+
+  const closeBtn = h('button', {
+    class: 'icon-btn ag-close', type: 'button', 'aria-label': 'Close', onclick: () => close(),
+  }, sym('close', 20));
+  tip(closeBtn, undefined, 'above');
 
   const panel = h('div', { class: 'ag-panel', role: 'dialog', 'aria-modal': 'true', 'aria-label': 'Restricted' },
     h('div', { class: 'ag-head' },
       h('span', { class: 'ag-lock', 'aria-hidden': 'true' }, '\u{1F512}'),
       h('h2', { class: 'ag-title' }, 'Restricted'),
       kind),
-    h('p', { class: 'ag-lead' }, 'This area is for the maintainer. Answer to continue.'),
-    prompt,
-    h('form', { class: 'ag-form', onsubmit: (e: Event) => { e.preventDefault(); submit(); } },
-      input,
-      h('button', { class: 'ag-go', type: 'submit' }, 'Unlock')),
-    h('div', { class: 'ag-tools' }, skip),
+    h('p', { class: 'ag-lead' }, 'Admin only. Put down a password or answer to unlock.'),
+    h('div', { class: 'ag-qrow' }, prompt, skip),
+    h('form', { class: 'ag-form', onsubmit: (e: Event) => { e.preventDefault(); submit(); } }, input),
     say,
     bar,
-    h('button', { class: 'ag-close', type: 'button', 'aria-label': 'Close', onclick: () => close() }, '×'),
+    closeBtn,
   );
 
-  const back = h('div', { class: 'ag-back', id: ID }, panel);
+  /*
+   * THE PALETTE COMES FROM WHATEVER OPENED IT -- board ticket N191.
+   *
+   * It was hardcoded dark, which was right for as long as it had one door: the
+   * gesture is on the home bar, and the box was written next to the call. Nam,
+   * seeing it over the light spec panel: "Shouldnt it be on light mode instead?"
+   *
+   * Rather than pick one, it does what the spec panel already does -- one class
+   * on the root, every rule below reading --dp-* custom properties. Light on the
+   * home screen, dark inside a call, and nothing new invented for it.
+   */
+  const back = h('div', { class: `ag-back dp-${opts.mode ?? 'light'}`, id: ID }, panel);
   const openedAt = Date.now();
   back.addEventListener('mousedown', (e) => {
     if (e.target !== back) return;
@@ -172,8 +251,34 @@ export function openGate(granted: () => void): void {
   input.focus();
 
   function close(): void {
+    if (closed) return;
+    closed = true;
     release();
     back.remove();
+    opts.onClosed?.();
+  }
+
+  /**
+   * The verdict, on the field itself.
+   *
+   * Nam: "When your answer is wrong, I want the input to nudge with red flash",
+   * and then the larger point: "if we have the result feedback on the input
+   * panel itself ... then we may not even need to show these correct and
+   * incorrect reads ... as I notice when my friend tested the CV, he doesnt read
+   * all that text either - he didnt care."
+   *
+   * He is right that the text was carrying too much. It stays, cut to one line,
+   * but it is no longer the only thing saying which way it went.
+   *
+   * The class is removed and re-added across a forced reflow, or a second wrong
+   * answer in a row would not restart the animation and the field would sit
+   * still on exactly the press that most needs an answer.
+   */
+  function flash(cls: 'is-bad' | 'is-good'): void {
+    input.classList.remove('is-bad', 'is-good');
+    void input.offsetWidth;
+    input.classList.add(cls);
+    window.setTimeout(() => input.classList.remove(cls), 700);
   }
 
   /** Draw the head of the queue, or the state where there is nothing left. */
@@ -181,11 +286,11 @@ export function openGate(granted: () => void): void {
     const c = queue[0];
     if (!c) {
       /*
-       * THE BANK IS EMPTY AND THE MARK WAS NOT REACHED, which is reachable: get
-       * ten wrong and never come back to them and there is nothing left to ask.
-       * It says so rather than showing a blank question, and the field stays
-       * live because the password still works from here. That is the point of
-       * testing it first and unconditionally in judge().
+       * THE BANK IS EMPTY AND THE MARK WAS NOT REACHED, which is reachable: be
+       * wrong about twenty and never come back to them and there is nothing left
+       * to ask. It says so rather than showing a blank question, and the field
+       * stays live because the password still works from here. That is the point
+       * of testing it first and unconditionally in judge().
        */
       prompt.textContent = 'That is every question in the bank. The other way in is still open.';
       kind.textContent = '';
@@ -207,6 +312,7 @@ export function openGate(granted: () => void): void {
   function open(line: string): void {
     grantAdmin();
     granted();
+    flash('is-good');
     say.className = 'ag-say is-granted';
     say.textContent = line;
     input.disabled = true;
@@ -224,10 +330,11 @@ export function openGate(granted: () => void): void {
     /*
      * With the bank exhausted there is no challenge to judge against, so the
      * password is tested on its own. Anything else here is simply wrong, and
-     * says so without a question to attach the roast to.
+     * says so without a question to attach the line to.
      */
     if (!c) {
       if (normalise(v) === ADMIN_PASSWORD) { open(pick(grantedLines, attempts)); return; }
+      flash('is-bad');
       say.className = 'ag-say is-wrong';
       say.textContent = pick(wrongRoasts, attempts);
       input.value = '';
@@ -244,6 +351,7 @@ export function openGate(granted: () => void): void {
          -- the argument that was already here before the bank existed -- and now
          it would also be a free skip, which is what Shuffle is for and what it
          costs a place in the queue to do. */
+      flash('is-bad');
       say.className = 'ag-say is-wrong';
       say.textContent = pick(wrongRoasts, attempts);
       input.value = '';
@@ -260,6 +368,7 @@ export function openGate(granted: () => void): void {
 
     if (mark.passed) { open(pick(passedLines, attempts)); return; }
 
+    flash('is-good');
     say.className = 'ag-say is-right';
     say.textContent = pick(rightLines, mark.got - 1);
     ask();

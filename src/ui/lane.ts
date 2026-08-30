@@ -41,13 +41,36 @@ import { trapFocus } from '../a11y.js';
 /** Watching, or driving. */
 export type Lane = 'walkthrough' | 'explore';
 
+/**
+ * ONLY THE RECOMMENDED ANSWER IS REMEMBERED -- board ticket N189.
+ *
+ * Nam: "if user chose to explore themselves, we will show the choice next time
+ * they join the call - but if they chose the recommended choice, the lazy
+ * walkthrough, that will be remembered, and the choice is not shown again."
+ *
+ * THE ASYMMETRY IS THE POINT. Remembering both answers equally treats them as
+ * equally settled and they are not. Somebody who sat back and watched has said
+ * how they like this and will like it that way again. Somebody who chose to
+ * explore was usually answering a narrower question -- not now, let me poke at
+ * this first -- and the honest thing on the next join is to ask again rather
+ * than to lock them out of the version with the conversation in it.
+ *
+ * It also fails in the kinder direction, which is the test that settles it: the
+ * cost of asking somebody a second time is one press, and the cost of never
+ * offering the walkthrough again is the whole script.
+ *
+ * LOCALSTORAGE, NOT SESSION. It was a session store so that a preference could
+ * not follow somebody across visits, which was right while both answers were
+ * kept. Only the sticky answer is stored now, and the entire value of that
+ * answer is that it survives the tab closing. So it is a record, and it gets a
+ * row in Settings like every other record.
+ */
 const KEY = 'callback.lane';
 
-/** What was chosen this session, or null if the question has not been put yet. */
+/** The remembered lane, which can only ever be the walkthrough. */
 export function laneChosen(): Lane | null {
   try {
-    const raw = sessionStorage.getItem(KEY);
-    return raw === 'walkthrough' || raw === 'explore' ? raw : null;
+    return localStorage.getItem(KEY) === 'walkthrough' ? 'walkthrough' : null;
   } catch {
     // Storage off. Then the question gets asked again on the next join, which is
     // a mild annoyance and not a broken call.
@@ -56,8 +79,9 @@ export function laneChosen(): Lane | null {
 }
 
 function remember(lane: Lane): void {
+  if (lane !== 'walkthrough') return;
   try {
-    sessionStorage.setItem(KEY, lane);
+    localStorage.setItem(KEY, lane);
   } catch {
     /* ignore */
   }
@@ -92,7 +116,7 @@ export function askLane(): Promise<Lane> {
 
     /** One lane. A big pressable surface, not a button with a paragraph in it. */
     const lane = (
-      opts: { id: Lane; glyph: 'closed_caption' | 'apps'; title: string; body: string; best?: boolean },
+      opts: { id: Lane; glyph: 'closed_caption' | 'apps'; title: string; body: [string, string]; best?: boolean },
     ): HTMLElement => {
       const el = h(
         'button',
@@ -116,7 +140,16 @@ export function askLane(): Promise<Lane> {
           h('span', { class: 'lane-ico', 'aria-hidden': 'true' }, sym(opts.glyph, 26)),
           opts.best ? h('span', { class: 'lane-chip' }, 'Recommended') : h('span', {})),
         h('span', { class: 'lane-t' }, opts.title),
-        h('span', { class: 'lane-b' }, opts.body),
+        /*
+         * TWO LINES, AUTHORED -- board ticket N188. Both bodies are the same
+         * shape: what the lane is, then how to leave it. Letting those run
+         * together and wrap wherever 290px happens to end put half of the second
+         * sentence on the first line in one card and not the other, so two
+         * paragraphs meant to be COMPARED did not break in the same place.
+         */
+        h('span', { class: 'lane-b' },
+          h('span', { class: 'lane-l' }, opts.body[0]),
+          h('span', { class: 'lane-l' }, opts.body[1])),
       ) as HTMLButtonElement;
       el.addEventListener('click', () => pick(opts.id));
       return el;
@@ -145,14 +178,14 @@ export function askLane(): Promise<Lane> {
             id: 'walkthrough',
             glyph: 'closed_caption',
             title: 'A lazy walkthrough',
-            body: 'Nam shows you around. Stop him whenever you want.',
+            body: ['Nam shows you around.', 'Stop him whenever you want.'],
             best: true,
           }),
           lane({
             id: 'explore',
             glyph: 'apps',
             title: 'Let me explore',
-            body: 'Explore at your pace. Turn the caption on to bring Nam back.',
+            body: ['Explore at your pace.', 'Turn the caption on to bring Nam back.'],
           })),
       ),
     ) as HTMLElement;

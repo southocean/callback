@@ -9255,17 +9255,26 @@ body.bug-struck { animation: bug-shake 520ms cubic-bezier(0.36, 0.07, 0.19, 0.97
 /* Straight-faced on purpose. It is dressed as a password prompt and the joke is
    that it is asking about hexagons, so the moment the chrome winks the turn is
    gone. Same scrim and card language as the CV overlay. */
-/* ABOVE THE SPEC PANEL, WHICH IS 300 -- found in QA of N179.
+/* ============================================================================
+   THE ADMIN GATE, IN THE PALETTE OF WHATEVER OPENED IT -- board ticket N191.
 
-   It was 95, and that was correct for as long as the gate had exactly one door:
-   the eleven press gesture lives on the home bar, and nothing was ever on top of
-   the home bar. N179 gave it a second door INSIDE the spec panel, so the first
-   time a locked tab was pressed the gate opened perfectly, trapped focus, and
-   rendered entirely behind the panel that opened it. The dialog was there and
-   working; there was simply no way to see it.
+   It was hardcoded dark (#202124 on a black scrim), which was right for as long
+   as it had one door: the gesture is on the home bar and the box was written
+   next to the call. N179 gave it a second door inside the spec panel, and Nam,
+   seeing a dark box over a white panel: "Shouldnt it be on light mode instead?"
 
-   360 puts it over the panel and its 340 neighbours, and under .tt-layer at 400,
-   because a tooltip belongs on top of whatever it is describing. */
+   Rather than pick a side it does what the spec panel already does -- one class
+   on the root, every rule below reading --dp-* custom properties, so it is light
+   on the home screen and dark inside a call and nothing new was invented for it.
+   The tokens are declared on .dp-light / .dp-dark further up this file.
+
+   ABOVE THE SPEC PANEL, WHICH IS 300 -- found in QA of N179. The scrim was 95,
+   correct while the only door was on a home bar that nothing ever covers. Opened
+   from a panel at 300 the dialog appeared, trapped focus, accepted answers and
+   rendered entirely underneath. 360 puts it over the panel and its neighbours,
+   and under .tt-layer at 400, because a tooltip belongs on top of what it
+   describes. Since N192 the panel steps out of the way anyway, so this is now
+   the belt rather than the braces. ==================================== */
 .ag-back {
   position: fixed; inset: 0; z-index: 360;
   background-color: rgba(0, 0, 0, .6);
@@ -9276,106 +9285,125 @@ body.bug-struck { animation: bug-shake 520ms cubic-bezier(0.36, 0.07, 0.19, 0.97
 
 .ag-panel {
   position: relative;
-  width: min(100%, 460px);
-  background-color: #202124; color: #e3e3e3;
+  width: min(100%, 440px);
+  background-color: var(--dp-bg); color: var(--dp-ink);
   border-radius: 16px; padding: 24px 24px 22px;
-  box-shadow: 0 12px 40px rgba(0, 0, 0, .5);
-  animation: ag-rise .2s cubic-bezier(0, 0, 0.2, 1) both;
+  box-shadow: 0 1px 3px 0 rgba(0, 0, 0, .3), 0 4px 8px 3px rgba(0, 0, 0, .15);
 }
-@keyframes ag-rise { from { opacity: 0; transform: translateY(10px); } }
-
-/* The right padding is the close button's business: it is absolutely positioned
-   in the corner, so without this the kind chip slides under the x. */
 .ag-head { display: flex; align-items: center; gap: 10px; margin-bottom: 6px; padding-right: 34px; }
 .ag-lock { font-size: 18px; line-height: 1; }
-.ag-title { font: 500 18px/24px var(--font-title); color: #e3e3e3; }
+.ag-title { font: 500 18px/24px var(--font-title); color: var(--dp-ink); }
 .ag-kind {
-  margin-left: auto; font: 400 11px/16px var(--font);
-  color: #9aa0a6; border: 1px solid #3c4043; border-radius: 10px; padding: 1px 8px;
+  margin-left: auto; flex: 0 0 auto;
+  font: 500 11px/1 var(--font); letter-spacing: .3px;
+  padding: 5px 9px; border-radius: 10px;
+  background-color: var(--dp-pill); color: var(--dp-pill-ink);
 }
-.ag-lead { font: 400 13px/19px var(--font); color: #9aa0a6; margin-bottom: 16px; }
-.ag-q { font: 400 16px/23px var(--font-title); color: #e3e3e3; margin-bottom: 16px; }
+.ag-lead { font: 400 13px/19px var(--font); color: var(--dp-ink3); margin-bottom: 16px; }
 
-.ag-form { display: flex; gap: 8px; }
+/* The question, and the control that swaps it, on one row (N191). Nam: "This
+   icon button should be next to the question to be intuitive." It is an action
+   ON this question, so it belongs beside it rather than under the form. */
+.ag-qrow { display: flex; align-items: center; gap: 8px; margin-bottom: 14px; }
+.ag-q { flex: 1 1 auto; min-width: 0; font: 400 16px/23px var(--font-title); color: var(--dp-ink); }
+
+/* A real .icon-btn, so the state layer, the press and the focus ring all come
+   from the same place every other control in the build gets them. Only the two
+   colours are ours, because .icon-btn's defaults are light-theme tokens and this
+   panel is not always light. */
+.ag-shuffle {
+  flex: 0 0 auto; color: var(--dp-ink2);
+  --sl: var(--dp-ink); --sl-hover: .08;
+}
+.ag-shuffle:hover { color: var(--dp-ink); }
+.ag-shuffle:disabled { opacity: .38; cursor: default; }
+.ag-shuffle:disabled::before { opacity: 0; }
+.ag-shuffle svg { display: block; }
+
+.ag-form { display: flex; }
 .ag-input {
   flex: 1 1 auto; min-width: 0;
-  background-color: #131314; color: #e3e3e3;
-  border: 1px solid #3c4043; border-radius: 8px;
-  font: 400 14px/20px var(--font); padding: 9px 12px;
+  font: 400 14px/20px var(--font);
+  background-color: var(--dp-surface); color: var(--dp-ink);
+  border: 1px solid var(--dp-line); border-radius: 8px; padding: 11px 14px;
+  transition: border-color .12s linear, background-color .12s linear;
 }
-.ag-input:focus-visible { outline: 2px solid #8ab4f8; outline-offset: -1px; border-color: transparent; }
+.ag-input::placeholder { color: var(--dp-ink3); }
+.ag-input:hover { border-color: var(--dp-ink3); }
+.ag-input:focus-visible { outline: 2px solid var(--dp-accent); outline-offset: -1px; border-color: transparent; }
 .ag-input:disabled { opacity: .5; }
-.ag-go {
-  flex: 0 0 auto; border: 0; border-radius: 8px; cursor: pointer;
-  background-color: #8ab4f8; color: #062e6f;
-  font: 500 14px/20px var(--font); padding: 9px 18px;
-}
-.ag-go:hover { background-color: #aecbfa; }
-.ag-go:focus-visible { outline: 2px solid #e3e3e3; outline-offset: 2px; }
 
-/* The verdict. Colour carries which of the three it is, and the text carries
-   the rest, so this never depends on colour alone to be understood. */
-.ag-say { font: 400 13.5px/20px var(--font); margin-top: 14px; min-height: 20px; }
-.ag-say.is-wrong { color: #f28b82; }
-/* A correct answer used to be a dead end dressed as applause, and yellow was the
-   right colour for a state that was neither good nor bad. Since N175 it counts
-   toward the door, so it gets the blue of the Unlock button beside it: the
-   machine accepted this. Green stays reserved for the door actually opening,
-   because two greens a shade apart is not a distinction anybody reads. */
-.ag-say.is-right { color: #a8c7fa; }
-.ag-say.is-granted { color: #81c995; }
+/* THE VERDICT, ON THE FIELD (N191). Nam: "When your answer is wrong, I want the
+   input to nudge with red flash", and then the reason it matters: "as I notice
+   when my friend tested the CV, he doesnt read all that text either."
+
+   He also asked whether a shake is Google-like. Material's canonical error state
+   is a red outline and supporting text rather than a movement -- but Google's
+   own sign-in shakes the field on a wrong password, so the gesture has house
+   precedent, and this dialog is pretending to be a password prompt.
+
+   Colour is never the only signal: the line under it says which way it went, and
+   the count moves on a right answer. That is what keeps it legible to somebody
+   who cannot see either colour. */
+.ag-input.is-bad {
+  border-color: #d93025; background-color: rgba(217, 48, 37, .12);
+  animation: ag-shake .4s cubic-bezier(.36, .07, .19, .97) both;
+}
+.ag-input.is-good { border-color: #1e8e3e; background-color: rgba(30, 142, 62, .14); }
+@keyframes ag-shake {
+  10%, 90% { transform: translateX(-2px); }
+  20%, 80% { transform: translateX(3px); }
+  30%, 50%, 70% { transform: translateX(-5px); }
+  40%, 60% { transform: translateX(5px); }
+}
+
+/* The line. One line each since N191, because the field has already answered. */
+.ag-say { font: 400 13px/19px var(--font); margin-top: 14px; min-height: 19px; }
+.ag-say.is-wrong { color: #c5221f; }
+.ag-say.is-right { color: var(--dp-pill-ink); }
+.ag-say.is-granted { color: #146c2e; }
+.dp-dark .ag-say.is-wrong { color: #f28b82; }
+.dp-dark .ag-say.is-granted { color: #81c995; }
 
 /* --- the long way in (N175) ---------------------------------------------- */
-/* Shuffle, and the bar that is the only honest element in the dialog.
-
-   Everything above these is a password prompt lying about what it wants. The
-   bar states a real rule and keeps it, which is what makes the grind startable
-   at all: nobody begins a task whose length is undisclosed. */
-.ag-tools { display: flex; justify-content: flex-end; margin-top: 10px; }
-.ag-skip {
-  font: 500 12.5px/1 var(--font); color: #a8c7fa;
-  background: none; border: 0; padding: 6px 8px; border-radius: 14px;
-  cursor: pointer; transition: background-color .075s linear, opacity .075s linear;
-}
-.ag-skip:hover { background-color: rgba(168, 199, 250, .12); }
-.ag-skip:focus-visible { outline: 2px solid #8ab4f8; outline-offset: 1px; }
-.ag-skip:disabled { opacity: .38; cursor: default; background: none; }
-
-/* Sits under the roast rather than over the question, so the eye order is
-   question, answer, verdict, progress. Putting it at the top made the dialog
-   read as a quiz from the first frame, which gives the decoy away. */
+/* The bar is the only honest element in the dialog. Everything above it is a
+   password prompt lying about what it wants; this states a real rule and keeps
+   it, which is what makes the grind startable at all -- nobody begins a task
+   whose length is undisclosed. */
 .ag-prog { margin-top: 18px; }
 .ag-prog-head {
   display: flex; align-items: baseline; justify-content: space-between; gap: 12px;
   margin-bottom: 7px;
 }
-.ag-prog-t { font: 400 12px/16px var(--font); color: #9aa0a6; }
+.ag-prog-t { font: 400 12px/16px var(--font); color: var(--dp-ink3); }
 /* Tabular figures, so the count does not jitter as it climbs through 9 to 10. */
 .ag-count {
-  font: 500 12px/16px var(--font); color: #e3e3e3;
+  font: 500 12px/16px var(--font); color: var(--dp-ink);
   font-variant-numeric: tabular-nums; flex: 0 0 auto;
 }
 .ag-track {
   display: block; height: 4px; border-radius: 2px; overflow: hidden;
-  background-color: #3c4043;
+  background-color: var(--dp-line);
 }
 .ag-fill {
   display: block; height: 100%; width: 0; border-radius: 2px;
-  background-color: #8ab4f8;
+  background-color: var(--dp-accent);
   transition: width .28s cubic-bezier(0.4, 0, 0.2, 1);
 }
 @media (prefers-reduced-motion: reduce) {
   .ag-fill { transition: none; }
+  /* The shake goes; the red stays, because the colour was never the decoration. */
+  .ag-input.is-bad { animation: none; }
+  .ag-back { animation: none; }
 }
 
 .ag-close {
-  position: absolute; top: 10px; right: 12px;
-  width: 32px; height: 32px; border: 0; border-radius: 50%;
-  background: none; color: #9aa0a6; cursor: pointer;
-  font: 400 20px/1 var(--font); display: grid; place-items: center;
+  position: absolute; top: 10px; right: 10px;
+  width: 32px; height: 32px; border-radius: 50%;
+  color: var(--dp-ink3);
+  --sl: var(--dp-ink); --sl-hover: .08;
 }
-.ag-close:hover { background-color: #3c4043; color: #e3e3e3; }
-.ag-close:focus-visible { outline: 2px solid #8ab4f8; outline-offset: 2px; }
+.ag-close:hover { color: var(--dp-ink); }
 
 @media (prefers-reduced-motion: reduce) {
   .admin-drop, .admin-drop b, .admin-toast, .ag-back, .ag-panel { animation: none; }
@@ -9600,6 +9628,9 @@ body.bug-struck { animation: bug-shake 520ms cubic-bezier(0.36, 0.07, 0.19, 0.97
   background-color: rgba(168, 199, 250, .22); color: var(--dark-blue);
 }
 .lane-b { font: 400 13px/19px var(--font); color: var(--ctl-ink2); }
+/* One sentence per line (N188). Block rather than a <br>, so the two halves are
+   addressable and the break survives anybody restyling the body. */
+.lane-l { display: block; }
 
 /* One column when two would put four words on a line. Measured against the copy
    rather than against a device: below this the body text starts wrapping every

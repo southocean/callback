@@ -129,7 +129,37 @@ export type PortalMode = 'light' | 'dark';
  * Handing back the parts lets the dialog rebuild exactly the DOM it had before
  * this was extracted, which is the only version of it that has been looked at.
  */
-export function specBody(): { tabs: HTMLElement; body: HTMLElement } {
+/**
+ * What a host has to be able to do for the gate -- board ticket N192.
+ *
+ * The spec panel takes itself down while the gate is up and puts itself back
+ * when the gate is gone. Nam: "when this gate panel open, I think per google
+ * design principle, the panel behind it, the project spec, should be closed, for
+ * a cleaner UI. Then once we get admin access, this gate panel is closed then
+ * the project spec should auto open back up."
+ *
+ * TWO SCRIMS IS THE TELL. Stacking a dialog on a full screen panel means two
+ * layers of dimming and two Escape targets, and it is exactly why N179 shipped
+ * with the gate hidden underneath: a z-index fight only exists because both
+ * things are on screen at once. Taking the panel down removes the fight rather
+ * than winning it.
+ *
+ * Optional, because the OTHER caller of specBody is the shared-screen page in
+ * ui/share.ts, which is not a modal and has nothing to step out of. There the
+ * gate simply opens over it.
+ */
+export interface SpecHost {
+  /** Take the panel down. */
+  retire: () => void;
+  /** Put it back, on the tab that was open when it left. */
+  restore: (tab: string) => void;
+  /** The palette it is wearing, so the gate can wear the same one. */
+  mode: PortalMode;
+}
+
+export function specBody(
+  opts: { host?: SpecHost; startTab?: Tab } = {},
+): { tabs: HTMLElement; body: HTMLElement } {
   /*
    * Resolved once, when the panel is built, rather than read per draw. The grant
    * cannot change while this is on screen: the gesture that grants it is on the
@@ -161,18 +191,35 @@ export function specBody(): { tabs: HTMLElement; body: HTMLElement } {
   let admin = isAdmin();
   const shut = (t: { admin?: true }): boolean => !!t.admin && !admin;
 
-  let tab: Tab = 'overview';
+  let tab: Tab = opts.startTab ?? 'overview';
   const body = h('div', { class: 'dp-body' });
 
-  /** Open the gate from a locked tab, and unlock the strip in place if it opens. */
+  /**
+   * Open the gate from a locked tab.
+   *
+   * The panel steps out first and comes back when the box is gone -- on the
+   * CANCEL path as well as the grant path (N192). Somebody who presses a locked
+   * tab, reads the gate and closes it has not asked to leave the spec, and
+   * losing the panel would punish curiosity with a navigation. It comes back on
+   * the tab they left, unlocked if the grant landed.
+   *
+   * paintLocks still runs for the hostless case (the shared-screen page), where
+   * nothing is rebuilt and the strip has to unlock itself in place.
+   */
   const knock = (): void => {
-    void import('./admindialog.js').then((m) => m.openGate(() => {
-      admin = true;
-      // The avatar behind this panel is still showing a G, and the grant is the
-      // one thing that changes it. See announceGrant in admingate.ts.
-      announceGrant();
-      paintLocks();
-    }));
+    const was = tab;
+    const host = opts.host;
+    host?.retire();
+    void import('./admindialog.js').then((m) => m.openGate(
+      () => {
+        admin = true;
+        // The avatar behind all this is still showing a G, and the grant is the
+        // one thing that changes it. See announceGrant in admingate.ts.
+        announceGrant();
+        paintLocks();
+      },
+      { mode: host?.mode ?? 'light', onClosed: () => host?.restore(was) },
+    ));
   };
 
   const tabs = h(
@@ -244,7 +291,11 @@ export function specBody(): { tabs: HTMLElement; body: HTMLElement } {
   return { tabs, body };
 }
 
-export function openDevPortal(reducedMotion: boolean, mode: PortalMode = 'light'): void {
+export function openDevPortal(
+  reducedMotion: boolean,
+  mode: PortalMode = 'light',
+  startTab?: Tab,
+): void {
   if (document.getElementById('devportal')) return;
 
   let release: (() => void) | null = null;
@@ -254,7 +305,18 @@ export function openDevPortal(reducedMotion: boolean, mode: PortalMode = 'light'
   };
 
   // Both go in as direct children of .dp-card — see the note on specBody().
-  const { tabs, body } = specBody();
+  //
+  // The host is N192: the panel hands the screen to the gate and takes it back.
+  // Reopening rather than un-hiding, because the strip has to be rebuilt anyway
+  // once a grant has landed and a rebuild reads isAdmin() for free.
+  const { tabs, body } = specBody({
+    startTab,
+    host: {
+      mode,
+      retire: close,
+      restore: (t) => openDevPortal(reducedMotion, mode, t as Tab),
+    },
+  });
 
   /*
    * The mode is one class on the root and every rule below it reads custom
