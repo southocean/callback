@@ -152,9 +152,25 @@ export function openGate(granted: () => void, opts: GateOpts = {}): void {
    * Enter still submits. It is a form and always did; the button is the visible
    * half of a rule the form already had.
    */
+  /*
+   * THE PLACEHOLDER IS WHERE "PASSWORD" LIVES NOW -- the tail of N208.
+   *
+   * It read "Your answer" from N199, which was right while the lead line said
+   * "Put down a password or answer to unlock". N204 deleted that line and N208
+   * took the phrase out of the title too, which left the word nowhere a reader
+   * could see it -- and it is the one word that makes typing a cheat code a
+   * plausible thing to do in this box. Without it the grind is the only door
+   * anybody would ever find, which is a strange outcome for the door that came
+   * second.
+   *
+   * The placeholder is the cheapest place to put it back: no row, no second
+   * sentence, and it sits in the field at the moment somebody is deciding what
+   * to type. It also matches the accessible name, which never stopped saying
+   * both.
+   */
   const input = h('input', {
     class: 'ag-input', type: 'text', autocomplete: 'off', spellcheck: 'false',
-    'aria-label': 'Password or answer', placeholder: 'Your answer',
+    'aria-label': 'Password or answer', placeholder: 'Password or answer',
   }) as HTMLInputElement;
 
   /*
