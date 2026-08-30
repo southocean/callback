@@ -9293,19 +9293,38 @@ body.bug-struck { animation: bug-shake 520ms cubic-bezier(0.36, 0.07, 0.19, 0.97
 .ag-head { display: flex; align-items: center; gap: 10px; margin-bottom: 6px; padding-right: 34px; }
 .ag-lock { font-size: 18px; line-height: 1; }
 .ag-title { font: 500 18px/24px var(--font-title); color: var(--dp-ink); }
+.ag-lead { font: 400 13px/19px var(--font); color: var(--dp-ink3); margin-bottom: 18px; }
+
+/* --- the question, and what belongs to it (N199) ------------------------- */
+/* The kind chip used to ride the header opposite the title, which was right
+   while the dialog asked ONE question and the chip described the dialog. Since
+   the bank it describes this question, and the next one is often a different
+   kind, so a label pinned to the top of the box was labelling the wrong thing.
+   Nam: "whatever is contextualizing the question should be close to the
+   question."
+
+   Above the question rather than inline with it: the questions run to fifty
+   characters, and a chip sharing that row would be squeezed between the text
+   and the shuffle control on every long one. */
+.ag-ask { margin-bottom: 16px; }
 .ag-kind {
-  margin-left: auto; flex: 0 0 auto;
+  display: inline-block; margin-bottom: 8px;
   font: 500 11px/1 var(--font); letter-spacing: .3px;
   padding: 5px 9px; border-radius: 10px;
   background-color: var(--dp-pill); color: var(--dp-pill-ink);
 }
-.ag-lead { font: 400 13px/19px var(--font); color: var(--dp-ink3); margin-bottom: 16px; }
 
 /* The question, and the control that swaps it, on one row (N191). Nam: "This
    icon button should be next to the question to be intuitive." It is an action
    ON this question, so it belongs beside it rather than under the form. */
-.ag-qrow { display: flex; align-items: center; gap: 8px; margin-bottom: 14px; }
-.ag-q { flex: 1 1 auto; min-width: 0; font: 400 16px/23px var(--font-title); color: var(--dp-ink); }
+.ag-qrow { display: flex; align-items: center; gap: 8px; }
+/* margin: 0 IS THE ALIGNMENT FIX (N199). Nam: "the shuffle button is not aligned
+   on the question? A little bit off, looks very weird." It was not the button.
+   .ag-q is a <p>, and the global reset gives every p a .7em bottom margin -- so
+   align-items: center was centring a 40px button against a text box 11px taller
+   than its own text, and the words sat five and a half pixels high. Nothing
+   about the button was ever wrong, which is why it read as almost right. */
+.ag-q { flex: 1 1 auto; min-width: 0; margin: 0; font: 400 16px/23px var(--font-title); color: var(--dp-ink); }
 
 /* A real .icon-btn, so the state layer, the press and the focus ring all come
    from the same place every other control in the build gets them. Only the two
@@ -9320,7 +9339,19 @@ body.bug-struck { animation: bug-shake 520ms cubic-bezier(0.36, 0.07, 0.19, 0.97
 .ag-shuffle:disabled::before { opacity: 0; }
 .ag-shuffle svg { display: block; }
 
-.ag-form { display: flex; }
+/* --- the field and the button that judges it (N199) ---------------------- */
+/* N191 took the button out on preference and left a note saying Meet would have
+   kept it, because Meet's own code field has a Join beside it. Nam read the note
+   and reversed: "youre right, lets add the button back in, the button would be
+   answer, along the google design principles."
+
+   So this is .composer-join's behaviour, which is that field's button two
+   hundred lines up: a REAL filled button in its disabled state -- a 12% black
+   surface with a 30% black label rather than ghost text -- going blue the moment
+   there is something to submit. The behaviour is copied and not the class,
+   because that one is sized to sit inside a 48px pill and this sits beside a
+   44px field. */
+.ag-form { display: flex; gap: 8px; align-items: stretch; }
 .ag-input {
   flex: 1 1 auto; min-width: 0;
   font: 400 14px/20px var(--font);
@@ -9332,6 +9363,20 @@ body.bug-struck { animation: bug-shake 520ms cubic-bezier(0.36, 0.07, 0.19, 0.97
 .ag-input:hover { border-color: var(--dp-ink3); }
 .ag-input:focus-visible { outline: 2px solid var(--dp-accent); outline-offset: -1px; border-color: transparent; }
 .ag-input:disabled { opacity: .5; }
+
+.ag-go {
+  flex: 0 0 auto; border: 0; border-radius: 8px; cursor: default;
+  padding: 0 20px; font: 500 14px/1 var(--font);
+  background-color: var(--disabled-bg); color: var(--disabled-fg);
+  transition: background-color var(--t-fade) var(--ease-std), color var(--t-fade) var(--ease-std);
+}
+.ag-go.live { background-color: var(--dp-accent); color: #fff; cursor: pointer; }
+.ag-go.live:hover { filter: brightness(1.08); }
+.ag-go:focus-visible { outline: 2px solid var(--dp-accent); outline-offset: 2px; }
+/* The dark panel's disabled tokens are the light ones, which vanish on #202124.
+   Meet's disabled surface is a wash of the FOREGROUND over the ground, so in a
+   dark panel that wash is white rather than black. */
+.dp-dark .ag-go { background-color: rgba(255, 255, 255, .1); color: rgba(255, 255, 255, .32); }
 
 /* THE VERDICT, ON THE FIELD (N191). Nam: "When your answer is wrong, I want the
    input to nudge with red flash", and then the reason it matters: "as I notice

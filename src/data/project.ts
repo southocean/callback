@@ -3323,6 +3323,125 @@ export const tasks: Task[] = [
     },
   },
 
+  {
+    id: 'N193', col: 'review', size: 'M', tag: 'onboarding',
+    title: 'The handover stops giving itself away',
+    note: 'Landing on a fixed angle meant braking to reach it, in full view.',
+    detail: {
+      why: 'Nam: "its very obvious each shape stops rotating and reverting the rotation right before the transition into the next shape - it gives away the secret here. I wonder if this reset could be done instantaneously while the drones are all scrambled." Plus the flat shapes losing their oval, and the donut lingering in its own hole.',
+      done: [
+        'Nothing brakes: both shapes rotate forward through every handover',
+        'The rotation swap happens where the fleet is a cloud, and is checked to',
+        'The ring and the spiral turn about Y again, bounded well short of edge on',
+        'They open at a random angle each lap, as though already under way',
+        'The donut dive happens earlier and the camera pulls straight back out',
+      ],
+      raised: 'Nam, QA of the geometry programme',
+      notes: 'THE BRAKING WAS REAL AND THE CAUSE WAS N187 OWN FIX. That ticket made every shape land on a fixed neutral, and to get there the handover eased the shared yaw from wherever the outgoing shape had wandered to, onto that fixed angle. A fixed angle is not moving. So the blend was pulling BACKWARDS against a shape that was still coherent enough to watch, and Nam could see it stop and reverse.\n\nTHE FIX IS TO READ THE INCOMING SHAPE ON A NEGATIVE PHASE. Instead of its neutral, it is read at ph minus one -- so it is already turning on its own approach and arrives at its neutral exactly as it lands. Both shapes are now rotating forward at every instant of a handover, so there is nothing to unwind and nothing that can be seen braking. It is the same trick the rigs already use, applied one level up.\n\nAND THE SWAP HIDES IN THE SCRAMBLE, which was Nam suggestion: "I wonder if this reset could be done instantaneously while the drones are all scrambled." Nearly instantaneously. Craft leave in waves over the first 0.42 of a transit, so by half way the earliest are landing while the latest have barely gone, and that is where the whole handover of rotation now happens. Before the window the outgoing shape turns at its own rate untouched; after it, the incoming one does. Verified rather than asserted: over two laps of both programmes there is not one frame where a blend is partially applied outside the scramble, so at every readable moment the rotation IS one shape own.\n\nA TRUE STEP WOULD BE CHEAPER AND IS WORSE. A few craft are always coherent, and an instantaneous rotation would make those few jump. A third of a transit is short enough to hide in and long enough not to snap.\n\nTHE FLAT SHAPES TURN ABOUT Y AGAIN, WITHIN A RANGE, and this reverses half of N181. Nam: "now they are rotating yet the shape remains circular, while before their circular shape gets distorted into an oval as they rotate ... I prefer the old rotation for these 2."\n\nHE IS RIGHT, AND THE DISTINCTION IS BETWEEN FORESHORTENING AND COLLAPSE. N181 took the yaw away because it is the axis that turns a flat shape edge on, which was the right fix for the wrong amount. A ring seen at sixty degrees is an oval, and the oval is the entire reason to turn it: it is what says the thing is a disc in space rather than a decal painted on the screen. A ring seen at ninety is a line, and that is the failure. The old version had no bound and eventually reached ninety. This one is drawn from plus or minus 0.85 radians and sweeps about 1.45 through, so the worst case is forty nine degrees -- two thirds of the width, unmistakably an oval, a long way short of a line.\n\nTHE RATE RUNS AGAINST THE OPENING ANGLE, which is a small thing that matters. Wherever the draw lands, the shape is already an oval and is always opening OUT of one rather than closing further into one. It is also the one deliberate exception to N187: these two are the only shapes that do not land at the same angle every lap, because Nam asked for exactly that -- "it looks like they have been rotating on Y axis before and only continuing now."\n\nTHE CAMERA IS ON ITS OWN CLOCK NOW. Nam, on the torus: "it goes into the donut hole then stays there for a while before transitioning to the next, I think that delay is a bit long." The dolly was riding the rotation blend, which after the change above does nothing until a third of the way into the transit -- so it hung at full zoom inside the hole for over a second while the fleet was already leaving. It pulls out over the first 45% of the transit instead, and the whole move happens earlier: onto its back by half way through the hold, diving over the last stretch of it. Measured, the drawn spread at ph 0.75 is down from 1455 pixels to 1060.',
+    },
+  },
+
+  {
+    id: 'N194', col: 'review', size: 'S', tag: 'onboarding',
+    title: 'Two shapes that forget they are solid',
+    note: 'The lotus climbs as it closes, and the pagoda ornaments flatten into lines.',
+    detail: {
+      why: 'Nam, on the lotus: "when the flower is in full bloom, it looks about right on the screen. But when the flower is not at all bloom, it becomes very tall." And on the pagoda ornaments: "they are round ornaments that would remain round even when rotating - here because they are made from 2D slices, sometimes the ornaments collapsed into an oval or just one line."',
+      done: [
+        'The lotus sinks as it shuts and rises as it opens, staying centred through the breath',
+        'The pagoda ornaments are little spheres, so they cannot present an edge',
+        'The eaves curl harder, because the curl is what separates a pagoda from a stack of tiers',
+      ],
+      raised: 'Nam, QA of the motifs programme',
+      notes: 'TWO SHAPES FORGETTING THEY ARE SOLID, and they are the same fault at very different scales.\n\nTHE LOTUS ONE IS A PLACEMENT BUG. A model is fitted to its space by its REST radius, once, at load. A lotus with its petals shut is a good deal taller than one in bloom, so a single fixed placement is wrong for most of the breath: it sat correctly when open and climbed out of the top of its space when closed. Models now carry an optional vertical offset that follows the rig, and the lotus is the only one that needs it -- nothing else here changes height enough to care.\n\nTHE PAGODA ONE IS THE FLAT-SHAPE FAULT AT A TWENTIETH OF THE SIZE. Each hung lantern was a ring of eight points in a plane, and a ring is a disc, and a disc turns edge on. Nine points on a Fibonacci sphere cost one more node apiece and have no edge to present. Worth noticing that this is the third time the same mistake has been caught in this file at a different scale: the ring and spiral, the sails on the ship, and now an ornament three pixels across.\n\nAND THE EAVES CURL HARDER, because Nam read the tower as a birthday cake -- which is exactly what a stack of tiers is without the upturn. The lift at the ridge tips went from 0.16 to 0.26 on a sharper power, so the last fifth of every ridge hooks rather than eases.',
+    },
+  },
+
+  {
+    id: 'N195', col: 'review', size: 'M', tag: 'onboarding',
+    title: 'A sky full of lanterns, not five of them',
+    note: 'Nam wants the Tangled shot. Five is a still life; twenty is a sky.',
+    detail: {
+      why: 'Nam: "the lanterns I want more of those, like right now so few lanterns, I want it to be wow! Do we need more drones here? Im thinking more flying lanterns at a bigger view, kinda like in tangled the movie when you see many many floating lanterns."',
+      done: [
+        'Twenty lanterns instead of five, scattered wide rather than clustered',
+        'The low ones are near and large, the high ones far and small',
+        'No more drones needed: the same 1400 redistributed',
+        'Spacing on each is 8.8 pixels, tighter than the five larger ones managed',
+      ],
+      raised: 'Nam, QA of the motifs programme',
+      notes: 'HE ASKED WHETHER IT NEEDS MORE DRONES, AND THE ANSWER IS NO -- which is the useful part. A bigger fleet spent on five lanterns makes five DENSER lanterns. The thing that makes the shot he is describing work is the COUNT, and count is a matter of how the fleet is divided rather than how big it is.\n\nSo the same 1400 craft go over twenty lanterns instead of five. Each drops from about 220 nodes to 68 -- and because each is also about a third of the size, the spacing on it does not get worse. It gets BETTER: 8.8 pixels against the 12 the five larger ones were managing, because a lantern is mostly ribs and a rib is shorter when the lantern is smaller.\n\nSIX RIBS, ONE HOOP AND A FLAME is what a lantern is at this size. The ribs carry the silhouette, the hoop stops the ribs reading as a flat sheaf of lines, and the flame is one node at full brightness -- which is what makes twenty of these read as twenty LIT things rather than as twenty wire baskets.\n\nTHEY ARE SCATTERED ON A SPIRAL rather than by hand, so no two sit on top of each other, and the ones lower in the frame are bigger. That is the whole depth cue in the shot he is describing: it is not that the lanterns recede, it is that the near ones are enormous.',
+    },
+  },
+
+  {
+    id: 'N196', col: 'review', size: 'M', tag: 'onboarding',
+    title: 'The Vasa braces its yards toward the viewer',
+    note: 'Square sails set athwartships are edge on from abeam, which is where we watch from.',
+    detail: {
+      why: 'Nam: "the vasa boat: the angle isnt right. I think the sail should try to be facing the user, cause I think that is the part that becomes flat as the ship rotate - so if the sails continue to rotate somewhat towards the user, like not fixated to that angle, but towards that angle, it will have a natural feel to it - the boat is going one way, the sail is being blown in a different way."',
+      done: [
+        'The yards brace round toward the viewer instead of sitting square across the beam',
+        'They work either side of that on their own clock, while the hull swings on its',
+        'The canvas now bellies along the ship rather than across it',
+      ],
+      raised: 'Nam, QA of the motifs programme',
+      notes: 'HE DIAGNOSED IT EXACTLY AND IT IS ALSO JUST TRUE OF THE GEOMETRY. Square sails are bent to yards set ACROSS the beam, and N186 locked this ship broadside -- so the sails were edge on to the camera by construction. Three vertical lines where the canvas should be, on the one part of a ship that most says ship.\n\nIt is the flat-shape fault again, which is now the most recurrent bug in this file. A sail is a plane; a plane has an axis that annihilates it; and something had been left free to rotate about that axis.\n\nBRACING IS THE REAL FIX RATHER THAN A CHEAT. A yard swings round its mast -- that is what bracing is, and it is what a ship does when the wind is not dead astern. So the sail parts hinge about the VERTICAL now instead of fore and aft, and the rig braces them about seventy five degrees round, working a fifth of a radian either side on their own slow clock.\n\nA quarter turn would face them dead on and read as a cardboard cutout, so they stop a little short of it. And because the hull swings on a different clock, the two are never quite in step -- which is precisely what Nam asked for: the boat going one way and the sail being blown another.\n\nThe ripple direction moved with them. Canvas bellies along the ship\'s length once the yard is round, so the wave pushes fore and aft rather than athwartships.',
+    },
+  },
+
+  {
+    id: 'N197', col: 'review', size: 'L', tag: 'onboarding',
+    title: 'The cherry tree becomes a carousel',
+    note: 'The tree does not read. The maypole does, and this is built the same way.',
+    detail: {
+      why: 'Nam: "cherry blossom shape: does not work, we need to change it to something else. I have no idea what is, but something fun and 3D. Something along the line of the midsommarstang would be amazing, that stang is probably the best looking 3D shape in this theme."',
+      done: [
+        'The cherry tree is gone and a carousel takes the slot',
+        'Canopy, scalloped rim, barber poles, six mounts, pennants, a finial and a flag',
+        'The ride turns under a canopy that does not, and the mounts rise out of step',
+        'Radially symmetric, so it needs no locked heading and has no bad side',
+      ],
+      raised: 'Nam, QA of the motifs programme',
+      notes: 'TWO PASSES AT BLOSSOM AND NEITHER READ. First a branch, which was flat; then a whole tree, which was volumetric and still did not land. At that point the subject goes rather than getting a third attempt -- the same call the balloons got, and for the same reason.\n\nNAM NAMED THE TARGET HIMSELF, which made this much easier than the last two replacements. The question is what makes the maypole work, and it is not that it is Swedish. It is that it is a VERTICAL RADIAL FRAME with distinct things hung off it at distinct heights: a pole, a crossbar, two rings, eight ribbons. That reads from any angle, it has an obvious axis, and the parts that move are cleanly separable from the parts that do not.\n\nA carousel is that same object with a reason to exist. Central column, scalloped canopy, a ring of barber poles, mounts, pennants round the rim. And what it DOES is what a viewer already expects it to do: the ride turns while the canopy stays put, and the mounts rise and fall a third of a turn apart. A carousel where the roof turns too is just a spinning cone.\n\nTHE MOUNTS ARE DELIBERATELY NOT HORSES. There is a whole other ticket next door about how hard a horse is to draw at this resolution; putting six small ones on a spinning frame would have failed six times over. They are stylised seats, which is what half the mounts on a real carousel are anyway, and which cannot be got wrong.\n\nTHE FIRST BUILD WAS BOTTOM HEAVY and the measurement caught it. Eight mounts and their poles took 944 of 1393 nodes, leaving the canopy at about 32 pixels between craft while the seats sat at 10 -- so the sparsest, vaguest part of the model was the part that identifies it. Six mounts instead of eight, and the difference went up into the ridges, the scallop and a third course of tiles.',
+    },
+  },
+
+  {
+    id: 'N198', col: 'review', size: 'M', tag: 'onboarding',
+    title: 'The dala horse gets an outline worth the name',
+    note: 'Still not a horse. The silhouette is the whole object, so it has to be right.',
+    detail: {
+      why: 'Nam: "horse shape: does not read as the dalarhast, maybe you need a better outline here." This is the second time he has failed to identify it.',
+      done: [
+        'The silhouette is redrawn from the proportions that actually distinguish one',
+        'Short stocky body, level back, arched neck, thick untapered legs',
+        'The mane follows the crest, and the scrollwork sits on the flank',
+      ],
+      raised: 'Nam, QA of the motifs programme',
+      notes: 'THE LAST PASS FIXED THE WRONG THING. N186 tripled the outline density and locked the viewing angle, which were both real problems -- and made a WRONG shape clearer rather than making it right. Nam still could not tell what it was, which is the answer to whether density was ever the issue.\n\nSO IT IS TRACED AGAIN, against what actually distinguishes a Dala horse: a SHORT stocky body, a level back, an arched neck carrying a small head with the muzzle tucked down, and thick legs with no taper and no bend. The old outline had the legs zigzagging back on themselves and a neck that came off the shoulder at an angle that read as a raised arm.\n\nEVERYTHING PAINTED ON IT HAD TO MOVE TOO, and that is the part that would have been easy to miss. The mane ran down and away from where the new crest is; the five kurbits scrolls were placed against the old barrel and two of them ended up off the body entirely; the bridle was drawn across empty air. A silhouette and its decoration are one object and cannot be edited separately.\n\nHONESTLY: THIS IS THE THIRD ATTEMPT AND IT HAS NOT BEEN SEEN ON A REAL SCREEN. It reads as a horse in an orthographic dump, which the last one did not. If it still does not land, the conclusion is not a fourth outline -- it is that a Dala horse is a painted flat carving and this roster is happier with things that have volume.',
+    },
+  },
+
+  {
+    id: 'N199', col: 'review', size: 'M', tag: 'trust',
+    title: 'The gate gets its Answer button, and the chip moves to the question',
+    note: 'A reversal, a label in the wrong place, and a five-pixel misalignment that was never the button.',
+    detail: {
+      why: 'Nam, on the note N191 left behind: "youre right, lets add the button back in, the button would be answer, along the google design principles. then the place holder is just Your answer. I think it comes with a validator too, like if the answer field is empty, then they button is not clickable ... the shuffle button is not aligned on the question? A little but off, looks very weird ... the tag should go with the question, not on the top of the screen ... This text: Admin only. Put down a password or answer to unlock. => remove the Admin only. change the restricted title to Admin only"',
+      done: [
+        'An Answer button beside the field, dead until there is something to judge',
+        'Enter still submits, which it always did',
+        'The placeholder is Your answer',
+        'The kind chip sits above the question rather than in the header',
+        'The shuffle button lines up with the question it belongs to',
+        'The title is Admin only and the lead no longer repeats it',
+      ],
+      raised: 'Nam, QA 30 Aug',
+      notes: 'A REVERSAL THE NOTE CAUSED, WHICH IS THE ARGUMENT FOR WRITING NOTES. N191 removed the submit button on preference and recorded the counter-argument beside it: Meet own code field has a Join button, greyed until you type, so a submit button IS the pattern here. Nam read that and changed his mind. The behaviour is copied from .composer-join rather than the class itself, because that one is sized to sit inside a 48px pill.\\n\\naria-disabled RATHER THAN disabled, and the guard stays in submit() as well. A disabled button leaves the tab order, so a control that disappears from the keyboard path the moment the field empties is worse than one that is present and inert. Meet does the same with Join.\\n\\nTHE MISALIGNMENT WAS NEVER THE BUTTON, which is why it read as almost right rather than obviously broken. .ag-q is a paragraph and the global reset gives every p a .7em bottom margin, so align-items: center was centring a 40px button against a text box eleven pixels taller than the text inside it. The words sat five and a half pixels high. One margin: 0 fixes it, and the lesson is that a flex row of mixed elements is only centred if every box in it is the size of its own content.\\n\\nTHE CHIP WAS LABELLING THE WRONG THING. In the header, opposite the title, it read as a property of the dialog -- which it was, while the dialog asked one question. Since the bank it describes THIS question and the next one is often a different kind, so it moves down and travels with what it names. Above rather than inline, because the questions run to fifty characters and a chip on that row would be crushed between the text and the shuffle control on every long one.',
+    },
+  },
+
   /* Flagged rather than done. Still true as of this build. */
   { id: 'T24', col: 'backlog', size: 'M', tag: 'specs', title: 'Initial payload is halfway to the ceiling', note: '24.7 kB of a 50 kB gate, up from 18.2. Still green, and the growth is real, but two deferred chunks are 17 kB and 19 kB and deserve a splitting pass before it becomes urgent.' },
 ];

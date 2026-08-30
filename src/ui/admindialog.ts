@@ -133,22 +133,48 @@ export function openGate(granted: () => void, opts: GateOpts = {}): void {
   const prompt = h('p', { class: 'ag-q' }, '');
   const kind = h('span', { class: 'ag-kind' }, '');
   /*
-   * NO UNLOCK BUTTON, AND MEET WOULD HAVE KEPT ONE -- board ticket N191.
+   * THE BUTTON IS BACK, AND IT IS MEET'S -- board ticket N199.
    *
-   * This is the one place the dialog deliberately departs from the product it
-   * copies: Meet's own code field has a Join button beside it, greyed until you
-   * type, so a submit button IS the pattern here. Nam: "Do we need an unlock
-   * button per google design? I usually wouldnt like that button and would just
-   * check the answer on enter."
+   * N191 removed it on preference, and the note left behind said Meet would have
+   * kept one because its own code field has a Join beside it. Nam read that and
+   * reversed himself: "youre right, lets add the button back in, the button
+   * would be answer, along the google design principles ... I think it comes
+   * with a validator too, like if the answer field is empty, then they button is
+   * not clickable. Once its filled up then you can click or Enter should work
+   * too."
    *
-   * So the button goes and the placeholder carries the instruction, which is the
-   * only thing the button was really providing on a single-line form. Enter
-   * already worked -- this is a <form>, and it always submitted.
+   * That is exactly .composer-join two hundred lines up: a REAL filled button in
+   * its disabled state -- a 12% black surface with a 30% black label, not ghost
+   * text -- which goes blue the moment there is something to submit. Copying the
+   * class's behaviour rather than the class itself, because that one is sized to
+   * a 48px pill and this sits beside a 44px field.
+   *
+   * Enter still submits. It is a form and always did; the button is the visible
+   * half of a rule the form already had.
    */
   const input = h('input', {
     class: 'ag-input', type: 'text', autocomplete: 'off', spellcheck: 'false',
-    'aria-label': 'Password or answer', placeholder: 'Answer, then press Enter',
+    'aria-label': 'Password or answer', placeholder: 'Your answer',
   }) as HTMLInputElement;
+
+  const go = h('button', {
+    class: 'ag-go', type: 'submit', 'aria-label': 'Answer',
+  }, 'Answer') as HTMLButtonElement;
+
+  /**
+   * Live only when there is something to judge.
+   *
+   * aria-disabled rather than disabled, and the guard is in submit() as well: a
+   * disabled button is skipped by the tab order, and a control that vanishes
+   * from the keyboard path the moment the field is empty is a worse experience
+   * than one that is present and inert. Meet's own Join does the same.
+   */
+  const validate = (): void => {
+    const live = input.value.trim().length > 0;
+    go.classList.toggle('live', live);
+    go.setAttribute('aria-disabled', live ? 'false' : 'true');
+  };
+  input.addEventListener('input', validate);
 
   /* aria-live so the line is spoken, not just drawn. The verdict itself no
      longer depends on it -- the field flashes and shakes -- but a screen reader
@@ -211,14 +237,28 @@ export function openGate(granted: () => void, opts: GateOpts = {}): void {
   }, sym('close', 20));
   tip(closeBtn, undefined, 'above');
 
-  const panel = h('div', { class: 'ag-panel', role: 'dialog', 'aria-modal': 'true', 'aria-label': 'Restricted' },
+  /*
+   * THE CHIP TRAVELS WITH THE QUESTION -- board ticket N199.
+   *
+   * It used to ride the header, opposite the title, which was right when the
+   * dialog asked one question and the chip was describing the dialog. Since the
+   * bank it describes THIS question and the next one may be a different kind, so
+   * a label pinned to the top of the box is labelling the wrong thing. Nam:
+   * "whatever is contextualizing the question should be close to the question."
+   *
+   * On its own line above rather than inline beside it, because the questions
+   * run to fifty characters and a chip sharing that row would be squeezed
+   * between the text and the shuffle control on every long one.
+   */
+  const panel = h('div', { class: 'ag-panel', role: 'dialog', 'aria-modal': 'true', 'aria-label': 'Admin only' },
     h('div', { class: 'ag-head' },
       h('span', { class: 'ag-lock', 'aria-hidden': 'true' }, '\u{1F512}'),
-      h('h2', { class: 'ag-title' }, 'Restricted'),
-      kind),
-    h('p', { class: 'ag-lead' }, 'Admin only. Put down a password or answer to unlock.'),
-    h('div', { class: 'ag-qrow' }, prompt, skip),
-    h('form', { class: 'ag-form', onsubmit: (e: Event) => { e.preventDefault(); submit(); } }, input),
+      h('h2', { class: 'ag-title' }, 'Admin only')),
+    h('p', { class: 'ag-lead' }, 'Put down a password or answer to unlock.'),
+    h('div', { class: 'ag-ask' },
+      kind,
+      h('div', { class: 'ag-qrow' }, prompt, skip)),
+    h('form', { class: 'ag-form', onsubmit: (e: Event) => { e.preventDefault(); submit(); } }, input, go),
     say,
     bar,
     closeBtn,
@@ -246,6 +286,7 @@ export function openGate(granted: () => void, opts: GateOpts = {}): void {
 
   ask();
   paint();
+  validate();
 
   const release = trapFocus(panel, () => close());
   input.focus();
@@ -294,11 +335,13 @@ export function openGate(granted: () => void, opts: GateOpts = {}): void {
        */
       prompt.textContent = 'That is every question in the bank. The other way in is still open.';
       kind.textContent = '';
+      kind.hidden = true;
       skip.disabled = true;
       return;
     }
     prompt.textContent = c.q;
     kind.textContent = KIND_LABEL[c.kind];
+    kind.hidden = false;
     skip.disabled = queue.length < 2;
   }
 
@@ -317,12 +360,15 @@ export function openGate(granted: () => void, opts: GateOpts = {}): void {
     say.textContent = line;
     input.disabled = true;
     skip.disabled = true;
+    go.classList.remove('live');
+    go.setAttribute('aria-disabled', 'true');
     // Long enough to read the line and notice the avatar change behind it.
     window.setTimeout(() => close(), 2600);
   }
 
   function submit(): void {
     const v = input.value;
+    // The guard the button is the visible half of. Enter reaches here too.
     if (!v.trim()) return;
     attempts += 1;
 
@@ -338,6 +384,7 @@ export function openGate(granted: () => void, opts: GateOpts = {}): void {
       say.className = 'ag-say is-wrong';
       say.textContent = pick(wrongRoasts, attempts);
       input.value = '';
+      validate();
       input.focus();
       return;
     }
@@ -355,6 +402,7 @@ export function openGate(granted: () => void, opts: GateOpts = {}): void {
       say.className = 'ag-say is-wrong';
       say.textContent = pick(wrongRoasts, attempts);
       input.value = '';
+      validate();
       input.focus();
       return;
     }
@@ -373,6 +421,7 @@ export function openGate(granted: () => void, opts: GateOpts = {}): void {
     say.textContent = pick(rightLines, mark.got - 1);
     ask();
     input.value = '';
+    validate();
     input.focus();
   }
 }
