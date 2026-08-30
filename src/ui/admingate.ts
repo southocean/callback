@@ -60,6 +60,18 @@ export function onAdminGranted(fn: () => void): void {
 }
 
 /**
+ * Fire that callback.
+ *
+ * Exported since N174, because the gate is no longer opened from only one place:
+ * a locked tab in the spec panel opens it too, and the G has to become an A
+ * whichever door was knocked on. Without this the avatar sat unchanged behind an
+ * open panel until the next render, which reads as the grant not having taken.
+ */
+export function announceGrant(): void {
+  onGrant?.();
+}
+
+/**
  * The colours a number can come out in, walked in order: blue, red, green.
  *
  * THREE, NOT FOUR. Yellow was in and is out. Nam: "the yellow just does read very
@@ -235,6 +247,6 @@ export function gatePressed(e: MouseEvent, el: HTMLElement): void {
      * the gesture, so it should cost the gesture every time.
      */
     clicks = 0;
-    void import('./admindialog.js').then((m) => m.openGate(() => onGrant?.()));
+    void import('./admindialog.js').then((m) => m.openGate(() => announceGrant()));
   }
 }

@@ -80,21 +80,53 @@ function helpBtn(): HTMLElement {
  * flipped in place, so arriving already-admin from a reload shows the A without
  * anybody having to remember to sync it.
  */
-function avatarBtn(): HTMLElement {
+function avatarBtn(store: Store): HTMLElement {
   const letter = h('span', {}, isAdmin() ? 'A' : 'G');
+  /*
+   * IT OPENS THE SPEC, ADMIN OR NOT -- board ticket N173.
+   *
+   * Nam: "I want that A button now to open the how this was built on click. Why?
+   * The moment we change it, user would want to click it and expect it to work.
+   * We should accommodate for that."
+   *
+   * That argument is the whole ticket and it is a good one: a control that
+   * changes in front of you is a control asking to be pressed, and the reward for
+   * pressing this one was nothing at all.
+   *
+   * The G gets it too. In the real product this is an account menu, so the honest
+   * options were a menu we do not have, or nothing. The spec is the third, and it
+   * is not a secret being handed out -- it is already the primary action on this
+   * screen under How this was built, so the avatar is the same door at the other
+   * end of the same bar. The admin-only tabs inside are still filtered by
+   * isAdmin(), so this shows a visitor exactly what the button below offers them.
+   */
+  /*
+   * NAMED BY WHAT IT DOES, which is a change from "Google Account: you".
+   *
+   * Meet labels this control by whose account it is because there it opens an
+   * account menu. This one opens the spec, and a button whose accessible name
+   * describes a menu it does not have is the sort of thing that makes a screen
+   * reader worse than no screen reader. The admin state rides along on the end,
+   * so the A is still announced to somebody who cannot see it went from G.
+   *
+   * The tooltip comes off this same string -- tipAll below reads aria-label --
+   * so the hint and the announcement cannot drift.
+   */
+  const name = (): string => (isAdmin() ? 'How this was built. Admin unlocked.' : 'How this was built');
   const btn = h(
     'button',
     {
       class: isAdmin() ? 'avatar-btn is-admin' : 'avatar-btn',
       type: 'button',
-      'aria-label': isAdmin() ? 'Admin account: you' : 'Google Account: you',
+      'aria-label': name(),
+      onclick: () => { void openDev(store); },
     },
     letter,
   );
   onAdminGranted(() => {
     letter.textContent = 'A';
     btn.classList.add('is-admin');
-    btn.setAttribute('aria-label', 'Admin account: you');
+    btn.setAttribute('aria-label', name());
   });
   return btn;
 }
@@ -345,7 +377,7 @@ export function renderHome(store: Store, reducedMotion = false, body?: HTMLEleme
         sym('settings', 24),
       ),
       h('button', { class: 'icon-btn', type: 'button', 'aria-label': 'Google apps' }, sym('apps', 22)),
-      avatarBtn(),
+      avatarBtn(store),
     ),
   );
 

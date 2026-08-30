@@ -8736,6 +8736,29 @@ body.bug-struck { animation: bug-shake 520ms cubic-bezier(0.36, 0.07, 0.19, 0.97
 .dp-tab:hover { color: var(--dp-ink); background-color: var(--dp-layer); }
 .dp-tab[aria-selected="true"] { background-color: var(--dp-pill); color: var(--dp-pill-ink); }
 
+/* --- the locked tabs (N174) ---------------------------------------------- */
+/* Four tabs the gate hides. They are LISTED for everyone now, dimmed and
+   padlocked, and pressing one opens the gate rather than the tab.
+
+   Dimmed rather than struck through, or greyed to the point of vanishing: they
+   have to read as a place you cannot go yet AND as a control worth pressing,
+   because pressing them is the only signposted way to the gate. .62 is where
+   they sit clearly below the live tabs and still above the panel ground, and
+   hover takes them back to full so the invitation is unambiguous.
+
+   The padlock is CSS rather than markup because it belongs to one state. A span
+   would have to be built, hidden from assistive tech, and taken out again on a
+   grant, which is three things to get wrong for a glyph; the accessible name
+   carries the word "locked" for that reader anyway. Sized down and nudged up
+   because the emoji sits high on its em box beside 14px text. */
+.dp-tab.is-locked { opacity: .62; }
+.dp-tab.is-locked:hover { opacity: 1; }
+.dp-tab.is-locked::after {
+  content: "\1F512";
+  font-size: 10px; margin-left: 6px;
+  position: relative; top: -1px;
+}
+
 .dp-body { flex: 1 1 auto; min-height: 0; overflow-y: auto; padding: 22px 24px 60px; }
 /* Centred, not hugging the left edge. Nam: "the content is lopsided on the left
    hand side. That's why I think we should maintain consistency between this and
@@ -9232,8 +9255,19 @@ body.bug-struck { animation: bug-shake 520ms cubic-bezier(0.36, 0.07, 0.19, 0.97
 /* Straight-faced on purpose. It is dressed as a password prompt and the joke is
    that it is asking about hexagons, so the moment the chrome winks the turn is
    gone. Same scrim and card language as the CV overlay. */
+/* ABOVE THE SPEC PANEL, WHICH IS 300 -- found in QA of N179.
+
+   It was 95, and that was correct for as long as the gate had exactly one door:
+   the eleven press gesture lives on the home bar, and nothing was ever on top of
+   the home bar. N179 gave it a second door INSIDE the spec panel, so the first
+   time a locked tab was pressed the gate opened perfectly, trapped focus, and
+   rendered entirely behind the panel that opened it. The dialog was there and
+   working; there was simply no way to see it.
+
+   360 puts it over the panel and its 340 neighbours, and under .tt-layer at 400,
+   because a tooltip belongs on top of whatever it is describing. */
 .ag-back {
-  position: fixed; inset: 0; z-index: 95;
+  position: fixed; inset: 0; z-index: 360;
   background-color: rgba(0, 0, 0, .6);
   display: grid; place-items: center; padding: 20px;
   animation: ag-fade .18s linear both;
@@ -9283,8 +9317,56 @@ body.bug-struck { animation: bug-shake 520ms cubic-bezier(0.36, 0.07, 0.19, 0.97
    the rest, so this never depends on colour alone to be understood. */
 .ag-say { font: 400 13.5px/20px var(--font); margin-top: 14px; min-height: 20px; }
 .ag-say.is-wrong { color: #f28b82; }
-.ag-say.is-right { color: #fdd663; }
+/* A correct answer used to be a dead end dressed as applause, and yellow was the
+   right colour for a state that was neither good nor bad. Since N175 it counts
+   toward the door, so it gets the blue of the Unlock button beside it: the
+   machine accepted this. Green stays reserved for the door actually opening,
+   because two greens a shade apart is not a distinction anybody reads. */
+.ag-say.is-right { color: #a8c7fa; }
 .ag-say.is-granted { color: #81c995; }
+
+/* --- the long way in (N175) ---------------------------------------------- */
+/* Shuffle, and the bar that is the only honest element in the dialog.
+
+   Everything above these is a password prompt lying about what it wants. The
+   bar states a real rule and keeps it, which is what makes the grind startable
+   at all: nobody begins a task whose length is undisclosed. */
+.ag-tools { display: flex; justify-content: flex-end; margin-top: 10px; }
+.ag-skip {
+  font: 500 12.5px/1 var(--font); color: #a8c7fa;
+  background: none; border: 0; padding: 6px 8px; border-radius: 14px;
+  cursor: pointer; transition: background-color .075s linear, opacity .075s linear;
+}
+.ag-skip:hover { background-color: rgba(168, 199, 250, .12); }
+.ag-skip:focus-visible { outline: 2px solid #8ab4f8; outline-offset: 1px; }
+.ag-skip:disabled { opacity: .38; cursor: default; background: none; }
+
+/* Sits under the roast rather than over the question, so the eye order is
+   question, answer, verdict, progress. Putting it at the top made the dialog
+   read as a quiz from the first frame, which gives the decoy away. */
+.ag-prog { margin-top: 18px; }
+.ag-prog-head {
+  display: flex; align-items: baseline; justify-content: space-between; gap: 12px;
+  margin-bottom: 7px;
+}
+.ag-prog-t { font: 400 12px/16px var(--font); color: #9aa0a6; }
+/* Tabular figures, so the count does not jitter as it climbs through 9 to 10. */
+.ag-count {
+  font: 500 12px/16px var(--font); color: #e3e3e3;
+  font-variant-numeric: tabular-nums; flex: 0 0 auto;
+}
+.ag-track {
+  display: block; height: 4px; border-radius: 2px; overflow: hidden;
+  background-color: #3c4043;
+}
+.ag-fill {
+  display: block; height: 100%; width: 0; border-radius: 2px;
+  background-color: #8ab4f8;
+  transition: width .28s cubic-bezier(0.4, 0, 0.2, 1);
+}
+@media (prefers-reduced-motion: reduce) {
+  .ag-fill { transition: none; }
+}
 
 .ag-close {
   position: absolute; top: 10px; right: 12px;
@@ -9467,12 +9549,21 @@ body.bug-struck { animation: bug-shake 520ms cubic-bezier(0.36, 0.07, 0.19, 0.97
   from { opacity: 0; transform: translateY(14px) scale(.94); }
   to   { opacity: 1; transform: none; }
 }
+/* NOT SELECTABLE (N176). Nam asked for it on the heading and the reason holds
+   for the whole card: this is a dialog you answer with one press, so a drag
+   across it is a misfire every time, and the blue smear it leaves is the only
+   thing on the screen that looks broken. Said at the card rather than at the
+   heading, so it covers the lanes too and there is one place to undo it. There
+   is nothing in here worth copying out. */
+.lane-card { -webkit-user-select: none; user-select: none; }
+
 /* Panel heading weight, per section 5, one step up because it is the only
-   sentence on the screen. */
-.lane-q { font: 400 24px/30px var(--font-title); color: var(--ctl-ink); letter-spacing: -.2px; }
-.lane-sub {
-  font: 400 14px/21px var(--font); color: var(--ctl-ink2);
-  margin: 8px 0 22px; max-width: 58ch;
+   sentence on the screen -- and since N176 it really is the only one. The lead
+   paragraph under it is gone, so the bottom margin it used to carry lives here
+   instead. */
+.lane-q {
+  font: 400 24px/30px var(--font-title); color: var(--ctl-ink); letter-spacing: -.2px;
+  margin: 0 0 22px;
 }
 
 .lane-opts { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }

@@ -19,8 +19,8 @@ import {
 } from '../prefs.js';
 import { reduceTour, initialTour, nextScripted, registerFor, QUEUE_BRIEF, type TourState } from '../tour/director.js';
 import {
-  challenges, wrongRoasts, rightRoasts, grantedLines, judge, normalise, pick,
-  ADMIN_PASSWORD,
+  challenges, wrongRoasts, rightLines, passedLines, grantedLines, judge, normalise, pick,
+  ADMIN_PASSWORD, ADMIN_PASS_MARK, remaining, score, shuffled,
 } from '../data/admin.js';
 import { ADMIN_CLICKS, ADMIN_HINT_FROM, DROP_COLOURS, dropColour, dropDir } from '../ui/admingate.js';
 import { tasks as boardTasks, columns as boardColumns } from '../data/project.js';
@@ -1919,10 +1919,73 @@ suite('the admin gate', () => {
     eq(new Set(challenges.map((c) => c.id)).size, challenges.length, 'two questions share an id');
   });
 
-  test('there is a roast for every outcome', () => {
+  test('there is a line for every outcome', () => {
     ok(wrongRoasts.length > 0, 'no roast for a wrong answer');
-    ok(rightRoasts.length > 0, 'no roast for a right answer');
+    ok(rightLines.length > 0, 'nothing to say when an answer counts');
+    ok(passedLines.length > 0, 'nothing to say when the mark is reached');
     ok(grantedLines.length > 0, 'nothing to say when the password lands');
+  });
+
+  /*
+   * THE SECOND DOOR -- board ticket N175. The password is unhintable on purpose,
+   * so the bank is the only route for a reader who never makes that leap. All of
+   * this is arithmetic over two lists, which is why it lives in data/admin.ts
+   * and can be driven here without a DOM.
+   */
+  test('the bank is big enough for the mark, with room to be wrong', () => {
+    ok(challenges.length >= ADMIN_PASS_MARK, 'the mark cannot be reached at all');
+    ok(
+      challenges.length > ADMIN_PASS_MARK,
+      'the mark needs every question, so one bad question is a permanent wall',
+    );
+  });
+
+  test('a solved question is not asked again', () => {
+    const first = challenges[0]!.id;
+    const left = remaining([first]);
+    eq(left.length, challenges.length - 1, 'the solved question stayed in the queue');
+    ok(!left.some((c) => c.id === first), 'the solved question came back');
+  });
+
+  test('an id that no longer names a question counts for nothing', () => {
+    eq(remaining(['a-question-that-was-renamed']).length, challenges.length, 'a stale id removed a row');
+    eq(score(['a-question-that-was-renamed']).got, 0, 'a stale id counted toward the mark');
+  });
+
+  test('the same id twice is one answer, not two', () => {
+    const id = challenges[0]!.id;
+    eq(score([id, id, id]).got, 1, 'a repeated id inflated the score');
+  });
+
+  test('the mark is what opens it, and not one short', () => {
+    const ids = challenges.map((c) => c.id);
+    ok(!score(ids.slice(0, ADMIN_PASS_MARK - 1)).passed, 'one short of the mark opened the door');
+    ok(score(ids.slice(0, ADMIN_PASS_MARK)).passed, 'the mark did not open the door');
+  });
+
+  /*
+   * Shuffle rotates rather than re-rolls, and this is the property that matters:
+   * a random pick can hand back the question just skipped, which reads as the
+   * button being broken. See shuffled() for the argument.
+   */
+  test('shuffle sends the question to the back, and keeps the rest in order', () => {
+    const q = challenges.slice(0, 4);
+    const after = shuffled(q);
+    eq(after.length, q.length, 'shuffling lost or gained a question');
+    ok(after[0]!.id !== q[0]!.id, 'the skipped question came straight back');
+    eq(after[after.length - 1]!.id, q[0]!.id, 'the skipped question did not go to the back');
+    eq(after.slice(0, 3).map((c) => c.id).join(), q.slice(1).map((c) => c.id).join());
+  });
+
+  test('shuffling one question is a no-op rather than a crash', () => {
+    eq(shuffled(challenges.slice(0, 1)).length, 1);
+    eq(shuffled([]).length, 0);
+  });
+
+  test('the password outranks the bank from any question', () => {
+    for (const c of challenges) {
+      eq(judge(c, ADMIN_PASSWORD), 'password', `the lock lost to the decoy on ${c.id}`);
+    }
   });
 
   test('pick wraps rather than running off the end', () => {

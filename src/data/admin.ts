@@ -70,7 +70,98 @@ export const challenges: Challenge[] = [
   { id: 's4', kind: 'sense', q: 'What is the capital of Sweden?', answers: ['stockholm'] },
   { id: 's5', kind: 'sense', q: 'How many days are there in a leap year?', answers: ['366'] },
   { id: 's6', kind: 'sense', q: 'What is the freezing point of water in Celsius?', answers: ['0', 'zero', '0c', '0 c'] },
+
+  { id: 'm7', kind: 'math', q: 'What is 9 x 9?', answers: ['81', 'eighty one', 'eightyone'] },
+  { id: 'm8', kind: 'math', q: 'What is 100 divided by 4?', answers: ['25', 'twenty five', 'twentyfive'] },
+  { id: 'm9', kind: 'math', q: 'How many seconds are there in an hour?', answers: ['3600', '3,600'] },
+  { id: 'm10', kind: 'math', q: 'What is 3 cubed?', answers: ['27', 'twenty seven', 'twentyseven'] },
+  { id: 'm11', kind: 'math', q: 'What is 1000 minus 111?', answers: ['889'] },
+  { id: 'm12', kind: 'math', q: 'How many degrees are there in a triangle?', answers: ['180', '180 degrees'] },
+  { id: 'm13', kind: 'math', q: 'What is 25% of 80?', answers: ['20', 'twenty'] },
+  { id: 'm14', kind: 'math', q: 'What is the next prime number after 7?', answers: ['11', 'eleven'] },
+
+  { id: 'h6', kind: 'history', q: 'In which year did the first iPhone go on sale?', answers: ['2007'] },
+  { id: 'h7', kind: 'history', q: 'Who painted the Mona Lisa?', answers: ['leonardo da vinci', 'da vinci', 'leonardo'] },
+  { id: 'h8', kind: 'history', q: 'Which empire built the Colosseum?', answers: ['roman', 'the romans', 'romans', 'rome', 'roman empire', 'the roman empire'] },
+  { id: 'h9', kind: 'history', q: 'In which century did the French Revolution begin?', answers: ['18th', '18', 'eighteenth', '18th century', 'eighteenth century', '1700s'] },
+  { id: 'h10', kind: 'history', q: 'Which country put the first person into space?', answers: ['soviet union', 'the soviet union', 'ussr', 'russia', 'the ussr'] },
+  { id: 'h11', kind: 'history', q: 'Who wrote the play Hamlet?', answers: ['shakespeare', 'william shakespeare'] },
+  { id: 'h12', kind: 'history', q: 'In which year did people first land on the Moon?', answers: ['1969'] },
+
+  { id: 's7', kind: 'sense', q: 'How many continents are there?', answers: ['7', 'seven'] },
+  { id: 's8', kind: 'sense', q: 'Which is the largest planet in our solar system?', answers: ['jupiter'] },
+  { id: 's9', kind: 'sense', q: 'How many strings does a standard guitar have?', answers: ['6', 'six'] },
+  { id: 's10', kind: 'sense', q: 'Which gas do plants take out of the air?', answers: ['carbon dioxide', 'co2', 'carbondioxide'] },
+  { id: 's11', kind: 'sense', q: 'How many minutes are there in a quarter of an hour?', answers: ['15', 'fifteen'] },
+  { id: 's12', kind: 'sense', q: 'What is the capital of Japan?', answers: ['tokyo'] },
+  { id: 's13', kind: 'sense', q: 'How many players does a football team have on the pitch?', answers: ['11', 'eleven'] },
+  { id: 's14', kind: 'sense', q: 'Mixing red and white gives you which colour?', answers: ['pink'] },
 ];
+
+
+/**
+ * THE SECOND DOOR -- board ticket N175.
+ *
+ * Nam: "Yes this code is a secret, but I wont be able to tell users what that
+ * code is. So I want to provide an alternative unblocking method for this admin
+ * gate for the very dedicated users ... Question bank of say 40 or 50 questions,
+ * but you only need to score 30 to pass."
+ *
+ * The password is unhintable by design -- it is only findable because the
+ * gesture that opens the box is itself a cheat code -- so anybody who has not
+ * made that leap has no route at all. Dedication is the other key.
+ *
+ * WHY A THRESHOLD RATHER THAN THE WHOLE BANK. Nam asked for all of them first
+ * and then talked himself out of it in the same message, and he was right to.
+ * Requiring forty out of forty makes one badly worded question a permanent wall,
+ * and there is no appeal process on a dialog. Ten to spare is also the only
+ * thing that makes Shuffle a decision: with no slack, skipping is deferral.
+ *
+ * WHY FORTY AND NOT FIFTY. This is a bit, not a certification. Forty questions
+ * is about fifteen minutes from somebody who wants in, which is the right price
+ * for a door whose reward is two tabs of build notes, and it is short enough
+ * that the roasts do not have to carry an hour.
+ */
+export const ADMIN_PASS_MARK = 30;
+
+/**
+ * Questions not yet solved, in declared order.
+ *
+ * Filtering the BANK rather than the saved list is what makes a renamed or
+ * deleted question harmless: an id nobody recognises cannot conjure a row, and
+ * cannot be counted either. Same rule the side quest board settled on.
+ */
+export function remaining(solved: string[]): Challenge[] {
+  const done = new Set(solved);
+  return challenges.filter((c) => !done.has(c.id));
+}
+
+/** Where the grind stands: what has been solved, and what it takes. */
+export function score(solved: string[]): { got: number; need: number; passed: boolean } {
+  const real = new Set(challenges.map((c) => c.id));
+  const got = new Set(solved.filter((id) => real.has(id))).size;
+  return { got, need: ADMIN_PASS_MARK, passed: got >= ADMIN_PASS_MARK };
+}
+
+/**
+ * Move the head of the queue to the back -- what Shuffle does.
+ *
+ * Nam: "when user presses shuffle, we put the skipped question to the end of the
+ * list, so its unlikely to reoccur - something user has expressed not knowing
+ * the answer to."
+ *
+ * A rotation rather than a re-roll, and the difference is the whole feature. A
+ * random pick can hand back the question you just skipped, which reads as the
+ * button being broken; a rotation cannot, and it also means the thirty-nine you
+ * did not skip come round before it does.
+ *
+ * Returns a new array, so the caller cannot mutate the queue by accident and the
+ * tests can compare before against after.
+ */
+export function shuffled(queue: Challenge[]): Challenge[] {
+  if (queue.length < 2) return [...queue];
+  return [...queue.slice(1), queue[0]!];
+}
 
 /**
  * WRONG ANSWER. Not cruel, and never about the person: the joke is the situation
@@ -91,19 +182,40 @@ export const wrongRoasts: string[] = [
 ];
 
 /**
- * RIGHT ANSWER, which is the punchline: applause, and then the reveal that the
- * applause was for nothing. Every line has to do both jobs, or the turn reads as
- * a bug rather than a joke.
+ * RIGHT ANSWER, AND IT NOW COUNTS -- board ticket N175.
+ *
+ * These replace a set of lines whose entire job was to tell you that solving the
+ * sum was a dead end: "Right answer. Wrong door." It was, and it is not any
+ * more, so keeping them would have been the dialog lying about its own rules --
+ * which is the one thing a decoy cannot afford, because a decoy only works while
+ * everything it says is technically true.
+ *
+ * The turn survives in a smaller form. The password is still the short way in
+ * and these lines still say so; what they no longer claim is that the long way
+ * does not exist. Read in order they go from teasing to grudging respect, which
+ * is the arc somebody grinding thirty of these actually earns.
  */
-export const rightRoasts: string[] = [
-  'Correct! Genuinely well done. Now sit with the fact that you thought a password would be the answer to a sum.',
-  'Right answer. Wrong door. You have solved the riddle guarding absolutely nothing.',
-  'Correct, and it changes nothing. Did you think the lock would just tell you its own combination?',
-  'Nailed it. Gold star. The door remains extremely closed.',
-  'That is the right answer to the question I asked, which was never the question.',
-  'Correct! And in exchange, here is the truth: this box has been a decoy since the moment it opened.',
-  'Well solved. Now think about the gesture that got you here and ask what kind of word it was hinting at.',
-  'Yes. That is the answer. It is not the password. Those are two different things and you have found the less useful one.',
+export const rightLines: string[] = [
+  'Correct. One down. There is a much shorter way into this room, but by all means.',
+  'Right. That is one of thirty, which is a sentence I did not expect to have to write.',
+  'Correct. I should mention the door also opens for a single word. No? Carry on then.',
+  'Yes. Banked. You will not see that one again.',
+  'Correct. You are doing this the long way and you appear to know it.',
+  'Right again. Somewhere there is a person who guessed the password in four seconds. This is not them.',
+  'Correct. I am contractually obliged to find this funny and I am running out of ways.',
+  'Yes. At this point I think you would rather do it this way.',
+  'Correct. Fine. You are clearly not going anywhere.',
+  'Right. Honestly, at this rate, you deserve the tabs more than the person who guessed.',
+];
+
+/**
+ * THE MARK, REACHED. The grind paid, so the line pays properly: no sting in it.
+ * They have done thirty of these on purpose.
+ */
+export const passedLines: string[] = [
+  'Thirty. You ground it out. The door is open and you never needed the password.',
+  'That is thirty. Nobody was supposed to actually do this. Welcome to admin.',
+  'Thirty correct. There was a four second version of this and you chose the long one. Respect. Come in.',
 ];
 
 /** The word landed. Congratulate properly, because they earned this one. */

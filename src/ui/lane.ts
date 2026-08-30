@@ -128,26 +128,31 @@ export function askLane(): Promise<Lane> {
         class: 'lane-scrim', id: 'lanepick', role: 'dialog', 'aria-modal': 'true',
         'aria-label': 'How would you like to go through this?',
       },
+      /*
+       * ONE HEADING AND TWO SENTENCES -- board ticket N176.
+       *
+       * The lead paragraph that used to sit here said there were two ways and
+       * that neither hid anything, directly above two cards saying what the two
+       * ways are. Nam: "remove, the decision is already clear from the two
+       * options below." It was either redundant or it was propping up bodies
+       * that could not stand on their own, and cutting it is the test: the lanes
+       * pass it at one sentence each.
+       */
       h('div', { class: 'lane-card' },
-        h('h2', { class: 'lane-q' }, 'How do you want to do this?'),
-        h('p', { class: 'lane-sub' },
-          'You have joined an interview that is about to start. There are two ways to sit through it, '
-          + 'and neither one hides anything from you.'),
+        h('h2', { class: 'lane-q' }, 'How would you like this?'),
         h('div', { class: 'lane-opts' },
           lane({
             id: 'walkthrough',
             glyph: 'closed_caption',
-            title: 'Let him walk me through it',
-            body: 'Nam drives. The pointer moves on its own, the screen share opens itself, and the '
-              + 'captions carry the conversation. Stop him whenever you like.',
+            title: 'A lazy walkthrough',
+            body: 'Nam shows you around. Stop him whenever you want.',
             best: true,
           }),
           lane({
             id: 'explore',
             glyph: 'apps',
             title: 'Let me explore',
-            body: 'Nothing moves unless you move it. Every panel, document and hiding place is still '
-              + 'here, and turning the captions on brings him back.',
+            body: 'Explore at your pace. Turn the caption on to bring Nam back.',
           })),
       ),
     ) as HTMLElement;

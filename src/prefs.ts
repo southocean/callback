@@ -330,6 +330,68 @@ export function readAdmin(raw: string | null): boolean {
   return raw === '1';
 }
 
+
+/* ------------------------------------------------------- the gate's long way */
+
+/**
+ * WHICH GATE QUESTIONS HAVE BEEN SOLVED -- board ticket N175.
+ *
+ * The admin gate has a second door: thirty correct answers out of a bank of
+ * forty opens it, for the reader who will never be told the password. That only
+ * works if the thirty survive closing the box, so this is a record rather than a
+ * session tally. Nam: "we need to remember which question has been answer
+ * correctly and not show it anymore."
+ *
+ * IDS ONLY, and never a count. A stored number could be edited to thirty by
+ * hand, but far more importantly it could not answer the question the dialog
+ * actually asks each time it opens, which is WHICH ones are left. Storing the
+ * ids gives the remaining queue and the score off one list, and a renamed
+ * question drops out of both at once -- see remaining() and score() in
+ * data/admin.ts.
+ *
+ * Not a security boundary, exactly like the grant it leads to. Anyone who opens
+ * devtools can write thirty ids into it, and would have found the password
+ * faster.
+ */
+const SOLVED_KEY = 'callback.gate';
+
+/** Anything unparseable reads as nothing solved, which is the safe direction. */
+export function readSolved(raw: string | null): string[] {
+  if (!raw) return [];
+  try {
+    const v = JSON.parse(raw) as unknown;
+    if (!Array.isArray(v)) return [];
+    return v.filter((x): x is string => typeof x === 'string');
+  } catch {
+    return [];
+  }
+}
+
+export function solvedGate(): string[] {
+  try {
+    return readSolved(localStorage.getItem(SOLVED_KEY));
+  } catch {
+    return [];
+  }
+}
+
+/**
+ * Bank one. Returns the new list, so the caller does not have to read it back.
+ *
+ * Deduped, because the same id arriving twice would inflate a score that decides
+ * whether a door opens. score() dedupes as well; doing it here too keeps the
+ * stored record honest rather than merely the number computed from it.
+ */
+export function solveGate(id: string): string[] {
+  const next = [...new Set([...solvedGate(), id])];
+  try {
+    localStorage.setItem(SOLVED_KEY, JSON.stringify(next));
+  } catch {
+    /* private window. The run still counts in memory until the box closes. */
+  }
+  return next;
+}
+
 /* ---------------------------------------------------------------- forget it */
 
 /**
@@ -384,6 +446,7 @@ export const FORGETTABLE: Forgettable[] = [
   { key: 'callback.answers', label: 'Interview answers', what: 'which of the eight questions have been heard, and with them the Skip intro control' },
   { key: 'callback.quips', label: 'Commentary heard', what: 'the one-off remarks, so he notices the same things again' },
   { key: 'callback.admin', label: 'Admin access', what: 'the grant behind the hidden tabs. Clearing it puts the gate back on the next load' },
+  { key: SOLVED_KEY, label: 'Gate questions solved', what: 'the correct answers banked toward the thirty that open the gate the long way' },
 ];
 
 /** How many entries a record holds, for the button that is about to delete it. */

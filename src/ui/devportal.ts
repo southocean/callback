@@ -31,10 +31,10 @@ import { bugs as collection, RARITY_LABEL } from '../data/bugs.js';
 import { bugArt } from './bugart.js';
 import { isAdmin, FORGETTABLE, storedCount, forget } from '../prefs.js';
 import {
-  challenges, wrongRoasts, rightRoasts, grantedLines, alreadyAdminLines,
-  KIND_LABEL, ADMIN_PASSWORD, type ChallengeKind,
+  challenges, wrongRoasts, rightLines, passedLines, grantedLines, alreadyAdminLines,
+  KIND_LABEL, ADMIN_PASSWORD, ADMIN_PASS_MARK, type ChallengeKind,
 } from '../data/admin.js';
-import { ADMIN_CLICKS, ADMIN_HINT_FROM } from './admingate.js';
+import { ADMIN_CLICKS, ADMIN_HINT_FROM, announceGrant } from './admingate.js';
 
 type Tab = 'overview' | 'process' | 'reviews' | 'board' | 'script' | 'bugs' | 'gate' | 'settings';
 
@@ -136,23 +136,82 @@ export function specBody(): { tabs: HTMLElement; body: HTMLElement } {
    * home screen, which is behind this dialog. Reading it once means the tab strip
    * and the view guard cannot disagree with each other mid-session.
    */
-  const admin = isAdmin();
-  const shown = TABS.filter((t) => !t.admin || admin);
+  /*
+   * THE LOCKED TABS ARE LISTED, AND PRESSING ONE KNOCKS -- board ticket N174.
+   *
+   * Nam: "I actually even think we should show the secret admin gated tabs in the
+   * project spec, but not interactable ... but you should still be able to click
+   * them, which will trigger the admin gate - now the admin gate becomes open for
+   * everyone - but you dont know the admin password konami anyways so its fine."
+   *
+   * The gate used to be reachable only by finding an eleven press gesture on a
+   * help button, which made the second door in N175 pointless: a grind nobody can
+   * start is not an alternative route, it is a room with no entrance. Four locked
+   * tabs are the entrance.
+   *
+   * It is also the more honest tab strip. A spec that documents everything except
+   * the fact that it is hiding four pages has an undocumented hole in it, and a
+   * strip that quietly renders six buttons for one reader and ten for another is
+   * worse than one that says what is behind the lock.
+   *
+   * `admin` is a let and no longer read once. The old note here was right for its
+   * time -- the grant lived on a screen behind this panel, so it could not change
+   * while the panel was open. It can now: the gate opens from this strip.
+   */
+  let admin = isAdmin();
+  const shut = (t: { admin?: true }): boolean => !!t.admin && !admin;
 
   let tab: Tab = 'overview';
   const body = h('div', { class: 'dp-body' });
 
+  /** Open the gate from a locked tab, and unlock the strip in place if it opens. */
+  const knock = (): void => {
+    void import('./admindialog.js').then((m) => m.openGate(() => {
+      admin = true;
+      // The avatar behind this panel is still showing a G, and the grant is the
+      // one thing that changes it. See announceGrant in admingate.ts.
+      announceGrant();
+      paintLocks();
+    }));
+  };
+
   const tabs = h(
     'div',
     { class: 'dp-tabs', role: 'tablist', 'aria-label': 'Project spec' },
-    ...shown.map((t) =>
+    ...TABS.map((t) =>
       h('button', {
         class: t.admin ? 'dp-tab is-admin' : 'dp-tab',
-        type: 'button', role: 'tab', 'aria-selected': 'false', 'data-t': t.id,
-        onclick: () => { tab = t.id; draw(); },
+        type: 'button', role: 'tab', 'aria-selected': 'false',
+        'data-t': t.id, 'data-label': t.label,
+        onclick: () => {
+          if (shut(t)) { knock(); return; }
+          tab = t.id;
+          draw();
+        },
       }, t.label),
     ),
   );
+
+  /**
+   * Say which tabs are shut, in the class and in the accessible name.
+   *
+   * The padlock itself is drawn by CSS off .is-locked, because it is decoration
+   * for one state and a span that has to be created, hidden from assistive tech
+   * and then removed again on a grant is three things to get wrong for a glyph.
+   *
+   * NOT aria-disabled: these are not disabled controls. A disabled control does
+   * nothing when pressed and this one opens a dialog, so announcing it as
+   * disabled would be a lie in the one place a reader cannot check it against
+   * what they can see.
+   */
+  function paintLocks(): void {
+    for (const b of tabs.querySelectorAll<HTMLElement>('.dp-tab.is-admin')) {
+      const label = b.dataset.label ?? '';
+      b.classList.toggle('is-locked', !admin);
+      b.setAttribute('aria-label', admin ? label : `${label}, locked`);
+    }
+  }
+  paintLocks();
 
   function draw(): void {
     /*
@@ -161,7 +220,8 @@ export function specBody(): { tabs: HTMLElement; body: HTMLElement } {
      * this function being asked to open on a tab -- and a hidden view that is one
      * assignment away from rendering is not hidden, it is unlisted.
      */
-    if (!shown.some((t) => t.id === tab)) tab = 'overview';
+    const cur = TABS.find((t) => t.id === tab);
+    if (!cur || shut(cur)) tab = 'overview';
 
     for (const b of tabs.querySelectorAll('button')) {
       b.setAttribute('aria-selected', b.getAttribute('data-t') === tab ? 'true' : 'false');
@@ -715,12 +775,19 @@ function gateView(): HTMLElement {
     h('h3', { class: 'ag-h' }, `Roasts, wrong answer (${wrongRoasts.length})`),
     h('ol', { class: 'ag-list' }, ...wrongRoasts.map((r) => h('li', {}, r))),
 
-    h('h3', { class: 'ag-h' }, `Roasts, right answer (${rightRoasts.length})`),
+    h('h3', { class: 'ag-h' }, `Lines on a correct answer (${rightLines.length})`),
     h('p', { class: 'dp-note' },
-      'Each of these has to congratulate and deflate in the same breath. This is the moment the reader '
-      + 'learns they were solving the wrong problem, so a line that only praises loses the turn and a line '
-      + 'that only mocks reads as the form rejecting a correct answer.'),
-    h('ol', { class: 'ag-list' }, ...rightRoasts.map((r) => h('li', {}, r))),
+      'These replaced a set whose whole job was to say the answer was worthless. Since N175 it is not: a '
+      + `correct answer is banked, and ${ADMIN_PASS_MARK} of them open the same door the password does. `
+      + 'The password is still the short way in and these still say so. What they no longer claim is that '
+      + 'the long way does not exist, because a decoy only works while everything it says is true.'),
+    h('ol', { class: 'ag-list' }, ...rightLines.map((r) => h('li', {}, r))),
+
+    h('h3', { class: 'ag-h' }, `On reaching the mark (${passedLines.length})`),
+    h('p', { class: 'dp-note' },
+      'No sting in these. Somebody who answered thirty of these on purpose, when a single word would '
+      + 'have done it, has earned a straight sentence.'),
+    h('ol', { class: 'ag-list' }, ...passedLines.map((r) => h('li', {}, r))),
 
     h('h3', { class: 'ag-h' }, `On the password landing (${grantedLines.length})`),
     h('ol', { class: 'ag-list' }, ...grantedLines.map((r) => h('li', {}, r))),

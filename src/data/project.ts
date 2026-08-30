@@ -2939,6 +2939,181 @@ export const tasks: Task[] = [
     },
   },
 
+  {
+    id: 'N171', col: 'review', size: 'L', tag: 'onboarding',
+    title: 'The drones fly a solved assignment, and the lotus opens',
+    note: 'The transit was a scramble wearing good easing. Now it is worked out.',
+    detail: {
+      why: 'Nam, on what shipped: \"Im very disappointed with what you produce ... these simple ass 2D images not even animating and no coloring.\" He sent the Shenzhen record show as the bar -- a surfaced, ornate palace lantern assembled and animated by thousands of craft -- and named the fault precisely: \"I want the drones to have real 3D cordinates that map between images ... not hacking a shuffling animation then blending into the next shape.\" And the scope: \"I want less, fewer images/model, but each is more sophisticated than what you have here.\"',
+      done: [
+        'Every craft flies a solved target rather than an arbitrary one: 34 per cent less travel',
+        'The fleet is 1400, and whatever a formation cannot use parks on a standby shell',
+        'Formations are animated while held, and the rig keeps running through the transit',
+        'A lotus of eighteen petals that breathes open and shut, whorl by whorl',
+        'A midsommarstang whose garland rings counter-rotate and whose ribbons ripple',
+        'Seven texture animations removed, and the chunk came down with them',
+      ],
+      raised: 'Nam, review of the shipped drone show',
+      notes: 'THREE FAULTS, AND THE ONE NOBODY NOTICES FIRST IS THE WORST. The shipped version flew drone i to point i of the next shape. Point i of a sphere and point i of a cube have no relationship, so every craft took a random long diagonal -- and the per craft launch offsets, the bowed arcs and the smoothstep easing were all real work spent decorating a scramble. That is what Nam meant by a fake shuffle: the coordinates were real 3D and the interpolation was real, but the PAIRING was noise. Second, 264 craft against flat outlines resampled along their length, which is a wireframe drawing hung in space rather than a model. Third, 64 per cent of every cycle was a dead hold with a five degree sway on it, which is a slide show.\n\nTHE MAPPING IS NOW SOLVED RATHER THAN ASSUMED, and it is the fix that matters. Optimal is out of reach -- Hungarian is n cubed, which at 1400 craft is 2.7 billion -- so it is seeded by sorting both clouds along a Morton curve, which puts neighbours next to neighbours, and then refined by 2-opt: pick two craft, swap their targets, keep the swap if the total got shorter. Measured, mean travel comes down 34 per cent on Geometry and the worst straggler falls from 3.84 to 2.41.\n\nTWO DETAILS DECIDE WHETHER THAT WORKS AT ALL. The trials pair craft that are NEIGHBOURS rather than picking two at random, because two craft on opposite sides of the sky are never worth swapping and uniform trials mostly do nothing. And the cost is scored around the CYCLE rather than down a chain: the obvious version fixes the first formation, optimises the second against it and so on, which leaves the transition from the last back to the first with both ends already nailed down. The show would have scrambled once per loop, at the seam, and it would have been blamed on the easing.\n\nPARKED CRAFT SORT AFTER EVERY MODEL NODE, and that one bit was worth more than the rest of the seed put together. Nam asked for a real constraint on the fleet, so a model with 1313 nodes leaves 87 craft over and those fly to a standby shell rather than switching off. But the two motifs park different numbers -- 87 against 244 -- so with the shell interleaved through the ordering the ranks slid out of step, and a craft at rank 600 was a petal in one formation and a parked craft two units out in the other. Measured, the seed came out no better than doing nothing: 0.936 against 0.942. With the flag it is model to model down to where the counts differ, and only the difference has to fly in from the shell.\n\nIT REFINES DURING THE HOLD, WHICH IS FREE, and the reason it can be is not obvious. The budget is worth 34 per cent off the transit and costs 103ms in one go, which is six dropped frames on the first screen anybody sees. But craft are INTERCHANGEABLE: swapping which two of them own two targets does not move either target, so while a formation is held the set of lit positions is identical before and after any swap. All that changes is which index owns which dot. So it runs in slices during the hold, invisibly, and settles in 37 frames against a first hold ten seconds long.\n\nHOW MANY PETALS IS ARITHMETIC, NOT TASTE, and the first lotus got it wrong by not doing the arithmetic. Twenty eight petals at forty nodes each sounds generous and is not: a petal carries about three units of feature line, so that is 84 units of line for 1100 nodes, which puts adjacent craft FORTY SEVEN PIXELS apart. Rendered, it was not a flower, it was a haze with a bright middle. Run it the other way -- a dotted line reads as a line at fifteen to twenty pixels, which is also where the reference show sits -- and 1100 nodes buys forty units of line, which is eighteen petals. Which is also why there are no veins: a pair of them adds half as much line again per petal, and paying for them means paying in the spacing of the rim, trading the silhouette for interior detail nobody can resolve.\n\nTHE FIRST LOTUS WAS A PANCAKE. The angle from vertical at a petal tip is tilt plus curl, and at 1.02 plus 1.10 that is 121 degrees -- past horizontal, so every petal rose, went over the top and came back down. The flower stood 0.13 of a unit tall against a spread of 2.0, and every bit of the three-dimensionality the whole exercise is about was thrown away. Landing the tip near 75 degrees gives a bowl, and gives the fixed lean something to reveal.\n\nROTATION IS SHARED, AND THAT IS NOT A COMPROMISE. Nam worked out for himself that turning the model rather than orbiting a camera gets parallax for free. It does, and it comes from the perspective divide rather than from the rotation, so there is nothing to compute for it either way. What is worth spelling out is why both formations turn by the SAME angle during a handover: a common rotation is an isometry, so it moves every craft without changing any distance between two of them, and the pairing solved above stays exactly as good at any angle. Give the two formations independent angles and the pairing is optimal for a pose the show is never in. Per model speed survives anyway, because only one model is ever the subject -- the angle is the integral of the running order rates, which is continuous across a handover and still a pure function of time.\n\nSEVEN ANIMATIONS CAME OUT AND THE CHUNK GOT SMALLER. Nam: \"we remove all the tiles, measure, trace, signal and the rest of the 8 graphic effects, the drones would be the one and only mode we have.\" So the textures went, the pointer plumbing that existed for one of them went with them, and the scrim exception that Drones needed became the rule. Two programmes are left and they are not peers: Nam gave Geometry a job, \"the geometry becomes the benchmark for how well the drone effect looks,\" which is a better reason than variety -- a sphere becoming a cube has a known correct answer, so a bad transit shows up there with nothing to blame it on. 12.7 kB against 14.2, with an engine, a lotus and a maypole added.',
+    },
+  },
+
+  /* Nam's review of the second drone pass, and a cut to the copy that goes with
+     it. The card is being taken down to one control. */
+
+  {
+    id: 'N177', col: 'review', size: 'S', tag: 'onboarding',
+    title: 'The start card loses its fine print',
+    note: 'Four lines of reassurance and two of caveat, for a screen with one button.',
+    detail: {
+      why: 'Nam: "Basically we want as little reading here as possible. We want user to press start - choosing to start the experience. They can always go back in the browser to the previous page." And on the button: "The Start is enough, we dont need any fine print."',
+      done: [
+        'The two reassurance lines are gone',
+        'About ten minutes and the hour footnote under Start are gone',
+        'Or just download the PDF is now Download the PDF',
+        'Nothing on the screen is selectable, so it behaves like an app and not a document',
+      ],
+      raised: 'Nam, review of the drone show',
+      notes: 'THIS IS A REVERSAL OF THE THING THE SCREEN WAS BUILT TO DO, and the reversal is right. N158 exists because a tester read the clone as a real meeting invitation and would not press Join. The answer it shipped was a card that named the thing and then reassured: nothing is recorded, no camera, no microphone, nobody else in the room, and you can stop at any point.\n\nThat pass already knew the trap -- its own notes say unsolicited reassurance reads as the register of the thing it denies -- and then wrote four lines of it anyway. What actually dissolved the fear was never the sentences. It was that there was a door with his hand on it: agreement, not argument. A back button is a better promise than a paragraph about one, and it is a promise the browser makes rather than one we make.\n\nTHE TEN MINUTES WAS MEASURED AND THAT IS NOT THE POINT. The 135 authored lines in data/tour.ts really do hold the caption for 501.6 seconds, and the footnote under it was a true qualification of a true number. But a duration quoted before anybody has agreed to anything is a COST, and quoting a cost invites the arithmetic of whether to pay it. Start invites a press. The honest place for how long this takes is inside, where somebody has already decided to look.\n\nNOT SELECTABLE, ON THE SCREEN RATHER THAN ON THE TEXT. The rule goes on .start rather than on each run of copy because what is being asked for is the SURFACE behaving like an application: a drag that leaves half a sentence highlighted is the tell that a thing is a page. It suppresses selection and not pointer events, so the one real link here still behaves like a link.\n\nTHE PDF LINK SURVIVED, JUST SHORTER. Nam considered cutting it too. It stays because it is the one control on this screen with evidence behind it: the first external tester, cold, reached for the PDF before anything else. Taking that away to tidy up would be tidying away the evidence.',
+    },
+  },
+
+  {
+    id: 'N178', col: 'review', size: 'M', tag: 'onboarding',
+    title: 'The motifs move out from behind the words',
+    note: 'Centred means half of each one is under the name. Nam: too beautiful for that.',
+    detail: {
+      why: 'Nam: "they are a bit fainted (just a teeny tiny bit) and way too beautiful to be centered and behind the text - they are probably better pushed on a side so we get an ubobstructed view of them."',
+      done: [
+        'Every motif is placed in a margin, alternating sides down the running order',
+        'Placement is computed against the real viewport, not assumed from a fraction',
+        'A motif shrinks to fit its margin, and comes back to the middle when there is none',
+        'The fleet slides across the screen between a left motif and a right one',
+        'Brightness up about a sixth, floor and range together',
+      ],
+      raised: 'Nam, review of the drone show',
+      notes: 'A SIDE, NOT A FRACTION OF THE WIDTH, and the first attempt at this used the fraction and would have shipped broken on a common laptop. The copy column is a FIXED 560px at every screen size, so the margin beside it is not a constant share of the viewport: it is 440px at 1440, 1000px at 2560, and NOTHING at 1280. A spot at 0.7 of the half width clears the column at 1440 and sits squarely behind the name at 1280.\n\nSo a model names a SIDE and the draw does the arithmetic against the real viewport: centre the model in whatever margin actually exists, shrink it if the margin is smaller than it wants, and give up and centre everything below about 210px of margin, which is the honest answer on a phone.\n\nTHE FITTING RADIUS HAS TO BE THE 3D ONE, which cost a second pass. Measuring a model radius in the drawing plane fits it to its margin head on, and then it TURNS: depth rotates into width and it is wider than it was measured. The tall ship swings a bowsprit through 0.3 of a unit doing precisely that, and would have put it through the name.\n\nTHE ASSIGNMENT HAD TO LEARN ABOUT PLACEMENT TOO. A small motif in a left margin becoming a large one in the right margin has its real travel dominated by the move across, and costing that in model space prices the move at nothing, so the pairing would have been solved for a journey nobody makes. Every formation now carries a second copy of its coordinates with the placement folded in; the assignment reads those and the draw reads the originals. Two copies rather than one arithmetic step, because the inner loop runs about twelve million times while the pairing is being refined.\n\nOPEN Q1 IN THE PLAN IS ANSWERED, at least for now: screen space, after the projection. Offsetting in world space instead is physically truer, since an off axis subject really does show its side. But the rotation is about the origin, so a model placed out in a margin would ORBIT the centre of the screen rather than turning in place, and fixing that means rotating about each model own centre, which breaks the isometry the assignment depends on.\n\nA SIXTH BRIGHTER, NOT A THIRD. Nam asked for a teeny tiny bit, and the floor and the range come up together on purpose. What carries depth here is that a craft on the far side is dimmer than one on the near side; lifting the floor faster than the range would flatten the one thing saying this is a solid rather than a drawing.',
+    },
+  },
+
+  {
+    id: 'N179', col: 'review', size: 'L', tag: 'onboarding',
+    title: 'Six more motifs, and all of them things people already know',
+    note: 'Lanterns, blossom, balloons, the Vasa, a crane, a dala horse. Eight in all.',
+    detail: {
+      why: 'Nam: "Let\'s add in more motifs here, I want iconic things that people will easily recognize, floating lanterns, cherry blossoms, hot air baloons, vasa ship, etc. Let\'s have about 8 motifs here."',
+      done: [
+        'Eight motifs: lotus, sky lanterns, cherry blossom, balloons, a tall ship, a crane, a dala horse, the maypole',
+        'Every one is a generic archetype rather than a particular object',
+        'The rig grew a translation and a directed ripple, which is what half of them needed',
+        'Node spacing is between 7.6 and 13.1 pixels on all eight, measured rather than eyeballed',
+      ],
+      raised: 'Nam, review of the drone show',
+      notes: 'RECOGNISABLE IS A CONSTRAINT ON THE DRAWING BEFORE IT IS A CHOICE OF SUBJECT. 1400 craft carry a silhouette and cannot carry a likeness, so each of these is the generic object and not a particular one: a sky lantern rather than a named festival, a tall ship with a high stern rather than a rivet-accurate Vasa. At this resolution the specific version reads as a worse copy of the generic shape it is made of. It is the same finding N158 wrote down about rockets and ringed planets, holding at five times the fleet.\n\nHALF SIZE IS A GIFT, NOT A LIMIT. Because N178 puts these out in a margin at about 0.6 scale, the same feature line is drawn at 270 pixels to the unit instead of 450, so the same node count buys nearly twice the line. These can be considerably more ornate than the lotus, which was authored centred and full size.\n\nTHE RIG NEEDED TWO THINGS IT DID NOT HAVE, and both are general rather than special cases. A pose can now carry a TRANSLATION, because half of these do not hinge at all: a sky lantern drifts, a balloon rises and settles, a hull heaves on a swell. The alternative was hinging them about a pivot three units below, which produces the same arc and is a lie the next person would have to decode. And the ripple now has a DIRECTION: a ribbon flexes sideways and a wing flexes up, and before this it could only do sideways.\n\nTHE CRANE IS THE ONE THAT JUSTIFIES ALL OF IT. Every other motif here is recognisable frozen. A crane frozen is a bird-shaped smudge and a crane moving is unmistakable, so it is the honest test of whether the rig was worth building. The beat travels OUT along the span rather than the wing moving as a board, which is the whole difference between a bird and a paper aeroplane, and the downstroke is faster than the recovery because that is the half doing work. A pure sine reads as a mechanism.\n\nTHE DALA HORSE IS THE ONE WHERE THE ORNAMENT IS THE POINT. It spends a third of its craft on PAINT rather than on structure, which is what makes a carved horse a Dala horse. The kurbits scrollwork sits at the far end of the brightness range, so the light sweep walks out along it and the decoration draws itself onto the horse after the shape has landed. That is the reveal the plan wanted, on the one model where a reveal has something to say.\n\nTHE BLOSSOM WAS SILENTLY TRUNCATED AND NEARLY SHIPPED THAT WAY. Authored at 1426 nodes against a fleet of 1400, so the last 26 stopped existing, which showed up as one flower missing half its petals and nothing else at all. Worth knowing about because there is nowhere for a module-load error to go on a title card, so the cap cannot throw. What catches it is the density harness reporting a node count per model: a model sitting at exactly 1400 is the tell.',
+    },
+  },
+
+  {
+    id: 'N180', col: 'review', size: 'S', tag: 'onboarding',
+    title: 'Geometry changes shape the moment you have read it',
+    note: 'A wireframe is legible in two seconds and was being held for ten.',
+    detail: {
+      why: 'Nam: "because the geometry forms are more simple and without animation, the time spent on each object is a bit long ... it takes less time to tell what this is, so after that you are left just looking at it, waiting for the next shape. The ideal pace is changing the shape when user can read what shape it is that the drones have arranged themselves into."',
+      done: [
+        'Pacing is per programme rather than one number for both',
+        'Geometry runs a six second slot against fourteen, and holds about half of it',
+        'Motifs keep their dwell, because a lotus is not finished being looked at in two seconds',
+      ],
+      raised: 'Nam, review of the drone show',
+      notes: 'THE RULE IS GOOD ENOUGH TO WRITE DOWN: change the shape when the shape has been read. A rotating wireframe announces itself in about two seconds and was being held for ten, so eight seconds of every fourteen were spent waiting for something to happen. That is the same dead time N158 was criticised for, arriving from the other direction: the first version had a dead hold because nothing moved, and this one had a dead hold because everything had already been understood.\n\nTHE HOLD FRACTION MOVES TOO, NOT JUST THE TOTAL. Geometry now spends nearly as long flying as holding, which is the right split for a programme whose subject is really the transit. The reason the geometry set is kept at all is that Nam made it the benchmark for how good the flying looks, so give it more flying.\n\nMOTIFS KEEP THEIR TWELVE, and the asymmetry is the whole point of making this per programme. A lotus breathing open and shut, a crane beating its wings, a petal coming off a branch and turning as it falls: none of those are finished in two seconds, and cutting them to the pace of a wireframe would spend the animation that N171 existed to add.',
+    },
+  },
+
+  {
+    id: 'N172', col: 'review', size: 'S', tag: 'trust',
+    title: 'BUG: the gate closed on the twelfth click',
+    note: 'Eleven presses open it and the twelfth, already in flight, lands on the backdrop and shuts it.',
+    detail: {
+      why: 'Nam, QA: "when I click on the ? button in home screen to trigger the admin gate, by the 11th click, the admin gate appears, but then immediately closes because I would misclick one more time and it registers as closing the admin gate. So you need to ignore further clicking on the background for a short while after the admin gate opens, so we tolerate some overclicking."',
+      done: [
+        'A press on the backdrop inside the first moment after opening does nothing',
+        'A press on the backdrop after that still closes it, as before',
+        'Escape and the close button are unaffected, since neither is a misclick',
+      ],
+      raised: 'Nam, QA 30 Aug',
+      notes: 'THE GESTURE CAUSES THE BUG. Nothing else in this build is opened by a rhythm, and a rhythm does not stop on the beat it succeeded on: the hand is already moving for the twelfth press when the eleventh opens the box. The backdrop is directly under the help button, so the extra press lands on the one target that means dismiss.\n\nThe fix belongs to the dialog rather than to the counter, because the counter has already done its job by then. A dead window on the backdrop is also the narrowest thing that works: closing on Escape and on the close button stays instant, because neither of those can be a leftover from the gesture.',
+    },
+  },
+
+  {
+    id: 'N173', col: 'review', size: 'S', tag: 'specs',
+    title: 'The avatar opens the spec, G or A',
+    note: 'It changes to an A in front of you and then does nothing when you press it.',
+    detail: {
+      why: 'Nam: "after we complete the challenge with the code, the G avatar is now changed to A, and I want that A button now to open the how this was built on click. Why? The moment we change it, user would want to click it and expect it to work. We should accommodate for that. I actually think we should even open how this was built even without the admin gate, when the avatar is G, you click it then the how this was built page opens up. I dont think theres any harm there."',
+      done: [
+        'Pressing the avatar opens the project spec, admin or not',
+        'It carries a tooltip and an accessible name that say so',
+        'The A still means what it meant, and now the press it invites does something',
+      ],
+      raised: 'Nam, QA 30 Aug',
+      notes: 'A CONTROL THAT CHANGES IN FRONT OF YOU IS A CONTROL THAT ASKS TO BE PRESSED, and the reward for pressing it was nothing at all. That is the whole argument and it is a good one.\n\nGIVING IT TO THE G TOO IS THE PART WORTH DEFENDING. In the real product this is an account menu, so the honest options were a menu we do not have, or nothing. The spec panel is the third: it is already the primary action on this screen under How this was built, so the avatar is not gaining a secret, it is gaining the same door at the other end of the same bar. Nothing behind it is gated -- the admin-only tabs are still filtered by isAdmin -- so a visitor who presses it sees exactly what the button below already offers them.',
+    },
+  },
+
+  {
+    id: 'N174', col: 'review', size: 'M', tag: 'specs',
+    title: 'The locked tabs are visible, and pressing one knocks',
+    note: 'Four tabs the gate hides. Show them locked, and let a press be how you find the gate.',
+    detail: {
+      why: 'Nam: "I actually even think we should show the secret admin gated tabs in the project spec, but not interactable - as in you cannot open those tabs, but you should still be able to click them, which will trigger the admin gate - now the admin gate becomes open for everyone - but you dont know the admin password konami anyways so its fine."',
+      done: [
+        'Scripts, Collection, The gate and Settings are listed for everyone, with a lock',
+        'Pressing one opens the gate instead of the tab',
+        'The view guard still refuses to render a locked tab, so nothing is one assignment from showing',
+        'Granting admin from that gate unlocks the tabs without reopening the panel',
+      ],
+      raised: 'Nam, QA 30 Aug',
+      notes: 'IT SHIPPED WITH THE DIALOG BEHIND THE PANEL, and that is the defect worth writing down because the feature looked complete without it. The gate scrim sat at z-index 95, which was right for as long as it had one door: the eleven press gesture is on the home bar and nothing is ever on top of the home bar. Opening it from inside the spec panel, which is 300, gave a dialog that opened correctly, trapped focus correctly, answered correctly and rendered entirely underneath the thing that opened it. Every assertion in the QA driver passed while it was invisible, because the DOM was perfect. It was caught by looking at a screenshot. 360 now, which is over the panel and under the tooltip layer at 400.\n\nTHE GATE WAS UNREACHABLE FOR ANYBODY WHO HAD NOT FOUND THE GESTURE, which made the second door in N175 pointless: a grind nobody can start is not an alternative route, it is a room with no entrance. Showing the locks is what gives it an entrance, and it costs less than it looks -- the tabs were already filtered by one predicate and already guarded by a second, so this is a third state on the strip rather than a new mechanism.\n\nIT ALSO ANSWERS A QUESTION THE PANEL WAS DODGING. A spec that documents everything except the fact that it is hiding four pages is a spec with an undocumented hole in it. Four locked tabs say what is there and how much of it, which is more honest than a tab strip that quietly renders six buttons for one reader and ten for another.',
+    },
+  },
+
+  {
+    id: 'N175', col: 'review', size: 'L', tag: 'trust',
+    title: 'The gate gets a second door you can grind open',
+    note: 'The password is unhintable, so dedication becomes the other key: forty questions, thirty to pass.',
+    detail: {
+      why: 'Nam: "Yes this code is a secret, but I wont be able to tell users what that code is. So I want to provide an alternative unblocking method for this admin gate for the very dedicated users. We can grant them admin access if they can answer ALL questions in the bank correctly ... Question bank of say 40 or 50 questions, but you only need to score 30 to pass, for example. This way the shuffle button is actually meaningful. And when user presses shuffle, we put the skipped question to the end of the list."',
+      done: [
+        'The bank is forty questions, and thirty of them unlock the door',
+        'A right answer is banked and never asked again, across sessions',
+        'A progress bar and a line that says what the target is',
+        'Shuffle moves the current question to the back of the queue',
+        'konami still opens it instantly, from any question and any score',
+        'The right-answer copy stops claiming the answer was worthless',
+      ],
+      raised: 'Nam, QA 30 Aug',
+      notes: 'THE DECOY IS NOW HALF TRUE, AND THAT IS THE WHOLE COPY PROBLEM. Every right-answer line in the old bank exists to tell you that solving the sum was a dead end -- "Right answer. Wrong door." It was, and it is not any more, so those lines would now be the dialog lying about its own rules. The turn survives in a smaller form: the early correct answers still tease that there is a much shorter way in, which keeps the password in play as the joke without pretending the counter is not moving.\n\nWHY A THRESHOLD RATHER THAN THE WHOLE BANK, which is what Nam asked for first and then talked himself out of in the same message. Requiring all forty makes one badly worded question a permanent wall, and there is no appeal process on a dialog. Thirty of forty leaves ten to be wrong about, which is also what makes Shuffle a real choice rather than a way of stalling -- with no slack, skipping is only ever deferral.\n\nWHY FORTY AND NOT FIFTY. The gate is a bit, not a certification. Forty questions is fifteen minutes of genuine effort from somebody who wants in, which is the right price for a door whose reward is two tabs of build notes, and it is short enough that the roasts do not have to carry an hour.\n\nA WRONG ANSWER KEEPS THE QUESTION. Rerolling on a miss would read as the dialog dodging -- the argument that was already in admindialog.ts -- and with a bank you can exhaust it would also be a free skip, which is what Shuffle is for and what it costs a slot to do.',
+    },
+  },
+
+  {
+    id: 'N176', col: 'review', size: 'M', tag: 'onboarding',
+    title: 'The lane card says less, and Explore means it',
+    note: 'A heading, two lanes, one line each. The paragraph explaining the choice went the way of most paragraphs.',
+    detail: {
+      why: 'Nam, with the replacement copy written out: "How do you want to do this? => How would you like this?, and make sure this text is not selectable ... You have joined an interview that is about to start ... => remove, the decision is already clear from the two options below ... Let him walk me through it => A lazy walkthrough ... Nam shows you around. Stop him whenever you want ... Explore at your pace. Turn the caption on to bring Nam back."',
+      done: [
+        'The heading reads How would you like this? and cannot be selected',
+        'The lead paragraph is gone',
+        'Both lanes carry one sentence instead of three',
+        'Explore starts with captions off and no interview progress bar',
+      ],
+      raised: 'Nam, QA 30 Aug',
+      notes: 'THE PARAGRAPH WAS DOING THE LANES JOB FOR THEM. It said there are two ways and neither hides anything, above two cards that say what the two ways are -- so it was either redundant or it was propping up copy that did not stand on its own. Cutting it is a test of the lanes, and the lanes pass it once they are one sentence each.\n\nNOT SELECTABLE, because this is a dialog you answer with one press. A drag across a heading in a two-button modal is a misfire every time, and the blue smear it leaves is the only thing on the screen that looks broken.\n\nTHE TWO BEHAVIOURS WERE ALREADY RIGHT, which is worth writing down so nobody implements them twice. Explore has dispatched captions off since N167, and the interview bar is hidden until the tour reports progress -- and in Explore the tour never begins, so it never reports. Both were verified in a browser rather than read off the source.',
+    },
+  },
+
   /* Flagged rather than done. Still true as of this build. */
   { id: 'T24', col: 'backlog', size: 'M', tag: 'specs', title: 'Initial payload is halfway to the ceiling', note: '24.7 kB of a 50 kB gate, up from 18.2. Still green, and the growth is real, but two deferred chunks are 17 kB and 19 kB and deserve a splitting pass before it becomes urgent.' },
 ];
