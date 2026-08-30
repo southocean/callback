@@ -223,9 +223,12 @@ export function openGate(granted: () => void, opts: GateOpts = {}): void {
       'aria-label': 'Questions answered correctly',
     },
     h('span', { class: 'ag-prog-head' },
-      // "to unlock" is in the title since N204, and saying it twice in one
-      // 440px box reads as a form repeating itself.
-      h('span', { class: 'ag-prog-t' }, `Answer ${ADMIN_PASS_MARK} correctly`),
+      /*
+       * "to unlock" comes back with N208. It was dropped in N204 only because
+       * the title had taken the phrase, and the title has given it back -- so
+       * this is once again the only line in the dialog that states the rule.
+       */
+      h('span', { class: 'ag-prog-t' }, `Answer ${ADMIN_PASS_MARK} correctly to unlock`),
       barCount),
     h('span', { class: 'ag-track' }, barFill),
   ) as HTMLElement;
@@ -273,30 +276,35 @@ export function openGate(granted: () => void, opts: GateOpts = {}): void {
    * between the text and the shuffle control on every long one.
    */
   /*
-   * THE TITLE DOES THE LEAD'S JOB -- board ticket N204, and it is a row removed
-   * rather than a row moved.
+   * THE LEAD LINE IS GONE AND THE TITLE IS SHORT AGAIN -- N204, then N208.
    *
-   * Nam: "Idk I still think this screen is very clunky looking. One alternative
-   * is to change the title from Admin only => Put a password or answer to
-   * unlock, then we remove the Put down a password or answer to unlock line."
+   * N204 deleted the lead row, which was the right call: clunky here was six
+   * stacked rows on four alignments, so the fix that helps is the one that
+   * DELETES a row. It then moved the whole instruction into the title, and that
+   * half did not survive contact. Nam: "Put a password or answer to unlock =>
+   * lets put back to Restricted, and have a bigger title in font size."
    *
-   * Clunky here was six stacked rows on four different alignments, so the fix
-   * that helps is the one that DELETES a row. The heading and the lead were
-   * saying the same thing twice anyway -- one named the room, the other said how
-   * to get in -- and the lock glyph beside it already names the room.
+   * He is right that a heading is a name and not a sentence. A dialog titled
+   * with its own instructions has stopped having a title, and at 17px -- shrunk
+   * to make the sentence fit -- it had stopped looking like a heading too. One
+   * word at 22px reads as the heading of something; six words at 17px read as
+   * body copy that happens to be bold.
    *
-   * The instruction has to survive somewhere, which is why it is the title and
-   * not simply cut: "password" is the whole of the decoy. It is the only word in
-   * the dialog that makes a cheat code a plausible thing to type here, and
-   * without it the second door is the only door anybody would ever find.
+   * WHAT WENT WITH IT is worth knowing: "password" no longer appears anywhere a
+   * reader can see it. It survives in the field's accessible name and in the
+   * progress line's promise that answers are not the only way in. That is a real
+   * cost to the decoy -- it was the one word making a cheat code a plausible
+   * thing to type here -- and it is the kind of cost that belongs in a note
+   * rather than in an argument, because the lock glyph and a single text field
+   * are themselves a password prompt to anybody who has seen one.
    */
   const panel = h('div', {
     class: 'ag-panel', role: 'dialog', 'aria-modal': 'true',
-    'aria-label': 'Put a password or answer to unlock',
+    'aria-label': 'Restricted',
   },
     h('div', { class: 'ag-head' },
       h('span', { class: 'ag-lock', 'aria-hidden': 'true' }, '\u{1F512}'),
-      h('h2', { class: 'ag-title' }, 'Put a password or answer to unlock')),
+      h('h2', { class: 'ag-title' }, 'Restricted')),
     h('div', { class: 'ag-ask' },
       kind,
       h('div', { class: 'ag-qrow' }, prompt, skip)),

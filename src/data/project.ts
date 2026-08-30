@@ -3528,6 +3528,40 @@ export const tasks: Task[] = [
     },
   },
 
+  {
+    id: 'N205', col: 'backlog', size: 'S', tag: 'onboarding',
+    title: 'BUG: the stork flaps one wing up and the other down',
+    note: 'Adding the bundle shifted the part indices the rig was counting on.',
+  },
+
+  {
+    id: 'N206', col: 'backlog', size: 'S', tag: 'onboarding',
+    title: 'The stork gets a rounder head and a heavier bundle',
+    note: 'Flat head, light sack. Both are drawing notes against a reference photograph.',
+  },
+
+  {
+    id: 'N207', col: 'backlog', size: 'M', tag: 'onboarding',
+    title: 'Three candidates out, three better ones in',
+    note: 'Liberty, the castle and the horse lose. A jellyfish, an armillary and a fountain stand.',
+  },
+
+  {
+    id: 'N208', col: 'review', size: 'S', tag: 'trust',
+    title: 'The gate gets its name back, at the size of a heading',
+    note: 'A title made of its own instructions had stopped being a title, and 17px had stopped looking like one.',
+    detail: {
+      why: 'Nam: "Put a password or answer to unlock => lets put back to Restricted, and have a bigger title in font size" and, restoring the line N204 trimmed: "Answer 20 correctly to unlock."',
+      done: [
+        'The title is Restricted again, at the spec panel heading size',
+        'The progress line says Answer 20 correctly to unlock',
+        'The lead row stays deleted, so the dialog is still five rows',
+      ],
+      raised: 'Nam, QA 30 Aug',
+      notes: 'HALF OF N204 SURVIVED AND HALF DID NOT, and the half that did is the one that deleted a row. Moving the instruction into the title was the other half, and it was wrong in the way that is only obvious once it is on screen: a dialog titled with its own instructions has stopped having a title. The size gave it away first -- 17px was never a design decision, it was the size a six word heading had to shrink to in order to fit beside a lock and a close button, and a heading sized by its own length is not a heading any more.\\n\\nTHE SIZE IS THE SPEC PANEL, NOT A NEW NUMBER. .dp-title h1 is the heading of the dialog this one opens from: 400 22px/28px with -.2px tracking, measured. Two dialogs in one family get one heading treatment, so there was nothing to choose. Nam asked for bigger and the house already had the value.\\n\\nWHAT WENT WITH IT, and it is a real cost rather than a tidy one: "password" now appears nowhere a reader can see. It survives in the field accessible name and by implication in the progress line, which promises that answering is A way in rather than the only one. That word was doing work -- it was what made typing a cheat code a plausible thing to do in this box -- and the counter-argument is that a padlock over a single text field IS a password prompt to anybody who has ever seen one, so the fiction rests on the shape rather than on the label. Flagged rather than argued: the fix is one word in the placeholder if it turns out to matter, and Nam has already chosen that placeholder once.',
+    },
+  },
+
   /* Flagged rather than done. Still true as of this build. */
   { id: 'T24', col: 'backlog', size: 'M', tag: 'specs', title: 'Initial payload is halfway to the ceiling', note: '24.7 kB of a 50 kB gate, up from 18.2. Still green, and the growth is real, but two deferred chunks are 17 kB and 19 kB and deserve a splitting pass before it becomes urgent.' },
 ];

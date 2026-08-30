@@ -9290,17 +9290,23 @@ body.bug-struck { animation: bug-shake 520ms cubic-bezier(0.36, 0.07, 0.19, 0.97
   border-radius: 16px; padding: 24px 24px 22px;
   box-shadow: 0 1px 3px 0 rgba(0, 0, 0, .3), 0 4px 8px 3px rgba(0, 0, 0, .15);
 }
-/* THE TITLE IS THE INSTRUCTION NOW (N204), so the lead line is gone and the row
-   count drops from six to five. align-items: flex-start rather than centre,
-   because a title that wraps on a narrow panel should keep the lock beside its
-   FIRST line rather than floating to the middle of two.
+/* The lead line is still gone (N204) and the title is a name again (N208).
 
-   17px rather than 18: at 18 this title is 302px against about 330 of usable
-   width once the lock and the close button have taken theirs, which fits and
-   leaves nothing. 17 buys the margin back. */
-.ag-head { display: flex; align-items: flex-start; gap: 10px; margin-bottom: 18px; padding-right: 34px; }
-.ag-lock { font-size: 18px; line-height: 22px; flex: 0 0 auto; }
-.ag-title { font: 500 17px/22px var(--font-title); color: var(--dp-ink); }
+   THE SIZE IS THE SPEC PANEL'S, NOT A NEW ONE. .dp-title h1 up at 8716 is the
+   heading of the dialog this one opens from, measured at 400 22px/28px with
+   -.2px tracking, so the gate simply matches it: two dialogs in the same family,
+   one heading treatment. Nam asked for "a bigger title in font size" and the
+   house already had the number.
+
+   The jump from 17 is what N204 cost and N208 gets back. 17 was never a design
+   decision -- it was the size a six-word title had to shrink to in order to fit
+   beside a lock and a close button, and a heading sized by its own length is a
+   heading that has stopped being one.
+
+   align-items: centre again, because one word cannot wrap. */
+.ag-head { display: flex; align-items: center; gap: 10px; margin-bottom: 18px; padding-right: 34px; }
+.ag-lock { font-size: 20px; line-height: 28px; flex: 0 0 auto; }
+.ag-title { font: 400 22px/28px var(--font-title); color: var(--dp-ink); letter-spacing: -.2px; }
 
 /* --- the question, and what belongs to it (N199) ------------------------- */
 /* The kind chip used to ride the header opposite the title, which was right
