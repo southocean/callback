@@ -258,10 +258,69 @@ const MIDDLE: Spot = { side: 0, y: 0, s: 1 };
  * model into whatever space is actually free, which means the stylesheet can move
  * the copy wherever it likes and this file simply agrees.
  */
-export interface Copy { left: number; right: number }
+export interface Copy {
+  left: number;
+  right: number;
+  top: number;
+  /**
+   * The one formation that must stay CENTRED rather than take the band, or -1.
+   *
+   * The opening ring frames the copy on purpose, and that only works if it is
+   * drawn around the words rather than above them. Which formation that is
+   * cannot be decided here: it depends on whether the framing moment has been
+   * spent yet this session, which is ui/start.ts's business. So it arrives as an
+   * index, and this file simply agrees -- the same arrangement as the three
+   * measurements above it.
+   */
+  frame: number;
+}
 
 /** Below this much free space there is nothing worth putting a model in. */
 const MIN_MARGIN = 210;
+
+/*
+ * The same idea for the band ABOVE the copy, and a smaller number because it is
+ * a different shape of space. A side margin has the full height to draw in and
+ * only needs width; the top band has the full width and only needs height, so it
+ * can be shallower and still hold a model at a readable size.
+ *
+ * 170 rather than 180 so the 320x568 floor clears it with something to spare:
+ * the stylesheet opens 181 there, and a threshold a single pixel under the worst
+ * case is a threshold that will fail on the next phone.
+ */
+const MIN_BAND = 170;
+
+/*
+ * How much of the band a model may fill.
+ *
+ * The side-margin case uses 0.94 because its constraint is WIDTH: a model in a
+ * 240px margin with a hair of clearance either side reads as placed in the
+ * margin. The band's constraint is height, and height is measured from the top
+ * of the SCREEN -- so 0.94 there put a full-size geometry shape 11px from the
+ * top edge, which reads as pinned to it rather than sitting in the space.
+ *
+ * THE HISTORY IS WORTH KEEPING, because two of the three numbers tried were
+ * answers to the wrong question.
+ *
+ * It started at 0.94, matching the side margin. Nam reported the shapes sitting
+ * "way too high on the screen", which looked like a size problem and was not: the
+ * band handed to this file was STALE at 223px, so the sphere was centred at 111 in
+ * a band that had actually grown to 366. A 0.78 ceiling was tried for that and
+ * reverted, because the real fix was in ui/start.ts and because he then described
+ * the correctly-measured full-width version as "big full width very nice".
+ *
+ * 0.85 IS THE ONE THAT ANSWERS WHAT WAS ASKED. With the band measured properly a
+ * full-size shape came within 11px of the top of the screen, and Nam: "the circle
+ * I want it a bit smaller, right now it looks very cramped. We could try 90%
+ * current size maybe." 0.94 x 0.9 is 0.846, so 0.85 -- which at 390x844 takes the
+ * sphere from 344px across to 311 and puts 27px of air above it instead of 11.
+ *
+ * It applies to every model the band has to shrink, not only the sphere. The
+ * culture motifs are limited by their own authored scale rather than by the band,
+ * so almost none of them change; the geometry set asks for full size, so it is the
+ * one that feels this.
+ */
+const BAND_FILL = 0.85;
 
 /*
  * The assignment works in model units, and a spot is a screen offset, so the cost
@@ -948,18 +1007,34 @@ function torusArc(ph: number, lap: number): [number, number, number] {
   // before anything else happens to it.
   const lean = smooth((ph - 0.06) / 0.4) * target;
   /*
-   * THE DIVE FINISHES INSIDE THE HOLD, NOT AT THE END OF IT. Nam: "right after we
-   * enter the donut hole, give it a very short delay then we disassemble ... the
-   * exit part ruins the illusion, we want to give this illusion of zooming into
-   * this donut shape drone swarm into the next."
+   * THE DIVE NEVER ARRIVES, AND THAT IS THE POINT OF IT.
    *
-   * So it lands at four fifths of the way through the hold, sits there for about
-   * a second, and the fleet then leaves from INSIDE. The camera does not come back
-   * out while anything is still recognisable -- see the note on the zoom blend in
-   * drawShow, which now holds the dive through the first half of the flight and
-   * drops it in the scramble where a change of scale cannot be seen.
+   * Nam: "Right now we zoom into the donut and then we stay there for like 1s
+   * before we disassemble ... My problem is, we stop at the end state 1 or 2s too
+   * long. What I want is that we disassemble AS we are reaching the end state. So
+   * basically we dont even get to the end state. You know that you are getting
+   * there, but before you get there, we are already disassembled and on to the
+   * next shape."
+   *
+   * The earlier version aimed for the opposite and hit it: the dive completed at
+   * ph 0.52 and the hold runs to 0.62, so it sat at full zoom for 0.85s -- and
+   * drawShow deliberately holds the outgoing zoom through the first 30% of the
+   * flight so the camera cannot be seen backing out, which adds another 0.97s.
+   * 1.8s parked at the end state, which is exactly what he timed by eye.
+   *
+   * WIDENING THE RAMP RATHER THAN DELAYING IT, so the move is not compressed into
+   * a shorter, faster dive. Over 0.45 of a cycle instead of 0.22 the dive reaches
+   * 80% of its travel at ph 0.62 -- the instant the fleet starts to scramble --
+   * and completes at 0.75, which is a third of the way into the flight, right as
+   * the blend to the next shape starts pulling the camera out. So it is still
+   * accelerating inwards when it comes apart, and the end state is implied and
+   * never held.
+   *
+   * The lean is left alone: it puts the torus on its back by ph 0.46, and the top
+   * view IS one of the two states Nam said he likes. It is the arrival at the
+   * BOTTOM of the hole that was overstaying.
    */
-  const zoom = bold ? 1 + smooth((ph - 0.3) / 0.22) * 1.35 : 1;
+  const zoom = bold ? 1 + smooth((ph - 0.3) / 0.45) * 1.35 : 1;
   return [lean, zoom, 0];
 }
 
@@ -2566,6 +2641,19 @@ export interface Programme {
   /** Where the frozen frame sits, in seconds, for reduced motion. */
   still: number;
   forms: Formation[];
+  /**
+   * What the last drawn frame's clock worked out: which formation is up and how
+   * far into leaving it the fleet is.
+   *
+   * WRITTEN HERE RATHER THAN RECOMPUTED BY THE CALLER. start.ts needs to know
+   * when the show begins leaving the opening shape, so it can start the copy
+   * sliding down. It could derive it from cycle, held, shift and warp -- and then
+   * there would be two copies of this clock, which would eventually disagree, and
+   * the disagreement would be visible as the text moving at a different moment
+   * from the fleet. shapeAt() is not the answer either: it deliberately hands over
+   * half way through a flight, because that is what looks right on the dots.
+   */
+  at?: { idx: number; tr: number };
   /** Seeded on the first frame, not at module load. See ASSIGNMENT. */
   slots: Int16Array[] | null;
   /** Refinement trials still owed, spent a slice at a time during a hold. */
@@ -2959,6 +3047,8 @@ export function drawShow(
    */
   if (p.owed > 0 && tr === 0) p.owed -= refine(p, Math.min(p.owed, SLICE));
 
+  p.at = { idx, tr };
+
   const A = p.forms[idx]!;
   const B = p.forms[nxt]!;
   const sa = slots[idx]!;
@@ -3075,37 +3165,71 @@ export function drawShow(
   const cyy = hh / 2;
 
   /*
-   * NARROW SCREENS BRING EVERYTHING BACK TO THE MIDDLE, and it is one line rather
-   * than a second set of coordinates. The spots put a motif out in a margin, and
-   * on a phone there are no margins -- the copy is the full width, so a spot at
-   * 0.7 of the half width is behind the words rather than beside them. One
-   * centred formation at full size is the better answer there.
-   */
-  /*
    * WHERE A MODEL ACTUALLY GOES, worked out against this viewport rather than
    * assumed. The margin beside the fixed 560px column is what there is to play
    * with; a model is centred in it and shrunk to fit if it does not.
    */
-  // The free space each side of the copy, and where the middle of it is. Both
-  // sides are measured, because once the column slides right they are different.
+  // The free space each side of the copy, and above it. All three are measured,
+  // because the stylesheet slides the column right on a wide screen and DOWN on
+  // a narrow one, and no constant describes where its edges end up.
   const freeL = copy.left;
   const freeR = w - copy.right;
-  const place = (m: Model): [number, number, number] => {
+  const freeT = copy.top;
+  /*
+   * A PHONE HAS NO MARGINS, SO IT LOOKS UP INSTEAD.
+   *
+   * This used to read "narrow screens bring everything back to the middle", and
+   * the middle is where the words are. Nam: "make space for the drone
+   * presentation on the top part of the screen. Rightnow they are behind the text
+   * and are quite hard to read." He is right, and centring was the reason: the
+   * spots put a motif out in a side margin, a phone has no side margin worth the
+   * name, so every motif fell back to full size dead centre -- directly behind
+   * the one paragraph on the screen that has to be readable.
+   *
+   * The space a phone does have is vertical. The stylesheet slides the copy down
+   * under the culture programme, exactly as it slides it right on a desktop, and
+   * this reads the band that opens above it and puts the model there.
+   *
+   * GATED ON THERE BEING NO SIDE MARGIN, which is what keeps a desktop out of
+   * this branch. On a wide screen the copy is vertically centred, so the band
+   * above it is large and would otherwise capture every centred model and lift it
+   * off the middle -- changing the geometry programme, which is not what was
+   * asked and is not broken.
+   */
+  const noSides = freeL < MIN_MARGIN && freeR < MIN_MARGIN;
+  const place = (m: Model, i: number): [number, number, number] => {
     const side = m.spot.side;
     const free = side < 0 ? freeL : freeR;
-    if (side === 0 || free < MIN_MARGIN) {
-      // A model authored centred, or a screen with no margin worth using: full
-      // size in the middle, which is what the geometry set wants everywhere and
-      // what every motif falls back to on a phone.
-      return [0, m.spot.y * cyy, (side === 0 ? m.spot.s : 1) * scale];
+    if (side !== 0 && free >= MIN_MARGIN) {
+      // 0.94 rather than 1, so a model never quite touches the copy or the edge.
+      const fit = (free * 0.94) / (m.rad * 2);
+      const mid = side < 0 ? free / 2 : w - free / 2;
+      return [mid - cx, m.spot.y * cyy, Math.min(m.spot.s * scale, fit)];
     }
-    // 0.94 rather than 1, so a model never quite touches the copy or the edge.
-    const fit = (free * 0.94) / (m.rad * 2);
-    const mid = side < 0 ? free / 2 : w - free / 2;
-    return [mid - cx, m.spot.y * cyy, Math.min(m.spot.s * scale, fit)];
+    /*
+     * The framed formation stays in the middle even though a band is open, which
+     * is the whole point of it: the ring is drawn AROUND the copy.
+     *
+     * Checked per formation rather than as one flag for the frame, and that is
+     * what makes the handover work. While the show is leaving the ring, this one
+     * is still centred and the incoming shape is already in the band, so the two
+     * interpolate and the fleet FLIES up as the copy slides down. A single flag
+     * flipped at the same moment would have snapped both of them at once.
+     */
+    if (copy.frame !== i && noSides && freeT >= MIN_BAND) {
+      // Centred across the width, halfway down the band, and shrunk to fit it.
+      // The offset is from the middle of the canvas because that is what the
+      // projection adds it to.
+      const fit = (freeT * BAND_FILL) / (m.rad * 2);
+      return [0, freeT / 2 - cyy, Math.min(m.spot.s * scale, fit)];
+    }
+    // A model authored centred on a screen with room for it, or a screen with no
+    // usable space anywhere: full size in the middle. This is what the geometry
+    // set wants everywhere, and it is the honest fallback on a very short screen.
+    return [0, m.spot.y * cyy, (side === 0 ? m.spot.s : 1) * scale];
   };
-  const [axp, ayp, asp] = place(A.m);
-  const [bxp, byp, bsp] = place(B.m);
+  const [axp, ayp, asp] = place(A.m, idx);
+  const [bxp, byp, bsp] = place(B.m, nxt);
   // Interpolated with everything else, so a motif in the left margin becoming one
   // in the right margin SLIDES rather than cutting. The fleet relocating across
   // the screen is the most drone-show thing in the whole running order.

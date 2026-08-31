@@ -10615,8 +10615,86 @@ body.bug-struck { animation: bug-shake 520ms cubic-bezier(0.36, 0.07, 0.19, 0.97
   transform: translateX(clamp(0px, calc(50vw - 344px), 300px));
 }
 
-@media (prefers-reduced-motion: reduce) {
-  .st-col { transition: none; }
+/* AND DOWN INSTEAD, WHERE THERE IS NO SIDE TO SLIDE TO.
+
+   Nam: "when we switch from geometry to culture, we should bring the center text
+   lower (smooth transition here, just like on desktop we move the text to the
+   right side), and make space for the drone presentation on the top part of the
+   screen. Rightnow they are behind the text and are quite hard to read."
+
+   688px IS DERIVED, NOT PICKED. The shift above is clamped at calc(50vw - 344px),
+   which reaches zero at exactly 688px of viewport -- so below that width the copy
+   is already dead centre and the motifs are already behind it. That is the width
+   at which sideways stops being an option, so it is the width at which downwards
+   starts.
+
+   THREE BOUNDS, AND EACH ONE IS A MEASUREMENT.
+
+   17vh is the ask: a fraction, so the band grows with the screen.
+
+   calc(50vh - 247px) is the CEILING, and it is what stops the copy sliding into
+   the dots and the programme buttons. Those reserve a constant 74px at the bottom
+   at every size measured -- 844, 915, 640, 568 and 900 all put their top edge at
+   vh minus 74 -- and the column is 346px tall on every phone width, so its
+   untransformed bottom is vh/2 + 173. Requiring bottom + shift to clear vh - 74
+   gives exactly 50vh - 247. Without this the copy overlapped the controls at 640
+   and at 568, which is how the first attempt shipped.
+
+   150px is the far end, so a tall phone does not push Start toward the bottom.
+
+   min-height: 590px IS THE ADMISSION THAT SOME SCREENS HAVE NO ROOM. The band is
+   vh/2 - 173 + shift and drones.ts needs 170 of it; the ceiling above allows at
+   most vh/2 - 247. Both can be satisfied only when vh is at least 590. Below that
+   -- a 320x568 floor, not a phone anybody carries -- the copy stays exactly where
+   it is and the motif stays centred behind it, because moving the text down to
+   uncover a band too small to draw in would cost the layout and buy nothing.
+
+   It rides the same transform and the same 420ms transition as the desktop slide,
+   so the motion is the one already approved, on the other axis.
+
+   ui/drones.ts does not know any of these numbers. It measures the band the slide
+   opens up and fits a model into it, which is why these two files cannot drift. */
+@media (max-width: 688px) and (min-height: 590px) {
+  /*
+   * BOTH PROGRAMMES, and that is a change Nam made after seeing it: "I didnt mean
+   * to also pull the drone swarm to the top of the screen when on geometry too
+   * but now that you did it, it looks quite nice. Let's also move the text in
+   * geometry theme to the same position as in culture theme so the drones have
+   * more space on top."
+   *
+   * [data-prog] rather than [data-prog="culture"] to carry the specificity, not
+   * to select anything: the desktop rule above is (0,3,0) and evaluates its clamp
+   * to 0px at this width, so a plain .st-col would lose to it and nothing would
+   * move.
+   */
+  .start[data-prog] .st-col {
+    transform: translateY(clamp(0px, min(17vh, calc(50vh - 247px)), 150px));
+  }
+  /*
+   * SLOWER AND SOFTER THAN THE DESKTOP SLIDE, for two reasons that point the same
+   * way. Nam: "the text transition is way too abrupt, please soften it, make it
+   * slower (also slow because this party is very laggy so sudden movements become
+   * very lagged)."
+   *
+   * The desktop curve is cubic-bezier(0.2, 0, 0, 1) over 420ms -- an emphasised
+   * decelerate, which is right for a short sideways nudge and reads as a snap over
+   * the much longer distance this travels. And a phone is drawing 1400 drones
+   * while it moves: a fast transform competes with that for frames, so the same
+   * distance taken slowly is not just gentler, it is cheaper per frame.
+   *
+   * The reduced-motion rule below still wins, being later in the file.
+   */
+  .st-col {
+    transition: transform 900ms cubic-bezier(0.33, 0, 0.2, 1);
+  }
+  /*
+   * EXCEPT WHILE THE RING IS FRAMING THE COPY. ui/start.ts owns when that is; all
+   * this has to do is put the column back in the middle for it, and let the same
+   * 420ms transition carry it down when the class goes.
+   */
+  .start.is-framing .st-col {
+    transform: none;
+  }
 }
 
 /* The copy sits in its own pool of dark.

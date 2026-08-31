@@ -4115,6 +4115,74 @@ export const tasks: Task[] = [
     },
   },
 
+  {
+    id: 'N242', col: 'review', size: 'M', tag: 'onboarding',
+    title: 'On a phone the title card slides the copy DOWN for the motifs',
+    note: 'Sideways is not available at 390px, so the show was drawing straight through the words.',
+    detail: {
+      why: 'Nam: "when we switch from geometry to culture, we should bring the center text lower (smooth transition here, just like on desktop we move the text to the right side), and make space for the drone presentation on the top part of the screen. Rightnow they are behind the text and are quite hard to read."',
+      done: [
+        'The copy slides down under the culture programme below 688px, on the same transform and the same 420ms curve as the desktop slide',
+        'drones.ts measures the band that opens and fits the model into it',
+        'Bounded so the copy cannot reach the dots and the programme buttons',
+        'A screen with no room for a band does not move at all',
+      ],
+      raised: 'Nam, QA 31 Aug',
+      notes: 'THE AVOIDANCE MODEL WAS HORIZONTAL ONLY, which is why this was not a one-line change. N183 slides the copy sideways for the motifs and drones.ts fits each model into the margin that opens; the Copy it is handed is a left and a right, and nothing else. On a phone there is no margin worth the name, so every motif fell through to the branch marked "narrow screens bring everything back to the middle" -- and the middle is where the words are. The comment described the behaviour accurately and the behaviour was the bug.\n\nSo Copy grew a top, start.ts measures it on the same per-frame read as the other two, and place() looks UP when neither side is usable. Gated on that, deliberately: on a wide screen the copy is vertically centred, so the band above it is large and would otherwise capture every centred model and lift the geometry programme off the middle, which is not what was asked and is not broken.\n\n688px IS DERIVED. The desktop shift is clamped at calc(50vw - 344px), which reaches zero at exactly 688px of viewport. That is the width at which sideways stops being an option, so it is the width at which downwards starts.\n\nTHE CEILING IS THE PART THE FIRST ATTEMPT GOT WRONG. A plain 17vh opened a fine band at 390x844 and slid the copy straight into the dots and the programme buttons at 640 and at 568 -- a transform does not move anything else, so nothing pushed back. Measured: that furniture reserves a constant 74px at the bottom on every size checked, and the column is 346px tall on every phone width, so the untransformed bottom is vh/2 + 173 and clearing vh - 74 allows at most 50vh - 247. That is the second bound, and it is arithmetic rather than a guess.\n\nAND SOME SCREENS HAVE NO ROOM, which is worth stating rather than fudging. The band is vh/2 - 173 + shift, drones.ts wants 170 of it, and the ceiling allows vh/2 - 247; both hold only above 590px of height. Below that the copy does not move and the motif stays centred, because sliding the text down to uncover a band too small to draw in costs the layout and buys nothing. 320x568 is the floor rather than a phone anybody carries.\n\nMEASURED AFTER: band 366 at 390x844, 408 at 412x915, 194 at 360x640, no shift at 320x568, and the desktop slide unchanged at 1440x900. Nothing overlaps the controls at any of them.',
+    },
+  },
+
+  {
+    id: 'N243', col: 'review', size: 'M', tag: 'onboarding',
+    title: 'The opening ring frames the copy, once per load, then gets out of the way',
+    note: 'Both programmes lift the fleet on a phone now. The first shape is the exception, and only the first.',
+    detail: {
+      why: 'Nam: "I didnt mean to also pull the drone swarm to the top of the screen when on geometry too but now that you did it, it looks quite nice. Lets also move the text in geometry theme to the same position as in culture theme ... There is only one request: upon loading the CV ... For this particular circle shape, I want it to surround the text just like before ... It does double purpose here. both foreshadowing the drone swarm crazy work and framing the eye sight to look at the text in the center, so its both stylistic and functional. I dont want to lose this double purpose."',
+      done: [
+        'Both programmes slide the copy down below 688px, not just culture',
+        'On a phone the opening ring is drawn AROUND the centred copy, as on desktop',
+        'The copy steps down the moment the show starts leaving that shape',
+        'It never comes back up in that page load, including on a return to the ring',
+        'Open on culture and the moment is not lost: it waits for the first press of Geometry',
+      ],
+      raised: 'Nam, 31 Aug',
+      notes: 'THE GEOMETRY LIFT WAS AN ACCIDENT THAT TURNED OUT TO BE RIGHT. N242 only meant to move the copy under the culture programme, but the placement gate in drones.ts reads the geometry of the screen rather than the name of the programme -- no usable side margin, a band above the copy over 170px -- and a centred column on a phone satisfies both. So the geometry motifs went up too. Nam saw it before the ticket was closed and kept it, which is the argument for shipping things where they can be looked at.\n\nTHE RING IS THE ONE EXCEPTION AND IT EARNS IT. It is not decoration: a ring around the copy foreshadows what the fleet can do and points the eye at the words at the same time, which is why it is the shape the show opens on. Lifting it into a band costs both jobs at once -- so the copy starts centred, the ring is drawn around it, and both move only when the show moves on.\n\nCHECKED PER FORMATION, NOT AS ONE FLAG, and that detail is what makes the handover work rather than snap. While the fleet is leaving the ring, the outgoing shape is still centred and the incoming one is already in the band, so the two interpolate and the fleet FLIES up as the copy slides down. One flag flipped at that moment would have jumped both.\n\nTWO DIFFERENT MOMENTS, which is why one test reads the formation index and the other reads the transit fraction: the TEXT leaves as soon as the handover starts, the SHAPE stays centred until the handover ends.\n\nSPENT PER PAGE LOAD, NOT PER MOUNT. Switching programmes re-mounts the show, so a flag inside that closure would hand the framing back on every press of Geometry. Module scope is the fix and the reason is worth writing down.\n\nAND drawShow REPORTS ITS OWN CLOCK rather than start.ts recomputing it. Deriving the moment from cycle, held, shift and warp would have meant two copies of one clock, and the disagreement would have been visible as the text moving at a different instant from the fleet. shapeAt() was not the answer either: it hands over half way through a flight on purpose, because that is what looks right on the dots.\n\nVERIFIED BY DRIVING IT at 390x844: load on geometry gives a centred column at 223 with the ring around it; a dot press puts it at 366 and the sphere in the band; a return to the ring leaves it at 366; a load on culture starts at 366 and the first press of Geometry brings it back to 223 once, after which leaving the ring drops it for good.',
+    },
+  },
+
+  {
+    id: 'N244', col: 'review', size: 'S', tag: 'onboarding',
+    title: 'The copy slides gently, and the band it opens is measured after it moves',
+    note: 'Two reports, one bug: a measurement window that stopped a second after mount.',
+    detail: {
+      why: 'Nam: "the text transition is way too abrupt, please soften it, make it slower (also slow because this party is very laggy so sudden movements become very lagged). and the drone formations on top are way too high on the screen." Then, minutes later: "after the onboarding, the next shapes in geometry mode seem to be smaller, like zoomed out. If I switch to the culture mode, then back, now the drones formations in geometry have big full width very nice."',
+      done: [
+        'The column re-reads its box whenever it starts moving, not only at mount',
+        '900ms and a softer curve on a phone, against 420ms on the desktop slide',
+        'The band is 366 rather than a stale 223, so the shape is centred and full size',
+      ],
+      raised: 'Nam, 31 Aug',
+      notes: 'TWO REPORTS, ONE BUG, AND NEITHER DESCRIBED IT. "Too high on the screen" and "smaller, like zoomed out, until I switch programmes and back" are the same stale number seen from two ends, and both are a position AND a size at once because the band decides both: the model is centred at half the band and fitted to it.\n\nTHE WINDOW WAS RIGHT UNTIL THE COPY LEARNED TO MOVE LATER. start.ts re-reads the column box for one second after mount and then stops, because a getBoundingClientRect a frame is a layout read this file went out of its way to remove. That was correct while the only slide happened at mount. N243 added a slide about ten seconds in, at the framing hand-off, long after measuring had stopped -- so the show was handed a band of 223px, centred the sphere at 111 and fitted it to 209px across, while the copy had actually moved to 366. Switching to culture and back re-mounted the show, took a fresh measurement, and produced the version he liked. The programme round trip was not fixing anything, it was just re-measuring.\n\nSo the window re-arms whenever the framing class flips, and it is a named constant that has to outlast the CSS transition. Two moments of layout reads instead of one, and still none in the steady state.\n\nA 0.78 CEILING WAS TRIED AND REVERTED on the way through, which is worth admitting. "Too high" read as a size problem, so the band fill came down -- and the second report arrived describing the correctly measured full-width version as "big full width very nice". The size was never wrong. Fixing the measurement moved the shape down without changing how big it is, which is what both reports actually wanted.\n\n900ms RATHER THAN 420, AND FOR A SECOND REASON BESIDES TASTE. The desktop curve is an emphasised decelerate over a short sideways nudge; over this distance it reads as a snap. And the phone is drawing 1400 drones while it moves, so a fast transform competes with them for frames -- the same distance taken slowly is gentler and cheaper at once. Nam made that argument himself: "also slow because this party is very laggy so sudden movements become very lagged."',
+    },
+  },
+
+  {
+    id: 'N245', col: 'review', size: 'S', tag: 'onboarding',
+    title: 'The sphere gets air, and the donut stops arriving',
+    note: 'Two timing and sizing notes off the phone. The dive was parked at its destination for 1.8s.',
+    detail: {
+      why: 'Nam: "the circle I want it a bit smaller, right now it looks very cramped. We could try 90% current size maybe" and "Right now we zoom into the donut and then we stay there for like 1s before we disassemble ... we stop at the end state 1 or 2s too long. What I want is that we disassemble AS we are reaching the end state. So basically we dont even get to the end state."',
+      done: [
+        'The band fill is 0.85, so a full-size shape leaves 27px of air rather than 11',
+        'The torus dive ramps over 0.45 of a cycle instead of 0.22',
+        'It is 80% of the way in when the fleet scrambles, and completes mid-flight',
+        'Zero time parked at the end state, down from 1.8s',
+      ],
+      raised: 'Nam, 31 Aug',
+      notes: 'THE SIZE: 0.94 x 0.9 is 0.846, so 0.85. At 390x844 that takes the sphere from 344px across to 311 and turns 11px of clearance at the top of the screen into 27. It applies to anything the band has to shrink, which in practice is the geometry set: the culture motifs are limited by their own authored scale rather than by the band, so almost none of them move.\n\nTHE DIVE WAS BUILT TO DO EXACTLY WHAT HE NOW DOES NOT WANT, which is worth being straight about. N-something earlier asked for "right after we enter the donut hole, give it a very short delay then we disassemble", and the ramp was tuned to land at four fifths of the way through the hold and sit there. Measured against the geometry programme -- 8.5s cycle, hold to 0.62 -- the dive completed at ph 0.52 and held for 0.88s, and drawShow deliberately keeps the outgoing zoom through the first 30% of the flight so the camera cannot be seen backing out, which is another 0.97s. 1.85s at the destination, which is what he timed by eye as "1 or 2s".\n\nWIDENED RATHER THAN DELAYED, and that distinction is the whole fix. Starting the same 0.22 ramp later would have produced a shorter, faster, more violent dive that still arrived. Stretching it to 0.45 means it is at 80% of its travel at ph 0.62 -- the instant the fleet starts to come apart -- and completes at 0.74, a third of the way into the flight, right as the blend to the next shape pulls the camera out. So it is still accelerating inwards when it disassembles. The end state is implied and never held, which is what "you know that you are getting there, but before you get there, we are already disassembled" describes.\n\nTHE LEAN IS LEFT ALONE. It puts the torus on its back by ph 0.46 and the top view is one of the two states he said he likes. It was the arrival at the bottom of the hole that overstayed, not the roll onto its back.',
+    },
+  },
+
   /* Flagged rather than done. Still true as of this build. */
   { id: 'T24', col: 'backlog', size: 'M', tag: 'specs', title: 'Initial payload is halfway to the ceiling', note: '24.7 kB of a 50 kB gate, up from 18.2. Still green, and the growth is real, but two deferred chunks are 17 kB and 19 kB and deserve a splitting pass before it becomes urgent.' },
 ];

@@ -75,6 +75,14 @@ interface Show {
   go: (i: number) => void;
 }
 
+/**
+ * Whether the opening ring has already had its framing moment this page load.
+ *
+ * Module scoped on purpose: it must survive the re-mount that switching
+ * programmes causes, or Geometry would hand the moment back on every press.
+ */
+let framingSpent = false;
+
 function paint(
   canvas: HTMLCanvasElement, prog: Programme, reduced: boolean, col: HTMLElement,
   onShape: (i: number) => void,
@@ -84,6 +92,10 @@ function paint(
     return { stop: () => { /* no 2d context, no animation, no error either */ },
       go: () => { /* nor anything to fly */ } };
   }
+
+  /* The shell carries the framing class, because the stylesheet needs to know
+     about it one level above the column it moves. */
+  const shell = col.closest<HTMLElement>('.start');
 
   let w = 0;
   let hh = 0;
@@ -111,15 +123,37 @@ function paint(
    * read and would be exactly the cost this file removed from the palette, so it
    * stops as soon as the copy has landed.
    */
-  let copy: Copy = { left: 0, right: 0 };
+  let copy: Copy = { left: 0, right: 0, top: 0, frame: -1 };
+  /*
+   * How long the column's box is re-read for after it starts moving.
+   *
+   * MUST OUTLAST THE CSS TRANSITION, and getting that wrong is what put the
+   * geometry shapes at the top of the screen. The window used to be one second
+   * from mount, which was right when the only slide happened at mount. The
+   * framing hand-off slides the copy about ten seconds in, long after measuring
+   * had stopped -- so the show was handed a stale band of 223px and dutifully
+   * centred the sphere in the middle of it, at 111, while the copy had actually
+   * moved down to 366. Culture never showed it because its copy is already down
+   * before the first measurement is taken.
+   */
+  const SETTLE_S = 1.3;
   let settleFrom = -1;
+  let wasFraming = false;
   let shown = -1;
   let clock = 0;
 
   const measure = (): void => {
     const box = col.getBoundingClientRect();
     const own = canvas.getBoundingClientRect();
-    copy = { left: box.left - own.left, right: box.right - own.left };
+    copy = {
+      frame: copy.frame,
+      left: box.left - own.left,
+      right: box.right - own.left,
+      // The band above the copy, which is the only free space a phone has. Read
+      // every frame for the first second like the other two, so it follows the
+      // slide down rather than sampling the middle of it.
+      top: box.top - own.top,
+    };
   };
 
   const frame = (t: number): void => {
@@ -151,7 +185,46 @@ function paint(
       prog.shift = -t;
       prog.warp = null;
     }
-    if (t - settleFrom < 1) measure();
+    /*
+     * THE OPENING RING FRAMES THE COPY, ONCE -- Nam: "For this particular circle
+     * shape, I want it to surround the text just like before we did this change
+     * ... It does double purpose here. both foreshadowing the drone swarm crazy
+     * work and framing the eye sight to look at the text in the center, so its
+     * both stylistic and functional."
+     *
+     * So on a phone the copy starts centred with the ring around it, and steps
+     * down to make room for the band the moment the show leaves that shape. It
+     * never comes back up, including on a later return to the ring: this is a
+     * first impression, and a layout that kept re-centring itself every lap would
+     * be the "constant changing" N183 was raised to stop.
+     *
+     * SPENT PER PAGE LOAD, NOT PER MOUNT, which is why the flag is module scoped.
+     * Switching programmes re-mounts the show, and a flag inside this closure
+     * would hand the framing back every time somebody pressed Geometry.
+     *
+     * ARMED BY THE PROGRAMME RATHER THAN BY THE LOAD, which is the case Nam
+     * asked about: open on Culture and the moment is not lost, it is waiting for
+     * the first press of Geometry. setTheme adds the class; here is where it is
+     * taken away again.
+     */
+    const at = prog.at;
+    const geo = prog.id === 'geometry';
+    if (!framingSpent && geo && at && at.idx !== 0) framingSpent = true;
+    const framing = !framingSpent && geo && (!at || at.idx === 0);
+    // The formation stays centred for the whole handover; the TEXT leaves as soon
+    // as the handover starts. Two different moments, which is why one of these
+    // reads idx and the other reads tr.
+    copy.frame = framing ? 0 : -1;
+    const showFrame = framing && (!at || at.tr === 0);
+    /*
+     * The copy is about to move, so start reading its box again. Re-arming here
+     * rather than measuring every frame forever keeps the layout read to the two
+     * moments it is actually needed -- the mount, and this one.
+     */
+    if (showFrame !== wasFraming) { wasFraming = showFrame; settleFrom = t; }
+    shell?.classList.toggle('is-framing', showFrame);
+
+    if (t - settleFrom < SETTLE_S) measure();
     c.clearRect(0, 0, w, hh);
     drawShow(c, w, hh, t, pal, prog, copy);
     /*
@@ -324,6 +397,13 @@ export function renderStart(store: Store, reduced: boolean): HTMLElement {
      * it is leaving.
      */
     wrap.dataset['prog'] = th.id;
+    /*
+     * Set here as well as in the frame loop, so the FIRST paint is already in the
+     * right place. Left to the loop alone, the copy would mount at its lowered
+     * position and slide up on the first frame, which is an animation nobody
+     * asked for and the opposite of the one that was.
+     */
+    wrap.classList.toggle('is-framing', !framingSpent && th.id === 'geometry');
     // The dot row is rebuilt per programme: they do not have the same number of
     // formations, and a stale dot would fly to a shape that is not there.
     dots.replaceChildren(...th.forms.map((_, i) => h(
