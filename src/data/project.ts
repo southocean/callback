@@ -3792,6 +3792,329 @@ export const tasks: Task[] = [
     },
   },
 
+  /* The mobile pass, 31 August. Nam: "the only problem I have is mobile support
+     - how the CV looks on mobile. Let's have a session of automated QA on mobile
+     and see how that works." Four tickets: one for the layout faults the pass
+     found, three for the copy and layout calls he made off the screenshots. */
+  {
+    id: 'N223', col: 'review', size: 'L', tag: 'onboarding',
+    title: 'The whole site was rendering at 66% on a phone',
+    note: 'One inert declaration made the home screen 594px wide on a 390px screen. Everything else followed from it.',
+    detail: {
+      why: 'Nam: "the only problem I have is mobile support - how the CV looks on mobile." Nothing had ever measured this build at a phone’s width.',
+      done: [
+        'tools/qa-mobile.mjs: a phone-shaped browser, driven, with the checks written down',
+        'tools/ref-mobile.mjs: the same questions asked of the real product',
+        'The top bar is a flex container, so the wrap it has always asked for happens',
+        'The nav drawer is a column, is flush with the bar, and stops casting a shadow while shut',
+        'Clean at 320, 390, 412 and 640, drawer open and closed',
+      ],
+      raised: 'Nam, 31 Aug',
+      notes: 'flex-wrap ON A GRID, IN BOTH MEDIA BLOCKS. The mobile rules said "two rows, the composer takes the second" and said it with flex-wrap on .home-bar, which is display:grid. The wrap never happened. Grid auto-placement put the composer in column 1, that 1fr track sized to its 402px min-content, and the bar resolved to grid-template-columns: 402px 0px 160px on a 390px phone. A page too wide to fit is a page the browser zooms out, so every screen of this CV was arriving at two-thirds size. Third time this project has lost to CSS that is present, matched and powerless -- see QA.md section 7 for the cascade version.\n\nTHE SECOND HALF WAS flex-basis. With the container fixed the bar came out as THREE rows against the reference’s two, and every assertion passed on it. Flex assigns items to lines at their hypothetical size -- basis auto, which is the content width -- so the left cluster asked for its full 279px and the icons were pushed to a line of their own. Shrinking never got a turn. A basis of 0 lets the cluster ask for nothing and then grow into what the icons leave, clipping the wordmark, which is what Meet does at this width.\n\nTHREE OF THE FIVE FAULTS CAME OFF SCREENSHOTS, NOT NUMBERS, and that is the finding worth keeping. The drawer was inheriting flex-direction: row from an older design where it was a bottom tab bar, so "Meetings" hung off the left edge and "Calls" was sliced in half -- the entire mobile navigation, unusable, with every automated check green. Clipped content is invisible to a measurement of what is on screen, correctly, which is why the open drawer is now a route in the harness rather than a state nobody visits.\n\nTHE REFERENCE HAS NO MOBILE WEB, which took a measurement to establish rather than an assumption. Sent an iPhone user agent, meet.google.com/home does not serve a small layout: it redirects to an app.goo.gl interstitial with two controls on it. So the honest reference for a web clone is the same web app at a phone’s viewport with a desktop agent, which is Meet’s own responsive CSS at 390px -- and it fits, with 1 control of 16 under 40px against our 9 of 11 on the title card.',
+    },
+  },
+
+  {
+    id: 'N224', col: 'review', size: 'S', tag: 'onboarding',
+    title: 'The promo banner takes the width on a phone',
+    note: 'It was keeping the desktop shape at 390px: copy left, link right, a third of the line spent on the link.',
+    detail: {
+      why: 'Nam, comparing the two screenshots: "the unlock meet premium spreads full width, and the explore plans comes after. In our version, we keep the desktop layout: text on the left and open document button on the right, which is not the most efficient use of space. fix it."',
+      done: [
+        'Icon and copy share the first row, the copy running the full width',
+        'The action drops to a row of its own, against the right edge',
+        'Mobile only. The desktop banner is untouched',
+      ],
+      raised: 'Nam, QA 31 Aug',
+      notes: 'MEASURED OFF THE REFERENCE rather than guessed: Meet’s own banner at 390px puts the icon and copy on one row and "Explore plan" on a second, right-aligned.\n\nTHE TEXT COLUMN IS SIZED TO FINISH THE ROW, which is the mechanism that moves the link. 24px of icon plus the banner’s 12px gap is 36, so a basis of calc(100% - 36px) fills row one exactly and the link cannot fit beside it.\n\nTHE FIRST ATTEMPT PUT text-align: right ON THE LINK AND IT CAME OUT LEFT. .banner a is display:inline-flex, so there is no inline content for text-align to act on, and it already carries margin-left:auto -- the right mechanism, given no free space to use at a full-width basis. Letting the link keep its natural width puts the space back and the margin it has always had does the work. Worth remembering as a shape: when an alignment property does nothing, check whether the box is even the kind of box that property applies to.',
+    },
+  },
+
+  {
+    id: 'N225', col: 'review', size: 'S', tag: 'content',
+    title: 'Two strings get shorter on a phone, and only on a phone',
+    note: 'The meeting title cost a third line; the three claims wrapped their own separators into nonsense.',
+    detail: {
+      why: 'Nam: "some texts become too long on mobile, trim it. For example, cut the Stockholm in the meeting title, so we save the third line. The 3 things we add in the Short on time box, make each of them a new line and delete the dot in between ... these are all the fixes we do just for mobile alright, keep desktop the same."',
+      done: [
+        'The city comes off the meeting title below 600, taking it from three lines to two',
+        'The three claims become three lines, and the middots go with the wrapping',
+        'Both authored in full and dropped in CSS, so the desktop copy is unchanged',
+      ],
+      raised: 'Nam, QA 31 Aug',
+      notes: 'SPLIT IN THE MARKUP, HIDDEN IN THE STYLESHEET, which is what keeps "mobile only" honest. Shortening the strings in data would have meant companies.ts holding two versions of one true sentence and something choosing between them; a span the narrow width hides is a layout decision living where layout decisions live. The desktop rendering is character-for-character what it was, because inline spans containing the same text lay out identically.\n\nTHE CITY IS THE RIGHT WORD TO LOSE. It is the least load-bearing thing in the title -- anyone reading this on a phone already knows which job it is about -- and the tail is only taken when the pitch’s own place field is genuinely how the string ends. A blind split on the last comma would have cut "Web Development" off the neutral copy, which names no city and would have lost half a role title to a rule written for one that does.\n\nTHE MIDDOTS WERE FINE UNTIL THEY WRAPPED. On one line they are what separates the list. At 390px the line breaks four times and the separators land wherever the wrap put them -- mid-claim, or first on a line -- at which point they stop reading as separators and start reading as punctuation nobody wrote.',
+    },
+  },
+
+  {
+    id: 'N226', col: 'review', size: 'S', tag: 'content',
+    title: 'The meeting time is a range, so it takes a dash',
+    note: 'A comma between two times that each contain a comma-shaped pause. Desktop and mobile both.',
+    detail: {
+      why: 'Nam: "one thing I want to change both for desktop and mobile though, the meeting time. Now it says 12:00 PM, 1:00 PM. The comma there feels out of place, should be a - instead, like in the original Meet."',
+      done: [
+        'The slot label joins its two times with a dash instead of a comma',
+        'One change, both widths, as asked',
+      ],
+      raised: 'Nam, QA 31 Aug',
+      notes: 'THE REFERENCE AGREES: Meet joins "8/17/26, 1:30 PM" to "9/5/26, 2:30 PM" with a spaced en dash. The comma is already doing a job inside each endpoint, so using it between them made one list of four things out of a range between two.\n\nA HYPHEN RATHER THAN MEET’S EN DASH, and that is the dash gate’s call rather than a preference. tools/no-em-dash.mjs bans an en dash with whitespace around it, on the correct reasoning that a range is tight and a parenthetical dash is spaced -- and a range between two times that each contain a space is the one case where the spaced form is right. A tight en dash would pass the gate and reads badly here. Left as a hyphen and flagged: lifting it means teaching the gate that a spaced en dash between two times is a range, which is a real exception and not one to add quietly.',
+    },
+  },
+
+  /* Nam's second mobile QA, 31 August, off two stacked screenshots and five of
+     the spec panel. "Lots of small deviations here on mobile." */
+  {
+    id: 'N227', col: 'review', size: 'M', tag: 'onboarding',
+    title: 'The home bar is measured against the real one at 390',
+    note: 'Nine controls, all slightly wrong, and now every x on the bar matches the reference.',
+    detail: {
+      why: 'Nam: "please stack the two screenshots I sent from previous prompt, so we can truly match our site to the original meet ... the + add meeting button on our site is not fully a circle button like in the original meet ... burger menu is off centered on the button, the progress circle should align with the icons, to the left ish of the panel, not in the middle."',
+      done: [
+        'tools/mobile-match.mjs: our fingerprint against the reference capture, diffed',
+        'The four top-right controls sit at 212 / 252 / 292 / 340, as they do on Meet',
+        'The New button is 48x48 again, so its 24px radius closes into a circle',
+        'The burger glyph is centred in its own button',
+        'The date title is 22px and the labels keep their 16px inset',
+        'The composer row lands at y=72, and the drawer ring joins the icon column',
+      ],
+      raised: 'Nam, QA 31 Aug',
+      notes: 'STACKED NUMERICALLY RATHER THAN VISUALLY, which is the same request answered better. An overlay says THAT something moved; the fingerprint says which property did, and that is the half you have to act on. Ten shared keys came back disagreeing and nine of them were real.\n\nflex-shrink WAS EATING THE NEW BUTTON. .home-composer is a flex row and .m-btn takes the default shrink of 1, so a 48px button was being squeezed to 41.2, and a 24px radius on a 41px box is a lozenge. Nam saw it as "not fully a circle" without measuring it, which is the eye beating the numbers again.\n\nTHE BURGER WAS A DISPLAY SWITCH. .icon-btn centres with place-items, the mobile rule switched this one to inline-flex, and place-items means nothing to a flex box, so the glyph went to the start of both axes inside its own 48px circle.\n\nTHE CLUSTER WAS 6px RIGHT because a note in this stylesheet claimed the top-right gaps space evenly below 840. Measured, they are 0, 0 and 8: the avatar keeps the shared account bar margin at every width. The note was wrong and is now replaced by the measurement.\n\nWHAT IS LEFT, AND SHOULD BE. Two keys still disagree and both are content: our wordmark is not "Google Meet", and our promo is three claims where theirs is a paragraph, so the card below cannot land on the same y. Forcing those would be matching the screenshot rather than the design.',
+    },
+  },
+
+  {
+    id: 'N228', col: 'review', size: 'S', tag: 'specs',
+    title: 'The commit heatmap comes back on a phone, and gets shorter',
+    note: 'A labelled chart with no chart in it: every column resolved to exactly zero.',
+    detail: {
+      why: 'Nam: "Screenshot 2 is actually a bug, that you dont see the heatmap anymore, and that its way too long we need to cut Apr or maybe even may just so the whole heatmap is visible here like on desktop."',
+      done: [
+        'The board grows into its space instead of collapsing to its gaps',
+        'Fourteen weeks below 600, so the cells keep their authored 15px',
+        'The month labels are recomputed for the range actually drawn',
+      ],
+      raised: 'Nam, QA 31 Aug',
+      notes: 'flex-grow: 0 ON A ROW WHOSE MIN-CONTENT IS ZERO. The columns are allowed to shrink, which was a deliberate fix so that a board a few pixels too wide costs a fraction of a pixel per column instead of a scrollbar. That makes the row min-content the twenty one 4px gaps and nothing else, and with no grow it took exactly that and stopped: measured at 390 the grid was 84px wide inside a 291px parent, twenty two columns at 0, and 207px of the board left blank. The weekday letters and the month strip still drew, which is why it read as a bug rather than as an empty panel.\n\nTHE WEEK COUNT IS DECIDED IN TYPESCRIPT, NOT IN CSS, and that is the interesting half. Hiding the first eight columns in the stylesheet would have been one line, and a month label is only printed above the column where its month begins, so there was a good chance of hiding the label for the first month still on the board and leaving the strip headless. Dropping the weeks where the dates are generated means the labels are recomputed for what is actually drawn and cannot be wrong.\n\nFOURTEEN, MEASURED: twenty two weeks need 414px of column and the dialog gives the board 291 at 390 and 250 at 320. Fourteen need 262, which fits at 390 with the cells square and shrinks by less than a pixel at 320.',
+    },
+  },
+
+  {
+    id: 'N229', col: 'review', size: 'M', tag: 'specs',
+    title: 'The spec panel stops overlapping itself on a phone',
+    note: 'Five screenshots of it. Sentences wrapping one word per line, and headings printing SAYSAND DOES.',
+    detail: {
+      why: 'Nam: "whatever screen we show on the home screen, it has to look good on mobile too. All these screenshots I sent, its about either overlapping texts or inefficient use of space."',
+      done: [
+        'Every table in the panel is re-cut below 600 rather than shrunk',
+        'Each keeps its one narrow leading cell; everything that is prose gets the width',
+        'The comparison table keeps two real columns, so it keeps its two headings',
+        'Column headings are dropped where the columns are',
+        'The panel and its Scripts tab are routes in tools/qa-mobile.mjs',
+      ],
+      raised: 'Nam, QA 31 Aug',
+      notes: 'A GRID DOES NOT WRAP, WHICH IS THE WHOLE FAULT. These tables are sized for a 780px surface and the dialog is 340 on a phone. .sc-row asks for 46 + 34 + 1fr + minmax(120,240) and 30px of gaps, so the fixed and clamped tracks alone exceed the width and the 1fr text column resolves to ZERO. Every sentence then wrapped down a column two characters wide. The header spans had no track either, so they overflowed into each other and printed SAYSAND DOES. Nothing here was a font-size problem, and shrinking the type would have fixed none of it.\n\nHEADINGS GO WITH THEIR COLUMNS. A column heading promises that the things below it line up underneath; once a row is stacked that promise is false. The one table that keeps two columns keeps its two labels, because those two cells are the comparison the table exists to make.\n\nTHE FIX FOR THE FIX. Auto-placing the flow rows put a five-character runtime into a 22px badge column, where it overran the track and collided with the label beside it: the same overlapping text the block exists to remove, reintroduced by its own repair. Placed by hand now, off the four cells the markup actually authors.\n\nTWO HARNESS BUGS FOUND ON THE WAY, both worth more than the screens they blocked. Several of these routes are states of #home, so navigating to the next one was a same-document fragment navigation that did not re-run the page: every route after the first inherited the previous one screen, and the report cheerfully described a home screen with a dialog standing on it. And the admin grant, once written, outlived the route that needed it, so the routes after it were measuring surfaces no ordinary visitor is shown.',
+    },
+  },
+
+  {
+    id: 'N230', col: 'review', size: 'S', tag: 'content',
+    title: 'Two more things a phone does not need',
+    note: 'A file download and a second sentence.',
+    detail: {
+      why: 'Nam: "on mobile its not the best to download anything so lets hide the download the pdf on mobile" and "this line is too long too mobile, lets shorten it on mobile: Get personal with Nam in this interactive CV."',
+      done: [
+        'Download the PDF is hidden below 600',
+        'The scheduled note keeps its first sentence and drops the wink',
+        'Desktop unchanged in both cases',
+      ],
+      raised: 'Nam, QA 31 Aug',
+      notes: 'HE IS RIGHT ABOUT THE BEHAVIOUR, not just the space. A download on a phone lands in a Files app the reader then has to go and find, which is a worse errand than the one they are already on, and the offer costs a full-width button to make it. Nothing is lost with it: Open document and the whole call are both still on the screen, and both read better on a phone than a PDF does.\n\nTHE SECOND SENTENCE IS THE ONE TO CUT because the first is the reason to press Join and the second is the wink after it. A wink is what you drop when the line in front of it has already taken three lines of a 390px screen.',
+    },
+  },
+
+  /* Nam's third mobile QA, 31 August: the two dialogs the home screen opens,
+     and a name that was two words longer than it needed to be. */
+  {
+    id: 'N231', col: 'review', size: 'S', tag: 'onboarding',
+    title: 'The contact dialog fits the screen it is on',
+    note: 'It hung 138px off the right of a phone, and three separate max-widths failed to stop it.',
+    detail: {
+      why: 'Nam: "this contact panel is off screen. Some of the elements here look off for mobile as well. Maybe you can match this with the original meet."',
+      done: [
+        'The panel stops where the scrim inset does, at 390 and at 320',
+        'Its two paragraphs are inside the glass again',
+        'The stacked buttons and the notice were already right and are untouched',
+      ],
+      raised: 'Nam, QA 31 Aug',
+      notes: 'THREE FIXES THAT EACH MOVED THE PROBLEM UP ONE LEVEL, which is worth recording because each looked correct on its own.\n\nThe panel is `width: 512px; max-width: 100%`, which reads as "never wider than the screen" and is not. It is a grid item in a wrapper that centres with place-items, so the wrapper is shrink-wrapped to its content rather than stretched: 100% of the wrapper was 100% of 512. Capping the WRAPPER did nothing, because the wrapper was sized by the same 512. Constraining the grid TRACK above it -- an implicit column is sized auto, meaning max-content, so the track really had become 512 and overflowed its own 390px container -- did not fix it either.\n\nThe reason all three failed is one fact: a definite `width: 512px` makes this element min-content contribution 512, and min-content propagates outward through every shrink-wrapping ancestor no matter what percentage is written on them. The percentage was measuring the panel against itself, all the way up.\n\n100vw is the one length in that chain no ancestor can redefine, and the 32 it subtracts is the scrim own padding. The lesson generalises past this dialog: a percentage cap is only worth as much as the definite width of whatever it resolves against, and a shrink-to-fit parent has no definite width to offer.\n\nTHE minmax(0, 1fr) ON THE SCRIM STAYS, because the overflowing track was real and would have shown up the moment anything else in that layer grew.',
+    },
+  },
+
+  {
+    id: 'N232', col: 'review', size: 'S', tag: 'call',
+    title: 'The bug case stops cropping its bugs and resizing itself',
+    note: 'Two complaints, one property: a 1fr row inside a capped box.',
+    detail: {
+      why: 'Nam: "bug collection - the bug images are cut off, and the cell size changes as I click on them, flickering the layout, not very nice."',
+      done: [
+        'Both rows of the case size to their contents below 760',
+        'The slots are as tall as the artwork again, measured at 390 and 320',
+        'Selecting a bug no longer changes the size of any cell',
+        'The dialog scrolls when the grid and the card together exceed the screen',
+      ],
+      raised: 'Nam, QA 31 Aug',
+      notes: 'ONE PROPERTY, TWO SYMPTOMS, and they did not look related. Stacked below 760 the case kept `grid-template-rows: 1fr auto` under the base rule max-height, so the grid was handed whatever was left of a capped box rather than the height its contents needed: measured at 390 the slots came out 61px tall carrying 104px of content, and every bug was cropped.\n\nThe flicker is the same row. Selecting a bug rewrites the card underneath it, different bugs have different amounts to say, and every change in that card height re-divided the leftover space -- so every cell in the grid resized on every click. Nothing was animating and nothing was transitioning; the row was simply being re-solved against a new remainder. Worth remembering as a shape: a layout that jumps when unrelated content changes is usually a fr track sharing a fixed box with it.\n\nWith both rows at auto the grid is as tall as the bugs and the card is as tall as its text, neither depends on the other, and the dialog scrolls when the two together are more than the screen, which is what a phone wants anyway.',
+    },
+  },
+
+  {
+    id: 'N233', col: 'review', size: 'S', tag: 'content',
+    title: 'Side quests are just quests',
+    note: 'Eight surfaces, desktop and mobile. The prose about his actual career keeps the old phrase.',
+    detail: {
+      why: 'Nam: "side quests look good, but I want to change side quests to just quests, and this is for both mobile and desktop."',
+      done: [
+        'The toast, the rail item, the board title, the completion row and the settings row',
+        'The ended screen line, the off-the-clock line and the test suite name',
+        'data/story.ts keeps side quests, because there it means something else',
+      ],
+      raised: 'Nam, QA 31 Aug',
+      notes: 'THE ONE PLACE IT DOES NOT CHANGE is data/story.ts, and the distinction is worth stating rather than assuming. There the phrase is Nam writing about his own career -- "I am a challenger. I have completed all the side quests, game dev, research, C++, comedy, acting" -- and one of the design reviews is an argument about whether that framing helps him. It is a metaphor about a life, not the name of a feature on this page, and renaming it would edit his copy to match a UI label.\n\nN166 chose the old name on consistency grounds: the toast said Side quest complete, the completion row said Side quests, and data/quests.ts was already called what it is called. That argument was sound and this is the same argument with the opposite input, which is what it means for a naming decision to be reversible: five surfaces plus three more, all of them saying one word less.',
+    },
+  },
+
+  /* Nam's fourth mobile QA, 31 August: the two tables the last pass got wrong,
+     and the bug case earning its space back. */
+  {
+    id: 'N234', col: 'review', size: 'S', tag: 'specs',
+    title: 'Two Scripts tables stop giving prose the narrow column',
+    note: 'The stacking fix from N229 put the sentences in the wrong tracks. Placed by hand now.',
+    detail: {
+      why: 'Nam: "this part in the project spec/script still look weird, the column that has a lot of text gets very small width ... slot says broken into 2 lines while we have more than enough one line space, the text column too small compared to the right column which doesnt [need] anything."',
+      done: [
+        'The commentary quips place their four cells rather than auto-flowing them',
+        'The outro table is three real columns, each sized to what is in it',
+        'Its heading fits on one line again',
+        'A --scroll option in tools/qa-mobile.mjs, so a panel that scrolls inside itself can be captured where the tables are',
+      ],
+      raised: 'Nam, QA 31 Aug',
+      notes: 'AUTO-PLACEMENT PUT PROSE IN A 52px COLUMN, which is the second time in one pass. The quips authored four cells -- kind, selector, text, duration -- and two columns with auto-flow sent the third of them to column one: "You can type a real URL in there" then wrapped one word per line, which is the exact fault N229 existed to remove, reintroduced by its own fix. Auto-flow is only safe when the authored order happens to match the shape you want, and it did not here or in the flow rows.\n\nTWO TABLES WERE SHARING A CLASS AND ONLY ONE OF THEM IS A COMPARISON. The alternates table really is two prose columns a reader is meant to weigh against each other, so it keeps both. The outro table is a short slot name, one sentence and a duration -- and splitting THAT into equal halves gave the sentence 165px while handing the same 165 to a cell containing "6.0s", and pushed SLOT and SAYS onto two lines of heading for nothing. It has a name now, is-slots, so the stylesheet can stop inferring which table it is looking at from the cells inside it.',
+    },
+  },
+
+  {
+    id: 'N235', col: 'review', size: 'S', tag: 'call',
+    title: 'The bug case loses the names and stops scrolling',
+    note: 'Nine of twelve labels said "?" and the three with names truncated them.',
+    detail: {
+      why: 'Nam: "the bug screen now has a lot of dead space. I think we should get rid of the bug names on mobile. Just a silhouette is enough to convey the bug has not been found, the ? name doesnt add anything. Try to see if you can fix the layout such that this screen doesnt need to be scrollable. Maybe at the cost of smaller looking bugs in the UI."',
+      done: [
+        'No labels in the grid below 760',
+        'Four columns instead of three, so twelve bugs are three rows instead of four',
+        'The art gives up 20px to pay for it',
+        'Header, grid and card all fit a 390x844 screen with nothing to scroll',
+      ],
+      raised: 'Nam, QA 31 Aug',
+      notes: 'THE LABEL WAS CARRYING NOTHING, which is the part worth agreeing with out loud. Nine of the twelve slots said "?" and the three that had a name truncated it to "The Gilded Scar...". The silhouette already says caught or not caught -- that is what the greyed-out drawing is FOR -- and the name of the selected bug is printed in full on the card underneath. The label was repeating one thing badly and hiding another.\n\nIT PAYS FOR ITSELF TWICE. Each slot loses its label line and the gap above it, and with no name to fit, four columns fit where three did, which takes twelve bugs from four rows to three. That is what buys the no-scroll, not the smaller artwork -- the art only had to give up 20px.\n\nHONEST ABOUT THE FLOOR: it fits without scrolling at 390x844. At the 320x568 worst case the grid and a full species card still come to more than the screen, and the dialog scrolls inside itself, which is the right failure. Nothing is cut off there; it is simply a very small screen with a lot to say on it.',
+    },
+  },
+
+  {
+    id: 'N236', col: 'review', size: 'S', tag: 'onboarding',
+    title: 'How this was built gets an outline once it is the only button left',
+    note: 'A text button reads as text because something beside it has a shape. On a phone, nothing does.',
+    detail: {
+      why: 'Nam: "how this was built is looking quite awkwardly here, can we copy the styling of the download the pdf to that to prevent it from looking like its just floating. This is for mobile only."',
+      done: [
+        'It takes the outlined treatment below 600',
+        'Two properties, because the two buttons already differ by only two',
+        'Desktop keeps the text button, which still has a neighbour there',
+      ],
+      raised: 'Nam, QA 31 Aug',
+      notes: 'THIS IS A CONSEQUENCE OF N230 AND WORTH RECORDING AS ONE. Hiding Download the PDF on a phone was right on its own terms, and it removed the only bordered control in that row -- which left a blue phrase sitting alone under a paragraph with nothing to say it was a control at all. The treatment had not changed; its context had. A quiet button is only quiet relative to a louder one, so removing the louder one silently promotes the quiet one to being the whole row.\n\nWorth carrying forward: when a mobile rule hides one of two things, check what the survivor looked like only because the hidden one was there.\n\nTWO PROPERTIES, because .m-text and .m-outlined are the same button already -- same height, same radius, same blue on transparent -- and differ by an outline and six pixels of padding on each side. Nothing is duplicated and nothing new is invented; the survivor borrows the shape the other one left.',
+    },
+  },
+
+  {
+    id: 'N237', col: 'review', size: 'S', tag: 'call',
+    title: 'The bug card reserves the tallest card, so choosing one moves nothing',
+    note: 'Twelve hints, twelve heights, and the whole dialog resized on every click.',
+    detail: {
+      why: 'Nam: "please pad the screen such that when I click different bugs we dont see the panel height flickering - different bugs have different length in their hint and description, making the bug panel height jumping when updating, not very nice."',
+      done: [
+        'The tallest of the twelve cards is measured at open and reserved',
+        'Dialog and panel heights are identical across all twelve, at 390 and at 320',
+        'Nothing is kept: the twelve are built into one detached probe and dropped',
+      ],
+      raised: 'Nam, QA 31 Aug',
+      notes: 'THIS IS THE PRICE OF N232 AND IT IS WORTH PAYING. Making both rows of the case size to their contents is what stopped the cells being crushed and stopped them resizing on every click. It also made the CARD the thing that decides the dialog height, so a longer hint now moves the whole panel instead of scrolling inside a fixed box. One flicker traded for another, smaller one, and this closes it.\n\nMEASURED RATHER THAN GUESSED. A min-height in the stylesheet would have been a number that is right until somebody edits a hint, and wrong silently after that: the panel would either start jumping again or carry dead space nobody could account for. Asking the twelve cards how tall they actually are cannot go stale, because it is re-asked every time the case opens.\n\nTHE TWELVE ARE TRANSIENT, which is what keeps this consistent with the note on detail() that says twelve drawings must not live in the document. They do not: they are built into one detached, off-screen probe, a height is read off each, and the lot is dropped before the dialog is interactive. That note objects to twelve permanent drawings and it is still right.\n\nMEASURED AFTER: 706px dialog and 377px panel across all twelve bugs at 390, 536 and 425 at 320. One value each, not twelve.',
+    },
+  },
+
+  {
+    id: 'N238', col: 'review', size: 'S', tag: 'onboarding',
+    title: 'The progress ring joins the icon column, this time for real',
+    note: 'The rule was written two passes ago, matched its element, and did nothing.',
+    detail: {
+      why: 'Nam, for the second time: "hey and the progress bar still doesnt align with the 4 icons here."',
+      done: [
+        'The override lives where it can win rather than where it read well',
+        'The ring is offset by half the difference between a 56px pill and a 44px ring',
+        'All five rail items now sit on the same axis, measured at 390 and 640',
+      ],
+      raised: 'Nam, QA 31 Aug',
+      notes: 'A MEDIA QUERY ADDS NO SPECIFICITY, and that is the whole of the first failure. The override went into the 839 block at line 2542; `.rail-prog { justify-content: center }` sits at line 10381, same specificity, later in the file. Source order decided it and the centred rule won. The override was present, matched its element, and was powerless -- which is QA.md section 7 exactly, in a codebase that has a section about it. It shipped looking done and Nam had to report the same thing twice.\n\nWorth stating as a rule rather than an anecdote: an override in a media query is not automatically stronger than the rule it is overriding. If the base rule is later in the file, the media query loses. Put the exception next to what it excepts.\n\nTHE 6px IS THE HALF NOBODY WOULD HAVE NOTICED. Left-aligning is not enough to LINE UP: every other row wears a 56px pill with a 24px glyph centred in it, so those glyphs sit on x=44 from the item edge, while a 44px ring flush to the same edge sits on x=38. Half the difference between the two boxes puts the ring on the same axis rather than merely on the same side. Measured after: all five items on 44.',
+    },
+  },
+
+  {
+    id: 'N239', col: 'review', size: 'S', tag: 'onboarding',
+    title: 'Quests and Your completion are cards again on a phone',
+    note: 'One rule made every portal panel full-bleed below 900, including two that are not documents.',
+    detail: {
+      why: 'Nam: "I realize the quest and the progression panels dont have the same look: a popup card on top of the background. please fix them."',
+      done: [
+        'Both take the bug case treatment: 24px scrim inset, 28px radius, capped height',
+        'The Project spec keeps the full screen, because it is a document',
+        'The scrim stays visible around all four edges, so the page is still behind it',
+      ],
+      raised: 'Nam, QA 31 Aug',
+      notes: 'THE RULE WAS RIGHT FOR ONE PANEL AND APPLIED TO THREE. Below 900 the portal shell drops its padding and its radius, which is correct for the Project spec: seven tabs and thousands of words should take a phone screen rather than float on it. Quests is a checklist and Your completion is a ring and three bars, and full-bleed made both of them look like screens the visitor had navigated TO rather than something opened over what they were doing. The bug case has always been the second kind, which is exactly why it reads correctly and these two did not.\n\nTHE SPLIT IS BY WHAT THE THING IS, not by which stylesheet it lives in. This does put the two panels at radius 28 where .dp-card is 8, and DESIGN-PRINCIPLES section 4 says dialogs stay at 8 as a Material 2 holdover. The bug case already sits at 28 for the same reason these now do: it is an M3 dialog rather than a portal surface. Recorded here rather than quietly, because the next person to read that principle will find three surfaces disagreeing with it and should find the argument too.',
+    },
+  },
+
+  {
+    id: 'N240', col: 'review', size: 'S', tag: 'onboarding',
+    title: 'The completion ring gets a name in the drawer',
+    note: 'A lone ring in a column of labelled rows reads as an item whose label failed to load.',
+    detail: {
+      why: 'Nam: "looks a bit weird when you only have 57% and no text label on the right. Lets add Completion for the progression bar."',
+      done: [
+        'Completion, beside the ring, in the drawer',
+        'Still no caption on the vertical rail above 840',
+        'The ring advances the same 56px a pill does, so the captions line up too',
+        'Measured: five glyphs on centre 44 and five labels on 84, at 390 and 640',
+      ],
+      raised: 'Nam, QA 31 Aug',
+      notes: 'HE IS RIGHT ABOUT WHERE HE IS LOOKING, and the scoping is mechanical rather than a second opinion. Below 840 the rail is a drawer and every row is a glyph with its name beside it, so a ring alone in that column reads as a row whose label did not load. Above 840 the items are 104x56 with the pill and the label STACKED, and a 44px ring plus an 8px gap plus a 16px line is 68 in a 56px box: the caption does not fit there without resizing every item in the rail, which is a bigger change than the one asked for.\n\nN109 dropped the old "Progress" caption from the vertical rail on Nam own note that the ring carries its own number, the way a battery icon does. That argument still holds where it was made -- a vertical rail of stacked items -- and does not reach the drawer, which is a different layout with a different problem.\n\nMEASURED AFTER: all five glyphs on centre 44 and all five labels on 84, at 390 and 640; on the desktop rail the caption computes to display:none and the item is still 56.\n\nAND THE CENTRING FIX BROKE THE LABELS, which Nam caught before this ticket was closed. The 6px that centres a 44px ring against a 56px pill also made the row advance 50px where the others advance 56, so the caption started at 78 while the other four started at 84: the ring lined up and its text did not. The same 6 on the right buys the difference back. Worth keeping as a shape -- nudging a box to align its CONTENTS moves everything after it, so an alignment fix in a row layout has two columns to answer for, not one.',
+    },
+  },
+
+  {
+    id: 'N241', col: 'review', size: 'S', tag: 'specs',
+    title: 'The banter pool was the same table shape without the class that says so',
+    note: 'Twenty lines, each giving half its width to a four-character duration.',
+    detail: {
+      why: 'Nam: "the banter pool in the project spec/scripts still leaving a lot of space just for the time, fix it, the same way you fixed the table in the after the goodbye."',
+      done: [
+        'It wears is-slots, which is the shape it already had',
+        'One word changed, no new rule',
+      ],
+      raised: 'Nam, QA 31 Aug',
+      notes: 'THREE TABLES, TWO SHAPES, AND THIS ONE WAS WEARING THE WRONG LABEL. N234 split .sc-alt into a comparison (two prose columns a reader weighs against each other) and a slot table (an id, one sentence, a duration) and gave the second one a name. The banter pool is the second shape exactly -- id, line, duration -- and was still falling through to the generic rule, which on a phone splits into equal halves and puts the first cell on a row of its own. So "4.2s" was given the same width as the line it belongs to, twenty times.\n\nNothing new was written for it. Naming the shape was the fix, which is the argument for having named it in the first place: the stylesheet already knew what to do and was being asked the wrong question.',
+    },
+  },
+
   /* Flagged rather than done. Still true as of this build. */
   { id: 'T24', col: 'backlog', size: 'M', tag: 'specs', title: 'Initial payload is halfway to the ceiling', note: '24.7 kB of a 50 kB gate, up from 18.2. Still green, and the growth is real, but two deferred chunks are 17 kB and 19 kB and deserve a splitting pass before it becomes urgent.' },
 ];

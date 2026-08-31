@@ -265,7 +265,22 @@ function slot(on: Date): { day: string; date: number; label: string; week: { n: 
   return {
     day: now.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' }),
     date: now.getDate(),
-    label: `${fmt(start)}, ${fmt(end)}`,
+    /*
+     * A DASH, NOT A COMMA -- Nam: "the comma there feels out of place, should be
+     * a - instead, like in the original Meet."
+     *
+     * He is right and the reference agrees: Meet prints "8/17/26, 1:30 PM –
+     * 9/5/26, 2:30 PM". The comma is already doing a job inside each endpoint,
+     * so using it BETWEEN them made one list of four things out of a range
+     * between two.
+     *
+     * A hyphen rather than Meet's en dash, and that is the dash gate's call
+     * rather than a typographic preference: tools/no-em-dash.mjs bans an en dash
+     * with space around it, which is exactly the shape a spaced range takes. A
+     * tight en dash would pass and reads badly between two times that each
+     * contain a space. See N204 for the note on lifting that.
+     */
+    label: `${fmt(start)} - ${fmt(end)}`,
     week,
   };
 }
@@ -561,6 +576,21 @@ export function renderHome(store: Store, reducedMotion = false, body?: HTMLEleme
     col.appendChild(pop);
   };
 
+  /**
+   * The meeting title, split so a phone can drop the city.
+   *
+   * The tail is taken only when the pitch's own `place` is genuinely how the
+   * string ends. A blind split on the last comma would cut "Web Development"
+   * off the neutral copy, which names no city and must not lose half a role
+   * title to a rule written for one that does.
+   */
+  const meetingParts = (): (string | HTMLElement)[] => {
+    const p = currentPitch();
+    const tail = p.place ? `, ${p.place}` : '';
+    if (!tail || !p.meeting.endsWith(tail)) return [p.meeting];
+    return [p.meeting.slice(0, -tail.length), h('span', { class: 'narrow-hide' }, tail)];
+  };
+
   const interviewCard = (): HTMLElement => h(
     'button',
     {
@@ -581,7 +611,17 @@ export function renderHome(store: Store, reducedMotion = false, body?: HTMLEleme
       ),
       // Says what the meeting IS. With a company code it names the role and the
       // city; without one it stays true for any application. companies.ts.
-      h('div', { class: 'sched-title' }, currentPitch().meeting),
+      //
+      // THE CITY IS THE FIRST THING TO GO ON A PHONE -- Nam: "cut the Stockholm
+      // in the meeting title, so we save the third line." At 390px the full
+      // string wraps to three lines and the card grows to match; without the
+      // city it is two. The place is the least load-bearing word in it, because
+      // anybody reading this on a phone already knows which job it is about.
+      //
+      // Split here and hidden in CSS rather than shortened in the data: this is
+      // a layout decision at one width, so the desktop string stays exactly as
+      // authored and companies.ts keeps saying one true thing instead of two.
+      h('div', { class: 'sched-title' }, ...meetingParts()),
     ),
     h('span', { class: 'sched-join' }, 'Join'),
   );
@@ -647,7 +687,16 @@ export function renderHome(store: Store, reducedMotion = false, body?: HTMLEleme
          * Nam: "Short and sweet." No date at all now, which also means nothing
          * left to go stale.
          */
-        'Get personal with Nam in this interactive CV. Only if all meetings could be like this!',
+        /*
+         * THE SECOND SENTENCE IS A PHONE'S WORTH OF LINE ON ITS OWN. Nam: "this
+         * line is too long too mobile, let's shorten it on mobile: Get personal
+         * with Nam in this interactive CV." The first sentence is the reason to
+         * press Join; the second is the wink after it, and a wink is the right
+         * thing to cut when the sentence in front of it has already taken three
+         * lines. Split and hidden below 600, so the desktop line is unchanged.
+         */
+        'Get personal with Nam in this interactive CV.',
+        h('span', { class: 'narrow-hide' }, ' Only if all meetings could be like this!'),
       ));
       /*
        * A fixed egg can land on today, and four of them do: 15 March, 1 August,
@@ -777,11 +826,34 @@ export function renderHome(store: Store, reducedMotion = false, body?: HTMLEleme
       h('span', { class: 'banner-ico' }, sym('description', 22)),
       h(
         'div',
-        {},
+        { class: 'banner-tx' },
         // Nam: say what it is immediately, and use the second line for a reason
         // to keep reading rather than for mechanics the reader can already see.
         h('div', { class: 'banner-t' }, "Short on time? Here's my CV."),
-        h('div', { class: 'banner-s' }, 'Lead front-end developer, 7 years · Equal part an entertainer · PhD in going the extra miles'),
+        /*
+         * THREE CLAIMS, AND ON A PHONE THEY ARE THREE LINES -- Nam: "the 3
+         * things we add in the Short on time box, make each of them a new line
+         * and delete the dot in between."
+         *
+         * The middot works on a desktop, where the whole list is one line and
+         * the dots are what separate it. At 390px the line wraps four times and
+         * the separators land wherever the wrap put them -- mid-claim, or first
+         * on a line -- so they stop reading as separators and start reading as
+         * punctuation nobody wrote.
+         *
+         * Marked up as items and separators rather than rebuilt per width: the
+         * desktop rendering is character-for-character what it was, because
+         * inline spans containing the same text lay out identically.
+         */
+        h(
+          'div',
+          { class: 'banner-s' },
+          h('span', { class: 'bs-item' }, 'Lead front-end developer, 7 years'),
+          h('span', { class: 'bs-sep' }, ' · '),
+          h('span', { class: 'bs-item' }, 'Equal part an entertainer'),
+          h('span', { class: 'bs-sep' }, ' · '),
+          h('span', { class: 'bs-item' }, 'PhD in going the extra miles'),
+        ),
       ),
       // Opens over the app rather than navigating to it -- Meet never leaves
       // itself. The href stays so the link is still a real link for anyone who
@@ -824,9 +896,17 @@ export function renderHome(store: Store, reducedMotion = false, body?: HTMLEleme
        * So: back as it was, and the argument is kept here rather than deleted,
        * because it will be made again by somebody reading the same evidence.
        */
+      /*
+       * NOT ON A PHONE. Nam: "on mobile its not the best to download anything so
+       * lets hide the download the pdf on mobile." He is right about the
+       * behaviour -- a download on a phone lands in a Files app the reader then
+       * has to go and find, which is a worse errand than the one they are on --
+       * and the CV is not lost with it: Open document and the whole call are
+       * both still here, and both read better on a phone than a PDF does.
+       */
       h(
         'a',
-        { class: 'm-btn m-outlined', href: 'NamNguyen_CV_2026.pdf', download: true },
+        { class: 'm-btn m-outlined narrow-hide', href: 'NamNguyen_CV_2026.pdf', download: true },
         sym('description', 18),
         'Download the PDF',
       ),

@@ -81,6 +81,56 @@ function detail(host: HTMLElement, bug: Bug, got: boolean): void {
 }
 
 /**
+ * RESERVE THE TALLEST CARD, so choosing a bug cannot move the panel.
+ *
+ * Nam: "please pad the screen such that when I click different bugs we dont see
+ * the panel height flickering - different bugs have different length in their
+ * hint and description, making the bug panel height jumping when updating."
+ *
+ * Below 760 the case is stacked and both rows size to their contents (N232), so
+ * the card's height IS the dialog's height and every hint of a different length
+ * moves everything. Twelve bugs, twelve hints, twelve heights.
+ *
+ * MEASURED RATHER THAN GUESSED AT. A min-height in the stylesheet would be a
+ * number that is right until somebody edits a hint, and wrong silently: the
+ * panel would either jump again or carry dead space nobody could account for.
+ * This asks the twelve cards how tall they actually are and reserves the largest.
+ *
+ * THE TWELVE ARE TRANSIENT, which is what keeps this consistent with the note on
+ * detail() above. That note objects to twelve drawings LIVING in the document,
+ * and it is right; this builds them into one detached probe, reads a height off
+ * each, and drops the lot before the dialog is interactive. Nothing is kept.
+ *
+ * Once, at open, at the width it opened at. A rotation with the case already up
+ * keeps the reservation it was born with -- the same trade the heatmap makes,
+ * and in the same direction: the reserved height is the tallest card, so being
+ * stale can leave spare room but cannot clip anything.
+ */
+function reserveCardHeight(pane: HTMLElement, all: readonly { bug: Bug; got: boolean }[]): void {
+  // Only where the card decides the dialog's height. Above 760 the case has a
+  // fixed height and the card scrolls inside it, so nothing can move.
+  if (typeof matchMedia === 'function' && !matchMedia('(max-width: 760px)').matches) return;
+
+  const probe = h('div', { class: 'bug-detail' }) as HTMLElement;
+  probe.setAttribute('aria-hidden', 'true');
+  // Off-screen rather than display:none, because a box that is not laid out has
+  // no height to read. Fixed so it cannot extend the page while it is there.
+  probe.style.cssText = 'position:fixed;left:-10000px;top:0;visibility:hidden;'
+    + 'pointer-events:none;height:auto;min-height:0;overflow:visible';
+  probe.style.width = `${pane.getBoundingClientRect().width}px`;
+  document.body.appendChild(probe);
+
+  let tallest = 0;
+  for (const { bug, got } of all) {
+    detail(probe, bug, got);
+    tallest = Math.max(tallest, probe.getBoundingClientRect().height);
+  }
+  probe.remove();
+
+  if (tallest > 0) pane.style.minHeight = `${Math.ceil(tallest)}px`;
+}
+
+/**
  * The whole case, as a Material dialog.
  *
  * A dialog rather than a screen, because both places it opens from are places
@@ -192,5 +242,8 @@ export function openBugFrame(catcher: Bugs): void {
   box.addEventListener('keydown', (e) => { if ((e as KeyboardEvent).key === 'Escape') close(); });
 
   document.body.appendChild(box);
+  // After the mount: the probe copies the pane's width, and the pane has none
+  // until it is in the document.
+  reserveCardHeight(pane, all);
   box.querySelector<HTMLElement>('.bug-dlg')?.focus();
 }

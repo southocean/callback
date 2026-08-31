@@ -1,1 +1,0 @@
-import{a,b,c,d,e,f,g,h,i,j,k,l,m,n}from"./chunk-MSGRIZEC.js";export{c as SITE,b as START,f as caseStudies,h as education,n as meta,j as offstage,d as pitch,a as profile,m as referralBlurb,l as requirementMap,e as roles,k as segments,g as skills,i as teaching};

@@ -85,7 +85,7 @@ export class Quests {
     const { got, total } = this.count();
     const complete = got === total;
     this.toast(quest, complete);
-    if (this.live) this.live.textContent = `Side quest complete: ${quest.name}.`;
+    if (this.live) this.live.textContent = `Quest complete: ${quest.name}.`;
     for (const fn of this.onChange) fn();
   }
 

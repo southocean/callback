@@ -337,7 +337,7 @@ export function renderScriptEditor(): HTMLElement {
       `Three slots are fixed and ${BANTER_SLOTS} are drawn from a pool of ${banter.length}, remembered across visits so a `
       + 'second run is not a repeat of the first. The interview itself is a script and stays one; only this part '
       + 'is shuffled, because only this part has a reason to be heard twice.'),
-    h('div', { class: 'sc-alts' },
+    h('div', { class: 'sc-alts is-slots' },
       h('div', { class: 'sc-alt is-head' },
         h('span', {}, 'slot'),
         h('span', {}, 'says'),
@@ -357,7 +357,22 @@ export function renderScriptEditor(): HTMLElement {
     h('h2', { class: 'dp-head2' }, 'The banter pool'),
     h('p', { class: 'dp-note' },
       `${banter.length} lines, ${BANTER_SLOTS} a visit, so it is ${Math.floor(banter.length / BANTER_SLOTS)} runs before anybody hears one twice.`),
-    h('div', { class: 'sc-alts' },
+    /*
+     * is-slots, BECAUSE THIS IS THE SAME SHAPE AS THE OUTRO TABLE ABOVE: an id,
+     * one sentence, and a duration. Nam: "the banter pool in the project spec /
+     * scripts still leaving a lot of space just for the time, fix it, the same
+     * way you fixed the table in the after the goodbye."
+     *
+     * Without the class it fell to the generic .sc-alt rule, which on a phone
+     * splits into two equal halves and puts the first cell on a row of its own --
+     * correct for the alternates table, where both halves are prose a reader is
+     * comparing, and wrong here, where it gave "4.2s" the same width as the line
+     * it belongs to and stranded the id above them.
+     *
+     * Naming the shape rather than adding another rule: three tables, two shapes,
+     * and the stylesheet already knows both.
+     */
+    h('div', { class: 'sc-alts is-slots' },
       ...banter.map((l) => h('div', { class: 'sc-alt' },
         h('span', { class: 'sc-ms' }, l.id),
         h('span', {}, l.text),

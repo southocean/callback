@@ -419,7 +419,7 @@ export interface Forgettable {
 }
 
 export const FORGETTABLE: Forgettable[] = [
-  { key: 'callback.quests', label: 'Side quests', what: 'the achievements, and the toasts that announce them' },
+  { key: 'callback.quests', label: 'Quests', what: 'the achievements, and the toasts that announce them' },
   { key: 'callback.bugs', label: 'The collection', what: 'every bug caught, so the case is twelve silhouettes again' },
   { key: EGG_KEY, label: 'Clips found', what: 'which of the calendar clips have been watched' },
   { key: BANTER_KEY, label: 'Post-credit lines', what: 'which of the after-the-goodbye lines have been heard' },

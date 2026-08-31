@@ -102,7 +102,7 @@ function findCards(pass: ReturnType<typeof passFinds>, bugs: Bugs): HTMLElement[
       {},
       h('h2', {}, 'Nothing new this time'),
       h('p', { style: 'margin:0' },
-        'There are side quests, bugs and clips hidden in this build, and none of them gate anything. '
+        'There are quests, bugs and clips hidden in this build, and none of them gate anything. '
         + 'The ring on the left counts them, and knows how many are left.'),
     ),
   ) as HTMLElement];

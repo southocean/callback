@@ -842,7 +842,7 @@ suite('the conversation director', () => {
     for (const p of tourParts) {
       for (const b of p.beats ?? []) {
         ok(!/data-ctl="hand"/.test(b.move ?? ''),
-          `${p.id}: a beat presses the raise-hand control, which is a side quest and a bug`);
+          `${p.id}: a beat presses the raise-hand control, which is a quest and a bug`);
       }
     }
   });
@@ -1050,7 +1050,7 @@ suite('the bug collection', () => {
 
 /* ------------------------------------------------------------------------- */
 
-suite('the side quest board', () => {
+suite('the quest board', () => {
   /*
    * Board ticket N166. Three rules interact here and all three are the kind that
    * look obviously right and are off by one, which is exactly why the arithmetic

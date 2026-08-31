@@ -89,8 +89,8 @@ export function newFinds(had: Found, now: Found): PassPart[] {
   return [
     {
       key: 'quests',
-      one: 'side quest',
-      many: 'side quests',
+      one: 'quest',
+      many: 'quests',
       names: fresh(quests, now.quests, had.quests).map((q) => q.name),
     },
     {

@@ -207,10 +207,14 @@
                Without this wrapper the static shell painted both at once and the
                staged entrance the script performs was never seen. -->
           <div class="banner-slot">
+          <!-- Class names and the item/separator split match ui/home.ts exactly.
+               The scripted home replaces this within a frame or two, but the
+               mobile rules key off these classes, so a shell that lacked them
+               would paint the desktop layout first and reflow on a phone. -->
           <div class="banner">
-            <div>
+            <div class="banner-tx">
               <div class="banner-t">Short on time? Here&rsquo;s my CV.</div>
-              <div class="banner-s">Lead front-end developer, 7 years &middot; Equal part an entertainer &middot; PhD in going the extra miles</div>
+              <div class="banner-s"><span class="bs-item">Lead front-end developer, 7 years</span><span class="bs-sep"> &middot; </span><span class="bs-item">Equal part an entertainer</span><span class="bs-sep"> &middot; </span><span class="bs-item">PhD in going the extra miles</span></div>
             </div>
             <a href="#plain" data-go="plain">Open document</a>
           </div>
@@ -224,10 +228,10 @@
             </div>
             <span class="sched-join">Join</span>
           </button>
-          <p class="sched-note">Get personal with Nam in this interactive CV. Only if all meetings could be like this!</p>
+          <p class="sched-note">Get personal with Nam in this interactive CV.<span class="narrow-hide"> Only if all meetings could be like this!</span></p>
 
           <div class="home-alt">
-            <a class="m-btn m-outlined" href="NamNguyen_CV_2026.pdf" download>Download the PDF</a>
+            <a class="m-btn m-outlined narrow-hide" href="NamNguyen_CV_2026.pdf" download>Download the PDF</a>
           </div>
         </div>
       </main>

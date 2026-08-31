@@ -213,7 +213,7 @@ export function buildRail(store: Store, bugs: Bugs | undefined, opts: RailOpts =
       'button',
       { class: 'rail-item', type: 'button', 'aria-current': 'false' },
       h('span', { class: 'rail-pill' }, sym('bolt', 24)),
-      h('span', { class: 'rail-label' }, 'Side quests'),
+      h('span', { class: 'rail-label' }, 'Quests'),
     ) as HTMLButtonElement;
     item.addEventListener('click', () => {
       void import('./questframe.js').then((m) => m.openQuestFrame(opts.theme ?? 'light'));
@@ -274,6 +274,23 @@ export function buildRail(store: Store, bugs: Bugs | undefined, opts: RailOpts =
           'aria-label': `Your completion, ${p.pct} percent`,
         },
         h('span', { class: 'rail-pill rail-ring' }, m.ring(p, { size: 44, animate: opts.animateRing })),
+        /*
+         * A CAPTION, BUT ONLY IN THE DRAWER -- Nam: "looks a bit weird when you
+         * only have 57% and no text label on the right. Lets add Completion for
+         * the progression bar."
+         *
+         * He is right about where he is looking. Below 840 the rail is a drawer
+         * and every row is a glyph with its name beside it, so a lone ring in
+         * that column reads as an item whose label failed to load.
+         *
+         * The stylesheet hides it on the vertical rail above 840, and that is
+         * mechanical rather than a second opinion: those items are 104x56 with
+         * the pill and the label stacked, and a 44px ring plus an 8px gap plus a
+         * 16px line is 68 in a 56px box. The earlier decision to drop the caption
+         * there still holds anyway -- the ring carries its own number, the way a
+         * battery icon does.
+         */
+        h('span', { class: 'rail-label' }, 'Completion'),
       ) as HTMLButtonElement;
       item.addEventListener('click', () => {
         void import('./progressframe.js').then((f) => f.openProgress(opts.theme ?? 'light', bugs));

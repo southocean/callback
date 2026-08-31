@@ -89,7 +89,7 @@ export function tally(found: {
   const parts: Part[] = [
     {
       key: 'quests',
-      label: 'Side quests',
+      label: 'Quests',
       where: 'Meeting tools, Storyline',
       got: count(found.quests, quests),
       total: quests.length,

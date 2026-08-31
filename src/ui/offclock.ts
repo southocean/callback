@@ -215,7 +215,7 @@ export function renderOffClock(): HTMLElement {
       h('dt', {}, 'Brazilian jiu-jitsu'),
       h('dd', { style: 'font-weight:400;color:var(--muted)' }, 'Losing repeatedly to better people, on purpose, as a hobby. Good preparation for code review.'),
       h('dt', {}, 'Game developer'),
-      h('dd', { style: 'font-weight:400;color:var(--muted)' }, 'Seven years of it, professionally. It is why this page has side quests and why one keyboard shortcut here is older than the web.'),
+      h('dd', { style: 'font-weight:400;color:var(--muted)' }, 'Seven years of it, professionally. It is why this page has quests and why one keyboard shortcut here is older than the web.'),
     ),
   );
 

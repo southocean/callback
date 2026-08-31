@@ -102,7 +102,7 @@ export function openQuestFrame(theme: 'light' | 'dark' = 'light'): void {
     'div',
     {
       class: `dp dp-${theme} qb-frame`, id: ID, role: 'dialog', 'aria-modal': 'true',
-      'aria-label': 'Side quests',
+      'aria-label': 'Quests',
     },
     /*
      * Focusable so the DIALOG can take focus on open, which is the rule the bug
@@ -114,7 +114,7 @@ export function openQuestFrame(theme: 'light' | 'dark' = 'light'): void {
       h('div', { class: 'dp-head' },
         h('span', { class: 'dp-head-ico', 'aria-hidden': 'true' }, sym('bolt', 22)),
         h('div', { class: 'dp-title' },
-          h('h1', {}, 'Side quests'),
+          h('h1', {}, 'Quests'),
           /*
            * ONE SENTENCE, AND BOTH NUMBERS ARE ON THE BOARD. got is the ticks,
            * total is the rows. It replaced "12 of 17 done. Plus 4 nobody told

@@ -85,6 +85,12 @@
 
   /* geometry, all measured */
   --topbar:  64px;   /* home + lobby. The in-call bar is 56. */
+  /* Where the nav drawer and its scrim start: the bottom of the top bar.
+     Its own token rather than --topbar directly, because below 720 the bar
+     stops being one fixed-height row and the two numbers part company. Every
+     width that changes the bar's height must set this in the same block, and
+     the drawer is then incapable of drifting away from the bar again. */
+  --drawer-top: var(--topbar);
   --callbar: 56px;
   --botbar:  80px;
   --ctl-h:   48px;
@@ -1551,8 +1557,37 @@ body.plain { background: #fff; color: #16181c; }
   .grid { grid-template-columns: 1fr; height: auto; grid-auto-rows: auto; }
   .vtile { min-height: 150px; }
   .vtile.host { grid-column: span 1; min-height: 260px; }
-  .home-composer { order: 3; width: 100%; margin: 0; }
-  .home-bar { flex-wrap: wrap; height: auto; padding: 10px 12px; gap: 10px; }
+  /*
+   * ONE ROW THAT SHRINKS, measured off the real product at 640px.
+   *
+   * The second half of the same inert `flex-wrap` this block has always carried
+   * -- see the 599 block below for the full account of what it cost. Fixed here
+   * too, but to a DIFFERENT layout, because Meet uses two rules rather than one:
+   *
+   *   640px  one row -- menu, mark, composer, New, then the four icons. The
+   *          wordmark loses its words and the placeholder clips mid-sentence.
+   *   390px  two rows -- the composer drops below and takes the full width.
+   *
+   * So the composer is a shrinkable flex item here (flex: 1 1 auto, min-width: 0)
+   * and only becomes a full-width row of its own at 599. Nothing in either rule
+   * is allowed to widen the page; everything gives way instead.
+   */
+  .home-bar {
+    display: flex; flex-wrap: wrap; align-items: center;
+    /* 12 left and 10 right, both measured: the menu button starts at 12 on the
+       reference and the avatar finishes 10 short of the edge. They are not the
+       same number and averaging them moved four controls. */
+    height: auto; padding: 10px 10px 10px 12px; gap: 10px;
+  }
+  /* 10 top + 48 row + 10 gap + 48 row + 10 bottom. */
+  :root { --drawer-top: 126px; }
+  .home-bar-left { order: 1; min-width: 0; }
+  .home-composer {
+    order: 2; position: static; transform: none;
+    flex: 1 1 auto; min-width: 0; width: auto; margin: 0;
+  }
+  .home-bar-right { order: 3; flex: 0 0 auto; }
+  .lk-words { overflow: hidden; }
   .composer-pill { min-width: 0; width: 100%; }
   .rail {
     position: fixed; bottom: 0; left: 0; right: 0; z-index: 20; flex: none; padding: 0;
@@ -2220,12 +2255,30 @@ body.plain { background: #fff; color: #16181c; }
 /* --- the Main menu button, which only exists below 840 ------------------- */
 /* 48x48, not the 40x40 the other icon buttons use — measured at 12,8 on Meet.
    The extra 8px is also what puts the logo at exactly x=64. */
-.menu-btn { display: none; width: 48px; height: 48px; border-radius: 24px; }
+/* THE GLYPH HAS TO BE TOLD TO CENTRE, and this is why it was not.
+   .icon-btn centres with `display: grid; place-items: center`. The rule below
+   switches this one to inline-flex at 839, which throws place-items away --
+   it means nothing to a flex container -- and flex's own defaults put the glyph
+   at the start of both axes. So the icon sat high and left inside its own 48px
+   button, which is exactly what Nam saw: "burger menu is off centered on the
+   button." The centring is restated in flex's vocabulary rather than the switch
+   being reverted, because the button does want to be a flex box. */
+.menu-btn {
+  display: none; width: 48px; height: 48px; border-radius: 24px;
+  align-items: center; justify-content: center;
+}
 .rail-scrim { display: none; }
 
 @media (max-width: 1239px) {
-  /* New keeps its icon and loses its word. */
-  .m-new { width: 48px; padding: 0; justify-content: center; gap: 0; }
+  /* New keeps its icon and loses its word.
+
+     flex: 0 0 auto IS LOAD-BEARING, and without it the button is not round.
+     .home-composer is a flex row and .m-btn takes the default flex-shrink of 1,
+     so at 390 the composer squeezed this 48px button to 41.2 and the 24px radius
+     stopped meeting in the middle. Nam: "the + add meeting button on our site is
+     not fully a circle button like in the original meet." Measured at 48x48 on
+     the reference, and now 48x48 here. */
+  .m-new { width: 48px; padding: 0; justify-content: center; gap: 0; flex: 0 0 auto; }
   .m-new .m-new-label { display: none; }
 }
 
@@ -2236,18 +2289,51 @@ body.plain { background: #fff; color: #16181c; }
   /* The rail becomes a drawer: off-canvas, over the content, with a scrim.
      Meet slides it in from the left rather than pushing the page. */
   .rail {
-    position: fixed; top: 64px; left: 0; bottom: 0; z-index: 40;
+    position: fixed; top: var(--drawer-top); left: 0; bottom: 0; z-index: 40;
     width: 240px; background: var(--w);
-    box-shadow: 0 8px 24px rgba(0,0,0,.18);
     transform: translateX(-100%);
     transition: transform .25s var(--ease-std);
     padding-top: 12px;
+    /*
+     * A COLUMN, SAID OUT LOUD, because two older rules still say row.
+     *
+     * Below 720 the rail used to be a bottom tab bar -- fixed to the bottom
+     * edge, `display: flex; justify-content: center; gap: 24px`, items abreast.
+     * This block later turned it into a left drawer and overrode the position
+     * and the width, but never the direction, so the drawer inherited a ROW: at
+     * 390px "Meetings" hung off the left edge and "Calls" was sliced in half by
+     * the panel's own overflow:hidden. The entire mobile navigation, unusable.
+     *
+     * Every automated check passed on it. Clipped content is invisible to a
+     * measurement of what is on screen -- correctly, that is what clipping is --
+     * so the only thing that could catch this was opening the drawer and looking
+     * at it, which is why it is now a route in tools/qa-mobile.mjs.
+     *
+     * Stated here rather than deleted at the source because the row also comes
+     * from the critical CSS inlined in index.html, and a drawer that depends on
+     * a deletion in another file to be a column is one refactor from being a row
+     * again.
+     */
+    display: flex; flex-direction: column; justify-content: flex-start;
+    gap: 0; border-top: 0;
   }
-  .rail.open { transform: none; }
+  /*
+   * THE SHADOW BELONGS TO THE OPEN DRAWER, and on the closed one it was a
+   * visible defect rather than a subtle one: a soft grey band down the left edge
+   * of every mobile screen, which is what a 24px blur at zero x-offset does when
+   * its element is parked at translateX(-100%). The drawer's own overflow:hidden
+   * does not help -- that clips what is INSIDE the drawer, and a box-shadow is
+   * painted outside it.
+   *
+   * Not findable by measurement, and this one proves the point: nothing was over
+   * an edge, nothing was clipped, every assertion passed, and the screen still
+   * had a grey stripe on it. It came off a screenshot.
+   */
+  .rail.open { transform: none; box-shadow: 0 8px 24px rgba(0,0,0,.18); }
   .rail-item { flex-direction: row; width: 100%; height: 56px; gap: 12px; padding: 0 16px; justify-content: flex-start; }
   .rail-label { font-size: 14px; }
   .rail-scrim {
-    display: block; position: fixed; inset: 64px 0 0; z-index: 39;
+    display: block; position: fixed; inset: var(--drawer-top) 0 0; z-index: 39;
     background: rgba(0,0,0,.32); opacity: 0; pointer-events: none;
     transition: opacity .25s var(--ease-std);
   }
@@ -2256,24 +2342,175 @@ body.plain { background: #fff; color: #16181c; }
   /* Content is no longer inset by a rail, so it takes the window. */
   .home-main { padding-left: 16px; padding-right: 16px; }
   .home-body { display: block; }
-  .date-row, .sched-label { padding-left: 0; padding-right: 0; margin-left: 0; margin-right: 0; }
+  /* THE LABELS KEEP THEIR 16px, THE CARDS DO NOT, and zeroing both was the
+     error. Without a rail the CARDS take the window -- the reference has them at
+     x=16, flush with the column. Its date title and its Scheduled label are at
+     x=32, because the 16px inset that used to separate text from the rail is
+     still separating text from the card edges below it. Ours put them at 16 and
+     the whole column read as one hard left margin. Margins go, padding stays. */
+  .date-row, .sched-label { margin-left: 0; margin-right: 0; }
   .banner, .sched-card, .sched-note { margin-left: 0; margin-right: 0; width: 100%; }
+  /* THE AVATAR KEEPS ITS 8px, and the note that used to sit here was wrong.
+     It said the top-right gaps space evenly at 40 below 840. Measured on the
+     real product at 390 they are 212 / 252 / 292 / 340 -- so 0, 0 and 8, the
+     same irregularity as the desktop, because the avatar still comes from the
+     shared account bar at every width. Only the apps button's 5px goes. */
   .home-bar-right { gap: 0; }
-  .home-bar-right .icon-btn:nth-child(3),
-  .home-bar-right .avatar-btn { margin-left: 0; }
+  .home-bar-right .icon-btn:nth-child(3) { margin-left: 0; }
 }
 
 @media (max-width: 599px) {
-  /* Two rows. The composer keeps the first, everything else drops below. */
-  .home-bar { height: auto; min-height: 112px; flex-wrap: wrap; align-items: flex-start; padding-top: 4px; }
-  .home-composer { position: static; transform: none; order: 3; width: 100%; justify-content: center; padding: 8px 0 4px; }
-  .composer-pill { width: 100%; max-width: none; }
-  .lockup { order: 1; }
-  .home-bar-right { order: 2; }
+  /*
+   * TWO ROWS, AND flex-wrap NEEDS A FLEX CONTAINER -- found by tools/qa-mobile.mjs.
+   *
+   * This block has always said what it wanted: two rows, the composer taking the
+   * second one. It said it with `flex-wrap: wrap` on .home-bar, which is
+   * `display: grid`, where flex-wrap means nothing at all. So the wrap never
+   * happened. Grid auto-placement put the composer in column 1 instead, the 1fr
+   * track sized to that item's 402px min-content, and the bar came out
+   *
+   *     grid-template-columns: 402px 0px 160px
+   *
+   * on a 390px phone. The page was then 594px wide, and mobile Chrome does the
+   * only thing it can with a page too wide to fit: it zooms the whole document
+   * out to 66% so the width fits. Every screen of this CV was rendering at
+   * two-thirds size on a phone, and the cause was one inert declaration.
+   *
+   * Third time this project has been bitten by CSS that is present, matched and
+   * powerless -- see QA.md section 7 for the cascade version. Same lesson:
+   * a rule that appears to do nothing is a question about what else is deciding.
+   *
+   * The three order values below were the same kind of dead: .lockup is inside
+   * .home-bar-left, so ordering .lockup ordered nothing. The order belongs on
+   * the bar's actual children.
+   */
+  /* THE SECOND ROW SITS 12px BELOW THE FIRST, which is what puts the composer
+     pill at y=72 where the reference has it. Ours had the two rows touching and
+     the pill landed at 60. row-gap only: a column gap here would push the icon
+     cluster off its measured x. */
+  .home-bar {
+    display: flex; flex-wrap: wrap; align-items: center;
+    height: auto; min-height: 112px; padding-top: 4px;
+    row-gap: 12px; column-gap: 0;
+  }
+  /*
+   * LET THE WORDMARK CLIP, which is measured off the real product rather than
+   * chosen. At 390px Meet keeps its bar on one row and simply lets "Google Meet"
+   * run under the Support button -- the wordmark box is 177px wide starting at
+   * x=60, and Support sits at x=212. It never wraps the row and it never widens
+   * the page. min-width:0 is the load-bearing half: a flex item's min-width is
+   * `auto`, so without it the nowrap wordmark refuses to shrink and we are back
+   * to a bar that cannot fit.
+   */
+  /*
+   * flex: 1 1 0, AND THE ZERO IS THE WHOLE FIX.
+   *
+   * With `flex: 1 1 auto` this came out as THREE rows -- wordmark, then the four
+   * icons on a line of their own, then the composer -- against the reference's
+   * two. Nothing was overflowing and every number passed; it was simply wrong,
+   * which is the case for looking at the screenshots as well as the report.
+   *
+   * Line breaking happens BEFORE shrinking. Flex fills a line using each item's
+   * hypothetical main size -- the flex-basis, which `auto` resolves to the
+   * content width -- so the left cluster asked for its full 279px, the icons
+   * asked for 160, the two would not fit in 366, and they were put on separate
+   * lines. flex-shrink never got a turn: there was no longer anything to shrink.
+   *
+   * A basis of 0 means the cluster asks for nothing, both fit on one line, and
+   * it then GROWS into whatever the icons leave -- clipping the wordmark, which
+   * is exactly what Meet does at this width.
+   */
+  .home-bar-left { order: 1; flex: 1 1 0; min-width: 0; overflow: hidden; }
+  .lockup { flex: 0 1 auto; min-width: 0; }
+  .lk-words { overflow: hidden; }
+  .home-bar-right { order: 2; flex: 0 0 auto; }
+  /* The composer row is inset 16 on both sides on the reference, while the bar
+     itself is 12/10 for the controls above it. So the row carries the small
+     remainder rather than the bar being moved to suit one of its two rows. */
+  .home-composer {
+    position: static; transform: none; order: 3; flex: 0 0 100%;
+    width: 100%; min-width: 0; justify-content: center; padding: 8px 6px 0 4px;
+  }
+  .composer-pill { width: 100%; max-width: none; min-width: 0; }
   /* Meet drops the week strip rather than scrolling it. */
   .week { display: none; }
-  .date-title { font-size: 20px; }
-  .sched-card { min-height: 0; padding: 18px 20px; }
+  /*
+   * THE PROMO TAKES THE WIDTH, AND THE LINK GOES UNDERNEATH -- Nam, comparing
+   * the two screenshots: "the unlock meet premium spreads full width, and the
+   * explore plans comes after. In our version, we keep the desktop layout: text
+   * on the left and open document button on the right, which is not the most
+   * efficient use of space."
+   *
+   * Measured off Meet's own banner at 390px: the icon and the copy share the
+   * first row, the copy runs the full remaining width, and the action sits on a
+   * row of its own against the right edge. On a desktop the action is a nowrap
+   * column beside the text, which costs nothing at 1052px and costs a third of
+   * the line at 390.
+   *
+   * THE TEXT COLUMN IS SIZED TO FINISH THE ROW, which is what pushes the link
+   * onto the next one: 24px of icon plus the banner's own 12px gap is 36, so a
+   * basis of calc(100% - 36px) fills row one to the pixel and the link cannot
+   * fit beside it.
+   *
+   * The first attempt gave the link `flex: 0 0 100%; text-align: right` and it
+   * came out left-aligned. Two reasons, both about the rule it was fighting:
+   * .banner a is display:inline-flex, so text-align has nothing to align -- its
+   * label is a flex item, not inline content -- and it already carries
+   * margin-left:auto, which is the right mechanism and had no free space left to
+   * work with at a full-width basis. Letting it keep its natural width puts the
+   * space back, and the margin it has always had does the aligning.
+   */
+  .banner { flex-wrap: wrap; align-items: flex-start; }
+  .banner-tx { flex: 0 1 calc(100% - 36px); min-width: 0; }
+
+  /* Three claims become three lines and the middots go with the wrapping they
+     were there to survive. See ui/home.ts for why they are spans at all. */
+  .bs-sep { display: none; }
+  .bs-item { display: block; }
+
+  /* The city comes off the meeting title, which takes it from three lines to
+     two. Authored in full and dropped here, so the desktop string is untouched. */
+  .narrow-hide { display: none; }
+
+  /* 24, not 20, measured off where the Now chip starts on the reference: the
+     card is at x=16 and the chip at x=40. */
+  .sched-card { min-height: 0; padding: 18px 24px; }
+
+  /* THE COLUMN STARTS WHERE THE REFERENCE'S DOES. With the bar's own rhythm
+     fixed the composer pill lands at y=72..120 on both, and the date title was
+     still 16px low -- 156 against 140 -- because the main column kept a 20px top
+     padding that the reference spends inside the bar instead. Everything below
+     the title inherits the same 16, so this is one number rather than four.
+
+     Below the date row the two columns diverge on CONTENT, not spacing: our
+     promo is three claims on three lines and theirs is a paragraph, so the card
+     underneath cannot land on the same y and should not be forced to. */
+  .home-main { padding-top: 4px; }
+
+  /* 26 tall on the reference, 22 here: the chip's vertical padding is 4 and
+     wants to be 6. Confined to this width rather than changed outright, because
+     the desktop chip has been measured against the desktop product and this
+     capture says nothing about that one. */
+  .now-chip { padding: 6px 9px; }
+
+  /*
+   * THE LAST BUTTON IN THE ROW BORROWS THE OUTLINE THE PDF LEFT BEHIND.
+   *
+   * Nam: "how this was built is looking quite awkwardly here, can we copy the
+   * styling of the download the pdf to that to prevent it from looking like its
+   * just floating."
+   *
+   * A text button reads as text because it has a neighbour with a shape to be
+   * quieter THAN. N230 hid Download the PDF on a phone, which removed the only
+   * bordered thing in this row and left a blue phrase sitting alone under a
+   * paragraph, with nothing to say it was a control. That is the whole fault:
+   * the treatment was right and its context left.
+   *
+   * Two properties, because .m-text and .m-outlined are already the same button
+   * -- same height, same radius, same blue on transparent -- and differ only in
+   * an outline and six pixels of padding either side.
+   */
+  .home-alt .m-text { border: 1px solid #747775; padding: 0 24px; }
   .sched-card.is-primary { min-height: 0; }
   .sched-title { font-size: 20px; line-height: 28px; }
   .home-alt { flex-wrap: wrap; }
@@ -2298,8 +2535,10 @@ body.plain { background: #fff; color: #16181c; }
   .rail { overflow: hidden; }
   .rail-item { box-sizing: border-box; }
 }
+/* 4 top + 48 row + 12 row gap + 8 + 48 pill + 10 bottom. The bar is
+   content-height below 600, so this is the one place the number is written down. */
 @media (max-width: 599px) {
-  .rail, .rail-scrim { top: 112px; }
+  :root { --drawer-top: 130px; }
 }
 
 /* ============================================================================
@@ -4051,9 +4290,25 @@ body:has(.grid-wrap.is-solo) .count-chip[style*="transparent"] { display: none; 
    `box-shadow: none` on the panel itself), and the scrim is a real
    rgba(0,0,0,.32) node that fades in — it is invisible in a still taken before
    the transition finishes, which is exactly the still that got measured. */
+/*
+ * minmax(0, 1fr), AND WITHOUT IT NOTHING DOWNSTREAM CAN CAP ITSELF.
+ *
+ * This is the actual reason the dialog hung off the side of the screen, and the
+ * max-width on .cd-wrap below was only half of it. An implicit grid column is
+ * sized `auto`, which means max-content: the panel wants 512px, so the TRACK
+ * became 512px and overflowed its own 390px container. Every percentage inside
+ * then resolved against 512 and capped nothing -- .cd's `max-width: 100%` was
+ * measuring itself against its own width.
+ *
+ * A 1fr track with a zero floor cannot exceed the container, so the grid area is
+ * the screen, and the two max-widths underneath finally have something true to
+ * measure. Same shape as the min-width: 0 that the top bar needed: a track's
+ * automatic minimum is the thing that quietly refuses to shrink.
+ */
 .cd-scrim {
   position: fixed; inset: 0; z-index: 2001;
-  display: grid; place-items: center; padding: 16px;
+  display: grid; place-items: center; grid-template-columns: minmax(0, 1fr);
+  padding: 16px;
 }
 
 /* The dim. A separate node at z-index -1 inside the layer, which is how Meet
@@ -4066,14 +4321,44 @@ body:has(.grid-wrap.is-solo) .count-chip[style*="transparent"] { display: none; 
 /* The opacity fade is on the wrapper and the scale is on the panel — two
    elements, two durations (75 and 150). Putting both on one node would be a
    different, and visibly cheaper, animation. */
-.cd-wrap { display: grid; place-items: center; animation: cd-wrap-in 75ms linear both; }
+/*
+ * max-width: 100% NEEDS A PARENT WITH A WIDTH, and this wrapper did not have one.
+ *
+ * .cd asks for 512px and caps itself at 100% -- which reads as "never wider than
+ * the screen" and is not. .cd-scrim centres with place-items, so justify-items is
+ * center and THIS element is shrink-wrapped to its content rather than stretched
+ * to the grid area. The panel's 100% therefore resolved against 512px, capped
+ * nothing, and the dialog hung 138px off the right of a 390px phone with its two
+ * paragraphs running past the glass.
+ *
+ * One max-width here gives the percentage something true to measure. It is not
+ * a mobile rule: any window narrower than 544 had the same fault.
+ */
+.cd-wrap {
+  display: grid; place-items: center; max-width: 100%; min-width: 0;
+  animation: cd-wrap-in 75ms linear both;
+}
 
 @keyframes cd-shade-in { from { opacity: 0; } to { opacity: 1; } }
 @keyframes cd-wrap-in { from { opacity: 0; } to { opacity: 1; } }
 @keyframes cd-pop-in { from { transform: scale(.8); } to { transform: none; } }
 
 .cd {
-  width: 512px; max-width: 100%; background-color: var(--composer);
+  /*
+   * THE CAP IS IN VIEWPORT UNITS BECAUSE A PERCENTAGE CANNOT WIN HERE.
+   *
+   * `max-width: 100%` was the obvious cap and it was circular. A definite
+   * `width: 512px` makes this element's min-content contribution 512, so the
+   * wrapper shrink-wraps to 512, so 100% OF THAT WRAPPER is 512, and the cap
+   * measured the panel against itself. Constraining the wrapper and then the
+   * grid track above it each moved the problem up one level and changed nothing:
+   * the 512 propagates all the way out.
+   *
+   * 100vw is the one length in the chain that no ancestor can redefine. The 32
+   * is .cd-scrim's 16px of padding on each side, so the panel stops exactly
+   * where the scrim's inset does.
+   */
+  width: 512px; max-width: calc(100vw - 32px); background-color: var(--composer);
   border-radius: 28px;
   /* Meet builds this out of three stacked blocks with different insets rather
      than one padded panel: header `16px 16px 0 0`, body `32px 32px 0`, and a
@@ -5908,6 +6193,106 @@ body.set-open .cc { bottom: calc(var(--botbar) + 52px + 12px); }
 .sc-alt > .sc-alt-p {
   display: flex; align-items: center; gap: 8px;
   font: 500 13px/19px var(--font); color: var(--dp-ink);
+}
+
+/*
+ * THE SPEC PANEL'S TABLES, ON A PHONE.
+ *
+ * Every table in this panel is a fixed-column grid sized for a 780px surface.
+ * The dialog is 340px wide on a phone, and a grid does not wrap -- it hands each
+ * track whatever is left, which here is nothing. .sc-row asks for 46 + 34 + 1fr
+ * + minmax(120,240) and 30px of gaps: the fixed and clamped tracks alone come to
+ * more than the width, so the 1fr text column resolves to ZERO and every
+ * sentence wraps one word per line down a column two characters wide. The header
+ * spans have no track to sit in either, so they overflow into each other and
+ * print SAYSAND DOES.
+ *
+ * Nam sent five screenshots of it: "All these screenshots I sent, its about
+ * either overlapping texts or inefficient use of space."
+ *
+ * So below 600 the columns are re-cut rather than the type being shrunk. Each
+ * table keeps whatever narrow leading cell earns its place -- a timestamp, a
+ * priority, an event kind -- and everything that is prose gets the full width.
+ *
+ * THE HEADER ROWS GO WITH THE COLUMNS. A column heading is a promise that the
+ * things below it line up underneath, and once a row is stacked that promise is
+ * false; the one exception is .sc-alt, which keeps two real columns and so keeps
+ * the two labels that name them.
+ *
+ * PLACED BY AREA, NOT BY ORDER, for .sc-row: its four cells are authored at,
+ * line, text, beats, and auto-placement into two columns would put the line
+ * number where the text belongs.
+ */
+@media (max-width: 599px) {
+  .sc-row {
+    grid-template-columns: 44px minmax(0, 1fr);
+    gap: 2px 10px; align-items: start;
+  }
+  .sc-row-at { grid-area: 1 / 1; }
+  .sc-row-n { grid-area: 2 / 1; }
+  .sc-row-t { grid-area: 1 / 2; }
+  .sc-row-b { grid-area: 2 / 2; }
+  .sc-row.is-head { display: none; }
+
+  /* Two columns kept on purpose: these two cells are the comparison the table
+     exists to make, so they stay side by side and keep their headings. The
+     segment name takes the row above them. */
+  .sc-alt { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 4px 10px; }
+  .sc-alt > :first-child { grid-column: 1 / -1; }
+
+  /*
+   * EXCEPT THE OUTRO TABLE, WHICH IS NOT THAT SHAPE.
+   *
+   * Two tables shared the class and only one of them is a comparison. This one
+   * is a short slot name, one sentence, and a duration -- so splitting it into
+   * two equal halves gave the sentence 165px and handed the same 165 to a cell
+   * containing "6.0s", and stacking the slot name above them broke SLOT and
+   * SAYS onto two lines of heading for no reason. Nam: "slot says broken into 2
+   * lines while we have more than enough one line space ... the text column too
+   * small compared to the right column which doesnt [need] anything."
+   *
+   * Three real columns, each sized to what is actually in it: the slot and the
+   * duration take their content, the sentence takes everything else.
+   */
+  .is-slots .sc-alt { grid-template-columns: auto minmax(0, 1fr) auto; gap: 4px 10px; }
+  .is-slots .sc-alt > :first-child { grid-column: auto; }
+
+  /* A narrow marker, then prose. Auto-placement is correct for these three:
+     the cell that has to stay small is authored first in each of them. */
+  /*
+   * PLACED BY HAND, for the same reason the flow rows are, and it is the second
+   * time auto-placement has put prose in a narrow column. Four authored cells:
+   * kind, selector, text, duration. Two columns and auto-flow sent the TEXT to
+   * the 52px kind column, where "You can type a real URL in there" wrapped one
+   * word per line -- the exact fault this block exists to remove, reintroduced
+   * by the fix for it. Kind and selector share the first row; the sentence takes
+   * the whole of the second, with its duration beside it.
+   */
+  .sc-quip {
+    grid-template-columns: 52px minmax(0, 1fr) auto;
+    gap: 3px 10px; align-items: start;
+  }
+  .sc-quip > :nth-child(1) { grid-area: 1 / 1; }
+  .sc-quip > :nth-child(2) { grid-area: 1 / 2 / 2 / 4; }
+  .sc-quip > :nth-child(3) { grid-area: 2 / 1 / 3 / 3; }
+  .sc-quip > :nth-child(4) { grid-area: 2 / 3; }
+  .sc-aside { grid-template-columns: 92px minmax(0, 1fr); gap: 3px 10px; align-items: start; }
+
+  /* THIS ONE IS PLACED BY HAND, because auto-flow put its runtime into the 22px
+     badge column and the runtime is five characters wide. "13.2s" then overran
+     the track and collided with the NEEDS CALL beside it -- the same overlapping
+     text the whole block is here to remove, reintroduced by the fix for it.
+     Four authored cells: badge, title, runtime, prerequisite. The badge keeps
+     its column, the title takes the rest of the first row, and the two small
+     facts share the second. */
+  .sc-flowrow {
+    grid-template-columns: 22px auto minmax(0, 1fr);
+    gap: 2px 8px; align-items: start;
+  }
+  .sc-flowrow > :nth-child(1) { grid-area: 1 / 1; }
+  .sc-flowrow > :nth-child(2) { grid-area: 1 / 2 / 2 / 4; }
+  .sc-flowrow > :nth-child(3) { grid-area: 2 / 2; }
+  .sc-flowrow > :nth-child(4) { grid-area: 2 / 3; }
 }
 
 /* The questions, with their answers under them. */
@@ -8408,10 +8793,58 @@ body.bug-struck { animation: bug-shake 520ms cubic-bezier(0.36, 0.07, 0.19, 0.97
 .bug-dt-fact { margin: 0; font: 400 13px/20px var(--font); color: #444746; }
 .bug-dt-fact.is-locked { color: #80868b; font-style: italic; }
 
+/*
+ * STACKED, AND THEN BOTH ROWS SIZE TO THEIR CONTENTS.
+ *
+ * Two faults, one cause. The case kept `1fr auto` under the base rule's
+ * max-height, so the grid got whatever was left of a capped box: measured at
+ * 390 the slots came out 61px tall holding 104px of content, and the artwork
+ * was cut off in every cell. Nam: "the bug images are cut off."
+ *
+ * The same `1fr` is the flicker. Selecting a bug rewrites the card underneath,
+ * different bugs have different amounts to say, and every change in that card's
+ * height re-divided the leftover space -- so every cell in the grid resized on
+ * every click. Nam: "the cell size changes as I click on them, flickering the
+ * layout, not very nice." Nothing was animating; the row was being re-solved.
+ *
+ * With both rows at `auto` the grid is as tall as the bugs and the card is as
+ * tall as its text, neither of them depends on the other, and the dialog scrolls
+ * when the two together are more than the screen -- which is the behaviour a
+ * phone wants anyway.
+ */
 @media (max-width: 760px) {
-  .bug-case { grid-template-columns: 1fr; grid-template-rows: 1fr auto; height: auto; }
-  .bug-grid { grid-template-columns: repeat(3, 1fr); }
-  .bug-detail { border-left: 0; border-top: 1px solid #e3e3e3; }
+  .bug-dlg { max-height: calc(100dvh - 32px); overflow: auto; }
+  .bug-case {
+    grid-template-columns: 1fr; grid-template-rows: auto auto;
+    height: auto; max-height: none;
+  }
+  .bug-detail { border-left: 0; border-top: 1px solid #e3e3e3; overflow: visible; }
+
+  /*
+   * NO NAMES, AND THE GRID GETS ITS HEIGHT BACK.
+   *
+   * Nam: "the bug screen now has a lot of dead space. I think we should get rid
+   * of the bug names on mobile. Just a silhouette is enough to convey the bug
+   * has not been found, the ? name doesnt add anything ... Try to see if you can
+   * fix the layout such that this screen doesnt need to be scrollable. Maybe at
+   * the cost of smaller looking bugs in the UI."
+   *
+   * He is right that the label was carrying nothing: nine of the twelve slots
+   * said "?" and the three that had a name truncated it. The silhouette already
+   * says found or not found, and the name of the selected one is printed in full
+   * on the card below.
+   *
+   * Dropping it pays for itself twice. Each slot loses its label line and its
+   * gap, and with no name to fit, four columns fit where three did -- so twelve
+   * bugs come down from four rows to three. Grid, card and header together now
+   * clear the viewport at 390 without scrolling, which is what the ticket asked
+   * for; the art gives up 20px to buy it.
+   */
+  .bug-grid { grid-template-columns: repeat(4, 1fr); gap: 4px; padding: 12px; overflow: visible; }
+  .bug-slot { padding: 8px 4px; gap: 0; }
+  .bug-slot-name { display: none; }
+  .bug-slot-art { height: 56px; }
+  .bug-slot-art svg { width: 56px; height: 56px; }
 }
 @media (prefers-reduced-motion: reduce) {
   .bug-scrim { animation: none; }
@@ -8884,7 +9317,21 @@ body.bug-struck { animation: bug-shake 520ms cubic-bezier(0.36, 0.07, 0.19, 0.97
 .hm-grid-wrap { display: flex; gap: 5px; align-items: flex-start; }
 .hm-days { display: grid; grid-template-rows: repeat(7, 15px); gap: 4px; flex: 0 0 17px; }
 .hm-day { font: 400 10px/15px var(--font); color: var(--dp-ink3); text-align: right; }
-.hm-grid { display: flex; gap: 4px; flex: 0 1 auto; min-width: 0; }
+/*
+ * flex: 1 1, AND THE GROW IS A BUG FIX RATHER THAN A TIDY-UP.
+ *
+ * With flex-grow at 0 this row took its MIN-content and stopped. Its columns can
+ * shrink to nothing, so min-content is the twenty one 4px gaps and nothing else:
+ * measured at 390 the grid came out 84px wide inside a 291px parent, with all
+ * twenty two columns at exactly 0 and 207px of the board left empty. The month
+ * strip and the weekday letters still drew, so the panel showed a labelled chart
+ * with no chart in it -- which is what Nam reported as "you dont see the heatmap
+ * anymore".
+ *
+ * Growing into the space is what lets the columns be measured against something.
+ * Above 436px there is no free space to take and this changes nothing.
+ */
+.hm-grid { display: flex; gap: 4px; flex: 1 1 auto; min-width: 0; }
 .hm-col { display: grid; grid-template-rows: repeat(7, 15px); gap: 4px; flex: 0 1 15px; min-width: 0; }
 
 /* Two facts at the two ends of the board, where the Less/More key used to be.
@@ -9138,6 +9585,34 @@ body.bug-struck { animation: bug-shake 520ms cubic-bezier(0.36, 0.07, 0.19, 0.97
   .dp-card { border-radius: 0; max-width: none; }
   .ph-grid, .pr-grid { grid-template-columns: 1fr; }
   .kb-wrap { grid-template-columns: 1fr 1fr; }
+
+  /*
+   * EXCEPT THE TWO SMALL ONES, WHICH ARE CARDS AND NOT DOCUMENTS.
+   *
+   * Nam: "the quest and the progression panels dont have the same look: a popup
+   * card on top of the background. please fix them."
+   *
+   * The rule above is right for the Project spec: that panel is a document with
+   * seven tabs and thousands of words, and on a phone it should take the screen.
+   * Quests and Your completion are neither -- one is a checklist, the other is a
+   * ring and three bars -- and full-bleed made them look like screens the visitor
+   * had navigated TO rather than something opened over what they were doing. The
+   * bug case has always been the second kind, which is why it reads correctly and
+   * these two did not.
+   *
+   * So they take the bug case's treatment exactly: its 24px scrim inset, its 28px
+   * radius, and a height cap that leaves the scrim visible top and bottom so the
+   * page is still behind it.
+   *
+   * This does put them at 28 where .dp-card is 8, and DESIGN-PRINCIPLES section 4
+   * says dialogs stay at 8 as a Material 2 holdover. The bug case already sits at
+   * 28 for the same reason these now do: it is an M3 dialog rather than a portal
+   * surface. The split is by what the thing IS, not by which stylesheet it is in.
+   */
+  .qb-frame, .pr-frame { padding: 24px; }
+  .qb-frame .dp-card, .pr-frame .dp-card {
+    border-radius: 28px; max-height: calc(100dvh - 48px);
+  }
 }
 @media (prefers-reduced-motion: reduce) {
   .dp-in { animation: none; }
@@ -9926,6 +10401,47 @@ body.bug-struck { animation: bug-shake 520ms cubic-bezier(0.36, 0.07, 0.19, 0.97
    would. The box stays 56 tall and keeps its 14px margin, because the pitch of
    this column is what the ended screen's copy of the rail is matching. */
 .rail-prog { justify-content: center; }
+/*
+ * THE RING JOINS THE COLUMN IN THE DRAWER, and this rule is HERE rather than up
+ * in the 839 block because the first attempt put it there and it did nothing.
+ *
+ * `.rail-prog { justify-content: center }` is directly above, at the same
+ * specificity, later in the file. A media query adds no specificity, so source
+ * order decided it and the centred rule won. The override was present, matched
+ * its element, and was powerless -- which is QA.md section 7 exactly, in a file
+ * that has a section about it. Nam spotted it twice before I measured it.
+ *
+ * THE 6px IS THE OTHER HALF. Left-aligning is not enough to line the ring up
+ * with the glyphs above it: every other row wears a 56px pill with a 24px glyph
+ * centred in it, so those glyphs sit on x=44 from the item's edge, while a 44px
+ * ring flush to the same edge sits on x=38. Half the difference between the two
+ * boxes puts the ring on the same axis as the icons rather than merely on the
+ * same side.
+ */
+/* The ring says its own number on the vertical rail, where the item is 104x56
+   and has no room for a line under a 44px circle anyway. */
+.rail-prog .rail-label { display: none; }
+@media (max-width: 839px) {
+  .rail-prog { justify-content: flex-start; }
+  /*
+   * 6px EITHER SIDE, AND THE SECOND ONE IS NOT SYMMETRY FOR ITS OWN SAKE.
+   *
+   * The left margin centres the ring on the glyphs above it: those wear a 56px
+   * pill and this is a 44px circle, so half the difference puts both on x=44.
+   * That alone left the ring occupying 6+44=50 of horizontal advance where the
+   * pills occupy 56, so the row's LABEL started at 78 while the other four
+   * started at 84 -- the ring lined up and its caption did not. Nam: "I feel
+   * that the text on the right hand side here dont align?"
+   *
+   * The right margin buys back the other 6, so the ring advances exactly as far
+   * as a pill does. One number fixes the glyph column, the pair fixes the text
+   * column, and neither can drift from the other because both are halves of the
+   * same 56-minus-44.
+   */
+  .rail-ring { margin-left: 6px; margin-right: 6px; }
+  /* In the drawer every row is a glyph and its name, so this one gets a name. */
+  .rail-prog .rail-label { display: block; }
+}
 /* Overriding .rail-pill's 56x32 lozenge: the hover and press wash comes from that
    class and is worth keeping, but the shape underneath it is a circle now. */
 .rail-ring {

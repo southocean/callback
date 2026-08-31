@@ -417,6 +417,39 @@ const MONTH_ABBR = [
  */
 const HM_WEEKS = 22;
 
+/*
+ * FEWER COLUMNS ON A PHONE, because twenty two of them cannot be drawn at 390px
+ * and a board drawn smaller is a board nobody can read.
+ *
+ * Twenty two weeks need 414px of column. The dialog gives the board 291 at 390
+ * and 250 at 320, so at full size the columns have to give up a third of their
+ * width, and the cells stop being squares and start being slivers. Nam: "we need
+ * to cut Apr or maybe even may just so the whole heatmap is visible here like on
+ * desktop." Fourteen weeks need 262, which fits at 390 with the cells at their
+ * authored 15px and shrinks only slightly at 320.
+ *
+ * DECIDED HERE RATHER THAN IN CSS, and that is the whole reason it is a constant
+ * and not a display:none. A month label is only printed above the column where
+ * that month begins, so hiding the first eight columns in the stylesheet would
+ * have had a decent chance of hiding the label for the first month still on the
+ * board and leaving the strip headless. Dropping the weeks at the point the
+ * dates are generated means the labels are recomputed for the range that is
+ * actually drawn, and they cannot be wrong.
+ */
+const HM_WEEKS_NARROW = 14;
+
+/**
+ * Read once, when the board is built.
+ *
+ * The panel is constructed on open, so this is the width it is opened at. A
+ * rotation with the dialog already up keeps the column count it was born with,
+ * which is a real limitation and a small one: the board still fits, because the
+ * narrow count is the smaller of the two and landscape has more room, not less.
+ */
+const hmWeeks = (): number => (
+  typeof matchMedia === 'function' && matchMedia('(max-width: 599px)').matches
+    ? HM_WEEKS_NARROW : HM_WEEKS);
+
 /**
  * The commit board.
  *
@@ -472,17 +505,18 @@ function heatmap(): HTMLElement {
   };
 
   const today = new Date();
-  // The Sunday that opens the last column, then back HM_WEEKS - 1 more.
+  const weeks = hmWeeks();
+  // The Sunday that opens the last column, then back weeks - 1 more.
   const lastSunday = new Date(today);
   lastSunday.setDate(today.getDate() - today.getDay());
   const start = new Date(lastSunday);
-  start.setDate(lastSunday.getDate() - (HM_WEEKS - 1) * 7);
+  start.setDate(lastSunday.getDate() - (weeks - 1) * 7);
 
   const cols: HTMLElement[] = [];
   const labels: HTMLElement[] = [];
   let lastMonth = -1;
 
-  for (let w = 0; w < HM_WEEKS; w += 1) {
+  for (let w = 0; w < weeks; w += 1) {
     const colStart = new Date(start);
     colStart.setDate(start.getDate() + w * 7);
 

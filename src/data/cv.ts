@@ -137,7 +137,16 @@ export const roles: Role[] = [
    */
   {
     id: 'research',
-    org: 'D&A Research',
+    /*
+     * JUST "Research" -- Nam, 31 Aug: "this part we change D&A research to just
+     * Research."
+     *
+     * D&A was a name this CV invented for the merge described above, not one
+     * either lab ever went by, so it read as an employer a reader might look up
+     * and fail to find. Both labs are still named in full on their own bullets,
+     * which is where a name that means something belongs.
+     */
+    org: 'Research',
     title: 'Data and algorithms research',
     from: 2014.0,
     to: 2018.85,
