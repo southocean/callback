@@ -61,7 +61,9 @@
 //     guessing it is the thing this project refuses to do. With more than one
 //     selected, the dialog opens on the first.
 //   - The dialog gains a `relation` line. Meet has no equivalent, because Meet
-//     knows who your contacts are and does not need to say. A CV does.
+//     knows who your contacts are and does not need to say. A CV does — but only
+//     where the referee has agreed to what it says, so the field is optional and
+//     the paragraph is dropped, not blanked, when it is unset.
 //   - "Block user" is inert, like every other cloned menu row in this build.
 
 import { h, clear, icon, icons } from '../dom.js';
@@ -336,7 +338,7 @@ export function renderCalls(_o: CallsOpts): HTMLElement {
        */
       h('h2', { class: 'cd-name' }, c.referral ? c.name + ' · referral' : c.name),
       h('p', { class: 'cd-mail' }, shown(c)),
-      h('p', { class: 'cd-rel' }, c.relation),
+      c.relation ? h('p', { class: 'cd-rel' }, c.relation) : null,
       h('div', { class: 'cd-btns' }, voice, video),
       h('p', { class: 'cd-as' }, `Calling as ${CALLING_AS}`),
       notice);

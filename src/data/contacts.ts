@@ -34,8 +34,14 @@ export interface Contact {
    * What this person can speak to. Meet has no equivalent line — it knows who
    * your contacts are and does not need to say. On a CV the whole point is
    * saying, so this is a deliberate addition, shown in the call dialog.
+   *
+   * Optional, and left unset unless the referee has said the thing it would
+   * claim. Nam: "He has not worked with me directly, so I cant really say this."
+   * A line here is a sentence put in someone else's mouth on a public page, so
+   * an empty slot beats a flattering one they never agreed to. Unset, the dialog
+   * omits the paragraph rather than reserving space for it.
    */
-  relation: string;
+  relation?: string;
   /** Where "Video call" goes. A mailto: is honest for a page with no backend. */
   href: string;
   /**
@@ -81,7 +87,7 @@ export const CONTACTS: Contact[] = [
     initials: 'DB',
     tint: '#c4eed0',
     ink: '#072711',
-    relation: 'Has worked with me directly, and can refer me internally, which is the short way of saying he knows what he would be vouching for. His own page does the introducing.',
+    // No `relation`: see the field's note. His own page does the introducing.
     href: 'https://diepbp.github.io/',
     voice: 'https://diepbp.github.io/',
     confirmed: true,
