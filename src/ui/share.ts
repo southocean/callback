@@ -1463,6 +1463,48 @@ function explorerBody(onOpen: (id: string) => void, onFolder?: (f: string) => vo
 
   let selected: HTMLElement | null = null;
 
+  /*
+   * A TAP OPENS, BECAUSE A DOUBLE TAP CANNOT.
+   *
+   * Nam, from a phone: "the explorer here does not work, I cannot open up the
+   * folders and see the content inside."
+   *
+   * The rows were reachable and the handlers were sound -- a real double click
+   * opens Hobby correctly at 390x844. What a phone does not have is the gesture.
+   * The page ships `width=device-width,initial-scale=1` with no `user-scalable`
+   * opt-out, so mobile browsers keep double-tap-to-zoom, and a double tap is
+   * spent on the viewport before `dblclick` is ever delivered. On top of that the
+   * rows are 30px inside a window the share scales by 0.8, so the target is under
+   * 18px of glass: even where the gesture survives, aiming it twice does not.
+   *
+   * Single tap to open is also what Windows itself does in touch mode, so this
+   * stays inside the rule the rest of the mock follows. The gestures it replaces
+   * are both mouse-and-keyboard ones anyway -- rename is a click on the name and
+   * F2, and neither has a phone equivalent worth inventing.
+   *
+   * Read at event time rather than cached, so a device that changes its mind
+   * (a tablet gaining a trackpad, a desktop emulating a phone in devtools) is
+   * answered by the pointer actually in use.
+   */
+  const coarse = (): boolean =>
+    typeof window.matchMedia === 'function' && window.matchMedia('(pointer: coarse)').matches;
+
+  /*
+   * ONE OPEN PER GESTURE, ACROSS THE WHOLE LISTING.
+   *
+   * With a tap opening, a habitual double tap would otherwise open twice -- and
+   * the second tap lands after the listing has been replaced, so it would hit
+   * whatever row inherited that position and open a random clip. The tour's hand
+   * has the same shape: hand.open() sends two presses and a dblclick.
+   *
+   * So the guard lives out here rather than on the row, because the row the
+   * second press lands on is not the row the first one did. 450ms is past the
+   * platform double-click threshold and past the 260ms the rename waits, and
+   * short enough that a person deliberately opening two folders in a row is
+   * never told no.
+   */
+  let lastAct = 0;
+
   const glyph = (k: Entry['kind'], e?: Entry): HTMLElement => {
     if (k !== 'folder') return k === 'pdf' ? icPdf() : k === 'video' ? icVideo() : icHtml();
     // Full or empty, read off the same FOLDERS map the row's count comes from, so
@@ -1512,6 +1554,9 @@ function explorerBody(onOpen: (id: string) => void, onFolder?: (f: string) => vo
       e.kind === 'folder' ? h('span', { class: 'wx-count' }, String((FOLDERS[e.to ?? ''] ?? []).length)) : null) as HTMLElement;
 
     const act = (): void => {
+      const now = Date.now();
+      if (now - lastAct < 450) return;   // a double gesture is still ONE open
+      lastAct = now;
       if (e.to) { go(e.to); return; }
       if (e.tab) onOpen(e.tab);
     };
@@ -1542,6 +1587,9 @@ function explorerBody(onOpen: (id: string) => void, onFolder?: (f: string) => vo
       // The tree is a navigation pane: Windows does not rename from it, and a
       // single click there moves you. Renaming stays a list gesture.
       if (inTree) { act(); return; }
+      // On glass, the tap IS the open — see `coarse` above. Nothing below this
+      // line has a touch equivalent, so the handler ends here.
+      if (coarse()) { act(); return; }
       if (!wasSelected) return;
       const onName = (ev.target as HTMLElement | null)?.closest('.wx-name');
       if (!onName) return;
@@ -2375,11 +2423,37 @@ function playerWindow(id: string): { body: HTMLElement; select: (id: string) => 
   });
   speed.addEventListener('change', () => { video.playbackRate = Number(speed.value); });
 
-  const fullscreen = (): void => {
-    const d = document as Document & { webkitFullscreenElement?: Element };
-    if (d.fullscreenElement || d.webkitFullscreenElement) { void document.exitFullscreen?.(); return; }
-    void body.requestFullscreen?.().catch(() => { /* denied in an iframe; not an error */ });
+  /*
+   * FULLSCREEN IS THE MOCK OS'S, NOT THE BROWSER'S.
+   *
+   * Nam: "when clicking fullscreen, it should only be fullscreen on the mockOS,
+   * not actually fullscreen on the whole screen."
+   *
+   * Right, and it was the one control in the whole desktop that broke the frame.
+   * `body.requestFullscreen()` handed the clip the real display: the Meet call
+   * around it, the caption, the control bar and the share itself all vanished, so
+   * a press meant to make the picture bigger inside the share instead threw the
+   * share away. Worse in the walkthrough, where the hand presses it and the
+   * visitor is left in an OS-level mode nothing on screen explains.
+   *
+   * So it fills the desktop instead, which is what fullscreen means to a program
+   * running inside Windows: the window covers the surface AND the taskbar, and
+   * loses its title bar while it does. The class goes on the window rather than
+   * the body because the window is the thing being resized -- and `is-max` is
+   * already the precedent for a mock-OS-scoped window state.
+   *
+   * Escape leaves, which is the key the real API would have bound for us and the
+   * only way out that a visitor will guess.
+   */
+  const winOf = (): HTMLElement | null => body.closest('.wx');
+
+  const setFs = (on: boolean): void => {
+    const win = winOf();
+    if (!win) return;
+    win.classList.toggle('is-fs', on);
+    fsBtn.setAttribute('aria-label', on ? 'Exit full screen' : 'Full screen');
   };
+  const fullscreen = (): void => { setFs(!winOf()?.classList.contains('is-fs')); };
   fsBtn.addEventListener('click', fullscreen);
 
   /* --- the stage is the control ------------------------------------------ */
@@ -2444,6 +2518,11 @@ function playerWindow(id: string): { body: HTMLElement; select: (id: string) => 
         return;
       case 'f':
         fullscreen();
+        return;
+      case 'Escape':
+        // Only when there is something to leave, so Escape still belongs to the
+        // window (and to the share above it) the rest of the time.
+        if (winOf()?.classList.contains('is-fs')) { ev.preventDefault(); setFs(false); }
         return;
       default:
     }
@@ -3367,10 +3446,32 @@ function pageDesktop(onQuit: () => void, boot?: { egg?: string; cv?: boolean }):
   };
 
   const stamp = Date.now();
+
+  /*
+   * THE TASKBAR CLOCK HAS TO ACTUALLY RUN.
+   *
+   * Nam: "the clock in the mock OS doesnt update over time, fix this on desktop
+   * version too."
+   *
+   * It was read once at mount and printed into the button, so a desktop left
+   * open through a long walkthrough kept showing the minute the share started.
+   * The Meet bar's own clock has ticked since it was written (call.ts, every
+   * 20s); this is the same fact rendered twice, and only one copy was moving --
+   * which is worse than a wrong clock, because the two are on screen together
+   * and disagree.
+   *
+   * 20s rather than 60s for the same reason the Meet one uses it: a minute-
+   * resolution clock updated every minute is wrong for up to a minute, and the
+   * cost of being right is one string comparison.
+   */
+  const hhmm = (d: Date): string =>
+    `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
+  const ddmy = (d: Date): string =>
+    `${String(d.getDate()).padStart(2, '0')}/${String(d.getMonth() + 1).padStart(2, '0')}/${d.getFullYear()}`;
+
   const clock = new Date(stamp);
-  const hh = String(clock.getHours()).padStart(2, '0');
-  const mm = String(clock.getMinutes()).padStart(2, '0');
-  const dd = `${String(clock.getDate()).padStart(2, '0')}/${String(clock.getMonth() + 1).padStart(2, '0')}/${clock.getFullYear()}`;
+  const clockTime = h('b', {}, hhmm(clock)) as HTMLElement;
+  const clockDate = h('i', {}, ddmy(clock)) as HTMLElement;
 
   const trayQs = h('button', {
     class: 'dk-tray-btn', type: 'button', 'aria-label': 'Quick settings', 'aria-expanded': 'false',
@@ -3382,8 +3483,20 @@ function pageDesktop(onQuit: () => void, boot?: { egg?: string; cv?: boolean }):
   const trayClock = h('button', {
     class: 'dk-tray-btn dk-clock', type: 'button',
     'aria-label': 'Date and time', 'aria-expanded': 'false',
-  }, h('b', {}, hh + ':' + mm), h('i', {}, dd)) as HTMLButtonElement;
+  }, clockTime, clockDate) as HTMLButtonElement;
   trayClock.addEventListener('click', () => openFlyout(trayClock, buildCalendar));
+
+  /* Stopped when the button leaves the document, which is what happens when the
+     share is torn down. Without that, every share ever opened in this session
+     would leave a timer behind writing into a detached node. */
+  const ticking = window.setInterval(() => {
+    if (!trayClock.isConnected) { window.clearInterval(ticking); return; }
+    const now = new Date();
+    const t = hhmm(now);
+    const d = ddmy(now);
+    if (clockTime.textContent !== t) clockTime.textContent = t;
+    if (clockDate.textContent !== d) clockDate.textContent = d;
+  }, 20000);
 
   const tray = h('div', { class: 'dk-tray' },
     h('span', { class: 'dk-weather' }, '11°C  Klart'),

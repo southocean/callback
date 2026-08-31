@@ -941,12 +941,38 @@ export function startTour(root: HTMLElement, podium: Podium): TourHandle {
     }
     if (!q('.shot .wx-list')) return false;
 
-    /* Into Hobby, where the clips are. One click in the tree navigates. */
-    const hobby = rowNamed('.wx-tree', 'Hobby');
-    if (hobby) {
-      await hand.at(hobby, true);
-      await wait(reduced ? 0 : 260);
+    /*
+     * Into Hobby, where the clips are — BY WHICHEVER PANE IS ACTUALLY THERE.
+     *
+     * One click in the tree navigates, and that was the only route this had. On a
+     * phone the Explorer window is too narrow to carry a navigation pane, so
+     * `.wx-tree` is display:none — and a display:none row still answers
+     * querySelectorAll, so rowNamed found it, handed it to the hand, and the hand
+     * correctly refused to travel to a zero box (see centreOf, cursor.ts). The
+     * step then returned true having gone nowhere, the listing was still Work,
+     * and doEggs looked for clips among four rows that do not contain any.
+     *
+     * That is the failure Nam saw from the end of the script rather than from
+     * here: "it cannot locate the videos to click."
+     *
+     * So the pane is chosen by what is on screen, the same test doShare uses for
+     * the share button, and for the same reason: it stays tied to the layout
+     * rather than to a width that has to be kept in step with the stylesheet.
+     * The list needs a double click where the tree takes a single one, which is
+     * hand.open() — and on glass, where a tap opens, share.ts's own guard makes
+     * the second press of that pair a no-op rather than a second open.
+     */
+    const inTree = rowNamed('.wx-tree', 'Hobby');
+    if (onScreen(inTree)) {
+      await hand.at(inTree!, true);
+    } else {
+      const inList = rowNamed('.wx-list', 'Hobby');
+      if (inList) {
+        await revealRow(inList);
+        await hand.open(inList);
+      }
     }
+    await wait(reduced ? 0 : 260);
     return true;
   };
 
@@ -1116,14 +1142,37 @@ export function startTour(root: HTMLElement, podium: Podium): TourHandle {
   const chatOpen = (): boolean =>
     document.querySelector('[data-ctl="chat"]')?.getAttribute('aria-pressed') === 'true';
 
+  /*
+   * TWO ROUTES TO THE CHAT, chosen the way doShare chooses: by what is on the
+   * bar rather than by a width.
+   *
+   * Nam: "the showing chat panel doesnt work, cause the mouse fail to locate the
+   * chat. Its actually the in-call message in the more option panel."
+   *
+   * Exactly that. `[data-ctl="chat"]` lives in .bar-right, which is display:none
+   * below the phone breakpoint, so the hand was aiming at a zero box; centreOf
+   * refuses to travel to one, the press never happened, and the beat narrated an
+   * open panel over a call that still had none. The overflow row is the route a
+   * visitor on that screen has, so it is the route the script takes too.
+   *
+   * The row toggles, because the panel reducer treats a repeat of the open panel
+   * as a close -- so putting it back is the same press either way, and the guard
+   * below still applies to both.
+   */
+  const pressChat = async (): Promise<boolean> => {
+    if (onScreen(q('[data-ctl="chat"]'))) return await pressSel('[data-ctl="chat"]', true);
+    if (!await openOverflow()) return false;
+    return await pressSel('.call-more [data-row="chat"]', true);
+  };
+
   const showChat = async (): Promise<void> => {
     const wasOpen = chatOpen();
-    if (!wasOpen && !await pressSel('[data-ctl="chat"]', true)) return;
+    if (!wasOpen && !await pressChat()) return;
     await wait(reduced ? 0 : SHOW_MS);
     if (wasOpen) return;
     // Guarded, because the visitor can close it themselves inside the hold, and
     // pressing again then would REOPEN the panel the beat is trying to put away.
-    if (chatOpen()) await pressSel('[data-ctl="chat"]', true);
+    if (chatOpen()) await pressChat();
   };
 
   /**
@@ -1939,6 +1988,31 @@ export function startTour(root: HTMLElement, podium: Podium): TourHandle {
     startedAt = performance.now();
 
     while (!dead) {
+      /*
+       * THE OFFER EXPIRES WITH THE INTRO, NOT WITH THE QUESTIONS.
+       *
+       * Nam: "after the intro is finished, we go to the question, here the button
+       * is still called skip intro. It doesnt have a trigger to change when the
+       * intro finishes."
+       *
+       * Exactly the gap. dropSkip() lived in tell() and nowhere else, and tell()
+       * is not what ends the walkthrough -- the walkthrough ends when the last
+       * part plays and the reducer turns the mode to `finished`, and this loop
+       * then BREAKS. The questions start later, from the watchdog, and only once
+       * the visitor has been passive for STORY_MS. Everything in between is a
+       * button offering to skip a walkthrough that is already over.
+       *
+       * And for a visitor who never goes passive it is not a gap but the rest of
+       * the visit: the watchdog's `passive()` gate means tell() may never run, so
+       * the offer would stand for good.
+       *
+       * `playing` and `commenting` are the walkthrough; every other mode is past
+       * it. Checked here rather than at each break because there are four ways
+       * out of this loop and the rule is about the mode, not about the exit.
+       * dropSkip() is idempotent, so tell() keeping its own call costs nothing.
+       */
+      if (tour.mode !== 'playing' && tour.mode !== 'commenting') dropSkip();
+
       if (tour.mode === 'handedOver') { await voice(asides.handOver.text, asides.handOver.ms); break; }
       if (tour.mode === 'telling') {
         // N148. Consumed here rather than read inside tell(), so a segment that

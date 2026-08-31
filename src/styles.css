@@ -444,8 +444,23 @@ button { font: inherit; }
 
 .lobby { min-height: 100%; display: flex; flex-direction: column; }
 .lobby-bar { height: var(--topbar); display: flex; align-items: center; padding: 0 20px; }
-/* Both of these belong to the phone's version of this bar. See the 599 block. */
-.lobby-brand, .lobby-av { display: none; }
+/* The wordmark belongs to the phone's version of this bar. See the 599 block. */
+.lobby-brand { display: none; }
+/*
+ * THE AVATAR IS ON BOTH NOW. Nam: "in the green room, there should be an avatar
+ * next to this email and swtich account."
+ *
+ * It was phone-only, on the reading that the desktop reference shows an account
+ * line where the phone shows an avatar. Meet shows both, and so should this --
+ * the account line names who is in the seat and the avatar is that same person,
+ * so a bar carrying one without the other was stating the fact twice on the
+ * phone and once here.
+ *
+ * It also puts the spec panel one press away on the desktop green room, which is
+ * where the home screen already puts it and where this screen previously had no
+ * route to it at all.
+ */
+.lobby-av { display: grid; margin-left: 12px; }
 .lobby-acct { margin-left: auto; text-align: right; font: 400 13px/18px var(--font); color: var(--ink2); }
 .lobby-acct b { display: block; font-weight: 400; }
 .lobby-acct span { color: var(--link); cursor: default; }
@@ -465,17 +480,36 @@ button { font: inherit; }
   position: absolute; top: 14px; left: 16px; z-index: 2;
   font: 500 14px/1 var(--font); color: #fff;
 }
+/*
+ * BIGGER ON THE DESKTOP, and it was smaller than the phone's before this.
+ *
+ * Nam: "on desktop the Rehearse with me text should probably be bigger. and the
+ * subtext Nam shows you around bla bla bla should probably be a bit bigger too."
+ *
+ * Measured, the desktop was 18/26 in the body face while the 599 block gives the
+ * phone 22/28 in the title face -- the headline was literally four pixels
+ * smaller on the screen with four times the room. That is what happens when the
+ * phone gets a considered override and the base is left at whatever it was.
+ *
+ * 24/32 in the title face, which puts it in the same family as "Ready to join?"
+ * (28/36 title) across the panel from it: this is the other half of that
+ * question, so the two should read as a pair rather than as a heading and a
+ * caption. The phone keeps its own 22/28 -- its rule is later and narrower.
+ */
 .preview-ask {
   position: relative; z-index: 2; text-align: center; color: #fff;
-  font: 400 18px/26px var(--font); max-width: 30ch;
+  font: 400 24px/32px var(--font-title); max-width: 30ch;
 }
 /* The two lines under it: what he does, and how to stop him. One per line and
    authored as two spans rather than one wrapped sentence, for the same reason
    the lane cards were (N188) -- two facts a reader is meant to take separately
    should not be allowed to break wherever the width happens to end. */
+/* 15/22 rather than 13/19, so the three lines under a 24px headline still read
+   as its subtitle and not as a footnote. The margin goes to 12 with them: the
+   gap was set against a smaller pair and would crowd this one. */
 .preview-note {
-  position: relative; z-index: 2; text-align: center; margin: 10px 0 0;
-  font: 400 13px/19px var(--font); color: var(--on-dark2);
+  position: relative; z-index: 2; text-align: center; margin: 12px 0 0;
+  font: 400 15px/22px var(--font); color: var(--on-dark2);
 }
 .preview-note span { display: block; }
 /* .preview-avatar was here. The green-room tile no longer draws one: the line in
@@ -502,7 +536,6 @@ button { font: inherit; }
 
 .join-col { flex: 0 1 448px; max-width: 100%; text-align: center; }
 .join-col h1 { font: 400 28px/36px var(--font-title); }
-.join-sub { margin-bottom: 22px; }
 .join-card { text-align: left;
   display: flex; align-items: center; margin-bottom: 24px;
 }
@@ -590,9 +623,28 @@ button { font: inherit; }
 .vtile-fx button:hover { background: rgba(0,0,0,.7); }
 
 /* captions overlay — Meet floats them above the control bar */
+/*
+ * WORDS ON THE CALL, NOT A CARD ON THE CALL.
+ *
+ * Nam: "the caption, I think the mobile has been matched with real caption and it
+ * doesnt have the dark black background on the text. Please match the caption
+ * style on the styling on mobile, which I think is the faithful mirror of the
+ * original meet."
+ *
+ * The phone dropped the bubble first, and the argument that did it was never
+ * really about width: "the view for the shared screen + CC is very busy ... it
+ * looks nothing like us, not a box that pops out." A rounded black rectangle
+ * under a shared screen that is also a rounded rectangle is two competing cards
+ * where the reference has one picture and some words beneath it. That is as true
+ * at 1440 as at 390, so the radius, the padding and the ground all come off the
+ * BASE rule and the phone stops being a special case.
+ *
+ * Nothing legible is lost. The call behind is near black already and the text is
+ * 18px white on it; what goes is a surface that was drawing a second frame.
+ */
 .cc {
-  position: absolute; left: 50%; transform: translateX(-50%); border-radius: 8px;
-  padding: 14px 18px; z-index: 20; color: #fff;
+  position: absolute; left: 50%; transform: translateX(-50%);
+  padding: 0; z-index: 20; color: #fff;
 }
 .cc-who { font: 500 13px/18px var(--font); color: var(--on-dark2); margin-bottom: 2px; }
 .cc-text { font: 400 18px/26px var(--font); min-height: 26px; }
@@ -2768,10 +2820,14 @@ body.plain { background: #fff; color: #16181c; }
    in the bottom-right because it stops short of it. */
 .cc {
   /* The SAME lift the reservation is built from, so the band and the bubble it
-     is reserved for cannot disagree. See --cc-band, above .grid-wrap.is-solo. */
-  bottom: calc(var(--botbar) + var(--cc-lift));
+     is reserved for cannot disagree. See --cc-band, above .grid-wrap.is-solo.
+     --cc-open is in here for the same reason it is in the band: the tray takes
+     its 52px off the floor, and the caption is measured off the floor. */
+  bottom: calc(var(--botbar) + var(--cc-open) + var(--cc-lift));
   width: min(640px, calc(100% - 320px));
-  background: rgba(0,0,0,.72);
+  /* No ground. See the note on the base rule above: the bubble came off every
+     width, not just the phone's. */
+  background: transparent;
 }
 @media (max-width: 899px) {
   /* No room to sit beside the tile, so it goes above it instead. The lift that
@@ -2842,10 +2898,6 @@ body.plain { background: #fff; color: #16181c; }
    already matching exactly, this was the last number left. */
 .join-col { margin-bottom: 22px; }
 .join-col h1 { color: var(--ink); margin-bottom: 0; }
-.join-sub {
-  font: 500 14px/20px var(--font-title); color: var(--ink);
-  letter-spacing: normal; margin: 24px 0 0;
-}
 .join-card {
   width: 322px; height: 64px; box-sizing: border-box;
   background-color: #f0f4f9; border-radius: 16px; margin: 16px auto 0;
@@ -3964,7 +4016,7 @@ body.plain { background: #fff; color: #16181c; }
    * plus a card plus two buttons is more than one viewport and the one thing the
    * visitor came to press ends up below the fold.
    */
-  .join-col h1, .join-sub, .join-card { display: none; }
+  .join-col h1, .join-card { display: none; }
 
   /*
    * The badge on Join now goes with them. The reference puts its warning on the
@@ -3979,7 +4031,9 @@ body.plain { background: #fff; color: #16181c; }
    */
   .lobby-acct { display: none; }
   .lobby-brand { display: flex; align-items: center; }
-  .lobby-av { display: grid; margin-left: auto; }
+  /* The account line is gone here, so the avatar takes the whole right side
+     rather than sitting 12px off text that is not there. */
+  .lobby-av { margin-left: auto; }
   .lobby-bar { padding: 0 12px; }
 
   /*
@@ -4011,6 +4065,10 @@ body.plain { background: #fff; color: #16181c; }
    * clearance in one go.
    */
   .preview-ask { font: 400 22px/28px var(--font-title); padding-inline: 24px; }
+  /* And the subtitle keeps the size it was tuned at. The desktop's went up to
+     15/22 to sit under a 24px headline; this tile is smaller, now carries three
+     lines rather than two, and 13/19 is what was measured against it. */
+  .preview-note { font: 400 13px/19px var(--font); margin-top: 10px; }
 
   /* 20px, measured. Ours was set solid at 14, which crowded the name against the
      top of the tile. */
@@ -5051,8 +5109,40 @@ body:has(.grid-wrap.is-solo) .count-chip[style*="transparent"] { display: none; 
 :root {
   --cc-lift: 12px;
   --cc-tall: 132px;
-  --cc-band: calc(var(--cc-lift) + var(--cc-tall));
+  /*
+   * --cc-open  what the reaction tray (or the settings row, which is the same
+   *            shape and the same height) takes out of the bottom of the screen
+   *            while it is open. Zero the rest of the time.
+   *
+   * IT IS ONE NUMBER FOR THE WHOLE STACK, and that is the point of it. Nam:
+   * "when the emoji opens, everything needs to be pushed up the same amount of
+   * height, including the script progression, the caption, the skip intro/stop
+   * talking button, the avatar."
+   *
+   * Before this, four things lifted by four different amounts -- the readout by
+   * 56, the caption by 18, the tile by 52 and Stop talking by nothing -- because
+   * each had been given its own hand-written tray offset at the moment it was
+   * noticed. Measured at 390x844 with the tray open, the readout landed at
+   * 686-707 and the caption at 626-704: a 21px overlap, which is the progress
+   * bar drawn straight through the sentence it is reporting on.
+   *
+   * Folding it into --cc-band is what makes the rest automatic. Everything above
+   * the control bar is already measured off the band, so the band growing lifts
+   * the caption, Stop talking, the tile and the reaction clip together, and no
+   * consumer has to know the tray exists.
+   */
+  --cc-open: 0px;
 }
+/* On BODY rather than :root, because --cc-open is toggled by a body class and a
+   custom property substitutes the value from the scope it is DECLARED in -- a
+   band defined on :root would forever read :root's zero. Declared once here, so
+   every existing var(--cc-band) rides the tray without being touched. */
+body {
+  --cc-band: calc(var(--cc-lift) + var(--cc-tall) + var(--cc-open));
+}
+/* The tray reserves 52px and the settings row's top edge lands on the same line,
+   so one value serves both (N146). */
+body.tray-open, body.set-open { --cc-open: 52px; }
 @media (max-width: 899px) { :root { --cc-lift: 116px; } }
 
 /*
@@ -5114,8 +5204,14 @@ body:has(.grid-wrap.is-solo) .count-chip[style*="transparent"] { display: none; 
    * by the tray's height together -- moving only the readout would have parked it
    * on the caption instead. One variable does it, because the band is what
    * everything else is measured from (N146).
+   *
+   * That variable is --cc-open, declared with the other caption numbers. This
+   * rule used to raise --cc-lift to 108 instead, which was the same idea aimed at
+   * the wrong number: --cc-lift is ALSO the gap between the readout and the
+   * caption, so moving it moved the caption away from the readout rather than
+   * moving both away from the tray, and it fought the desktop's `+ 52px + 12px`
+   * caption rule for the result. Nothing to set here now.
    */
-  body.tray-open { --cc-lift: 108px; }
 }
 
 /* THE SETTINGS ROW RESERVES WHAT THE TRAY RESERVES, found by the QA on this
@@ -5128,10 +5224,10 @@ body:has(.grid-wrap.is-solo) .count-chip[style*="transparent"] { display: none; 
  * to 144 is what turned the missing half of the pair into an overlap. Written as
  * the same pair everywhere, so the next person to change one changes both. */
 body.tray-open .grid-wrap.is-solo,
-body.set-open .grid-wrap.is-solo { bottom: calc(var(--botbar) + 52px); }
+body.set-open .grid-wrap.is-solo { bottom: calc(var(--botbar) + var(--cc-open)); }
+/* The cc-on pair that used to sit here (band + 52) is gone: --cc-band carries
+   --cc-open now, so adding it again would lift the tile twice. */
 body.cc-on .grid-wrap.is-solo { bottom: calc(var(--botbar) + var(--cc-band)); }
-body.tray-open.cc-on .grid-wrap.is-solo,
-body.set-open.cc-on .grid-wrap.is-solo { bottom: calc(var(--botbar) + var(--cc-band) + 52px); }
 
 /* --- the reactions tray -------------------------------------------------- */
 /* 40x40 buttons on a 40px pitch, sitting above the bar in the 52 it reserves.
@@ -5566,12 +5662,11 @@ body.has-panel .reaction, body.has-panel .reaction-who { left: 0; }
    block did not restate them. Deleted rather than layered over. */
 
 /* --- 11. Captions must not sit on top of the tray ----------------------- */
-/* They occupied the same band. With the tray open the caption block lifts by
-   the tray's own 52px reservation, which is the number the tile already uses. */
-/* The tray reserves 52px and the settings row's top edge lands on the same
-   line, so one value serves both. Captions lift clear of whichever is open. */
-body.tray-open .cc,
-body.set-open .cc { bottom: calc(var(--botbar) + 52px + 12px); }
+/* They occupied the same band. The lift now comes from --cc-open on .cc itself
+   rather than from a rule here, and that is the whole fix for the phone: the
+   `+ 52px + 12px` this replaces was a DESKTOP lift written as a constant, so on
+   a screen where --cc-lift is 46 it moved the caption DOWN to 64 while the
+   progress readout moved up to 62, and the two met. One variable, one lift. */
 
 @media (prefers-reduced-motion: reduce) {
   .grid-wrap.is-solo { transition: none; }
@@ -5975,6 +6070,12 @@ body.set-open .cc { bottom: calc(var(--botbar) + 52px + 12px); }
   box-shadow: 0 28px 64px rgba(0, 0, 0, .62), 0 2px 8px rgba(0, 0, 0, .4);
   user-select: none; -webkit-user-select: none;
   font: 400 13px/1.45 "Segoe UI", var(--font), sans-serif;
+  /* Panning and pinch still work; the double-tap zoom does not. That gesture is
+     the one a mobile browser spends before `dblclick` is delivered, and inside a
+     window whose rows are a file listing it is never the gesture the visitor
+     meant. It also drops the legacy 300ms tap delay, so a tap on a row lands
+     when it is made. The tap-to-open path in share.ts is the other half of this. */
+  touch-action: manipulation;
 }
 /* Window-share mode: one window, centred, on nothing. */
 .wx-solo { position: relative; margin: auto; width: min(760px, 90%); height: min(480px, 84%); }
@@ -7633,7 +7734,37 @@ body.presenting .shot {
    * this inset -- which was written before the progress readout existed on this
    * screen. 124 clears the readout at 82 plus its 30 and a gap.
    */
-  .grid-wrap.is-solo { inset: 52px 8px 124px 8px; }
+  /*
+   * THE TOP INSET IS THE BAR PLUS A GAP, NOT A NUMBER THAT USED TO BE THE BAR.
+   *
+   * Nam: "the shared screens top get pushed up, flushed against the top bar,
+   * which doesnt look very nice. Make sure even when it is pushed up, the
+   * padding is maintain, so the gap between shared screen and top bar remains."
+   *
+   * Measured at 390x844: .call-top runs 0..56 and this inset put the share at 52,
+   * so the share was not flush against the bar -- it was four pixels UNDER it,
+   * in both tray states. The 52 was the in-call bar's height when this was
+   * written and the bar has been 56 since; nothing tied the two together, so the
+   * bar grew and the share quietly slid beneath it. A maximised window is what
+   * makes it visible, because its title bar is then the thing being clipped, and
+   * shortening the share for the tray is what made it worth looking at.
+   *
+   * Off --callbar plus the same 8 the sides use, so the gap is now a consequence
+   * of the bar's height rather than a coincidence that held once.
+   */
+  .grid-wrap.is-solo { inset: calc(var(--callbar) + 8px) 8px 124px 8px; }
+  /*
+   * ...AND THE TRAY STEPS THAT CASE UP TOO.
+   *
+   * The captions-off floor is this rule's own 124 rather than the band, so it
+   * cannot ride --cc-band the way the cc-on case does; it has to add --cc-open
+   * itself. Written as `body:not(.cc-on)` so it stays out of the way of
+   * `body.cc-on .grid-wrap.is-solo`, and placed here rather than beside the
+   * desktop tray rules because it has to WIN against them: both are (0,3,1) and
+   * this stylesheet's phone block is later, which is the only thing separating
+   * them.
+   */
+  body:not(.cc-on) .grid-wrap.is-solo { bottom: calc(124px + var(--cc-open)); }
   /* The self-view strip under the share. 88 was the desktop's; 76 is the tile
      plus its own margin at this size, and the 12 goes to the share. */
   body.presenting .shot-wrap { bottom: 76px; }
@@ -7823,15 +7954,14 @@ body.presenting .shot {
    * `calc(100% - 32px)` centred, so the text starts on the same left margin as
    * everything else on the screen.
    */
+  /* The ground, the radius and the padding now come off the base rule at every
+     width, so all that is left here is the phone's own measure: full bleed with a
+     16px inset, rather than the 899-block's centred `calc(100% - 32px)`, so the
+     text starts on the same left margin as everything else on the screen. */
   .cc {
     width: 100%;
     padding: 0 16px;
-    background: transparent;
-    border-radius: 0;
   }
-  /* The honesty label, which has nowhere to go at this width. The name stays;
-     see the note in ui/caption.ts for why the two are separate elements. */
-  .cc-meta { display: none; }
 
   /*
    * STOP TALKING SITS ABOVE THE CAPTION, inside the band reserved for both.
@@ -7875,12 +8005,43 @@ body.presenting .shot {
        -- top wins and bottom is ignored, which put the progress bar in the middle
        of the shared screen. */
     top: auto; transform: none;
-    bottom: calc(var(--botbar) + 6px); z-index: 60;
+    /* The tray takes the slot the readout sits in, so --cc-open moves the readout
+       above it -- the same 52 the caption, Stop talking, the tile and the share
+       all step up by, which is the point of there being one number. The 62px
+       constant this replaces was six pixels off that step, and six pixels is
+       enough to put a 21px bar inside a 78px caption. */
+    bottom: calc(var(--botbar) + var(--cc-open) + 6px); z-index: 60;
+    /* Fades rather than blinks. See body.has-panel, below. */
+    transition: opacity .18s ease, visibility .18s ease;
   }
   .bar .bar-left .ivp { width: auto; }
-  /* The tray takes the slot the readout sits in, so the readout goes above it.
-     The caption and Stop talking come with it, via --cc-lift on body.tray-open. */
-  body.tray-open .bar .bar-left { bottom: calc(var(--botbar) + 62px); }
+
+  /*
+   * THE READOUT GETS OUT OF THE WAY OF A PANEL.
+   *
+   * Nam: "the script progression, its overlapping with the right side panel. And
+   * I think the quickest solution is to hide the script progression when the
+   * right side panel opens."
+   *
+   * On a phone a panel is the whole screen rather than a column beside the call,
+   * so a fixed full-width readout pinned above the control bar lands on top of
+   * whatever the panel put there -- in the report, on the Links row of the
+   * people panel. Hidden is right rather than lifted: the panel IS the visitor's
+   * attention now, and a walkthrough counter over someone else's content is
+   * noise wherever it is put.
+   *
+   * visibility as well as opacity, so it stops taking taps on the way out rather
+   * than sitting invisible over the panel's own controls; both are transitioned
+   * so it fades, which is what Nam asked for -- "not just abruptly" -- and
+   * visibility being a discrete property still animates usefully here, holding
+   * `visible` for the length of the fade and flipping at the end.
+   */
+  body.has-panel .bar .bar-left { opacity: 0; visibility: hidden; }
+  /* A fade is a courtesy, not information: somebody who has asked for less
+     motion gets the same two states, cut. */
+  @media (prefers-reduced-motion: reduce) {
+    .bar .bar-left { transition: none; }
+  }
 
   /* The quest toast lifts over the whole band rather than landing on the
      caption, which is where the 720 rule's `--botbar + 8` now puts it. */
@@ -8830,13 +8991,12 @@ body.presenting:not(.is-pinned) .solo.is-snapping {
   overflow: hidden; pointer-events: none; z-index: 8;
 }
 body.tray-open .react-clip,
-body.set-open .react-clip { bottom: calc(var(--botbar) + 52px); }
+body.set-open .react-clip { bottom: calc(var(--botbar) + var(--cc-open)); }
 /* Same band as the stage, from the same variable, and the same tray/settings
-   pair (N146). These two used to be two copies of 216 and 268, which is exactly
-   the kind of pair that gets half updated. */
+   pair (N146). These used to be copies of 216 and 268, which is exactly the kind
+   of pair that gets half updated -- so the cc-on + 52 variant is gone too, for
+   the reason given on .grid-wrap.is-solo: the band already carries the tray. */
 body.cc-on .react-clip { bottom: calc(var(--botbar) + var(--cc-band)); }
-body.tray-open.cc-on .react-clip,
-body.set-open.cc-on .react-clip { bottom: calc(var(--botbar) + var(--cc-band) + 52px); }
 
 /* ====== ROUND 20: THE SHARED SCREEN IS A PICTURE, NOT A DOCUMENT ========= */
 /* Nam: "nothing on this screensharing is selectable (text wise)".
@@ -9827,6 +9987,40 @@ body.bug-struck { animation: bug-shake 520ms cubic-bezier(0.36, 0.07, 0.19, 0.97
    and it is already filling the surface. */
 .wx.is-max { animation: none; }
 
+/*
+ * FULLSCREEN, AS WINDOWS MEANS IT — see the player's `fullscreen` in share.ts.
+ *
+ * Maximised stops at the taskbar; fullscreen covers it, drops the title bar and
+ * the rounded corners, and takes the picture edge to edge. That difference is
+ * the whole reason both states exist, so it is written as the difference:
+ * everything here is what is-max does NOT do.
+ *
+ * ABSOLUTE, AND THE SURFACE IS WHAT GROWS. The first cut used `position: fixed`
+ * on the theory that the share's own transform would contain it -- the mock OS is
+ * drawn through one, and a transformed ancestor does become the containing block
+ * for fixed descendants. Measured, it did not: the window came out at 0,0,390,844,
+ * the whole phone viewport, because the transform is not on an ancestor of .wx in
+ * every state the share renders in. A containing block that depends on a
+ * transform being present somewhere above is not a containing block, it is a
+ * coincidence.
+ *
+ * So the window fills .dk-surface, which is positioned and is unambiguously its
+ * parent, and .dk-surface drops its 48px taskbar reservation while a fullscreen
+ * window is inside it. That covers the taskbar the way a real fullscreen player
+ * does, and it cannot escape the shared screen however the share is transformed.
+ */
+.wx.is-fs {
+  position: absolute; inset: 0 !important;
+  width: auto !important; height: auto !important;
+  border-radius: 0; border: 0; z-index: 40;
+  animation: none;
+}
+.dk-surface:has(> .wx.is-fs) { bottom: 0; }
+.wx.is-fs > .wx-bar { display: none; }
+/* The clip gets the space the chrome gave up; the bar and caption stay, because
+   a player with no way out is how a viewer gets stuck (the note on .mp-stage). */
+.wx.is-fs .mp-stage { border-radius: 0; }
+
 @media (prefers-reduced-motion: reduce) {
   /* Item 3 above would otherwise BE an accessibility regression: four new
      animations on the most-moved element in the mock OS. The states still have
@@ -10467,10 +10661,14 @@ body.bug-struck { animation: bug-shake 520ms cubic-bezier(0.36, 0.07, 0.19, 0.97
  * click we will get a falling number coming out of the click as a click effect."
  */
 
-/* --- the avatar, once it is an A ----------------------------------------- */
+/* --- the avatar, once the gate is open ----------------------------------- */
 /* The one visible reward, so it has to read at 32px and from across the bar.
-   A different gradient rather than a badge or a dot: the letter has already
-   changed, and a second signal on a 32px circle is clutter. */
+   A different gradient, and now the ONLY signal: the letters are NN in every
+   state, because the visitor is in Nam's seat whether or not they have found the
+   password (see visitorInitials in ui/avatar.ts). This note used to say the
+   colour was a second signal after the letter changed, which is the reasoning
+   the other way round -- admin is a state this person is in, not a different
+   person, so the identity holds and the surface moves. */
 .avatar-btn.is-admin > span {
   background: linear-gradient(145deg, #fbbc04, #ea4335);
   color: #2b1400;

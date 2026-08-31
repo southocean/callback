@@ -1,0 +1,1 @@
+var i=[{id:"ref-diep",name:"Diep Bui",email:"diepbp.github.io",initials:"DB",tint:"#c4eed0",ink:"#072711",href:"https://diepbp.github.io/",voice:"https://diepbp.github.io/",confirmed:!0,referral:!0}];function r(t){return i.filter(e=>!e.referral||t)}var n="someone who really wants this job";export{i as a,r as b,n as c};

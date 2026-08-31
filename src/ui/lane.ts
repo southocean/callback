@@ -177,7 +177,17 @@ export function askLane(): Promise<Lane> {
           lane({
             id: 'walkthrough',
             glyph: 'closed_caption',
-            title: 'A lazy walkthrough',
+            // Titled to match the green room's preview card, so the two cannot
+            // contradict each other if this picker is ever mounted again (askLane
+            // is exported and unused -- see the note at call.ts:2419).
+            //
+            // WITHOUT the card's third line, deliberately. "Would he get the job?"
+            // is the green room's, where it is the last thing read before Join;
+            // here the two lanes are meant to be COMPARED, and the note below
+            // spends a paragraph on why both bodies are the same shape. A third
+            // line in one card and not the other is exactly the asymmetry it is
+            // guarding against.
+            title: 'Rehearse with me',
             body: ['Nam shows you around.', 'Stop him whenever you want.'],
             best: true,
           }),

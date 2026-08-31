@@ -12,6 +12,7 @@ import { h, clear } from '../dom.js';
 import { sym, spinner, focusRing, dropCaret, lockup } from './icons.js';
 import { openDev } from './devopen.js';
 import { visitorAvatarButton, VISITOR_NAME } from './avatar.js';
+import { profile } from '../data/cv.js';
 import type { IconName } from './icons.js';
 import { tipAllAbove, tipAll } from './tooltip.js';
 import { ripple, attachMenu, warnBadge, micMeter, noticeCard } from './gm3.js';
@@ -252,12 +253,31 @@ export function renderLobby(store: Store, media: Media): HTMLElement {
      * The stop is named in the same breath, because a walkthrough nobody can
      * interrupt is the version of this that deserves the objection.
      */
-    h('p', { class: 'preview-ask', style: 'margin:0' }, 'A lazy walkthrough'),
+    /*
+     * "REHEARSE WITH ME", because of who the visitor now is.
+     *
+     * Nam: 'in the green room, its not a lazy walkthough but "Rehearse with me",
+     * "Nam shows you around. Stop him whenever you want. Would he get the job?"
+     * 3 lines.'
+     *
+     * It follows the seat. The visitor holds NN's avatar and NN's controls (see
+     * ui/avatar.ts), so the offer is not a demo being played AT them -- it is a
+     * run-through they are sitting in. "A lazy walkthrough" described a thing to
+     * watch; this describes a thing to be in.
+     *
+     * And the third line is the one that earns the other two. It steps outside
+     * the fiction to ask the reader the only question any of this is for, at the
+     * moment they are deciding whether to press Join. "he" rather than "you" on
+     * purpose: the frame-break is the point, and this build breaks frame
+     * elsewhere on purpose too (the Spec panel, the bug case).
+     */
+    h('p', { class: 'preview-ask', style: 'margin:0' }, 'Rehearse with me'),
     h(
       'p',
       { class: 'preview-note' },
       h('span', {}, 'Nam shows you around.'),
       h('span', {}, 'Stop him whenever you want.'),
+      h('span', {}, 'Would he get the job?'),
     ));
 
   /**
@@ -504,14 +524,21 @@ export function renderLobby(store: Store, media: Media): HTMLElement {
     transcriptBtn.classList.toggle('is-on', on);
   });
 
-  // One line, not two. Meet's subline is short by design — ours wrapped to a
-  // second line and pushed everything below it 11px down, which is how a copy
-  // length becomes a layout bug.
-  //
-  // It also narrates, the way the real one does: it says it is looking, and then
-  // says what it found. Measured at ~750ms apart in the recording.
-  const subLine = h('p', { class: 'join-sub' }, 'Looking for others in the call…');
-  window.setTimeout(() => { subLine.textContent = 'Nam Nguyen is already here'; }, 750);
+  /*
+   * THE SUBLINE IS GONE, and it had to go whole rather than half.
+   *
+   * Nam: "in the green room, remove the Nam Nguyen is already here."
+   *
+   * It narrated in two beats, the way the real one does: "Looking for others in
+   * the call" and then, 750ms later, "Nam Nguyen is already here". Removing only
+   * the payoff would leave a screen that searches forever, which is a worse thing
+   * to ship than either line -- so the whole narration goes.
+   *
+   * It had also stopped being true. The visitor is in NN's seat now (see
+   * ui/avatar.ts), so a line announcing that Nam is already here is announcing
+   * the person reading it, and "others in the call" is a headcount of one that
+   * the participant chip already gives honestly.
+   */
 
   /**
    * Other ways to join. Meet expands it IN PLACE: the three options appear
@@ -551,7 +578,6 @@ export function renderLobby(store: Store, media: Media): HTMLElement {
     'div',
     { class: 'join-col' },
     h('h1', {}, 'Ready to join?'),
-    subLine,
     h(
       'div',
       { class: 'join-card' },
@@ -697,10 +723,23 @@ export function renderLobby(store: Store, media: Media): HTMLElement {
     h(
       'header',
       { class: 'lobby-bar' },
-      // In the real product this is *your* account. Here the visitor is the
-      // one taking the interview, so it is theirs — not Nam's. No real address
-      // is invented: Google publishes none for this, and it would be a strange
-      // thing to fabricate on a job application.
+      /*
+       * NAM'S OWN ADDRESS, because the seat is Nam's.
+       *
+       * This used to read you@google.com, on the reasoning that the visitor was
+       * the one taking the interview so the account was theirs and not Nam's --
+       * and that a placeholder was better than inventing a Google address nobody
+       * publishes. The first half of that stopped being true when the visitor
+       * started wearing NN's avatar and driving NN's controls (see ui/avatar.ts):
+       * a bar showing NN beside you@google.com contradicts itself in the space of
+       * one line.
+       *
+       * The second half no longer applies either, because nothing is invented
+       * here. Nam: "here you can write my email instead of you@google.com". It is
+       * the address already printed on the plain document, in the PDF and behind
+       * every mailto in the build -- and it is read from profile rather than
+       * typed, so there is still one place it is written down.
+       */
       /*
        * ON A PHONE THIS BAR IS A WORDMARK AND AN AVATAR. Nam, from the real
        * product: "note that here the top only shows the avatar, not
@@ -716,7 +755,7 @@ export function renderLobby(store: Store, media: Media): HTMLElement {
       h(
         'div',
         { class: 'lobby-acct' },
-        h('b', {}, 'you@google.com'),
+        h('b', {}, `${profile.emailUser}@${profile.emailHost}`),
         h('span', {}, 'Switch account'),
       ),
       /*

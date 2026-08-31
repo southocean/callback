@@ -213,7 +213,7 @@ const NOT_EMPTY = [
   '.dk-icon', '.cb-tab', '.tour-bar', '.pg-frame',
 ].join(',');
 
-export function makeCaption(who: string, meta?: string): Caption {
+export function makeCaption(who: string): Caption {
   const reduced = prefersReducedMotion();
 
   const textEl = h('div', { class: 'cc-text' }) as HTMLElement;
@@ -268,19 +268,27 @@ export function makeCaption(who: string, meta?: string): Caption {
   },
     h('div', { class: 'cc-head' },
       /*
-       * THE NAME AND THE DISCLAIMER ARE TWO ELEMENTS, not one string.
+       * THE BYLINE IS THE NAME, AND ONLY THE NAME.
        *
-       * "Nam Nguyen . scripted transcript, no audio" is an honesty label rather
-       * than decoration -- the devlog carries the objection it answers, that
-       * captions implying live speech recognition where there is no audio would be
-       * a lie. It stays wherever there is room for it.
+       * It used to carry "\u00b7 scripted transcript, no audio" beside it, as an
+       * honesty label: the devlog carries the objection it answered, that
+       * captions implying live speech recognition where there is no audio would
+       * be a lie. The phone dropped it first for room -- which is why the name
+       * and the label were split into two elements, since CSS cannot hide half a
+       * text node -- and Nam has now dropped it on the desktop too.
        *
-       * On a phone there is not. Nam: "scripted transcript, no audio => remove all
-       * this", about a caption sharing a 390px screen with a shared desktop. So it
-       * needs to be separately addressable, and a single interpolated string was
-       * not: CSS cannot hide half a text node.
+       * The claim it was guarding against is not actually made anywhere: nothing
+       * on this strip says listening, the voice is visibly typed rather than
+       * transcribed, and the build notes state the mechanism in full. A label
+       * answering an objection nobody has read is furniture on the one strip that
+       * has to stay quiet.
+       *
+       * So the second element goes with it. A parameter with no caller and a
+       * class with no rule are the two things that would otherwise be left
+       * behind, and both are the kind of leftover the deadcss gate exists to
+       * catch.
        */
-      h('div', { class: 'cc-who' }, who, meta ? h('span', { class: 'cc-meta' }, ' \u00b7 ' + meta) : null),
+      h('div', { class: 'cc-who' }, who),
       ring),
     textEl,
     live) as HTMLElement;

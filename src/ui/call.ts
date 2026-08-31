@@ -601,7 +601,7 @@ export function renderCall(store: Store, quests: Quests, deps: CallDeps, bugs: B
    * module, which now owns the reveal, the dwell ring, the hover-pause and the
    * press-to-skip. There is nothing to start or stop from here.
    */
-  const caption = makeCaption('Nam Nguyen', 'scripted transcript, no audio');
+  const caption = makeCaption('Nam Nguyen');
   const cc = caption.el;
   const announce = caption.announce;
 
@@ -2078,6 +2078,11 @@ export function renderCall(store: Store, quests: Quests, deps: CallDeps, bugs: B
             onPick: () => { store.dispatch({ t: 'captions', on: !store.get().captionsOn }); } },
           { icon: 'chat' as const,
             label: 'In-call messages',
+            // Same reason the captions row above carries one: on a phone the bar
+            // control is display:none, so this row is the only reachable way to
+            // the chat -- and the script's "open the chat" beat has to be able to
+            // find it. See showChat in tour/stage.ts.
+            key: 'chat',
             onPick: () => { store.dispatch({ t: 'panel', panel: 'chat' }); } },
           { icon: 'apps' as const,
             label: 'Meeting tools',

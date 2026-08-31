@@ -38,24 +38,48 @@ import { onAdminGranted } from './admingate.js';
 export const VISITOR_NAME = 'You';
 
 /**
- * TWO LETTERS, NOT ONE, and GG rather than G.
+ * NN, ALWAYS -- AND THE GATE CHANGES THE COLOUR, NOT THE LETTERS.
  *
- * One letter reads as somebody's initial, which invites the question of whose --
- * and the answer is nobody's, because this is the person holding the phone. Two
- * reads as a label. AD once the gate is open, on the same logic.
+ * Nam, rethinking who the visitor is: "Earlier we were thinking Nam is a
+ * different person in the call. Which means the avatar is GG and AD ... But then
+ * problem is that Nam is talking, and he is sharing his screen by clicking your
+ * screen, turning on CC for you, sharing your screen. So I feel like the
+ * interviewer should roleplay me, NN instead of being themselves. So the name
+ * would be NN everywhere, if we get admin then the avatar color change, but not
+ * the name."
+ *
+ * The observation underneath it is the important part, and it is about agency
+ * rather than branding. Every gesture in the walkthrough is performed on the
+ * VISITOR'S OWN CLIENT: the hand turns their captions on, opens their share
+ * picker, presses their controls. If the visitor is a Google interviewer, then
+ * Nam is reaching across a call and operating a stranger's machine, and nothing
+ * on screen explains how. If the visitor is Nam, the hand is his own and the
+ * incoherence disappears without one line of the script changing.
+ *
+ * So the seat is Nam's and the letters are his. The rest of the build already
+ * half-believed this -- the People panel has always rendered "Nam Nguyen (You)"
+ * -- and GG/AD were the outlier, not the rule.
+ *
+ * The gate still has to be visible, or unlocking it stops being a reward. It
+ * moves to colour, carried by `is-admin` on the button, which is where the
+ * home screen already put it. Letters that changed identity on unlock were
+ * saying the wrong thing anyway: admin is a state this person is in, not a
+ * different person.
  */
 export function visitorInitials(): string {
-  return isAdmin() ? 'AD' : 'GG';
+  return 'NN';
 }
 
 /**
- * The letters as an element, kept current if the gate opens while it is on
- * screen. Every caller gets that for free rather than remembering to wire it.
+ * The letters as an element.
+ *
+ * It used to re-read itself when the gate opened, because the letters changed.
+ * They do not any more -- see visitorInitials -- so the subscription would be a
+ * listener that can only ever write back what is already there. The colour is
+ * what moves now, and that is the button's job below.
  */
 export function visitorAvatar(): HTMLElement {
-  const span = h('span', {}, visitorInitials());
-  onAdminGranted(() => { span.textContent = visitorInitials(); });
-  return span;
+  return h('span', {}, visitorInitials());
 }
 
 /**
