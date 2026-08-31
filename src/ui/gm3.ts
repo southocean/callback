@@ -106,6 +106,15 @@ export interface MenuItem {
   /** A tick in the leading slot, as the camera menu marks the active device. */
   checked?: boolean;
   onPick?: () => void;
+  /**
+   * A stable handle for this row, rendered as `data-row`.
+   *
+   * The tour's hand has to be able to find a row it is about to press, and the
+   * only other way in is the label -- which is written for a reader, changes with
+   * state ("Turn on captions" / "Turn off captions"), and would make the script
+   * depend on the wording. Only the rows the tour performs need one.
+   */
+  key?: string;
   /** A rule above this item, as the overflow menu has after its first row. */
   ruleBefore?: boolean;
   /**
@@ -150,6 +159,7 @@ export function menu(items: MenuItem[], width?: number, onPicked?: () => void): 
         it.sub ? h('span', { class: 'gm-sub' }, it.sub) : null,
       ),
     );
+    if (it.key) row.dataset['row'] = it.key;
     if (it.warn) row.classList.add('is-warn');
     if (it.checked) row.classList.add('is-checked');
     if (it.disabled) {
@@ -257,9 +267,39 @@ export function attachMenu(
     // the button's top and its right edge 3px outside the button's, so it covers
     // the control rather than hanging off it.
     const top = side === 'below' ? a.bottom : side === 'above' ? a.top - w.height : a.top;
-    wrap.style.top = `${Math.round(top + (o.dy ?? 0))}px`;
     const left = align === 'left' ? a.left : a.right - w.width;
-    wrap.style.left = `${Math.round(left + (o.dx ?? 0))}px`;
+    /*
+     * AND THEN PULLED BACK ONTO THE SCREEN.
+     *
+     * Nam, on the tile menu at 390: "this should open to the left to not going
+     * out of the screen."
+     *
+     * Every placement above is measured off the ANCHOR and nothing above consults
+     * the viewport, which is correct on a desktop -- the anchors are nowhere near
+     * an edge -- and wrong the moment the screen is 390 wide, where a 247px menu
+     * left-aligned under a button at 300 puts half of itself past the edge. The
+     * corner-flipping note below says the menu "always opens into the screen
+     * rather than out of it", and that was true of the four corners it was written
+     * for and never enforced anywhere.
+     *
+     * A clamp rather than another flip, for two reasons. It is the same rule for
+     * all four corners and both axes, so there is no new placement table to keep
+     * right; and a flip can still miss, because on a narrow screen BOTH sides of
+     * the anchor can be too small to hold the menu. When the menu simply cannot
+     * fit with margins on both sides the margin wins and what is left over is the
+     * menu's own business.
+     *
+     * Desktop placements are untouched: fit() returns its input unchanged whenever
+     * the menu already lies inside the viewport, which on every measured corner it
+     * does.
+     */
+    const M = 8;
+    const fit = (v: number, size: number, limit: number): number => (
+      size + M * 2 >= limit ? M : Math.max(M, Math.min(v, limit - size - M))
+    );
+    const de = document.documentElement;
+    wrap.style.left = `${Math.round(fit(left + (o.dx ?? 0), w.width, de.clientWidth))}px`;
+    wrap.style.top = `${Math.round(fit(top + (o.dy ?? 0), w.height, de.clientHeight))}px`;
     open = wrap;
     anchor.setAttribute('aria-expanded', 'true');
   });

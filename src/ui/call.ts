@@ -466,12 +466,24 @@ export function renderCall(store: Store, quests: Quests, deps: CallDeps, bugs: B
        * So the row mirrors the original's own condition rather than being
        * permanently dead or permanently live.
        */
-      {
-        icon: 'close_fullscreen',
+      /*
+       * NOT ON A PHONE. Nam: "remove the first option here on mobile, only 2
+       * options left."
+       *
+       * Which is the right cut, and worth saying why rather than just doing it.
+       * Minimize is live in exactly one state -- the small tile, while presenting,
+       * unpinned -- and on a phone that state does not exist: the self tile is a
+       * fixed corner thumbnail that cannot be dragged and has nowhere to collapse
+       * to. So the row is not merely dead here the way it is dead on the
+       * full-stage tile, it is UNREACHABLE, and a menu whose first row can never
+       * do anything reads as broken rather than contextual.
+       */
+      ...(narrow() ? [] : [{
+        icon: 'close_fullscreen' as const,
         label: 'Minimize',
         disabled: sharing === null || store.get().pinned,
         onPick: () => { store.dispatch({ t: 'minimize', on: true }); },
-      },
+      }]),
       {
         icon: 'keep',
         label: store.get().pinned ? 'Unpin' : 'Pin to the screen',
@@ -589,7 +601,7 @@ export function renderCall(store: Store, quests: Quests, deps: CallDeps, bugs: B
    * module, which now owns the reveal, the dwell ring, the hover-pause and the
    * press-to-skip. There is nothing to start or stop from here.
    */
-  const caption = makeCaption('Nam Nguyen · scripted transcript, no audio');
+  const caption = makeCaption('Nam Nguyen', 'scripted transcript, no audio');
   const cc = caption.el;
   const announce = caption.announce;
 
@@ -769,7 +781,7 @@ export function renderCall(store: Store, quests: Quests, deps: CallDeps, bugs: B
     state?: () => { on: boolean; icon?: IconName; label?: string },
   ): Btn => {
     const b = h('button', { class: `cbtn ${cls}`, type: 'button', 'aria-label': label, onclick: onClick }, sym(icon, 24)) as Btn;
-    // Meet tips every bar control, and the glyphs are 24px not 22 — measured at
+    // Meet tips every bar control, and the glyphs are 24px not 22 -- measured at
     // dx 12 / dy 12 inside the 48x48 buttons.
     ripple(b);
     tipAll(b);
@@ -779,7 +791,20 @@ export function renderCall(store: Store, quests: Quests, deps: CallDeps, bugs: B
         b.setAttribute('aria-pressed', st.on ? 'true' : 'false');
         b.setAttribute('aria-label', st.label ?? label);
         clear(b);
-        b.appendChild(sym(st.icon ?? icon, 22));
+        /*
+         * 24, NOT 22, AND THAT WAS A REAL BUG rather than a preference.
+         *
+         * The line above builds the glyph at 24 and the comment beside it says the
+         * measurement is 24 -- and then this rebuilt it at 22. sync() runs at mount
+         * for every stateful control, so mic, camera, captions and the hand have all
+         * been drawing 22px glyphs since it was written, two pixels under their
+         * measured size and two under the neighbours that have no state to sync.
+         *
+         * Found by measuring the real mobile bar for N252 and getting 24 there,
+         * then measuring ours and getting 22: the disagreement was inside our own
+         * function, not between the two products.
+         */
+        b.appendChild(sym(st.icon ?? icon, 24));
       };
     }
     return b;
@@ -855,7 +880,7 @@ export function renderCall(store: Store, quests: Quests, deps: CallDeps, bugs: B
     return { on, icon: on ? 'videocam' : 'videocam_off', label: on ? 'Turn off camera' : 'Turn on camera' };
   }), 'camera');
 
-  const presentBtn: Btn = named(cbtn('Share screen', 'present_to_all', '', () => { void openPicker(); },
+  const presentBtn: Btn = named(cbtn('Share screen', 'present_to_all', 'present', () => { void openPicker(); },
     () => ({ on: store.get().panel === 'present' })), 'present');
 
   const reactBtn = named(cbtn('Send a reaction', 'mood', '', () => setTray(!trayOpen),
@@ -873,12 +898,18 @@ export function renderCall(store: Store, quests: Quests, deps: CallDeps, bugs: B
 
   }, () => ({ on: store.get().handRaised, label: store.get().handRaised ? 'Lower hand' : 'Raise hand' })), 'hand');
 
-  const moreBtn = cbtn('More options', 'more_vert', 'w36', () => menu(), () => ({ on: false }));
+  // Named like the rest of the bar. It had no data-ctl at all, which was
+  // harmless while nothing needed to find it and is not any more: on a phone the
+  // tour reaches BOTH the share and the captions through this button.
+  const moreBtn = named(cbtn('More options', 'more_vert', 'w36', () => menu(), () => ({ on: false })), 'more');
 
   const leaveBtn = h(
     'button',
     { class: 'cbtn leave', type: 'button', 'aria-label': 'Leave call', onclick: () => store.dispatch({ t: 'leave' }) },
-    sym('call_end', 22),
+    // 24, like every other glyph on this bar and like the reference's. This one
+    // is hand-built rather than going through cbtn, which is how it kept a 22
+    // after the same number was fixed inside cbtn's sync.
+    sym('call_end', 24),
   );
 
   const sideBtn = (label: string, icon: IconName, panel: Panel): Btn => {
@@ -1457,7 +1488,19 @@ export function renderCall(store: Store, quests: Quests, deps: CallDeps, bugs: B
    * Losing 1f3b2 dice and 1f3a4 mic to make room was not in the brief either
    * way; they were the two of ours that said least.
    */
-  const REACT_SET = ['💖', '👍', '🎉', '👏', '😂', '😮', '😢', '🀄', '🪂', '🧟'];
+  /*
+   * SEVEN ON A PHONE, TEN ON A DESKTOP. Nam: "the emoji list is also too long on
+   * mobile, lets remove the last 3 emojis that we added in, less is more here on
+   * mobile."
+   *
+   * The first seven are Meet's own set. The last three are this build's -- a
+   * mahjong tile, a parachute and a zombie, one per thing he actually did -- and
+   * they are the ones worth cutting precisely because they are ours: the tray at
+   * 390 was running past the edge, and a row that has to scroll to reach the
+   * standard reactions is worse than one that simply does not carry the jokes.
+   */
+  const REACT_ALL = ['💖', '👍', '🎉', '👏', '😂', '😮', '😢', '🀄', '🪂', '🧟'];
+  const REACT_SET = narrow() ? REACT_ALL.slice(0, 7) : REACT_ALL;
 
   /**
    * Re-measured 2026-08-22, and it corrected two things this file previously
@@ -1760,6 +1803,21 @@ export function renderCall(store: Store, quests: Quests, deps: CallDeps, bugs: B
   const shareHost = h('div', {});
   let sharing: { el: HTMLElement } | null = null;
 
+  /**
+   * Share the whole screen, with no picker in front of it.
+   *
+   * The phone reaches sharing through the overflow menu, because the real product
+   * has no share control on its mobile bar at all and there is no room to invent
+   * one -- see the note on .cbtn.present in the stylesheet.
+   */
+  async function shareFullScreen(): Promise<void> {
+    const m = await import('./share.js');
+    startShare(
+      m.renderShared(m.FULL_SCREEN, openDoc, () => stopShare()),
+      m.FULL_SCREEN.title,
+    );
+  }
+
   async function openPicker(): Promise<void> {
     const m = await import('./share.js');
     const close = (): void => {
@@ -1951,13 +2009,89 @@ export function renderCall(store: Store, quests: Quests, deps: CallDeps, bugs: B
   function menu(): void {
     if (closeMenu) { closeMenu(); return; }
     const rows: MenuItem[] = [
+      /*
+       * SHARE SCREEN LIVES HERE ON A PHONE. Nam: "the mobile view does not have
+       * screen sharing, so we will have to improvise here. Instead of sharing
+       * screen as a button on screen, we put it in the more option dot, which the
+       * action will now trigger that way: open more option, click share screen."
+       *
+       * An improvisation rather than a copy, and worth being clear about which:
+       * mobile Meet cannot share at all, so there is no reference row to match.
+       * The menu is where it goes because it is the only place on this screen with
+       * room, and it goes at the TOP because on this build sharing is not a minor
+       * setting -- it is how the CV gets shown.
+       */
+      ...(narrow()
+        ? [{ icon: 'present_to_all' as const, label: 'Share screen', key: 'share',
+             onPick: () => { void shareFullScreen(); } }]
+        : []),
       { icon: 'bolt', label: 'Streaming' },
       { icon: 'science', label: 'Recording' },
       { icon: 'apps', label: 'Adjust view', ruleBefore: true },
-      { icon: 'aspect_ratio', label: 'Full screen' },
-      { icon: 'present_to_all', label: 'Open picture-in-picture' },
-      { icon: 'blur_on', label: 'Backgrounds and effects' },
-      { icon: 'phone_forwarded', label: 'Use a phone for audio' },
+      /*
+       * THE PHONE'S MENU IS THE REFERENCE'S MENU, plus the share row above it.
+       *
+       * Nam sent a capture of the real mobile overflow expanded. It carries eleven
+       * rows: Streaming and Recording; then Adjust view, Turn on captions,
+       * In-call messages, Meeting tools and Host controls; then Report a problem,
+       * Report abuse, Troubleshooting and help, and Settings.
+       *
+       * FOUR OF OURS ARE NOT IN IT and go: Full screen, picture-in-picture,
+       * Backgrounds and effects, and Use a phone for audio. Every one is a
+       * desktop-window affordance -- there is no second window to put the call in,
+       * no browser chrome to go full screen out of, and the effects panel wants a
+       * camera this build deliberately never opens.
+       *
+       * FOUR OF ITS ROWS ARE NOT ON OUR PHONE'S BAR, and arrive here: captions,
+       * chat, tools and host controls. On a desktop each is a control of its own;
+       * at 390 there is room for six things at the floor. This is where the
+       * product itself files them, which makes it the one place a visitor might
+       * think to look.
+       *
+       * CAPTIONS IS THE ONE THAT MATTERS, AND MOVING IT COSTS NOTHING. Nam: "Even
+       * the CC isnt in the mobile view either, so we gotta move that CC into the
+       * more option button too."
+       *
+       * The stylesheet had argued for keeping it on the bar, on the grounds that
+       * it is how the walkthrough gets stopped and a stop should be one press.
+       * THAT WAS WRONG ON ITS OWN TERMS, and the board already said so -- N-onwards
+       * on Stop talking: "Stop talking stops him. The captions switch did the same
+       * thing and told him nothing." The stop is the Stop talking pill, it is on
+       * screen at 390 the whole time he is speaking, and it is one press. Turning
+       * captions off silences him as a side effect of hiding the strip he speaks
+       * through, which is why it was the worse of the two controls even when it was
+       * the nearer one.
+       *
+       * So the bar had seven controls against the reference's six, and the row that
+       * had to give was the one the product itself files behind this button, and
+       * nothing was lost by giving it.
+       */
+      ...(narrow()
+        ? [
+          { icon: store.get().captionsOn ? ('closed_caption_off' as const) : ('closed_caption' as const),
+            label: store.get().captionsOn ? 'Turn off captions' : 'Turn on captions',
+            // The hand aims at this to go quiet when Stop talking is pressed --
+            // on a phone the bar control is display:none, so the menu row is the
+            // only reachable way to turn captions off. See pressCaptions in
+            // tour/stage.ts.
+            key: 'captions',
+            onPick: () => { store.dispatch({ t: 'captions', on: !store.get().captionsOn }); } },
+          { icon: 'chat' as const,
+            label: 'In-call messages',
+            onPick: () => { store.dispatch({ t: 'panel', panel: 'chat' }); } },
+          { icon: 'apps' as const,
+            label: 'Meeting tools',
+            onPick: () => { store.dispatch({ t: 'panel', panel: 'tools' }); } },
+          { icon: 'lock_person' as const,
+            label: 'Host controls',
+            onPick: () => { store.dispatch({ t: 'panel', panel: 'host' }); } },
+        ]
+        : [
+          { icon: 'aspect_ratio' as const, label: 'Full screen' },
+          { icon: 'present_to_all' as const, label: 'Open picture-in-picture' },
+          { icon: 'blur_on' as const, label: 'Backgrounds and effects' },
+          { icon: 'phone_forwarded' as const, label: 'Use a phone for audio' },
+        ]),
       { icon: 'feedback', label: 'Report a problem', ruleBefore: true },
       { icon: 'shield', label: 'Report abuse' },
       { icon: 'troubleshoot', label: 'Troubleshooting & help' },
@@ -2280,9 +2414,28 @@ export function renderCall(store: Store, quests: Quests, deps: CallDeps, bugs: B
      * reviewed apart -- removing it, and the lane memory in ui/lane.ts with it, is
      * a follow-up.
      */
-    void Promise.resolve<'walkthrough'>('walkthrough').then((lane) => {
+    void Promise.resolve<'walkthrough'>('walkthrough').then(() => {
       if (store.get().screen !== 'call') { tourStarted = false; return; }
-      if (lane === 'walkthrough') { begin(); return; }
+      /*
+       * CAPTIONS ARE ON WHEN THE CALL OPENS, ON EVERY SCREEN. Nam: "sure we can
+       * have CC on by default, remove the part where you click CC then. We just
+       * straight up starting the call with CC on by default. I can verify that the
+       * mouse does move to open the share screen, thats good enough for me."
+       *
+       * WHICH RETIRES TWO ROUNDS OF WORK, and the reasoning is worth keeping
+       * because the second round was right about the first. N251 started the phone
+       * with captions off so the bar could match the reference's six controls, and
+       * turned them on with a timer -- state with no performance behind it. N253
+       * made it a real cue so the hand pressed the actual control. Both were
+       * answering a question that did not need asking: the thing being demonstrated
+       * was a control the visitor has no reason to care about yet, and it cost the
+       * opening two seconds of watching a menu.
+       *
+       * The share is the demonstration that earns its time, because the share is
+       * what the CV IS. Captions are just the room's lighting.
+       */
+      begin();
+      return;
       /*
        * THEY WANTED THE ROOM TO THEMSELVES, so the captions go off with him.
        *
@@ -2322,6 +2475,18 @@ export function renderCall(store: Store, quests: Quests, deps: CallDeps, bugs: B
   }
 
   return shell;
+}
+
+/*
+ * IS THIS A PHONE. Read at the moment a menu opens rather than once at mount, so
+ * a rotation cannot leave a menu offering the wrong thing.
+ *
+ * MODULE-SCOPED, and a declaration rather than a const, because both menus on
+ * this screen need it and the tile's is built some 1500 lines above the bar's. A
+ * const would have been in scope for only one of them.
+ */
+function narrow(): boolean {
+  return typeof matchMedia === 'function' && matchMedia('(max-width: 599px)').matches;
 }
 
 /* Module-scoped so a re-render cannot start a second tour over the first. */

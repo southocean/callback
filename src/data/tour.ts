@@ -56,6 +56,7 @@ export interface Line { text: string; ms: number; alt?: string }
 export type Cue =
   /** Run the whole share: picker, Entire Screen, Screen 1, Share. */
   | 'share'
+
   /** Maximise the browser window inside the shared desktop. */
   | 'maximise'
   | 'tab:cv' | 'tab:jobad' | 'tab:built' | 'tab:work'
@@ -175,7 +176,21 @@ export const parts: Part[] = [
      * "Let me walk you through my world" went with the word tour. Nobody says
      * that in a call.
      */
+    /*
+     * THE FIRST LINE CARRIES NOTHING ON PURPOSE. Nam: "I think we should add one
+     * more simple line of script with lowbearing just to warm user up: Hello!
+     * Welcome! This is like the easy lines that give user time to take in this
+     * new environment - the meeting view. Basically we give them some time to
+     * take a look around, all while showing them that we will be talking to them,
+     * and more talking is coming."
+     *
+     * Which is a real function rather than filler. The visitor has just arrived in
+     * a room that is pretending to be a video call, and the line after this one is
+     * an argument. Two seconds of nothing to follow lets them look at the room and
+     * learn that captions are how this page talks, before either matters.
+     */
     lines: [
+      L('Hello! Welcome!', 1900),
       L('Thanks for joining. I know a CV that opens a call is a bit much.', 3600),
       L("So let me be quick about why I'm in your applicant pool.", 3000),
       L('While I talk, click around if you want. Lots of bugs here ;)', 4200),
@@ -185,7 +200,12 @@ export const parts: Part[] = [
       // The share is PERFORMED, not switched on: the hand goes to the button,
       // opens the real picker, picks Entire Screen, picks Screen 1, presses
       // Share. Every step is a step a person would take. See N29.
-      { at: 3, cue: 'share' },
+      //
+      // AT 4, NOT 3, and the index moved because a line was added above it. A
+      // beat is pinned to a line by position, so inserting anything before it
+      // silently retargets every beat after -- the share would have been
+      // performed under "let me be quick about why I'm in your applicant pool".
+      { at: 4, cue: 'share' },
     ],
     commentary: [L('Starting from the top, then.', 2000)],
     brief: [L("I'm Nam. Let me get my screen up.", 2400)],

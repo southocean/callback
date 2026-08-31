@@ -231,6 +231,26 @@ const ROUTES = [
     })()` },
   { id: 'lobby', hash: '#lobby', what: 'the green room' },
   { id: 'call', hash: '#call', what: 'the call itself', prep: DISMISS_LANES },
+  /*
+   * The share, reached the way a phone reaches it: the overflow menu. There is no
+   * share control on the mobile bar -- the real product has none and there is no
+   * room to invent one -- so this route is also the test that the replacement
+   * flow works at all.
+   */
+  { id: 'share', hash: '#call', what: 'the call, sharing the screen',
+    prep: `(async () => {
+      const more = [...document.querySelectorAll('.cbtn')]
+        .find((e) => /More options/i.test(e.getAttribute('aria-label') || ''));
+      if (!more) return false;
+      more.click();
+      await new Promise((r) => setTimeout(r, 1200));
+      const row = [...document.querySelectorAll('.gm-menu li, .gm-item')]
+        .find((e) => /Share screen/i.test(e.textContent || ''));
+      if (!row) return false;
+      row.click();
+      await new Promise((r) => setTimeout(r, 2500));
+      return true;
+    })()` },
   { id: 'chat', hash: '#chat', what: 'the call, chat panel open', prep: DISMISS_LANES },
   { id: 'people', hash: '#people', what: 'the call, people panel open', prep: DISMISS_LANES },
   { id: 'about', hash: '#about', what: 'the career timeline', prep: DISMISS_LANES },
@@ -547,6 +567,22 @@ const PROBE = String.raw`(() => {
         bug; an ellipsis is a decision, so only the hard clip is counted. */
   const clipped = [];
   for (const e of visible) {
+    /*
+     * A VISUALLY-HIDDEN LIVE REGION IS NOT A CLIPPED ELEMENT, and this check has
+     * been calling one a defect for several passes. The pattern is a 1x1 box with
+     * overflow hidden and a clip rect -- .sr in this project -- whose whole job is
+     * to hold a sentence for a screen reader and show none of it. Its scrollWidth
+     * is always hundreds of pixels past its clientWidth, which is exactly what
+     * "clipped" tests for and exactly what is intended.
+     *
+     * So: if nothing of the element is on screen, it is not being cut off, it is
+     * being hidden, and those are different findings. Two pixels rather than zero
+     * because that idiom uses 1x1 and the odd one uses 2.
+     */
+    /* Named onScreen rather than box: this loop already calls a box() helper
+       further down, and shadowing it turned every probe into a TypeError. */
+    const onScreen = seen(e);
+    if (onScreen.width <= 2 || onScreen.height <= 2) continue;
     const cs = getComputedStyle(e);
     if (!/(hidden|clip)/.test(cs.overflow + cs.overflowX + cs.overflowY)) continue;
     const dx = e.scrollWidth - e.clientWidth, dy = e.scrollHeight - e.clientHeight;

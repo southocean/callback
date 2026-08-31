@@ -469,6 +469,15 @@ button { font: inherit; }
   position: relative; z-index: 2; text-align: center; color: #fff;
   font: 400 18px/26px var(--font); max-width: 30ch;
 }
+/* The two lines under it: what he does, and how to stop him. One per line and
+   authored as two spans rather than one wrapped sentence, for the same reason
+   the lane cards were (N188) -- two facts a reader is meant to take separately
+   should not be allowed to break wherever the width happens to end. */
+.preview-note {
+  position: relative; z-index: 2; text-align: center; margin: 10px 0 0;
+  font: 400 13px/19px var(--font); color: var(--on-dark2);
+}
+.preview-note span { display: block; }
 /* .preview-avatar was here. The green-room tile no longer draws one: the line in
    the middle of it is Nam talking and the tile belongs to the visitor, so a face
    above his sentence made the sentence look like theirs. See ui/lobby.ts. Deleted
@@ -3611,6 +3620,239 @@ body.plain { background: #fff; color: #16181c; }
   .gm-item::after, .other-ways::after, .other-row::after { transition: none; }
 }
 
+/* ================= THE CALL BAR ON A PHONE =============================== */
+/*
+ * THE BAR WAS 468px WIDE ON A 390px SCREEN, and 154 of it hung off the side at
+ * the 320 floor -- which put the LEAVE button out of reach, on the one screen
+ * where being unable to stop is the worst failure available. Nam: "many things
+ * are out of place, overflowing, breaking."
+ *
+ * Measured against his screenshot of the real mobile call, which carries six
+ * controls: mic, camera, a reaction, a raised hand, the overflow and leave. No
+ * share button and no dropdown carets. Ours had eight controls and two carets.
+ *
+ * WHAT GOES, AND WHY EACH ONE.
+ *
+ * The carets: they are the desktop's audio and video device pickers, and there
+ * are no devices to pick on a page that never opens one. They were also drawn ON
+ * TOP of the buttons they belong to -- a 44x48 overlap the harness had been
+ * reporting for several passes -- so on a phone half of every mic press was
+ * landing on a menu opener.
+ *
+ * The share button: the reference has none, because mobile Meet cannot share.
+ * Ours can, so it moves into the overflow rather than being dropped -- see the
+ * note in ui/call.ts.
+ *
+ * WHAT STAYS THAT THE REFERENCE PUTS IN ITS MENU: captions. On Meet that is a
+ * setting; here it is the way to stop the walkthrough talking, and since Join now
+ * starts that walkthrough without asking (N249), the stop has to be one press and
+ * on the bar. Keeping it is a deliberate divergence, and it is the one place this
+ * screen should not follow the reference.
+ */
+@media (max-width: 599px) {
+  /*
+   * .unit > .chev, NOT .chev, and that is why the carets were still there.
+   *
+   * `.chev { display: none }` has been in the 720 block since that block was
+   * written, and it has never worked: `.unit > .chev` further down the file is
+   * (0,2,0) against its (0,1,0), so the more specific rule won and a media query
+   * added nothing to the argument. Third time this pass -- see .rail-prog and the
+   * inert flex-wrap -- and the same lesson each time: put the exception where it
+   * can out-rank what it excepts, and check the winner rather than the intent.
+   *
+   * And a second round of exactly that: `.unit > .chev` here TIED with the rule
+   * at (0,2,0) and lost on source order, because the one it is overriding is
+   * further down the file. Hence the .bar-group prefix -- it is not selecting
+   * anything the shorter form did not, it is buying a point of specificity so the
+   * position of this block in the file stops being part of the answer.
+   */
+  .bar-group .unit > .chev { display: none; }
+  .bar-group > .cbtn.present { display: none; }
+  /*
+   * AND CAPTIONS, which reverses the argument written above this block.
+   *
+   * Nam: "Even the CC isnt in the mobile view either, so we gotta move that CC
+   * into the more option button too." The reference bar has six controls; keeping
+   * captions gave us seven. It is not dropped, it moves into the overflow where
+   * the product itself keeps it, and the walkthrough now opens by switching it on
+   * so the strip does not arrive unexplained. See ui/call.ts.
+   *
+   * The note above this block claimed captions had to stay because it is how the
+   * walkthrough is stopped. That was wrong: the stop is the Stop talking pill, it
+   * is on screen throughout, and it is one press.
+   *
+   * Addressed by data-ctl rather than a new class because `named` already stamps
+   * every bar control with one, for the tour's beats to aim at.
+   */
+  .bar-group > .cbtn[data-ctl='captions'] { display: none; }
+
+  /*
+   * AND NOW THE SIX THAT ARE LEFT, MEASURED OFF THE REAL THING.
+   *
+   * Nam: "now that the CC button is gone, lets restyle this bottom bar of the
+   * mobile view ... first is ours, second is the original. match it."
+   *
+   * Taken live from meet.google.com in iPhone emulation at 390x844, six controls
+   * read straight off the DOM rather than off a screenshot, and three of the four
+   * numbers were not what the screenshot suggested:
+   *
+   *   every control      54 wide, 44 tall, radius 22
+   *   gaps               8, uniform
+   *   group              364 wide, so 13 clear on each side of a 390 screen
+   *   bottom gap         16
+   *   icons              24px, ink #e3e3e3, which is our --ctl-ink already
+   *   leave              #db372d, and THE SAME 54x44 AS EVERY OTHER CONTROL
+   *
+   * WHAT I HAD WRONG BY LOOKING. They read as circles in a screenshot and they
+   * are not: 54x44 is a stadium wider than it is tall, and at radius 22 the
+   * straight section is 10px long. And I would have sworn the leave button was
+   * wider than the rest, the way it is on the desktop -- it is not, on a phone it
+   * is exactly the same box in a different colour. Ours was 60 against 44, which
+   * is most of why the row looked unbalanced.
+   *
+   * OUR MIC AND CAMERA WERE ROUNDED SLABS WITH A FLAT LEFT EDGE, and that is a
+   * leftover rather than a choice: they live inside .unit with a caret, so they
+   * carry `border-radius: 0 r r 0` to butt against it. Hiding the caret for N250
+   * left the stub geometry behind, square-cornered on the side where nothing is
+   * any more. Restored to a full 22 here.
+   *
+   * 6 x 54 + 5 x 8 = 364, and 390 - 364 = 26, so the 13 a side falls out of
+   * `margin: 0 auto` rather than being written down anywhere.
+   */
+  .bar-group { gap: 8px; }
+  .bar-group .cbtn,
+  .bar-group .unit .cbtn {
+    width: 54px; height: 44px; border-radius: 22px;
+  }
+  .bar-group .cbtn.leave { width: 54px; }
+
+  /*
+   * THE MIC AND THE CAMERA, PAINTED AS THE STATE THIS PAGE IS ACTUALLY IN.
+   *
+   * They were the pink slabs in Nam's comparison: #f9dedc at radius 12, against
+   * the reference's #333537 at radius 22. That pink is Meet's MUTED paint, and it
+   * is correctly measured -- but it is the wrong state to be in.
+   *
+   * The reference machine has no microphone and no camera, so its two controls
+   * are in the device-missing state: dark like every other control, radius 22, a
+   * 24px #e3e3e3 glyph, and a yellow warn badge. THAT IS OUR STATE TOO, and more
+   * literally than the reference's -- this build never calls getUserMedia at all,
+   * which is a promise it makes on the title card. A page that cannot open a
+   * microphone cannot mute one either, so painting these muted was describing a
+   * state the page has no way to be in.
+   *
+   * The badge is not new work: warnBadge() has been in gm3.ts since the pre-join
+   * chips, `.ctl-warn` is already mounted on both of these controls, and one rule
+   * further down the file was hiding it whenever the control was .off. Un-hidden
+   * here, which is what puts the yellow ! back in the same corner the reference
+   * has it in.
+   *
+   * The crossed-out glyphs stay. The reference draws a plain mic with a badge
+   * because its mic is live-but-broken; ours is genuinely not there, and mic_off
+   * says so.
+   *
+   * ONE THING I COULD NOT MEASURE, so it is not claimed: whether mobile Meet
+   * paints a WORKING mic pink when you mute it. That machine has no microphone,
+   * so the control cannot be toggled and the muted variant never renders. The
+   * desktop measurement stands; the mobile one is untaken.
+   */
+  .bar-group > .cbtn.off,
+  .bar-group .unit > .cbtn.off {
+    border-radius: 22px;
+    background-color: var(--ctl);
+    color: var(--ctl-ink);
+    --sl: var(--ctl-ink);
+  }
+  .bar-group .unit > .cbtn.off ~ .ctl-warn { display: grid; }
+}
+
+/*
+ * The bar's own height follows, so the 16px under the controls is the
+ * reference's 16 and not an accident of the old 48px control.
+ *
+ * The TOKEN rather than `.bar { height }`, because eight other rules measure off
+ * --botbar -- the caption strip's lift, the solo tile's floor, the quest tray,
+ * the hand pill. Setting the box without the token would have moved the bar and
+ * left all eight of them 4px out.
+ */
+@media (max-width: 599px) {
+  :root { --botbar: 76px; }
+}
+
+/*
+ * THE OVERFLOW MENU WAS OPENING 496px OFF THE RIGHT EDGE.
+ *
+ * Nam: "clicking the ... button doesnt do anything!" It did: the menu built,
+ * mounted, and painted at x 886 on a 390px screen.
+ *
+ * `left: 886px` is a real measurement off the desktop reference, where the more
+ * button sits at about x 900 in a 1512 window -- a hard-coded constant with no
+ * mobile counterpart, and the only menu on the site that is placed by the
+ * stylesheet instead of by attachMenu, so the clamp added to that function could
+ * not save it. Worth remembering as a class of bug rather than a one-off: a
+ * measured pixel constant is correct at exactly one viewport width, and it fails
+ * SILENTLY, because an element parked off-screen looks identical to a dead
+ * handler.
+ *
+ * Right-anchored, 8px in, matching the reference, which hangs its menu off the
+ * same edge as the button that opens it. Capped in height and scrollable because
+ * twelve rows come to 626px, and 626 above a bar that is 79px off the floor does
+ * not fit an 844px phone.
+ *
+ * `body` on the front to buy a point of specificity: the rule it overrides is
+ * (0,2,0) and lives 500 lines further down the file. That is the fifth time in
+ * this pass -- see the note in N250.
+ */
+@media (max-width: 599px) {
+  body .gm-pop.call-more {
+    left: auto; right: 8px; bottom: 72px;
+    max-height: calc(100vh - 148px); overflow-y: auto;
+  }
+}
+
+/*
+ * THE RESTLESSNESS METER DOES NOT APPEAR ON A PHONE.
+ *
+ * Nam: "remove the restless bar on mobile, it doesnt add anything."
+ *
+ * Agreed, and the reason is that the thing it is built to do cannot happen here.
+ * It is a reaction, not a HUD: it flashes when the score goes UP, which it does
+ * when somebody bolts out of a section they had barely started. That is a
+ * mouse-and-scrollbar behaviour. On a phone the same reader is swiping through a
+ * column, the score barely moves, and what is left is an unexplained coloured bar
+ * that appears over the densest screen in the build and takes room from the
+ * captions.
+ *
+ * Both selectors, because .rest.is-up is (0,2,0) and would otherwise win.
+ */
+@media (max-width: 599px) {
+  body .rest, body .rest.is-up { display: none; }
+}
+
+/*
+ * AND SMALLER AGAIN AT THE FLOOR, in the reference's own proportions rather than
+ * in a shape of my own.
+ *
+ * The measured row is 364 wide and a 320 screen has 294 to give once the same
+ * 13px margins are kept. Six controls at 44 with 6px gaps come to 264 + 30 =
+ * 294, which lands on it exactly -- so the floor keeps the reference's margins
+ * and its uniform-width leave button, and spends the difference on the only two
+ * numbers there are left to spend it on.
+ *
+ * The height does NOT shrink with the width. 44 is the reference's, it is also
+ * the smallest tap target worth having, and the row is short of horizontal space
+ * rather than vertical.
+ *
+ * 360 rather than 400, so the phones that already fit keep the full 54: at 390
+ * nothing in this block applies.
+ */
+@media (max-width: 360px) {
+  .bar-group { gap: 6px; }
+  .bar-group .cbtn,
+  .bar-group .unit .cbtn,
+  .bar-group .cbtn.leave { width: 44px; }
+}
+
 /* ================= THE GREEN ROOM ON A PHONE ============================= */
 /*
  * Measured against the real one at 390x844, in a signed-in browser at phone
@@ -4744,6 +4986,69 @@ body:has(.grid-wrap.is-solo) .count-chip[style*="transparent"] { display: none; 
   --cc-band: calc(var(--cc-lift) + var(--cc-tall));
 }
 @media (max-width: 899px) { :root { --cc-lift: 116px; } }
+
+/*
+ * AND ON A PHONE THE CAPTION DROPS TO THE FLOOR. Nam: "text position: move in
+ * lower and put the stop talking above it. Create more space for the shared
+ * screen to show stuff, wider and possibly a bit taller."
+ *
+ * 116px of lift exists to clear the self-view tile, which at 900px and up sits
+ * beside the caption. On a phone the tile is a strip UNDER the share and there is
+ * nothing beside the caption at all, so the lift was buying clearance from
+ * something that had moved -- 116px of empty screen between the caption and the
+ * control bar, on the screen with the least of it to spare.
+ *
+ * 10 puts it where the reference puts it: just above the bar, which is also
+ * where a reader's eye already is.
+ *
+ * --cc-tall THEN RESERVES FOR TWO THINGS RATHER THAN ONE. The band is what the
+ * share and the tile are held clear of, and Stop talking now lives inside it,
+ * above the caption. 148 = about 100 for three lines of caption, 32 for the
+ * button, and the gaps. Everything above moves as one when this number changes,
+ * which is the whole reason the band is a variable (N146).
+ */
+/*
+ * THE BAND NOW CARRIES THREE THINGS, bottom to top: the progress bar, the
+ * caption, and Stop talking.
+ *
+ * 46 of lift clears the progress bar, which sits just above the control bar
+ * because it is the one thing down there that CANNOT be pressed -- Nam: "This one
+ * is not interactable so we can have it above the bottom line, like the mic and
+ * what not, and wouldnt worry people would misclick anything. stop talking for
+ * example, if too close to the mic button, user may misclick."
+ *
+ * Which is the right way round: the readout goes where a mis-tap is harmless, and
+ * the button goes 130px up where a mis-tap cannot happen. 118 of --cc-tall covers
+ * the caption's three lines and the button above it.
+ */
+@media (max-width: 599px) {
+  :root { --cc-lift: 46px; --cc-tall: 176px; }
+  /*
+   * 176 RATHER THAN 118, because the caption is not a fixed height and the button
+   * above it was being sized against the caption's best case. Nam, twice: "Please
+   * move the stop talking a bit higher. A bit cramped when the caption goes on 2
+   * lines" and then "I found this case where the caption goes on 3 lines. Now stop
+   * talking is actually hiding text."
+   *
+   * Three lines is the worst case worth designing for: 18 for the name plus 3 x 26
+   * of text is 96, so the caption can reach 122 + 104 = 226 off the floor, and the
+   * button has to clear THAT rather than the single line it usually sits above.
+   * 176 puts it at 258 with 32 to spare.
+   *
+   * It costs the share about 50px of height, which is the right way round: a
+   * control that sometimes covers the sentence it interrupts is worse than a
+   * slightly shorter picture.
+   *
+   * AND THE REACTION TRAY LIFTS THE WHOLE STACK. Nam: "The script progression now
+   * overlaps with the emojis. If we click emojis, gotta move the progression up
+   * too." The tray opens into the slot directly above the control bar, which is
+   * where the progress readout lives, so everything above the bar has to step up
+   * by the tray's height together -- moving only the readout would have parked it
+   * on the caption instead. One variable does it, because the band is what
+   * everything else is measured from (N146).
+   */
+  body.tray-open { --cc-lift: 108px; }
+}
 
 /* THE SETTINGS ROW RESERVES WHAT THE TRAY RESERVES, found by the QA on this
  * ticket. The rule below .cc already says "the tray reserves 52px and the
@@ -7228,6 +7533,312 @@ body.presenting .shot {
 @media (max-width: 720px) {
   body.presenting .shot-wrap { right: 0; bottom: 88px; }
 }
+
+/*
+ * THE SHARE WAS 279 WIDE ON A 390 SCREEN, and the missing 111px were not the
+ * share's fault. Nam: "the screensharing view can be wider and taller ... Create
+ * more space for the shared screen to show stuff."
+ *
+ * Measured before touching anything: .shot-wrap and .shot were 279 by 360, and
+ * both were simply filling their parent. The constraint was
+ * `.grid-wrap.is-solo { inset: 72px 56px 80px 55px }` -- real measurements off
+ * the desktop original, where 55px of surround is a margin. At 390 it is 28% of
+ * the screen spent on two black bars.
+ *
+ * 8px a side instead, and 60 off the top. The share is the payload of this whole
+ * build; on the smallest screen it gets the screen.
+ *
+ * The bottom is not set here on purpose: body.cc-on further down owns it, so it
+ * follows --cc-band and cannot drift away from what the caption actually
+ * reserves.
+ */
+@media (max-width: 599px) {
+  /*
+   * 52 off the top rather than 60, bought back from the extra the band now takes.
+   *
+   * AND 124 AT THE BOTTOM RATHER THAN 80, which is the captions-off case. Nam:
+   * "even when the emojis are not showing, the progression overlaps a little bit
+   * with the video tile, the 1 of 8 is overlapping the tile."
+   *
+   * Right, and it is a state I had not accounted for: with captions off there is
+   * no band to reserve, so the rule below stops applying and the tile fell back to
+   * this inset -- which was written before the progress readout existed on this
+   * screen. 124 clears the readout at 82 plus its 30 and a gap.
+   */
+  .grid-wrap.is-solo { inset: 52px 8px 124px 8px; }
+  /* The self-view strip under the share. 88 was the desktop's; 76 is the tile
+     plus its own margin at this size, and the 12 goes to the share. */
+  body.presenting .shot-wrap { bottom: 76px; }
+}
+
+/*
+ * THE SHARE ON A PHONE: TALLER, AND ZOOMED OUT.
+ *
+ * Nam: "The space here is very small, and as you can see, the windows is barely
+ * readable, everything overlapping ... Theres barely any space to show anything.
+ * Here all we can see is the window task bar, the browser you can see the address
+ * bar, that's about it. So to fix this we need to: Make the shared screen bigger
+ * (which probably mean more vertical space) ... consider zooming out the mock OS
+ * ... I think a zooming out of 80% should be fine."
+ *
+ * TWO SEPARATE PROBLEMS, and the aspect cap is the first. The share is held to
+ * 4:3, which is right on a desktop where the wrap is wider than it is tall. On a
+ * 390px phone the wrap is roughly 390 by 600, so 4:3 gives the share 390 by 292 --
+ * it throws away half the vertical space the phone has most of, to keep the shape
+ * of a monitor nobody is looking at.
+ *
+ * 3:2 rather than 4:3 gives it 585, which is nearly twice the picture.
+ *
+ * AND THEN 25% MORE CONTENT IN THOSE PIXELS. Scaling by 0.8 with a box 125% of
+ * its frame is a genuine zoom-out rather than a shrink -- the desktop lays out at
+ * 487 by 731 of its own pixels and is drawn into 390 by 585, so a window that
+ * used to be cropped to its title bar now has room to be a window. Text gets
+ * smaller; Nam called that trade and he is right, because unreadable-and-cropped
+ * loses to small-and-whole.
+ *
+ * transform rather than zoom: zoom would re-resolve the percentage heights inside
+ * the desktop against the scaled box and leave a gap at the bottom, which is the
+ * bug this is meant to fix rather than a way of fixing it.
+ */
+@media (max-width: 599px) {
+  body.presenting .shot {
+    width: 100cqw;
+    height: min(100cqh, calc(100cqw * 1.5));
+  }
+
+  /*
+   * THE TOP BAR HAS TO GIVE WAY TOO, and both halves of it were failing while
+   * presenting.
+   *
+   * The meeting code wrapped: "nam-cv-2026" broke after "nam-cv-" and pushed the
+   * bar to two lines, because nothing told it not to. It is an identifier, so it
+   * truncates rather than wraps -- the same treatment the wordmark gets on the
+   * home bar.
+   *
+   * And the right-hand cluster ran 22px off the screen. The presenting pill is
+   * capped at 42vw, which is right on a desktop and is 164px here -- more than the
+   * participant chip beside it, on a 390px bar that already spends 177 on the time
+   * and the code. 22vw leaves the pill enough to read "Presentation" and the
+   * cluster enough to finish on screen.
+   */
+  .call-code {
+    min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  }
+  /*
+   * "9:12 PM" WAS BREAKING AFTER THE DIGITS. Nam: "9:12PM overflows to second
+   * line, keep it in one line."
+   *
+   * A time is one token to a reader and three to a line-breaker, and the top bar
+   * is the one row on this screen with a fixed height -- so the wrap did not just
+   * look wrong, it pushed the second line out of the bar entirely.
+   */
+  .call-clock { white-space: nowrap; flex: 0 0 auto; }
+
+  /*
+   * AND THE PRESENTING CHIP KEEPS ONLY ITS ICON. Nam: "Present button on top
+   * right, remove the text, we show only the icon."
+   *
+   * At 390 the top bar spends 177px on the time and the code before this chip
+   * starts, so the text was arriving pre-truncated -- "Pres" with an ellipsis says
+   * nothing that the present_to_all glyph beside it does not say better. The
+   * divider, the audio control and Stop presenting go with it, since a row of
+   * clipped controls is worse than a badge that reads cleanly.
+   */
+  .call-top-right .pres-chip { max-width: none; padding: 0 6px; }
+  .call-top-right .pres-chip > :not(.ms) { display: none; }
+  /* .call-top-right .pres-chip, because the 42vw cap is redefined further down
+     the file and a tie on specificity is settled by source order. Fourth time
+     this pass; the rule of thumb is now: never override from an earlier line
+     without buying a point. */
+  .call-top-right .pres-chip { max-width: 22vw; }
+  /*
+   * THE ZOOM, ON THE ELEMENT THAT EXISTS.
+   *
+   * The previous version of this rule was `.shot .dk`, and THERE IS NO .dk. The
+   * mock OS is `.pg.pg-desk` holding the wallpaper, `.dk-surface` and
+   * `.dk-taskbar`; every class in that subtree is `dk-` prefixed and none of them
+   * is bare `dk`. So the 80% zoom-out reported for N250 never applied to
+   * anything, and what improved in that round was the aspect change alone.
+   *
+   * Worth recording as a class of mistake rather than a typo: a selector that
+   * matches nothing FAILS EXACTLY LIKE A RULE THAT IS BEING OVERRIDDEN -- the
+   * page looks unchanged either way -- and the deadcss gate did not catch it
+   * either. The lesson is the same one the specificity traps keep teaching:
+   * measure the element afterwards, do not read the rule and believe it.
+   *
+   * 0.8 rather than the 0.5 Nam floated, on his own revision once he heard the
+   * zoom had never been tried: "if that never applied, then we try the 80% zoom
+   * first."
+   */
+  .shot .pg-desk {
+    /*
+     * zoom, AND THE NOTE ABOVE USED TO ARGUE AGAINST IT. That argument was
+     * written for `.shot .dk`, a selector matching nothing, so it was never once
+     * tested against the page. Measured now, both ways:
+     *
+     *   width/height 125% + scale(0.8)   box 467.5 x 468, painted 374 x 374
+     *   width/height 125cqw/cqh + scale  box 467.5 x 468, painted 374 x 374
+     *   zoom: 0.8                        box 467.5 x 585, painted 374 x 468
+     *
+     * Only the last one fills the frame. Both compensating versions got the width
+     * and lost the height -- the height came back 468 rather than 585 either way,
+     * so the desktop laid out at the frame's own height and painted at 80% of it,
+     * leaving a 95px grey band under the taskbar exactly where the extra desktop
+     * was supposed to be.
+     *
+     * zoom needs no compensation, which is the point: it scales the layout box
+     * itself, so `height: 100%` inside resolves against the enlarged box and the
+     * surface plus the taskbar come to 585 unzoomed and 468 painted. The feared
+     * percentage-resolution gap is what the transform version actually did.
+     */
+    zoom: 0.8;
+  }
+
+  /*
+   * AND THE TASKBAR STOPS PRETENDING IT HAS A DESKTOP'S ROOM.
+   *
+   * Nam: "the mock OS needs to be tidied up on mobile: we hide the temperature,
+   * wifi and volume symbols. And icons on task bar is to align to the left."
+   *
+   * The weather and the quick-settings cluster are the two things on that bar
+   * that say nothing about this CV -- they are set dressing that earns its place
+   * at 1512 and crowds the clock at 390, which is what the harness had been
+   * reporting as a tray-over-icons overlap for several passes. The clock stays:
+   * it is the one tray item that is doing work, because the desktop's clock and
+   * the call's are deliberately the same time.
+   *
+   * Centred pinned icons are Windows 11 and they are correct on a wide bar. On a
+   * narrow one, centring puts the icons where the tray wants to be. Left-aligned
+   * is Windows 10 and every other taskbar ever made, and it is what leaves the
+   * right-hand end free for the clock.
+   */
+  /*
+   * THE TABS SHARE THE WIDTH INSTEAD OF QUEUEING FOR IT. Nam: "the tabs should
+   * arrange to the width, so that they are all visible even on more narrow
+   * window."
+   *
+   * `.cb-tab { max-width: 200px }` with no flex means each tab takes what it wants
+   * and the third one falls off the end of the strip -- which is what the
+   * screenshots show, a half-visible "Thi..." at the right edge. Chrome itself
+   * shrinks tabs to fit until they hit a floor, so this is the reference behaviour
+   * as well as the useful one.
+   *
+   * `flex: 1 1 0` with `min-width: 0` is the pair that actually works: the basis
+   * has to be 0 or the line breaks at the hypothetical size before any shrinking
+   * happens, and min-width has to be overridden or the automatic minimum keeps
+   * each tab as wide as its own label.
+   */
+  .shot .cb-strip { min-width: 0; }
+  .shot .cb-tab {
+    flex: 1 1 0; min-width: 0; max-width: none; padding: 0 8px; gap: 5px;
+  }
+
+  .shot .dk-weather { display: none; }
+  .shot .dk-tray-btn:not(.dk-clock) { display: none; }
+  .shot .dk-task-wrap { position: static; transform: none; }
+
+  /*
+   * THE CAPTION IS TEXT ON THE SCREEN, NOT A CARD ON TOP OF IT.
+   *
+   * Nam, with a capture of the real thing beside ours: "I've taken a screenshot
+   * from the original meet here for the caption, and it looks nothing like us,
+   * not a box that pops out."
+   *
+   * He is right, and it matters more here than it would elsewhere. The bubble is
+   * a 358px black rectangle with its own radius sitting directly under a shared
+   * screen that is also a rectangle with its own radius -- two competing cards
+   * where the reference has one picture and some words under it. Dropping the
+   * background and the padding costs nothing legible: the call behind it is near
+   * black already, and the text is 18px white on it.
+   *
+   * The width goes full-bleed with a 16px inset, rather than the 899-block's
+   * `calc(100% - 32px)` centred, so the text starts on the same left margin as
+   * everything else on the screen.
+   */
+  .cc {
+    width: 100%;
+    padding: 0 16px;
+    background: transparent;
+    border-radius: 0;
+  }
+  /* The honesty label, which has nowhere to go at this width. The name stays;
+     see the note in ui/caption.ts for why the two are separate elements. */
+  .cc-meta { display: none; }
+
+  /*
+   * STOP TALKING SITS ABOVE THE CAPTION, inside the band reserved for both.
+   *
+   * It was below it, which put the one control the visitor might want during a
+   * walkthrough underneath the thing it interrupts, and 132px up the screen with
+   * the caption floating above it.
+   *
+   * Expressed off --cc-band rather than as a number so it tracks the reservation:
+   * the band's top edge is where the share stops, and the button hangs just
+   * inside it. Its own 32px height is the 40.
+   */
+  .tour-bar {
+    bottom: calc(var(--botbar) + var(--cc-band) - 40px);
+    left: 16px;
+  }
+
+  /*
+   * AND THE WALKTHROUGH SAYS HOW FAR THROUGH IT IS, ON A PHONE TOO.
+   *
+   * Nam: "I also want to have the script progression on mobile too. We have it on
+   * desktop and its very useful to keep people patient before they start
+   * exploring around."
+   *
+   * It is the N147 bar -- six sections for the walkthrough, then eight questions
+   * in a second colour -- and it had been collateral damage of `.bar-left {
+   * display: none }`, which the phone bar needs because six controls at 54 leave
+   * no room for a slot either side. So it comes out of the bar rather than back
+   * into it: fixed, full width, directly above the controls.
+   *
+   * The argument for it is stronger here than on a desktop, not weaker. This is
+   * the screen where a visitor cannot see the whole conversation at once, and the
+   * thing that keeps somebody watching rather than tapping is knowing that the
+   * watching ends.
+   */
+  .bar .bar-left {
+    display: block; position: fixed; left: 16px; right: 16px;
+    /* top AND transform have to be undone, not just overridden with bottom. The
+       base rule centres this in the bar with `top: 50%; translateY(-50%)`, and a
+       fixed box given both top and bottom with an auto height is over-constrained
+       -- top wins and bottom is ignored, which put the progress bar in the middle
+       of the shared screen. */
+    top: auto; transform: none;
+    bottom: calc(var(--botbar) + 6px); z-index: 60;
+  }
+  .bar .bar-left .ivp { width: auto; }
+  /* The tray takes the slot the readout sits in, so the readout goes above it.
+     The caption and Stop talking come with it, via --cc-lift on body.tray-open. */
+  body.tray-open .bar .bar-left { bottom: calc(var(--botbar) + 62px); }
+
+  /* The quest toast lifts over the whole band rather than landing on the
+     caption, which is where the 720 rule's `--botbar + 8` now puts it. */
+  body .quest-tray { bottom: calc(var(--botbar) + var(--cc-band) + 8px); }
+}
+
+/*
+ * THE STOP CONTROL FOLLOWS THE CAPTIONS INSTANTLY, because it is the captions it
+ * is stopping.
+ *
+ * Nam: "when I disable caption, it takes a while for the stop talking button to
+ * disappear? That should be immediate."
+ *
+ * It was going away on the stage's own schedule. The captions watcher polls every
+ * 300ms, and even once it has noticed, the bar is only hidden inside pauseHere --
+ * which runs at the safe point, AFTER the current line's dwell and after any beat
+ * on it, so a stop pressed under the share waited for the share to finish. That
+ * sequencing is right for the hand and wrong for the button.
+ *
+ * A rule rather than a repair to the schedule: body.cc-on is toggled in the same
+ * synchronous sync() that drives the caption strip itself, so this cannot lag by
+ * even a frame, and there is no second source of truth about whether he is
+ * talking. The JS still hides the bar on the paths it knows about; this makes the
+ * one case the visitor can see happen at the speed they did it.
+ */
+body:not(.cc-on) .tour-bar { display: none; }
 
 /* --- the presenting chip -------------------------------------------------- */
 .pres-chip {

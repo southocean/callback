@@ -329,7 +329,16 @@ export function startTour(root: HTMLElement, podium: Podium): TourHandle {
     class: 'tour-stop', type: 'button',
     'aria-label': skipOffered ? 'Skip the walkthrough and go to the questions' : 'Stop him talking',
   }, skipOffered ? 'Skip intro' : 'Stop talking') as HTMLButtonElement;
-  const bar = h('div', { class: 'tour-bar' }, stopBtn) as HTMLElement;
+  /*
+   * HIDDEN UNTIL HE HAS SAID SOMETHING. Nam: "in the start it shouldnt show
+   * immediately, only when we start talking with the first bubble, thats when we
+   * show that stop talking button."
+   *
+   * Right, and not only cosmetically: the call opens, the cursor is still parked,
+   * nothing has been said, and a button offering to stop the talking is offering
+   * to stop something that is not happening. voice() lifts it on the first line.
+   */
+  const bar = h('div', { class: 'tour-bar is-away' }, stopBtn) as HTMLElement;
 
   /**
    * The offer expires when the questions start, by whichever route.
@@ -482,6 +491,9 @@ export function startTour(root: HTMLElement, podium: Podium): TourHandle {
   const voice = async (text: string, ms: number): Promise<void> => {
     floorLine = text;
     spokeAt = performance.now();
+    // There is now something to stop. Cheap enough to do on every line rather
+    // than tracking whether it is the first one.
+    bar.classList.remove('is-away');
     await podium.say(text, Math.max(0, Math.round(ms * pace(visitor))));
   };
 
@@ -714,15 +726,92 @@ export function startTour(root: HTMLElement, podium: Podium): TourHandle {
    * have cancelled the picker mid-sequence, and the correct response to that is
    * to stop performing, not to start guessing.
    */
+  /*
+   * IS IT ACTUALLY ON THE SCREEN, rather than merely in the document.
+   *
+   * `display: none` leaves an element perfectly findable by q() and completely
+   * unpressable, and that combination is what broke the share on phones: the bar's
+   * share button is hidden below 600px, pressSel found it, reported success, and
+   * every step after it failed against a picker that was never going to open. The
+   * whole sequence then gave up quietly -- exactly as designed -- so the tour
+   * narrated "First, let me get my screen up", and then the entire CV, over a call
+   * with nothing shared on it.
+   */
+  const onScreen = (el: Element | null): boolean => {
+    if (!el) return false;
+    const r = el.getBoundingClientRect();
+    return r.width > 0 && r.height > 0;
+  };
+
+  /**
+   * Open the call's overflow menu, the way a person would.
+   *
+   * On a phone this is the way to both the share and the captions, because
+   * neither has a control of its own on a six-slot bar. Idempotent: if the menu
+   * is already open it is left alone rather than toggled shut.
+   */
+  const openOverflow = async (): Promise<boolean> => {
+    if (q('.call-more')) return true;
+    if (!await pressSel('[data-ctl="more"]')) return false;
+    return !!await appears('.call-more');
+  };
+
+  /**
+   * Press the captions control, wherever it happens to live.
+   *
+   * STOP TALKING DID NOTHING ON A PHONE, and this is why. Nam: "Stop talking
+   * doesnt work. I click it and the script doesnt stop and mouse clicking caption
+   * off. I have to turn off caption myself ... the mouse was trying to click the
+   * caption button but it failed to turn off caption."
+   *
+   * Exactly right, and it is the SAME defect as the share in N253, in the same
+   * shape: pauseHere goes quiet by pressing `[data-ctl="captions"]`, and N251
+   * moved that control into the overflow and left the bar button at display:none.
+   * hand.at() correctly refuses a target with no box, so the press was a no-op --
+   * and because going quiet is what ENDS the pause sequence, the walkthrough
+   * carried on talking. One hidden element, two rounds apart, breaking two
+   * different features the same way.
+   *
+   * So the route is chosen by what is on the screen rather than by a width, the
+   * way doShare now does it.
+   */
+  const pressCaptions = async (): Promise<boolean> => {
+    if (onScreen(q('[data-ctl="captions"]'))) {
+      return pressSel('[data-ctl="captions"]', true);
+    }
+    if (!await openOverflow()) return false;
+    const row = q('.call-more [data-row="captions"]');
+    if (!row) { await pressSel('[data-ctl="more"]'); return false; }
+    await hand.at(row, true);
+    return true;
+  };
+
   const doShare = async (): Promise<void> => {
     if (q('.shot')) return;                      // already sharing
-    if (!await pressSel('[data-ctl="present"]')) return;
-    if (!await appears('.sp')) return;
-    await pressSel('.sp-tab[data-kind="screen"]');
-    await frame();
-    await pressSel('.sp-row[data-src="desktop"]');
-    await frame();
-    await pressSel('.sp-share');
+    /*
+     * TWO ROUTES TO THE SAME PLACE, chosen by what is actually on the bar.
+     *
+     * The desktop presses the share button and works the picker. The phone has
+     * neither -- the button is hidden and the picker was dropped for a one-press
+     * whole-screen share (N250) -- so it goes through the overflow instead, which
+     * is the route a visitor on that screen has as well.
+     *
+     * The test is the button's box rather than a media query, so the two stay
+     * tied to what is on screen rather than to a number that has to be kept in
+     * step with the stylesheet.
+     */
+    if (onScreen(q('[data-ctl="present"]'))) {
+      if (!await pressSel('[data-ctl="present"]')) return;
+      if (!await appears('.sp')) return;
+      await pressSel('.sp-tab[data-kind="screen"]');
+      await frame();
+      await pressSel('.sp-row[data-src="desktop"]');
+      await frame();
+      await pressSel('.sp-share');
+    } else {
+      if (!await openOverflow()) return;
+      if (!await pressSel('.call-more [data-row="share"]')) return;
+    }
     if (!await appears('.dk-surface')) return;
     await wait(reduced ? 0 : 320);
     // Launch the browser from the taskbar. It opens on the CV, which is the
@@ -1365,7 +1454,21 @@ export function startTour(root: HTMLElement, podium: Podium): TourHandle {
    */
   let pauseSilent = false;
   const ccWatch = window.setInterval(() => {
-    if (dead || !startedAt || paused || pauseWanted) return;
+    if (dead) return;
+    /*
+     * THE STOP CONTROL ONLY EXISTS WHILE THERE IS SOMETHING TO STOP. Nam: "stop
+     * talking when nothing is talking is kinda weird."
+     *
+     * Three things gate it now, and they are three different questions. Whether
+     * he has started at all is the mount state, cleared by voice() on the first
+     * line. Whether the visitor has silenced him is body.cc-on, which the
+     * stylesheet reads directly so it can never lag. And whether the flow is over
+     * is this -- delivering() goes false at finished and at handedOver, and
+     * nothing else was watching it on the bar's behalf, so after the last line the
+     * button sat there offering to stop a conversation that had ended.
+     */
+    if (!delivering()) bar.classList.add('is-away');
+    if (!startedAt || paused || pauseWanted) return;
     if (!delivering() || podium.captionsOn()) return;
     pauseSilent = true;
     pauseWanted = true;
@@ -1443,7 +1546,7 @@ export function startTour(root: HTMLElement, podium: Podium): TourHandle {
       const dwell = Math.round(asides.stopped.ms * pace(visitor));
       await wait(Math.max(0, dwell - 900));
       const off = (async () => {
-        if (podium.captionsOn()) await pressSel('[data-ctl="captions"]', true);
+        if (podium.captionsOn()) await pressCaptions();
       })();
       await Promise.all([ack, off]);
       if (dead) return;
@@ -1639,7 +1742,7 @@ export function startTour(root: HTMLElement, podium: Podium): TourHandle {
      * is legible without a caption explaining it.
      */
     await wait(reduced ? 0 : 900);
-    if (podium.captionsOn()) await pressSel('[data-ctl="captions"]', true);
+    if (podium.captionsOn()) await pressCaptions();
     await hand.park();
     /*
      * AND THEN NOTHING IS LEFT, so nothing should be left on screen.

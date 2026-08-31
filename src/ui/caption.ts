@@ -213,7 +213,7 @@ const NOT_EMPTY = [
   '.dk-icon', '.cb-tab', '.tour-bar', '.pg-frame',
 ].join(',');
 
-export function makeCaption(who: string): Caption {
+export function makeCaption(who: string, meta?: string): Caption {
   const reduced = prefersReducedMotion();
 
   const textEl = h('div', { class: 'cc-text' }) as HTMLElement;
@@ -267,7 +267,20 @@ export function makeCaption(who: string): Caption {
     'aria-label': 'Captions. Focus holds the current line; Enter shows the rest of it, or moves to the next.',
   },
     h('div', { class: 'cc-head' },
-      h('div', { class: 'cc-who' }, who),
+      /*
+       * THE NAME AND THE DISCLAIMER ARE TWO ELEMENTS, not one string.
+       *
+       * "Nam Nguyen . scripted transcript, no audio" is an honesty label rather
+       * than decoration -- the devlog carries the objection it answers, that
+       * captions implying live speech recognition where there is no audio would be
+       * a lie. It stays wherever there is room for it.
+       *
+       * On a phone there is not. Nam: "scripted transcript, no audio => remove all
+       * this", about a caption sharing a 390px screen with a shared desktop. So it
+       * needs to be separately addressable, and a single interpolated string was
+       * not: CSS cannot hide half a text node.
+       */
+      h('div', { class: 'cc-who' }, who, meta ? h('span', { class: 'cc-meta' }, ' \u00b7 ' + meta) : null),
       ring),
     textEl,
     live) as HTMLElement;

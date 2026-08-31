@@ -236,7 +236,29 @@ export function renderLobby(store: Store, media: Media): HTMLElement {
      * is the densest thing in the build, and this is the last quiet moment before
      * it. His copy, kept as written.
      */
-    h('p', { class: 'preview-ask', style: 'margin:0' }, 'Let me take you on a wild ride. Ready?'));
+    /*
+     * THE LANE PICKER'S WORDS, MOVED HERE. Nam: "the text that we had in the lazy
+     * walkthrough option in the selector that we've now hidden, lets bring all
+     * that text to the green room. We show that text here, then when user click
+     * join, we have their consent."
+     *
+     * That is the answer to the thing N249 left open. Removing the picker removed
+     * the one place this build explained what was about to happen, and traded an
+     * unanswerable question for no question at all. Saying it here costs nothing
+     * -- the screen was doing nothing -- and Join stops being a blind press: it is
+     * the yes to a described thing, which is a better consent than the picker's
+     * was, because by then they have read what they are agreeing to.
+     *
+     * The stop is named in the same breath, because a walkthrough nobody can
+     * interrupt is the version of this that deserves the objection.
+     */
+    h('p', { class: 'preview-ask', style: 'margin:0' }, 'A lazy walkthrough'),
+    h(
+      'p',
+      { class: 'preview-note' },
+      h('span', {}, 'Nam shows you around.'),
+      h('span', {}, 'Stop him whenever you want.'),
+    ));
 
   /**
    * The tile's overflow. Meet's menu is 225 wide, #f0f4f9 at radius 12 with no

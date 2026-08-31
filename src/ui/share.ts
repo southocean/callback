@@ -230,6 +230,20 @@ const SCREENS: Source[] = [
   { id: 'desktop', kind: 'screen', title: 'Screen 1' },
 ];
 
+/**
+ * The whole screen, for the phone's one-press share.
+ *
+ * Nam: "once you click share screen on mobile, we dont have the panel choosing
+ * the screen source anymore, but its a one click and default to sharing full
+ * screen."
+ *
+ * Which is the right call for a reason beyond space: the picker exists to let you
+ * choose between three tabs, a window and the screen, and on a phone the only one
+ * of those with room to be READ is the screen. A dialog offering four options that
+ * are all worse than the default is a dialog that only costs a press.
+ */
+export const FULL_SCREEN: Source = SCREENS[0]!;
+
 const GROUPS: { key: ShareKind; label: string; items: Source[] }[] = [
   { key: 'tab', label: 'Chrome Tab', items: TABS },
   { key: 'window', label: 'Window', items: WINDOWS },
@@ -728,6 +742,29 @@ const svg = (vb: string, body: string, cls = '', fit = ''): HTMLElement => {
 const icFolder = (): HTMLElement => svg('0 0 20 20', `
   <path d="M1.6 5.2a1.4 1.4 0 0 1 1.4-1.4h3.9l1.7 1.7h7.8a1.4 1.4 0 0 1 1.4 1.4v.5H1.6z" fill="#c98f22"/>
   <path d="M4.6 6.2h10.8v3.4H4.6z" fill="#dbe6f2"/>
+  <path d="M1.6 7.3h16.8v7.9a1.4 1.4 0 0 1-1.4 1.4H3a1.4 1.4 0 0 1-1.4-1.4z" fill="#f2c04b"/>`);
+
+/**
+ * The same folder, with something in it.
+ *
+ * Nam: "the folder is done such that it doesnt show any file content. Please show
+ * them like the regular folders here" -- with two captures of a real Explorer
+ * window beside it, where the difference is unmistakable: an empty folder is a
+ * plain shape and a folder with contents has a sheet of paper standing up behind
+ * its front flap. The tooltip on the empty one in his screenshot even says so.
+ *
+ * It is a real affordance rather than decoration. Every folder drawn identically
+ * says nothing about which ones are worth opening, and on this desktop that is
+ * the difference between a visitor finding the clips and not.
+ *
+ * The page sits BEHIND the front panel and above the back one, which is the whole
+ * trick: same three paths as the plain folder, with the sheet inserted between
+ * the back and the front so the front overlaps its bottom edge.
+ */
+const icFolderFull = (): HTMLElement => svg('0 0 20 20', `
+  <path d="M1.6 5.2a1.4 1.4 0 0 1 1.4-1.4h3.9l1.7 1.7h7.8a1.4 1.4 0 0 1 1.4 1.4v.5H1.6z" fill="#c98f22"/>
+  <path d="M5.4 4.9h9.2v6.1H5.4z" fill="#fdfdfd"/>
+  <path d="M6.4 6.3h7.2v.75H6.4zM6.4 7.8h7.2v.75H6.4z" fill="#c9cfd6"/>
   <path d="M1.6 7.3h16.8v7.9a1.4 1.4 0 0 1-1.4 1.4H3a1.4 1.4 0 0 1-1.4-1.4z" fill="#f2c04b"/>`);
 
 const icPdf = (): HTMLElement => svg('0 0 20 20', `
@@ -1426,8 +1463,13 @@ function explorerBody(onOpen: (id: string) => void, onFolder?: (f: string) => vo
 
   let selected: HTMLElement | null = null;
 
-  const glyph = (k: Entry['kind']): HTMLElement =>
-    k === 'folder' ? icFolder() : k === 'pdf' ? icPdf() : k === 'video' ? icVideo() : icHtml();
+  const glyph = (k: Entry['kind'], e?: Entry): HTMLElement => {
+    if (k !== 'folder') return k === 'pdf' ? icPdf() : k === 'video' ? icVideo() : icHtml();
+    // Full or empty, read off the same FOLDERS map the row's count comes from, so
+    // the icon and the number beside it can never disagree.
+    const has = ((FOLDERS[e?.to ?? ''] ?? []).length) > 0;
+    return has ? icFolderFull() : icFolder();
+  };
 
   /*
    * listbox, not list. The audit found role="list" with role="listitem" children
@@ -1465,7 +1507,7 @@ function explorerBody(onOpen: (id: string) => void, onFolder?: (f: string) => vo
     // shape already used by the calendar grid and the desktop icons, and the
     // shape Explorer's own file list has.
     const r = h('div', { class: 'wx-row', tabindex: '-1', role: 'option', 'aria-selected': 'false' },
-      h('span', { class: 'wx-ico' }, glyph(e.kind)),
+      h('span', { class: 'wx-ico' }, glyph(e.kind, e)),
       h('span', { class: 'wx-name' }, e.name),
       e.kind === 'folder' ? h('span', { class: 'wx-count' }, String((FOLDERS[e.to ?? ''] ?? []).length)) : null) as HTMLElement;
 
@@ -1475,13 +1517,34 @@ function explorerBody(onOpen: (id: string) => void, onFolder?: (f: string) => vo
     };
 
     let pending = 0;
-    r.addEventListener('click', () => {
+    /*
+     * RENAME IS A GESTURE ON THE NAME, and that is the fix. Nam: "double clicking
+     * should open it, not opening rename. Rename should be 2 stage trigger: click
+     * to select, then the folder is highlighted, then if you click the name in the
+     * highlighted mode, then we trigger rename."
+     *
+     * The old version armed a rename on a second click ANYWHERE on the row and
+     * relied on the dblclick handler to cancel it 260ms later. That is the real
+     * Windows rule and it worked, until it did not: two clicks landing slightly
+     * apart, or a slow second press, fire two clicks and no dblclick, so an open
+     * became a rename. A visitor who double clicks a folder and gets an edit field
+     * has been told the desktop is fake.
+     *
+     * Scoping it to the label removes the race rather than tuning it. The name is
+     * a small target inside a wide row, so an open aimed at the icon or the empty
+     * space to the right can never arm a rename at all, and the 260ms deferral is
+     * now only protecting the one case where a person really did press twice on
+     * the text.
+     */
+    r.addEventListener('click', (ev) => {
       const wasSelected = selected === r;
       select(r);
       // The tree is a navigation pane: Windows does not rename from it, and a
       // single click there moves you. Renaming stays a list gesture.
       if (inTree) { act(); return; }
       if (!wasSelected) return;
+      const onName = (ev.target as HTMLElement | null)?.closest('.wx-name');
+      if (!onName) return;
       window.clearTimeout(pending);
       pending = window.setTimeout(() => rename(r, e), 260);
     });
