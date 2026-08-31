@@ -38,7 +38,7 @@ import {
   type Part, type Quip, type Beat,
 } from '../data/tour.js';
 import { QUEUE_BRIEF, QUEUE_HANDOVER } from '../tour/director.js';
-import { BAIL_MS, IDLE_MS } from '../tour/profile.js';
+import { IDLE_MS } from '../tour/profile.js';
 
 const ordered = (): Part[] => [...parts].sort((a, b) => a.priority - b.priority);
 
@@ -246,13 +246,10 @@ export function renderScriptEditor(): HTMLElement {
         h('span', { class: 'sc-part-t' }, `${p.lines.length} lines · ${secs(partRuntime(p, 'lines'))}`),
         p.needs ? h('span', { class: 'sc-needs' }, `needs ${p.needs}`) : h('span', {}),
         copyButton(p)),
-      flowRows(p),
-      p.bail
-        ? h('div', { class: 'sc-bail' },
-          h('b', {}, `Bail on line ${p.bail.at}`),
-          h('span', {}, `Fires if the visitor leaves inside ${BAIL_MS / 1000}s${p.bail.rewind ? ', and rewinds the document' : ''}.`),
-          h('ol', { class: 'sc-lines' }, ...p.bail.lines.map((l) => h('li', {}, h('span', {}, l.text), h('span', {})))))
-        : h('span', {}))),
+      /* The bail card was here. The gag it documented is retired -- see the note
+         in data/tour.ts -- and a panel that publishes the script has to stop
+         publishing a line the script no longer says. */
+      flowRows(p))),
 
     /* --- the alternates -------------------------------------------------- */
     h('h2', { class: 'dp-head2' }, 'The same segment, said shorter'),

@@ -789,7 +789,7 @@ suite('the conversation director', () => {
    */
   test('no em dashes anywhere in the script', () => {
     const lines = [
-      ...tourParts.flatMap((p) => [...p.lines, ...p.commentary, ...p.brief, ...(p.bail?.lines ?? [])]),
+      ...tourParts.flatMap((p) => [...p.lines, ...p.commentary, ...p.brief]),
       ...tourQuips, ...tourAcks,
       outroOpen, outroClose, outroTease, outroAllFound, ...banter,
       ...tourStory.flatMap((c) => c.lines),
@@ -806,7 +806,7 @@ suite('the conversation director', () => {
 
   test('nothing in the script calls itself a tour', () => {
     const spoken = [
-      ...tourParts.flatMap((p) => [...p.lines, ...p.commentary, ...p.brief, ...(p.bail?.lines ?? [])]),
+      ...tourParts.flatMap((p) => [...p.lines, ...p.commentary, ...p.brief]),
       ...tourQuips, ...tourAcks,
       outroOpen, outroClose, outroTease, outroAllFound, ...banter,
       ...tourStory.flatMap((c) => c.lines),
@@ -820,10 +820,6 @@ suite('the conversation director', () => {
     for (const p of tourParts) {
       for (const b of p.beats ?? []) {
         ok(b.at >= 0 && b.at < p.lines.length, `${p.id}: a beat fires on line ${b.at}, which is not there`);
-      }
-      if (p.bail) {
-        ok(p.bail.at >= 0 && p.bail.at < p.lines.length,
-          `${p.id}: the bail protects line ${p.bail.at}, which is not there`);
       }
     }
   });

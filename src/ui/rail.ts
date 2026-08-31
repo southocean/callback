@@ -20,7 +20,7 @@
 import { h } from '../dom.js';
 import { sym } from './icons.js';
 import { bugGlyph } from './bugart.js';
-import { loadInterview, foundAll } from '../prefs.js';
+import { foundAll } from '../prefs.js';
 import type { Bugs } from '../bugs.js';
 import type { Store } from '../state.js';
 
@@ -232,6 +232,10 @@ export function buildRail(store: Store, bugs: Bugs | undefined, opts: RailOpts =
     rail.appendChild(item);
   }
 
+  /* What this visitor has found, read once. Both conditional items below ask it,
+     and it is four localStorage reads rather than something to do twice. */
+  const found = foundAll();
+
   /*
    * THEN THE SIDE QUESTS -- board ticket N166.
    *
@@ -252,7 +256,7 @@ export function buildRail(store: Store, bugs: Bugs | undefined, opts: RailOpts =
    * already imported here, and the board itself fetches the quest list when it is
    * opened, so the initial bundle never carries it.
    */
-  if (foundAll().quests.length > 0) {
+  if (found.quests.length > 0) {
     const item = h(
       'button',
       { class: 'rail-item', type: 'button', 'aria-current': 'false' },
@@ -299,11 +303,33 @@ export function buildRail(store: Store, bugs: Bugs | undefined, opts: RailOpts =
    * quest list, the bug list and the egg list in the INITIAL bundle, because this
    * rail is built by the first screen and is not deferred.
    *
-   * So the rail is built without it and the item arrives when the chunk does.
-   * `loadInterview` is checked first, synchronously and cheaply, so a visitor who
-   * has never finished a call does not fetch the chunk at all.
+   * So the rail is built without it and the item arrives when the chunk does,
+   * and the gate in front of it has to be answerable WITHOUT the chunk.
+   *
+   * THE GATE WAS THE WRONG QUESTION -- and it asked whether a call had been
+   * FINISHED. Nam, testing in incognito: "finish the interview early, in the end
+   * screen I see the quest button but not the progression bar?? The progression
+   * bar should be triggered the moment we make any progress at all."
+   *
+   * `recordInterview` is called from one place, the tour's `finished` callback,
+   * so leaving the call early never writes it. A visitor who found three things
+   * and then left had progress worth showing, a rail that had already decided
+   * they had none, and -- on the ended screen of all places -- a Quests item
+   * sitting next to the missing ring, which is what made it look broken rather
+   * than deliberate.
+   *
+   * N118's actual worry was a first-time visitor being handed a scoreboard for a
+   * game nobody mentioned. That is a worry about ZERO, not about interviews, and
+   * `p.pct <= 0` below has always been the thing answering it. The interview gate
+   * was standing in front of it doing a different job badly.
+   *
+   * foundAll() reads localStorage and nothing else -- the collections it would be
+   * counted against live in completion.ts, which is what the chunk is for -- so
+   * "has this visitor found anything" is answerable synchronously and the size
+   * gate survives intact. Quips are left out on purpose: the ring does not count
+   * them, so they must not open the door to it.
    */
-  if (loadInterview()) {
+  if (found.quests.length + found.bugs.length + found.eggs.length > 0) {
     void import('./progress.js').then((m) => {
       const p = m.progressNow();
       if (p.pct <= 0 || !rail.isConnected) return;

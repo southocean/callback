@@ -6734,14 +6734,9 @@ body.has-panel .reaction, body.has-panel .reaction-who { left: 0; }
 .sc-flowrow b { font: 500 13.5px/19px var(--font); color: var(--dp-ink); }
 .sc-flowrow-t { font: 400 12px/17px var(--font); color: var(--dp-ink3); font-variant-numeric: tabular-nums; }
 
-/* The bail script sits under the part it protects, not beside it: it is a
-   branch off one line rather than a fourth register. */
-.sc-bail {
-  margin-top: 10px; padding: 10px 12px; border-radius: 8px;
-  background-color: var(--dp-surface); border-left: 3px solid var(--dp-accent);
-}
-.sc-bail b { display: block; font: 500 12px/17px var(--font); color: var(--dp-accent); }
-.sc-bail > span { display: block; font: 400 12px/17px var(--font); color: var(--dp-ink3); margin-bottom: 6px; }
+/* .sc-bail was here, styling the branch off one protected line. The gag it drew
+   is retired (see data/tour.ts), and tools/css-deadcheck.mjs is the reason this
+   file does not keep rules for markup that no longer exists. */
 
 .sc-quips { margin-bottom: 14px; }
 .sc-quips-h {

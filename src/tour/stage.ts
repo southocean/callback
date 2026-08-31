@@ -45,7 +45,7 @@ import {
   parts, story, acks, asides, backTo, opener, resumeAt, askQuestion,
   banter, outroOpen, outroClose, outroTease, outroAllFound,
   OUTRO_GAPS, OUTRO_COUNT_SLOT, BANTER_SLOTS,
-  type Bail, type Beat, type Line, type Surface,
+  type Beat, type Line, type Surface,
 } from '../data/tour.js';
 import {
   markEggSeen, unseenEggs, seenBanter, markBanterSeen, chooseBanter, clearBanter,
@@ -58,7 +58,7 @@ import {
   type TourState,
 } from './director.js';
 import {
-  observe, initialVisitor, pace, passive, tier, acknowledge, IDLE_MS, BAIL_MS,
+  observe, initialVisitor, pace, passive, tier, acknowledge, IDLE_MS,
   type Visitor,
 } from './profile.js';
 
@@ -1297,13 +1297,23 @@ export function startTour(root: HTMLElement, podium: Podium): TourHandle {
   };
 
   /**
-   * The bail watch — board ticket N35.
+   * THE BAIL WATCH IS GONE — board ticket N35, retired.
    *
-   * Armed when a protected line starts, disarmed three seconds later. If the
-   * visitor scrolls the document away inside that window, the gag fires: back to
-   * the top, admit the joke, and return to EXACTLY where they had got to.
+   * It armed when the Wasabi line started, disarmed three seconds later, and
+   * fired if the visitor scrolled the document away inside that window.
+   *
+   * Its trigger was a scroll, and this part's own beats scroll the document.
+   * `rolling` below is raised around every programmatic roll for exactly that
+   * reason, and it still did not hold: the CV is in an iframe whose scroll events
+   * are proxied out to this handler, and the flag drops on a 120ms timer that a
+   * proxied event can land after. The gag then fired mid-script and its three
+   * lines were spoken over the three the script was already saying.
+   *
+   * Nam: "We are in a script, everything is tightly timed, so this is not helping
+   * only hurting the script." Deleted rather than tuned, because tightening that
+   * window is guessing at a race whose downside is losing script lines and whose
+   * upside is a three-second joke. The full note is in data/tour.ts.
    */
-  let bailArmed: { script: Bail; of: Surface } | null = null;
 
   /**
    * THE FAST-FORWARD — board ticket N46.
@@ -1319,7 +1329,7 @@ export function startTour(root: HTMLElement, podium: Podium): TourHandle {
    */
   let cut = false;
 
-  const speak = async (lines: Line[], bs: Beat[] | undefined, protect?: Bail): Promise<void> => {
+  const speak = async (lines: Line[], bs: Beat[] | undefined): Promise<void> => {
     cut = false;
     /*
      * N148. The run loop checks the mode at the top of its iteration and there
@@ -1341,12 +1351,6 @@ export function startTour(root: HTMLElement, podium: Podium): TourHandle {
       await heldOut();
       if (dead) return;
       const line = lines[i]!;
-      if (protect && i === protect.at) {
-        // Armed for exactly the window in which bolting means something. After
-        // that they have read it, and leaving is just leaving.
-        bailArmed = { script: protect, of: 'cv' };
-        window.setTimeout(() => { bailArmed = null; }, BAIL_MS);
-      }
       /*
        * A LINE WITH A BEAT IS A CUTSCENE — board ticket N55.
        *
@@ -1426,29 +1430,6 @@ export function startTour(root: HTMLElement, podium: Podium): TourHandle {
        * is how a demo starts looking broken rather than responsive.
        */
       if (cut) { cut = false; return; }
-    }
-  };
-
-  const runBail = async (): Promise<void> => {
-    const armed = bailArmed;
-    bailArmed = null;
-    if (!armed || dead) return;
-    const b = armed.script;
-    const s = scroller(armed.of);
-    const where = s?.top() ?? 0;
-    await Promise.all([
-      voice(b.lines[0]?.text ?? '', b.lines[0]?.ms ?? 3000),
-      (async () => { if (b.rewind && s) await hand.roll(s, 0, 900); })(),
-    ]);
-    if (b.lines[1]) await voice(b.lines[1].text, b.lines[1].ms);
-    if (b.lines[2]) {
-      // Back to where THEY were, not where the script was. Remembering the
-      // position is the whole trick; a gag that loses your place is a bug with
-      // a punchline attached.
-      await Promise.all([
-        voice(b.lines[2].text, b.lines[2].ms),
-        (async () => { if (b.rewind && s) await hand.roll(s, where, 800); })(),
-      ]);
     }
   };
 
@@ -2028,17 +2009,13 @@ export function startTour(root: HTMLElement, podium: Podium): TourHandle {
       const part = parts.find((p) => p.id === tour.current);
       const lines = linesFor(tour);
       const bs = tour.register === 'lines' ? part?.beats : undefined;
-      // Only the full register carries the gag: the brief version does not spend
-      // long enough on the Wasabi years to have earned the complaint.
-      const protect = tour.register === 'lines' ? part?.bail : undefined;
-
       // The register change is announced once, not every time it applies.
       if (tour.register === 'brief' && !announcedShorten) {
         announcedShorten = true;
         await voice(asides.shorten.text, asides.shorten.ms);
       }
 
-      await speak(lines, bs, protect);
+      await speak(lines, bs);
       if (dead) return;
       /*
        * N155, and the order matters. `partDone` moves this part into `played`,
@@ -2333,9 +2310,6 @@ export function startTour(root: HTMLElement, podium: Podium): TourHandle {
       scrollFrom = null;
       if (px < 8) return;
       note({ t: 'scroll', at: now, px, ms });
-      // The Wasabi gag: they scrolled away from seven years of work while the
-      // tour was still talking about it.
-      if (bailArmed && px > 120) void runBail();
     }, 140);
   }
 

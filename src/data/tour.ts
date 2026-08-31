@@ -107,24 +107,30 @@ export interface Beat {
 /** What has to be on screen for a part to make sense. */
 export type Needs = 'call' | 'share' | 'cv' | 'panel';
 
-/**
- * What a part says when the visitor bolts out of it in under three seconds.
+/*
+ * THE BAIL GAG WAS HERE, AND IT IS GONE -- board ticket N35, retired.
  *
- * Nam, on the Wasabi section: "Pap pap pap.. 7 years of my life is only worth 3s
- * of your time? Come back! Then we scroll up to the top of the page. Then we go
- * Just kidding and scroll back to the place it was triggered."
+ * It fired when the visitor scrolled away from the Wasabi years inside three
+ * seconds: "Pap pap pap. Seven years of my life, and it gets three seconds of
+ * yours?", a rewind to the top, and then back to exactly where they had got to.
  *
- * `rewind` is that gag: the document goes back to the top, the tour admits it
- * was joking, and the document returns to EXACTLY where the visitor had got to.
- * Remembering the position rather than guessing at it is the whole trick — a gag
- * that loses your place is not a gag, it is a bug with a punchline.
+ * Nam, watching it misfire: "the scrolling of the script triggers the pap pap pap
+ * gag which then triggers a bunch more scripts and we lost 2 lines not being able
+ * to read at all ... We are in a script, everything is tightly timed, so this is
+ * not helping only hurting the script."
+ *
+ * The diagnosis is the reason it is deleted rather than tuned. The gag's trigger
+ * is a scroll, and this part's own beats SCROLL THE DOCUMENT -- so the thing it
+ * watches for is a thing the script does. There is a `rolling` flag in
+ * tour/stage.ts for exactly this, raised around every programmatic roll, and it
+ * still did not hold: the CV is in an iframe whose scroll events are proxied out,
+ * and the flag drops on a 120ms timer that a proxied event can land after.
+ *
+ * Tightening that window would have been guessing at a race. And the cost of
+ * losing it is three seconds of gag; the cost of losing the race is three of the
+ * script's own lines spoken over each other, which is what Nam saw. A joke that
+ * fires on a scroll cannot live inside a script that scrolls.
  */
-export interface Bail {
-  /** Which line of the part is being protected. */
-  at: number;
-  lines: Line[];
-  rewind?: boolean;
-}
 
 export interface Part {
   id: string;
@@ -142,7 +148,6 @@ export interface Part {
   brief: Line[];
   /** Clicking any of these is what "the visitor opened this part" means. */
   triggers?: string[];
-  bail?: Bail;
 }
 
 const L = (text: string, ms: number): Line => ({ text, ms });
@@ -279,20 +284,6 @@ export const parts: Part[] = [
       { at: 7, roll: { of: 'cv', to: 'Skills', ms: 1500 } },
       { at: 9, roll: { of: 'cv', to: 'Education', ms: 1400 } },
     ],
-    /*
-     * N35, armed on line 1 — the Wasabi years. Three seconds is Nam's number and
-     * it is the right one: long enough to read a job title, too short to have
-     * read anything under it.
-     */
-    bail: {
-      at: 1,
-      rewind: true,
-      lines: [
-        L('Pap pap pap. Seven years of my life, and it gets three seconds of yours?', 3600),
-        L('Come back here.', 1600),
-        L('…Just kidding. Carry on.', 2200),
-      ],
-    },
     commentary: [
       L('The CV, yes. One data module renders this and the call, so they cannot disagree.', 4200),
     ],
