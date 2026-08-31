@@ -46,7 +46,8 @@ export interface RailOpts {
    */
   animateRing?: boolean;
   /**
-   * Let a rail item that has never been seen before ARRIVE -- board ticket N163.
+   * Let the conditional items ARRIVE rather than simply be there -- board ticket
+   * N163, and every visit rather than once ever since N253.
    *
    * Same rule as animateRing and for the same reason: exactly one surface is
    * allowed to report, and it is the one you reach by leaving a call.
@@ -54,15 +55,15 @@ export interface RailOpts {
   announce?: boolean;
 }
 
-/* --------------------------------------------------------- the first arrival */
+/* ------------------------------------------------------------- the arrival */
 
 /**
- * WHICH ITEMS HAVE INTRODUCED THEMSELVES -- board ticket N163.
+ * THE ENTRANCE, EVERY TIME -- board ticket N163, amended by N253.
  *
- * Nam: "in #ended screen, I want the bug and the progression bar to appear more
- * dramatically the first time they are to be shown (probably after the first call
- * ended). This means some kind of dramatic appear animation in place, like pops
- * up with a little shake or whatever."
+ * Nam, originally: "in #ended screen, I want the bug and the progression bar to
+ * appear more dramatically the first time they are to be shown (probably after
+ * the first call ended). This means some kind of dramatic appear animation in
+ * place, like pops up with a little shake or whatever."
  *
  * The three items below are all conditional -- the bug glyph on a catch, the side
  * quests on an unlock, the ring on a finished call -- so the ended screen after a
@@ -70,51 +71,94 @@ export interface RailOpts {
  * one of them was fading in at the same speed as the screen behind it, which is the
  * reliable way to make something appear and not be noticed.
  *
- * ONCE, EVER, PER ITEM, which is what the key is for. A pop on every visit is a
- * tic; a pop the first time is an introduction. Stored rather than derived because
- * there is nothing to derive it from: "have you been shown this before" is not a
- * fact about the collections, it is a fact about what this browser has drawn.
+ * IT USED TO RUN ONCE, EVER, PER ITEM, held in a `callback.railmet` key, on the
+ * argument that a pop on every visit is a tic and a pop the first time is an
+ * introduction. Nam saw it in a QA capture and said the opposite: "its very nice
+ * I want to see that every time, not just the first time."
  *
- * A separate key rather than a field on an existing record, so a visitor who clears
- * their bugs from the admin panel gets the arrival again with them -- which is the
- * behaviour a reset should have.
+ * He is right, and the original argument was answering a question this surface
+ * does not ask. A tic is a flourish attached to something you pass constantly --
+ * a button, a menu, a list row. This rail is on ONE screen, reached by ending a
+ * call, and the whole point of the screen is to report what the last twenty
+ * minutes produced. Three items popping in sequence is the report arriving, and a
+ * report is allowed to arrive the same way twice. The visitor who sees it often
+ * is the visitor who keeps coming back, which is not somebody to ration it from.
+ *
+ * And it was invisible in practice for a reason the storage made worse: the pop
+ * happens on the ended screen, which most people reach once, having already met
+ * the bug glyph on the home rail minutes earlier. So the one showing was spent
+ * on an item the visitor had been looking at all session.
+ *
+ * WHAT THE STORED VERSION ALSO COST, and the thing that would have had to be
+ * fixed to keep it: nothing cleared the key. `forget()` removes one exact key and
+ * `callback.railmet` was never added to FORGETTABLE, so the comment that used to
+ * stand here -- claiming a visitor who clears their bugs gets the arrival back --
+ * was simply false, and the entrance was unreachable and untestable after its one
+ * run. Deleting the gate settles that too, rather than adding a row to a panel to
+ * restore something everybody now gets anyway.
+ *
+ * `callback.railmet` is left in the storage of anyone who has it, for the reason
+ * prefs.ts gives about `callback.startart`: it is a few bytes nobody reads, and
+ * the code to delete it would outlive the key it deletes.
  */
-const MET_KEY = 'callback.railmet';
 
-function met(): Set<string> {
-  try {
-    const raw = localStorage.getItem(MET_KEY);
-    return new Set(raw ? (JSON.parse(raw) as string[]) : []);
-  } catch {
-    // Private browsing, or storage off. Then nothing has been met, and the worst
-    // case is one extra flourish rather than a broken rail.
-    return new Set();
-  }
-}
+/** Between one item's pop and the next. */
+const STAGGER = 170;
 
 /**
- * Give an item its entrance, and remember that it had one.
+ * Give an item its entrance.
  *
  * `order` staggers the three, because two things popping in the same frame read
  * as one layout jump rather than as two arrivals. The delay is in CSS rather than
  * in a timer so a reduced-motion visitor pays nothing for it at all: the media
- * query below drops the whole animation, delay included.
+ * query beside the keyframes drops the whole animation, delay included.
+ *
+ * `announce` is still the gate, and it is the only one now. Exactly one surface
+ * gets this -- the ended screen -- because the home rail is furniture you scroll
+ * past on the way somewhere, and furniture that pops every time you look at it IS
+ * the tic the paragraph above says this is not.
+ *
+ * THE 360ms LEAD-IN IS GONE -- N253. Nam: "they should start the moment we are in
+ * the end screen. Right now I feel there is a little delay?"
+ *
+ * There was, and it was not a feel. Every item carried `360 + order * 170`, so
+ * the first pop was over a third of a second after the screen arrived, and the
+ * whole cascade finished a second and a half in. A lead-in like that is worth
+ * paying when something else is moving first and the entrance has to wait its
+ * turn -- but nothing on .ended animates in, the screen is simply appended, so
+ * the 360 bought an empty stage and nothing else. First item now at zero, which
+ * with `both` means it starts on the first frame the item is rendered.
+ *
+ * `since` IS THE HALF THAT IS ACTUALLY SUBTLE, and it is the other reason he
+ * could feel a delay he could not point at. Two of these items are built
+ * synchronously and the third is not: the completion ring is appended from inside
+ * `import('./progressframe.js').then(...)`, so its animation clock starts
+ * whenever that chunk lands rather than when the screen did. Its delay was being
+ * added ON TOP of the import, which is why the ring was the conspicuously late
+ * one -- and worse on a cold cache, which is exactly the visit where it matters.
+ *
+ * So the cascade is timed against the SCREEN's clock rather than each item's own.
+ * `since` is stamped when the rail is built; an item that arrives late has that
+ * lateness taken off its share, down to zero. A ring whose chunk took 300ms pops
+ * immediately on arrival instead of 340ms after it, and the three still read as
+ * one sequence however the network behaved.
  */
-function arrive(item: HTMLElement, id: string, order: number, opts: RailOpts): void {
+function arrive(item: HTMLElement, order: number, opts: RailOpts, since: number): void {
   if (!opts.announce) return;
-  const seen = met();
-  if (seen.has(id)) return;
-  seen.add(id);
-  try {
-    localStorage.setItem(MET_KEY, JSON.stringify([...seen]));
-  } catch {
-    /* Then it arrives again next time, which is a better failure than none. */
-  }
+  const late = performance.now() - since;
   item.classList.add('rail-new');
-  item.style.setProperty('--rail-in', `${360 + order * 170}ms`);
+  item.style.setProperty('--rail-in', `${Math.max(0, order * STAGGER - late)}ms`);
 }
 
 export function buildRail(store: Store, bugs: Bugs | undefined, opts: RailOpts = {}): HTMLElement {
+  /*
+   * The clock the cascade is timed against. Stamped here rather than at the first
+   * arrive() call, because the whole point is that it is one clock for all three
+   * items -- including the one that turns up after a dynamic import. main.ts
+   * appends what this returns in the same task, so "the rail was built" and "the
+   * screen arrived" are the same frame.
+   */
+  const since = performance.now();
   const rail = h(
     'nav',
     { class: `rail${opts.ghostNav ? ' rail-ghost' : ''}`, 'aria-label': 'Sections' },
@@ -184,7 +228,7 @@ export function buildRail(store: Store, bugs: Bugs | undefined, opts: RailOpts =
       h('span', { class: 'rail-label' }, 'Bugs'),
     ) as HTMLButtonElement;
     item.addEventListener('click', () => { void import('./bugframe.js').then((m) => m.openBugFrame(bugs)); });
-    arrive(item, 'bugs', 0, opts);
+    arrive(item, 0, opts, since);
     rail.appendChild(item);
   }
 
@@ -218,7 +262,7 @@ export function buildRail(store: Store, bugs: Bugs | undefined, opts: RailOpts =
     item.addEventListener('click', () => {
       void import('./questframe.js').then((m) => m.openQuestFrame(opts.theme ?? 'light'));
     });
-    arrive(item, 'quests', 1, opts);
+    arrive(item, 1, opts, since);
     rail.appendChild(item);
   }
 
@@ -295,7 +339,7 @@ export function buildRail(store: Store, bugs: Bugs | undefined, opts: RailOpts =
       item.addEventListener('click', () => {
         void import('./progressframe.js').then((f) => f.openProgress(opts.theme ?? 'light', bugs));
       });
-      arrive(item, 'progress', 2, opts);
+      arrive(item, 2, opts, since);
       rail.appendChild(item);
     });
   }

@@ -9,7 +9,7 @@ import { h } from '../dom.js';
 import { mailSubject } from '../data/companies.js';
 import { sym } from './icons.js';
 import type { Store } from '../state.js';
-import { profile } from '../data/cv.js';
+import { profile, SITE } from '../data/cv.js';
 import type { Quests } from '../achievements.js';
 import type { Bugs } from '../bugs.js';
 import { openBugFrame } from './bugframe.js';
@@ -92,10 +92,19 @@ function findCards(pass: ReturnType<typeof passFinds>, bugs: Bugs): HTMLElement[
    * place that can point at the ring without spoiling anything: the ring is on
    * the rail, to the left, and pressing it says how much there is. That is a
    * signpost to a total, not a hint to a hiding place.
+   *
+   * AND NOT ON A PHONE AT ALL -- board ticket N252. Nam: "If there is nothing
+   * new, we just dont show it." The argument above is an argument for a wide
+   * screen with room under the fold for a paragraph nobody asked for. At 390px
+   * it is the only card between the heading and the footer, so a screen that
+   * has nothing to report spends its entire body reporting that -- and the
+   * thing it points at, the ring on the rail, is eighty pixels above it in the
+   * row this screen already draws. The signpost is redundant where the
+   * signposted thing is in the same glance.
    */
   return [h(
     'div',
-    { class: 'safe' },
+    { class: 'safe narrow-hide' },
     sym('bolt', 24),
     h(
       'div',
@@ -106,6 +115,62 @@ function findCards(pass: ReturnType<typeof passFinds>, bugs: Bugs): HTMLElement[
         + 'The ring on the left counts them, and knows how many are left.'),
     ),
   ) as HTMLElement];
+}
+
+/**
+ * The sentence that leaves with the link.
+ *
+ * Nam wrote it: "Hey, check out this crazy CV: [link]". It is deliberately not
+ * a pitch. Whoever presses this is not selling him to their colleague, they are
+ * forwarding something odd they found, and "crazy CV" is what somebody actually
+ * types into a message. A line that read "Nam Nguyen, Lead front-end developer,
+ * seven years" would be the sender vouching for a stranger's CV, which is a
+ * thing nobody does and a thing this button must not put in their mouth.
+ */
+const SHARE_LEAD = 'Hey, check out this crazy CV:';
+
+/**
+ * The phone's own share sheet, which is the whole point of the control.
+ *
+ * navigator.share is gated on a transient user activation, so it has to be
+ * called synchronously out of the click -- no awaiting anything first, or the
+ * browser rejects it as programmatic.
+ *
+ * THE URL GOES IN `url`, NOT INSIDE `text`. Chrome on Android hands the sheet a
+ * single EXTRA_TEXT built by joining text and url itself, so a share object
+ * carrying the address in both fields sends it twice, and the second copy lands
+ * mid-sentence in whatever the receiving app does with it. SITE rather than
+ * location.href for the reason data/cv.ts gives: the address has to be one a
+ * stranger can be sent, and during development location.href is a localhost
+ * port. It is also the bare URL with no fragment, so it opens on the title card
+ * the way a cold arrival is meant to.
+ *
+ * TWO FALLBACKS, because this button is authored for a phone but the stylesheet
+ * is what decides who sees it, and a narrow desktop window is a real viewport.
+ * No sheet: copy the same sentence. No clipboard either (it is permissioned,
+ * and denied in a few embedded browsers): show the address so it can be read
+ * off the screen, which is worse than a copy and better than a dead button.
+ *
+ * A dismissed sheet rejects with AbortError, which is not a failure -- somebody
+ * changed their mind -- so it is swallowed rather than reported.
+ */
+function shareButton(): HTMLElement {
+  const btn = h(
+    'button',
+    { class: 'm-btn m-outlined narrow-only', type: 'button' },
+    'Share this CV',
+  ) as HTMLButtonElement;
+  btn.addEventListener('click', () => {
+    if (navigator.share) {
+      void navigator.share({ title: 'Nam Nguyen, interactive CV', text: SHARE_LEAD, url: SITE }).catch(() => {});
+      return;
+    }
+    void navigator.clipboard?.writeText(`${SHARE_LEAD} ${SITE}`).then(
+      () => { btn.textContent = 'Link copied'; },
+      () => { btn.textContent = SITE; },
+    );
+  });
+  return btn;
 }
 
 /** "a", "a and b", "a, b and c" -- the last join is a word, not a comma. */
@@ -335,16 +400,66 @@ export function renderEnded(store: Store, _quests: Quests, bugs: Bugs): HTMLElem
       h(
         'div',
         { class: 'ended-acts' },
-        h('button', { class: 'm-btn m-outlined', type: 'button', onclick: () => store.dispatch({ t: 'join' }) }, 'Rejoin'),
+        /*
+         * REJOIN IS GONE EVERYWHERE -- board ticket N252, third pass.
+         *
+         * It was hidden on a phone first ("we hide the rejoin button on
+         * mobile"), and Nam has now taken it off the desktop as well.
+         *
+         * The argument that retired it from the phone was never really about
+         * width, which is why it generalises. Two pills of equal weight turn the
+         * one question this screen asks -- do you want to go home -- into a
+         * choice between two similar-looking answers, and that is as true at 1440
+         * as at 390. Rejoining is not lost either: the home screen this returns
+         * to has the meeting card on it with Join in it, one press away, which is
+         * where somebody who wants back in is already looking.
+         *
+         * The `narrow-hide` it carried goes with the button; the class itself is
+         * still doing work on six other things on this screen and the home one.
+         */
         h(
           'button',
           { class: 'm-btn m-filled', type: 'button', onclick: () => store.dispatch({ t: 'screen', screen: 'home' }) },
           'Return to home screen',
         ),
+        /*
+         * THE SHARE TAKES REJOIN'S PLACE RATHER THAN A CARD OF ITS OWN -- board
+         * ticket N252, second pass.
+         *
+         * It shipped an hour ago as a card, and the card was the mistake. Nam:
+         * "the Pass it on box now is not justified. If anything, add the Share
+         * this CV button under the return to home screen, and change the styling
+         * so it looks like the Rejoin buttons styling."
+         *
+         * He is describing a shape problem and the diagnosis is exact. A .safe
+         * card is a NOTICE -- glyph in the gutter, heading, a paragraph
+         * explaining something. Strip the paragraph out for a phone and what is
+         * left is a 100px box of border around one button, and the border is
+         * making a promise about content that is no longer in there. The
+         * heading had to be invented to fill it, which is the tell.
+         *
+         * So it becomes what it always was: an action, in the row where this
+         * screen keeps its actions, one press below the primary. Outlined rather
+         * than filled, and that is Rejoin's own styling for Rejoin's own reason
+         * -- there is exactly one thing this screen is asking for, and a second
+         * filled pill would make the ask a choice between two.
+         */
+        shareButton(),
       ),
+      /*
+       * NOT ON A PHONE EITHER. Nam: "submit feedback or bla bla we remove this
+       * line."
+       *
+       * The original's "Submit feedback" is a text link, so it is quiet on a
+       * desktop; ours carries a second clause hung off it, so at 390px it is a
+       * full-width run of blue that reads as the loudest thing under the
+       * heading. And the errand it offers is already served twice over on the
+       * screen it returns you to -- the promo banner's Open document is the
+       * same overlay, and the meeting card is the same call.
+       */
       h(
         'div',
-        { class: 'ended-feedback' },
+        { class: 'ended-feedback narrow-hide' },
         h(
           'button',
           { class: 'm-btn m-text', type: 'button', onclick: () => openPlain() },
@@ -352,9 +467,32 @@ export function renderEnded(store: Store, _quests: Quests, bugs: Bugs): HTMLElem
         ),
       ),
 
+      /*
+       * THE TAKE-AWAY, AND IT IS A DESKTOP OBJECT -- board ticket N252.
+       *
+       * Whole card, off at 390. Every part of it is wrong on a phone for its own
+       * reason, which is why trimming it down did not work and removing it does.
+       *
+       * THE PARAGRAPH argues with the reader about applicant tracking systems,
+       * which is a thing to say to somebody at a desk who is about to file this.
+       * Nam: "Remove. We dont need this on mobile."
+       *
+       * THE DOWNLOAD lands in a Files app the reader then has to go and find.
+       * That argument is already settled on the home screen, where Download the
+       * PDF carries the same narrow-hide.
+       *
+       * THE ADDRESS opens a compose window addressed to a stranger with an empty
+       * body, which is a bigger errand than it looks -- and it is still in the CV
+       * itself, one press away through Open document.
+       *
+       * What is left after those three is a bordered box with nothing in it, so
+       * the box goes too and the one thing worth keeping -- the share -- moved up
+       * into .ended-acts, where the note beside it explains why that is its right
+       * home rather than a place it was put to save space.
+       */
       h(
         'div',
-        { class: 'safe' },
+        { class: 'safe narrow-hide' },
         sym('description', 24),
         h(
           'div',
@@ -368,9 +506,27 @@ export function renderEnded(store: Store, _quests: Quests, bugs: Bugs): HTMLElem
           ),
           h(
             'div',
-            { style: 'display:flex;gap:10px;flex-wrap:wrap' },
+            { class: 'safe-acts' },
             h('a', { class: 'm-btn m-filled', href: 'NamNguyen_CV_2026.pdf', download: true }, 'Download the CV'),
-            h('a', { class: 'm-btn m-outlined', href: `mailto:${address}?subject=${mailSubject()}` }, address),
+            /*
+             * THE BUTTON SAYS WHAT IT DOES, NOT WHERE IT GOES.
+             *
+             * Nam: "My email hainam2511@gmail.com dont show it like that, but
+             * show Email me option that emails to that address."
+             *
+             * It was labelled with the raw address, which made it the one control
+             * on the screen that read as data rather than as an action -- a pill
+             * beside "Download the CV" that says a gmail address is asking to be
+             * copied, not pressed. "Email me" is the same verb-shaped label the
+             * host-controls panel already uses for the same mailto (call.ts), so
+             * the two places this offer appears now agree.
+             *
+             * The address itself is not hidden, only unprinted here: it is on the
+             * plain document, in the PDF, and in the mail client the moment this
+             * is pressed. `address` still builds the href from profile, so there
+             * is still exactly one place the address is written down.
+             */
+            h('a', { class: 'm-btn m-outlined', href: `mailto:${address}?subject=${mailSubject()}` }, 'Email me'),
           ),
         ),
       ),

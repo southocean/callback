@@ -908,6 +908,55 @@ button { font: inherit; }
 .safe p { font: 400 14px/20px var(--font); color: var(--sec); letter-spacing: .2px; margin: 0 0 10px; }
 .ended-fine { font: 400 12px/18px var(--font); color: var(--sec2); text-align: left; }
 .ended-fine a { color: var(--sec2); }
+/* The card's own action row. Was an inline style on the element; it needs a
+   selector now because the phone changes its spacing (below). */
+.safe-acts { display: flex; gap: 10px; flex-wrap: wrap; }
+
+/* --- the same screen at 390 -- board ticket N252 -------------------------- */
+/*
+ * THE 100px TOP PADDING IS A DESKTOP MEASUREMENT AND ONLY A DESKTOP ONE.
+ *
+ * It is right, and the note above says how it was arrived at: the original puts
+ * the h1 top at ~99 CSS px, so the column starts at 100. But that number was
+ * read off a 2560x1440 capture, and on the real mobile end screen the countdown
+ * sits about 20px below the top of the viewport with the heading directly under
+ * it. Nam, comparing the two captures: "The timer should be much higher up on
+ * the site."
+ *
+ * 720 rather than 599 because 720 is where .end-timer stops being absolutely
+ * positioned in the corner and joins the flow (see the rule beside it). Above
+ * that width the padding is holding a column below a timer that is not in the
+ * column; below it, the timer IS the first thing in the column, so the padding
+ * is what pushes it down the screen. One breakpoint, one cause.
+ */
+@media (max-width: 720px) {
+  .ended { padding-top: 20px; }
+}
+
+@media (max-width: 599px) {
+  /*
+   * A COLUMN, NOT A WRAPPED ROW.
+   *
+   * The row holds Return to home screen and Share this CV at this width, and
+   * they measure 232 and 148 against 342 of usable column -- so flex-wrap would
+   * break them onto two lines anyway. Saying it as a column says it on purpose:
+   * the two lines are a deliberate order (the ask, then the aside) rather than
+   * an accident of how long the labels happen to be, and they stay in that order
+   * at 320 and at 599 alike.
+   *
+   * THE MARGIN MOVES HERE FOR A REASON, not for tidiness. The 44px of air below
+   * this block lived on .ended-feedback, which is display:none at this width,
+   * and a margin on a hidden box contributes nothing. So it is restated on the
+   * row that is still visible.
+   */
+  .ended-acts { flex-direction: column; align-items: center; margin-bottom: 36px; }
+
+  /* Centred like everything above it. The footer is left-aligned on a desktop
+     because it is a wide two-line block against a 620px column; at 390 it wraps
+     to four or five lines and a ragged right edge under a centred heading reads
+     as a column that gave up halfway down. */
+  .ended-fine { text-align: center; }
+}
 
 /* ==================================================== panel content ====== */
 /* The CV itself, styled for Meet's dark side panel. */
@@ -2060,6 +2109,9 @@ body.plain { background: #fff; color: #16181c; }
    and only the fly-in or reduced-motion reveals it. */
 .lk-nam { opacity: 0; }
 .lk-static .lk-nam { opacity: 1; }
+/* The surname, which only a desktop has room for. See ui/icons.ts for why it is
+   nested inside .lk-nam rather than beside it. */
+@media (max-width: 599px) { .lk-last { display: none; } }
 
 /* ---- the loader, from Google’s own path data -------------------------- */
 /* Lengths are exact and precomputed, so nothing has to be measured at runtime:
@@ -2371,7 +2423,23 @@ body.plain { background: #fff; color: #16181c; }
   .home-bar-right .icon-btn:nth-child(3) { margin-left: 0; }
 }
 
+/* .narrow-hide's opposite number: authored at both widths, shown only on a
+   phone. The pair exists because a surface can now say a DIFFERENT thing at 390
+   rather than a shorter version of the same thing -- the end screen's action row
+   offers a share where the desktop offers Rejoin and a downloadable PDF -- and a
+   stylesheet toggle keeps both versions side by side in the source, where a
+   reader can see that they are alternatives.
+
+   The reveal below spells out a display value per element instead of using
+   `revert`, and that is not fussiness: `revert` rolls back the whole author
+   origin, so a .m-btn carrying this class would lose its own
+   `display: inline-flex` along with the `none`. */
+.narrow-only { display: none; }
+
 @media (max-width: 599px) {
+  .narrow-only { display: block; }
+  .m-btn.narrow-only { display: inline-flex; }
+
   /*
    * TWO ROWS, AND flex-wrap NEEDS A FLEX CONTAINER -- found by tools/qa-mobile.mjs.
    *
@@ -11085,10 +11153,12 @@ body.bug-struck { animation: bug-shake 520ms cubic-bezier(0.36, 0.07, 0.19, 0.97
 /* `both` so the item is already invisible during its delay: without it the thing
    appears at full size, waits, and then plays its own entrance, which is the one
    failure mode a delayed entrance has. The delay is set per item in ui/rail.ts so
-   the three stagger rather than landing in one frame. */
+   the three stagger rather than landing in one frame -- and the first of them is
+   now zero, so the cascade starts on the frame the screen arrives (N253). The
+   fallback matches that: nothing should wait on a property that failed to be set. */
 .rail-new {
   animation: railin .62s cubic-bezier(.4, .1, .5, 1.4) both;
-  animation-delay: var(--rail-in, 360ms);
+  animation-delay: var(--rail-in, 0ms);
 }
 /* Less movement, not less content -- the rule the rest of this build follows.
    The item is simply there, at full size, from the first frame. `both` is what
@@ -11258,9 +11328,54 @@ body.bug-struck { animation: bug-shake 520ms cubic-bezier(0.36, 0.07, 0.19, 0.97
   /* No pitch left to preserve, so the ghosts stop taking space. */
   .ended > .rail .rail-item[aria-hidden="true"] { display: none; }
   .ended > .rail .rail-item {
-    flex-direction: column; width: 72px; height: auto; padding: 0; margin: 0;
-    justify-content: flex-start; gap: 6px;
+    flex-direction: column; width: 72px; align-items: center; height: auto;
+    padding: 0; margin: 0; justify-content: flex-start; gap: 6px;
   }
+  /*
+   * THE RING GOES BACK TO SPEAKING FOR ITSELF -- board ticket N254.
+   *
+   * Nam: "the completion here on this screen is not very nice cause the text is
+   * out of placement with the other two. Can we maybe just remove the text
+   * completion here then it should be fine? Or you think its better we align the
+   * texts?"
+   *
+   * Remove, and it is the rule that was already right rather than a new opinion.
+   * `.rail-prog .rail-label { display: none }` is the DEFAULT a few rules up --
+   * the ring carries its own number, the way a battery icon does -- and the
+   * ended screen shows it captionless at every width above 840. What turns the
+   * caption back on is the 839 block, written for the DRAWER, where every row is
+   * a glyph with its name beside it and a lone ring would read as an item whose
+   * label failed to load.
+   *
+   * This row is a third layout that rule never saw: not a vertical rail, not a
+   * drawer, but a horizontal row with the names stacked UNDERNEATH. And stacked
+   * is what breaks it, because the two pills are not the same height -- a 24px
+   * glyph in a 32px pill against a 44px ring -- so with the items top-aligned
+   * the third caption sits about 20px below the other two. That is what he is
+   * looking at, and it is a misalignment produced by a rule inherited into a
+   * layout it was not written for.
+   *
+   * ALIGNING THEM WAS THE OTHER OPTION and it costs more than it returns. It
+   * means padding the two glyph pills out to 44px so all three captions share a
+   * baseline, which grows this row from 46px to 66px -- on the one screen this
+   * whole pass has been stripping down, to caption a control that is the only
+   * one of the three already displaying text. Nothing is lost by removing it:
+   * the button keeps `aria-label="Your completion, N percent"`, so a screen
+   * reader hears more than the caption ever said.
+   */
+  .ended > .rail .rail-prog .rail-label { display: none; }
+  /*
+   * THE SAME 56-MINUS-44 ARGUMENT, TURNED NINETY DEGREES.
+   *
+   * With the caption gone the eye lines this row up on the glyphs themselves, and
+   * they were 6px out. The items are top-aligned, a glyph rides in a 56x32 pill
+   * so its centre is at 16, and a 44px ring flush to the same top has its centre
+   * at 22. Half the difference between the two boxes -- (44 - 32) / 2 -- put the
+   * ring on the same axis as the icons, exactly as the drawer's margin-left does
+   * on the horizontal one. Lifting rather than lowering the others, so the row
+   * stays as short as it was.
+   */
+  .ended > .rail .rail-prog .rail-ring { margin-top: -6px; }
 }
 
 @media (prefers-reduced-motion: reduce) {

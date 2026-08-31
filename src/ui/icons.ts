@@ -201,9 +201,35 @@ export function lockup(reducedMotion = false, onHome?: () => void): HTMLElement 
   meet.className = 'lk-meet';
   meet.textContent = 'Meet';
 
+  /*
+   * "Nam Nguyen" on a desktop, "Nam" on a phone -- board ticket N252. Nam: "on
+   * mobile, the title is currently still animating Meet Nam Nguyen. Let's trim
+   * it on mobile to just Meet Nam."
+   *
+   * The bar at 390 is a grid of two rows with the composer taking the second,
+   * and .lk-words already carries overflow:hidden at that width -- which is to
+   * say the surname was not being read at that size, it was being CLIPPED, and
+   * a clipped word is worse than an absent one because it looks like a bug in
+   * the animation that just ran. Dropping it is also the better joke: the gag
+   * is a wordmark getting shorter, and "Meet Nam" is the shortest it goes.
+   *
+   * The surname is a nested span rather than a second sibling because the
+   * simulation in ui/impact.ts drives .lk-nam as ONE body -- one transform, one
+   * opacity, its width feeding the flex row to its left. A sibling would be a
+   * second body it does not know about, and would arrive on its own. Nested, it
+   * is carried along, and display:none at 599 simply makes the body narrower.
+   *
+   * The leading space lives inside the span so it goes with it; a space left
+   * outside would survive the cut and leave "Meet Nam " with a trailing gap
+   * that the impact's end-state arithmetic would then centre against.
+   */
   const nam = document.createElement('span');
   nam.className = 'lk-nam';
-  nam.textContent = 'Nam Nguyen';
+  const last = document.createElement('span');
+  last.className = 'lk-last';
+  last.textContent = ' Nguyen';
+  nam.textContent = 'Nam';
+  nam.appendChild(last);
 
   words.append(google, meet, nam);
   wrap.appendChild(words);

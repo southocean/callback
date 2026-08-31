@@ -72,7 +72,37 @@ export function openProgress(theme: 'light' | 'dark' = 'light', bugs?: Bugs): vo
       class: `dp dp-${theme} pr-frame`, id: ID, role: 'dialog', 'aria-modal': 'true',
       'aria-label': 'Your completion',
     },
-    h('div', { class: 'dp-card' },
+    /*
+     * `dp-in`, WHICH THIS PANEL WAS THE ONLY ONE OF THE THREE MISSING -- board
+     * ticket N255.
+     *
+     * Nam: "on mobile when opening the progression panel, the transition is a bit
+     * abrupt, unlike the transition when opening or closing the bug panel and the
+     * quest panel. Please copy those softer transitions."
+     *
+     * Abrupt is exactly right and it was not a matter of degree: this card had no
+     * entrance of any kind, so it was painted complete on the frame it mounted.
+     * The bug case fades its scrim in over 150ms; the quest board, which is this
+     * same `.dp` shell, carries `dp-in` on its card -- a 320ms fade from
+     * scale(.985) on the build's own dialog curve. One class was the whole
+     * difference.
+     *
+     * COPIED FROM THE QUEST BOARD RATHER THAN INVENTED, and specifically from the
+     * board rather than from the case, because these two are already a pair: the
+     * stylesheet's 900px block names `.qb-frame, .pr-frame` in one selector to
+     * give them the same 28px card over a visible scrim, after Nam said "the quest
+     * and the progression panels dont have the same look." That ticket paired them
+     * on looks and left the motion unpaired, which is why the same complaint came
+     * back about the same two panels.
+     *
+     * NOTHING IS ADDED ON CLOSE, and that is matching rather than an omission. All
+     * three dialogs close by removing the node, so an exit animation here would
+     * make this panel the odd one out again in the other direction.
+     *
+     * No reduced-motion branch in here: `.dp-in` is switched off by media query in
+     * the stylesheet, which is where devportal's JS-side check is redundant.
+     */
+    h('div', { class: 'dp-card dp-in' },
       h('div', { class: 'dp-head' },
         h('span', { class: 'dp-head-ico', 'aria-hidden': 'true' }, sym('bolt', 22)),
         h('div', { class: 'dp-title' },

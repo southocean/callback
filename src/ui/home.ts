@@ -841,7 +841,19 @@ export function renderHome(store: Store, reducedMotion = false, body?: HTMLEleme
           { class: 'banner-s' },
           h('span', { class: 'bs-item' }, 'Lead front-end developer, 7 years'),
           h('span', { class: 'bs-sep' }, ' · '),
-          h('span', { class: 'bs-item' }, 'Equal part an entertainer'),
+          /*
+           * THREE ON A DESKTOP, TWO ON A PHONE -- board ticket N252. Nam: "lets
+           * remove the line 'Equal part an entertainer'. Just 2 lines are
+           * enough."
+           *
+           * The middle claim is the one to lose because the other two are the
+           * ones a recruiter is scanning for. First and third are a role with a
+           * number on it and a promise about how the work gets done; the
+           * entertainer line is the wink, and it is the claim this entire site
+           * is already making by existing. Reading it in a promo box, one press
+           * above a fake video call, is being told the joke before it lands.
+           */
+          h('span', { class: 'bs-item narrow-hide' }, 'Equal part an entertainer'),
           h('span', { class: 'bs-sep' }, ' · '),
           h('span', { class: 'bs-item' }, 'PhD in going the extra miles'),
         ),
