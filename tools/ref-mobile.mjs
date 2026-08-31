@@ -48,13 +48,20 @@ const IOS_UA = 'Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebK
 const dev = DEVICES[opt('device', 'iphone')] ?? DEVICES.iphone;
 
 /*
- * THERE IS NO MOBILE MEET WEB, and this flag is what that discovery turned into.
+ * /home HAS NO MOBILE WEB. A MEETING URL DOES. That distinction cost a whole
+ * round of wrong measurements, so it is written at the top of the file.
  *
- * Sent an iPhone user agent, meet.google.com/home does not serve a small layout.
- * It 302s to an app.goo.gl interstitial -- a wordmark, a sentence, and an OPEN
- * button that launches the native app. Two controls on the whole page. So the
- * question "what does the original look like on mobile" has no answer in the
- * browser: on a phone, Google's answer is to stop being a web page.
+ * Sent an iPhone user agent, meet.google.com/HOME does not serve a small layout:
+ * it 302s to an app.goo.gl interstitial with a wordmark, a sentence and an OPEN
+ * button. Two controls on the whole page. The first pass generalised that into
+ * "there is no mobile Meet web" and reached for the desktop agent instead.
+ *
+ * Wrong. The same iPhone agent on meet.google.com/<meeting-code> serves the real
+ * mobile green room -- a different screen from the responsive desktop one, with
+ * the effects control, the tools card, the heading and the account line all
+ * absent. Nam had it on his phone and said so. So --ua=mobile is the reference
+ * for anything reachable at a meeting URL, and --ua=desktop is a fallback for the
+ * surfaces that only exist on the desktop app.
  *
  * Which leaves the reference that does exist and is the honest one for a WEB
  * clone -- the same web app, at a phone's viewport, with the desktop user agent
@@ -141,6 +148,48 @@ console.log(`ref-mobile: ${UA_MODE} user agent`);
 const GOTO = opt('goto', 'https://meet.google.com/home');
 await send('Page.navigate', { url: GOTO });
 await sleep(7000);
+
+/*
+ * --click=<pattern> presses one control after the page settles, because some
+ * reference screens are not addressable. The green room is the example: it has no
+ * URL of its own, you arrive at it by pressing Join on a meeting, and it is a
+ * LOCAL screen -- nobody is joined and nobody is notified until the button on it
+ * is pressed, which this never does.
+ */
+const CLICK = opt('click', '');
+if (CLICK) {
+  /*
+   * RETRIED, because the reference is a real app loading real data. The scheduled
+   * card comes from Calendar over the network, so seven seconds after a navigation
+   * it is sometimes there and sometimes not -- and a miss reported "no match",
+   * which reads as a broken selector rather than a page that had not finished.
+   */
+  const find = `(() => {
+    const rx = new RegExp(${JSON.stringify(CLICK)}, 'i');
+    /*
+     * ENABLED, AND THE LAST ONE. Meet's home has two controls reading "Join":
+     * the composer's, which is disabled until you type a code, and the scheduled
+     * card's. The first match was the dead one, so the click did nothing and
+     * reported nothing -- which looked like a selector bug and was a real
+     * property of the page.
+     */
+    const all = [...document.querySelectorAll('button,a,[role="button"]')]
+      .filter((e) => e.getBoundingClientRect().width > 0)
+      .filter((e) => !e.hasAttribute('disabled') && e.getAttribute('aria-disabled') !== 'true')
+      .filter((e) => rx.test(e.textContent || '') || rx.test(e.getAttribute('aria-label') || ''));
+    const b = all[all.length - 1];
+    if (!b) return null;
+    b.click();
+    return (b.textContent || b.getAttribute('aria-label') || '').trim().slice(0, 40);
+  })()`;
+  let hit = null;
+  for (let i = 0; i < 12 && hit === null; i += 1) {
+    hit = await evaluate(find).catch(() => null);
+    if (hit === null) await sleep(2000);
+  }
+  console.log(`ref-mobile: clicked ${hit === null ? 'NOTHING (no match in 24s)' : JSON.stringify(hit)}`);
+  await sleep(7000);
+}
 
 const landed = await evaluate('location.href');
 console.log(`ref-mobile: landed on ${landed}`);

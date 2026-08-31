@@ -444,6 +444,8 @@ button { font: inherit; }
 
 .lobby { min-height: 100%; display: flex; flex-direction: column; }
 .lobby-bar { height: var(--topbar); display: flex; align-items: center; padding: 0 20px; }
+/* Both of these belong to the phone's version of this bar. See the 599 block. */
+.lobby-brand, .lobby-av { display: none; }
 .lobby-acct { margin-left: auto; text-align: right; font: 400 13px/18px var(--font); color: var(--ink2); }
 .lobby-acct b { display: block; font-weight: 400; }
 .lobby-acct span { color: var(--link); cursor: default; }
@@ -467,11 +469,12 @@ button { font: inherit; }
   position: relative; z-index: 2; text-align: center; color: #fff;
   font: 400 18px/26px var(--font); max-width: 30ch;
 }
-.preview-avatar {
-  width: 96px; height: 96px; border-radius: 50%; margin: 0 auto 18px;
-  background: linear-gradient(145deg, #8ab4f8, #34a853); color: #10221a;
-  display: grid; place-items: center; font: 500 34px/1 var(--font);
-}
+/* .preview-avatar was here. The green-room tile no longer draws one: the line in
+   the middle of it is Nam talking and the tile belongs to the visitor, so a face
+   above his sentence made the sentence look like theirs. See ui/lobby.ts. Deleted
+   rather than left for later, because tools/css-deadcheck.mjs is the reason this
+   file does not accumulate rules for markup that is gone -- and it caught this one
+   in the same commit that orphaned it. */
 .preview-ctls {
   position: absolute; left: 0; right: 0; z-index: 3;
   display: flex; justify-content: center;
@@ -3606,6 +3609,163 @@ body.plain { background: #fff; color: #16181c; }
   .other-rows { transition: none; }
   .device-chip::after, .round-ctl::after, .tile-more::after,
   .gm-item::after, .other-ways::after, .other-row::after { transition: none; }
+}
+
+/* ================= THE GREEN ROOM ON A PHONE ============================= */
+/*
+ * Measured against the real one at 390x844, in a signed-in browser at phone
+ * metrics. The capture is a desktop user agent at a phone's viewport, because
+ * meet.google.com sent an iPhone agent redirects to an app-install page rather
+ * than serving a small layout -- see the note in tools/ref-mobile.mjs.
+ *
+ * ONE CAVEAT ON THAT CAPTURE, stated so nothing below is trusted further than it
+ * should be: the reference browser has camera and microphone DENIED, so Meet's
+ * tile showed an "Allow microphone and camera" button where a preview would be,
+ * and two device chips rather than three. Geometry and type are still good; the
+ * STATE is not ours, so anything that depends on the state is left alone.
+ */
+@media (max-width: 599px) {
+  /*
+   * THE METER STAYS. THE EFFECTS CONTROL GOES.
+   *
+   * The first attempt at Nam's "3 dot icon ... overlapping the mic icon" hid the
+   * meter, on the arithmetic that three 56px controls fill a 250px tile and leave
+   * the meter's 16+26 no room. The arithmetic was right and the conclusion was
+   * wrong: his screenshot of the real phone shows the meter exactly where it
+   * always is, bottom-left, and only TWO controls beside it. Meet does not make
+   * room for the meter, it drops the effects button -- which is also why the
+   * overflow menu loses Backgrounds and effects.
+   *
+   * So the overlap is a symptom of carrying a desktop control onto a phone, and
+   * removing that control fixes the overlap and the clutter in one go. Worth
+   * keeping as a shape: when two things collide, check whether one of them should
+   * be there at all before moving either.
+   */
+  .preview-ctls .ctl-wrap:nth-child(3) { display: none; }
+
+  /*
+   * AND THE SCREEN ENDS AT JOIN NOW. Nam: "there is still a lot for you to clean
+   * up in our mobile UI, we still have for example the video effect button, the
+   * caption option, etc." On the real phone the tile is followed by one button
+   * and nothing else -- no heading, no participant line, no tools card.
+   *
+   * All three are still in the DOM for a screen reader and for the desktop; what
+   * goes is the space they take on a 390px screen, where the tile plus a heading
+   * plus a card plus two buttons is more than one viewport and the one thing the
+   * visitor came to press ends up below the fold.
+   */
+  .join-col h1, .join-sub, .join-card { display: none; }
+
+  /*
+   * The badge on Join now goes with them. The reference puts its warning on the
+   * camera chip -- which ours also does -- and nothing on the button; ours had
+   * both, and the second one sat on the button's own outline.
+   */
+  .join-actions .warn-pill { display: none; }
+
+  /*
+   * THE BAR IS A WORDMARK AND AN AVATAR, and the avatar opens the spec panel.
+   * The account line is the desktop's.
+   */
+  .lobby-acct { display: none; }
+  .lobby-brand { display: flex; align-items: center; }
+  .lobby-av { display: grid; margin-left: auto; }
+  .lobby-bar { padding: 0 12px; }
+
+  /*
+   * NO OTHER WAYS TO JOIN. Nam, from the real thing on a real phone: "in mobile
+   * view they clean up a lot of unnecessary stuff. Companion mode and whatever
+   * extra join methods, those are only on desktop. On mobile you just join."
+   *
+   * Which the code already half-agreed with: all three options are inert here,
+   * because Companion mode, presenting and dial-in are three products this build
+   * is not cloning. A disclosure that opens onto three things that do nothing is
+   * worth less than the space it costs, and on a phone it costs the most.
+   */
+  .other-ways, .other-rows { display: none; }
+
+  /*
+   * 22/28 GOOGLE SANS, measured. Ours was 18/26 in the body face, which is a
+   * size Meet uses for captions rather than for the one question the screen is
+   * asking. Three lines in the tile on both, which is what the reference's
+   * 243.5x84 box comes to.
+   */
+  /*
+   * 22/28 GOOGLE SANS, and a 24px gutter so the measure is not the whole tile.
+   *
+   * Nam: "can you add more padding so the text here doesnt come too close to the
+   * edge? or like cutting the a wild ride... to the next line." The two are the
+   * same fix -- the box was the tile's full 253.5, so a centred line ran to within
+   * a few pixels of both edges AND broke late, leaving "ride. Ready?" alone on the
+   * second line. Taking 48 out of the measure moves the break earlier and buys the
+   * clearance in one go.
+   */
+  .preview-ask { font: 400 22px/28px var(--font-title); padding-inline: 24px; }
+
+  /* 20px, measured. Ours was set solid at 14, which crowded the name against the
+     top of the tile. */
+  .preview-name { line-height: 20px; }
+
+  /*
+   * 54x44 AT RADIUS 22, measured -- ours are 56x48 r24, which is the number the
+   * comment above this file's .round-ctl records from toggling them on the
+   * desktop product. Both measurements are real; this one is the phone. Kept
+   * separate rather than replacing the desktop constant, and flagged as coming
+   * from the blocked-permission capture so it can be re-taken if that turns out
+   * to matter.
+   */
+  .round-ctl { width: 54px; height: 44px; border-radius: 22px; }
+
+  /*
+   * #202124, measured. Ours is #1a73e8, which reads as the primary action on a
+   * screen whose primary action is Join now. On the reference it is the same ink
+   * as the address above it: a way back, not an invitation.
+   */
+  .lobby-acct span { color: var(--ink); }
+
+  /*
+   * THE TOOLS CARD IS BUILT FROM FIXED PARTS THAT ADD UP TO ITS DESKTOP WIDTH:
+   * 36px of padding, 36 of icon and gap, a 162px text block and an 88px button
+   * come to exactly the 322 the card is. The card itself is already clamped to
+   * calc(100% - 32px), so at 320 it comes down to 288 -- and the middle cannot
+   * give, so the Start button ran 22px past the edge of the screen.
+   *
+   * Letting the text block flex is the whole fix, and it is the same automatic
+   * minimum that has caused most of this pass: a fixed-basis flex item does not
+   * shrink, and min-width: 0 is what lets it.
+   */
+  .join-card > div { width: auto; flex: 1 1 auto; min-width: 0; }
+}
+
+/*
+ * THE TILE, MEASURED OFF THE PIXELS OF THE REAL MOBILE PAGE.
+ *
+ * Nam: "you have the screenshot and you have your code, stack them on top of
+ * each other, change the radius around until it matches ... you shouldnt even
+ * need my help there." Right, and it does not even need the iterating -- a corner
+ * radius is measurable straight out of a PNG. The corner is a circle centred one
+ * radius in from each edge, so the inset of the dark pixels d rows below the top
+ * is R - sqrt(2Rd - d^2), and solving that at a dozen values of d gives
+ * R = (inset + d) + sqrt(2 * inset * d). Run against OUR tile it returns 8.3 for
+ * a known 8, which is the check that makes the rest worth believing.
+ *
+ *   Meet, mobile:  254 x 422, radius 28.5  (spread 27.2 to 29.6)
+ *   ours, before:  250 x 400, radius  8.3
+ *
+ * 28 rather than 28.5, because 28 is the M3 value this stylesheet already uses
+ * for the banner, the scheduled card, the bug dialog and Join now itself, and a
+ * measurement landing half a pixel off a number the design system already owns is
+ * a measurement of that number.
+ *
+ * 65vw rather than 253.5px, for the same reason the rule it replaces was 64vw:
+ * the product measures a fraction of the VIEWPORT, not of the padded column. At
+ * 390 that is 253.5 to the pixel.
+ *
+ * Scoped to 480 to sit with the width rule it replaces. Between 481 and 599 this
+ * screen is still in its two-column arrangement and the tile is sized by that.
+ */
+@media (max-width: 480px) {
+  .preview { width: 65vw; height: 422px; border-radius: 28px; }
 }
 
 /* A two-line row is 60 tall in Meet, not 56: 8 + 44 + 8, so the text block gets

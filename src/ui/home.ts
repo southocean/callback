@@ -14,10 +14,10 @@ import { openDev } from './devopen.js';
 import { buildRail } from './rail.js';
 import type { Bugs } from '../bugs.js';
 import { currentPitch } from '../data/companies.js';
+import { visitorAvatarButton } from './avatar.js';
 
 import { openPlain } from './plainoverlay.js';
-import { gatePressed, onAdminGranted } from './admingate.js';
-import { isAdmin } from '../prefs.js';
+import { gatePressed } from './admingate.js';
 import { tip, tipAll, tipAllAbove, hideTip, rearm } from './tooltip.js';
 import { eggMap, key as dayKey, type Egg } from '../data/eggs.js';
 import type { Store } from '../state.js';
@@ -81,7 +81,13 @@ function helpBtn(): HTMLElement {
  * anybody having to remember to sync it.
  */
 function avatarBtn(store: Store): HTMLElement {
-  const letter = h('span', {}, isAdmin() ? 'A' : 'G');
+  /*
+   * BUILT IN ui/avatar.ts NOW, not here. This function used to own the letter,
+   * the state class and the label, and two other screens copied parts of it and
+   * drifted -- the green room ended up with the admin LETTER on the default
+   * BACKGROUND, because it copied one and not the other. See the note at the top
+   * of that file.
+   */
   /*
    * IT OPENS THE SPEC, ADMIN OR NOT -- board ticket N173.
    *
@@ -109,26 +115,11 @@ function avatarBtn(store: Store): HTMLElement {
    * reader worse than no screen reader. The admin state rides along on the end,
    * so the A is still announced to somebody who cannot see it went from G.
    *
-   * The tooltip comes off this same string -- tipAll below reads aria-label --
-   * so the hint and the announcement cannot drift.
+   * The tooltip comes off that same string -- tipAll below reads aria-label --
+   * so the hint and the announcement cannot drift. Both now come from
+   * ui/avatar.ts along with the button itself.
    */
-  const name = (): string => (isAdmin() ? 'How this was built. Admin unlocked.' : 'How this was built');
-  const btn = h(
-    'button',
-    {
-      class: isAdmin() ? 'avatar-btn is-admin' : 'avatar-btn',
-      type: 'button',
-      'aria-label': name(),
-      onclick: () => { void openDev(store); },
-    },
-    letter,
-  );
-  onAdminGranted(() => {
-    letter.textContent = 'A';
-    btn.classList.add('is-admin');
-    btn.setAttribute('aria-label', name());
-  });
-  return btn;
+  return visitorAvatarButton(() => { void openDev(store); });
 }
 
 /** Re-adding the class restarts the ring animation, which is the pulse. */

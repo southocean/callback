@@ -25,6 +25,7 @@ import type { IconName } from './icons.js';
 import type { Store, Panel } from '../state.js';
 import { clock } from '../state.js';
 import { profile, pitch, roles, referralBlurb, SITE } from '../data/cv.js';
+import { visitorAvatar, VISITOR_NAME } from './avatar.js';
 import { renderChat, renderPeople, renderPresent, renderAbout } from './panels.js';
 import { renderOffClock } from './offclock.js';
 import { renderEng } from './eng.js';
@@ -377,15 +378,29 @@ export function renderCall(store: Store, quests: Quests, deps: CallDeps, bugs: B
     el.addEventListener('pointercancel', end);
   }
 
+  /*
+   * THE SOLO TILE IS YOURS, NOT HIS, and it was labelled with his name.
+   *
+   * It carries the mute badge, the raised hand and the input meter -- three things
+   * that only make sense on the tile of the person holding the phone -- and it was
+   * announcing itself as Nam Nguyen with his initials on it. So both people in the
+   * call were called Nam and the visitor appeared nowhere on their own screen.
+   *
+   * Nam: "the name displayed on the video tile here is Nam Nguyen, that is
+   * confusing ... the name there should be You instead ... That would make more
+   * sense in the call too, where we are you and the person talking the walkthrough
+   * is Nam, as the name attached to the mouse." The host tile above keeps NN,
+   * because that one really is him.
+   */
   const soloTile = (): HTMLElement => {
     const t = h(
       'div',
-      { class: 'solo', role: 'group', 'aria-label': profile.name },
+      { class: 'solo', role: 'group', 'aria-label': VISITOR_NAME },
       h('div', { class: 'solo-blur', 'aria-hidden': 'true' }),
       h('div', { class: 'solo-scrim', 'aria-hidden': 'true' }),
-      h('div', { class: 'solo-av', 'aria-hidden': 'true' }, 'NN'),
+      h('div', { class: 'solo-av', 'aria-hidden': 'true' }, visitorAvatar()),
       pinMark,
-      h('span', { class: 'solo-name' }, profile.name),
+      h('span', { class: 'solo-name' }, VISITOR_NAME),
       minBar,
       muteBadge,
       handPill,
@@ -2241,7 +2256,31 @@ export function renderCall(store: Store, quests: Quests, deps: CallDeps, bugs: B
       }, 1000);
     };
 
-    void import('./lane.js').then((m) => m.askLane()).then((lane) => {
+    /*
+     * THE WALKTHROUGH STARTS ITSELF NOW -- no lane picker.
+     *
+     * Nam: "when player clicks join, we should start the lazy walkthrough
+     * immediately instead of asking them if they want to explore stuff ... I think
+     * the let me explore option is good in providing option for user, but that
+     * option is very bad for us cause we dont get to show this CV in the best
+     * light."
+     *
+     * That is the honest reason and it beats the argument the picker was built on.
+     * N188 justified asking by saying a choice about being narrated at should be
+     * offered before the narration starts; what it did in practice was offer a
+     * stranger a decision they had no information for, and half of them chose the
+     * version of this CV that explains nothing about itself.
+     *
+     * The way OUT is unchanged and is the part that makes this defensible rather
+     * than pushy: the captions control stops him, at any moment, and says so. An
+     * escape hatch a visitor can find beats a question they cannot answer yet.
+     *
+     * The explore branch below is now unreachable from here. Left in place rather
+     * than deleted in the same edit that changed the behaviour, so the two can be
+     * reviewed apart -- removing it, and the lane memory in ui/lane.ts with it, is
+     * a follow-up.
+     */
+    void Promise.resolve<'walkthrough'>('walkthrough').then((lane) => {
       if (store.get().screen !== 'call') { tourStarted = false; return; }
       if (lane === 'walkthrough') { begin(); return; }
       /*

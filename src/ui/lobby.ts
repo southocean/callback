@@ -9,13 +9,14 @@
 // removing them — so this one is one click, and any deep link skips it.
 
 import { h, clear } from '../dom.js';
-import { sym, spinner, focusRing, dropCaret } from './icons.js';
+import { sym, spinner, focusRing, dropCaret, lockup } from './icons.js';
+import { openDev } from './devopen.js';
+import { visitorAvatarButton, VISITOR_NAME } from './avatar.js';
 import type { IconName } from './icons.js';
 import { tipAllAbove, tipAll } from './tooltip.js';
 import { ripple, attachMenu, warnBadge, micMeter, noticeCard } from './gm3.js';
 import type { MenuItem } from './gm3.js';
 import type { Store } from '../state.js';
-import { profile } from '../data/cv.js';
 
 export interface Media {
   // No longer a promise: nothing asynchronous happens behind it. The camera
@@ -202,8 +203,40 @@ export function renderLobby(store: Store, media: Media): HTMLElement {
     h('p', { class: 'pu-b' }, 'Close other apps that might be using your camera'),
     retry);
   const avatar = h('div', { class: 'preview-ask-wrap' },
-    h('div', { class: 'preview-avatar', 'aria-hidden': 'true' }, 'NN'),
-    h('p', { class: 'preview-ask', style: 'margin:0' }, 'Do you want people to see you in the meeting?'));
+    /*
+     * NO AVATAR ON THIS TILE AT ALL, which is the second half of the same problem
+     * the name had. Nam: "since this line comes from me, lets not show the avatar
+     * in the video tile here, to avoid the confusion."
+     *
+     * The tile is the VISITOR'S -- it says You, it carries their mute badge -- and
+     * the line in the middle of it is NAM talking. Putting the visitor's face
+     * above his sentence made the sentence look like theirs. It had the same fault
+     * before this pass for the opposite reason: the initials were his, so the tile
+     * looked like his too.
+     *
+     * Removed rather than swapped for his, because a green room shows the person
+     * about to join and there is no camera here to show them with -- which is
+     * closer to what the reference does in the same state, where the tile holds the
+     * prompt and nothing else.
+     *
+     * Applied at every width, not just on a phone: the reason is about who is
+     * speaking, and that does not change with the viewport.
+     */
+    /*
+     * NOT A QUESTION WE HAVE ANY BUSINESS ASKING. Nam: "this is a pointless
+     * question since camera doesnt and shouldnt work anyway, so the question
+     * violates our initial claim and lose trust."
+     *
+     * He is right, and it is the sharpest version of the argument: N-something
+     * removed getUserMedia entirely so this page can promise it never asks for a
+     * camera, and then this line asked whether you would like to be seen. A
+     * promise and a prompt that contradict it is worse than either alone.
+     *
+     * So the line does the job the screen actually needs doing -- the next screen
+     * is the densest thing in the build, and this is the last quiet moment before
+     * it. His copy, kept as written.
+     */
+    h('p', { class: 'preview-ask', style: 'margin:0' }, 'Let me take you on a wild ride. Ready?'));
 
   /**
    * The tile's overflow. Meet's menu is 225 wide, #f0f4f9 at radius 12 with no
@@ -221,17 +254,54 @@ export function renderLobby(store: Store, media: Media): HTMLElement {
   }, sym('more_vert', 24)) as HTMLButtonElement;
   ripple(moreBtn);
   tipAll(moreBtn);
-  attachMenu(moreBtn, (): MenuItem[] => [
+  /*
+   * THREE ITEMS ON A PHONE, NOT FOUR, and it follows from the control row rather
+   * than being a separate decision. Backgrounds and effects is the menu entry for
+   * the effects control, and the phone does not carry that control -- so leaving
+   * the entry would be a menu offering a feature the screen has just removed.
+   * Read off Nam's screenshot of the real thing: Report a problem, Troubleshooting
+   * & help, Settings, and no rule above the first of them.
+   *
+   * Decided when the menu opens rather than in CSS, because the separator is
+   * drawn by the item BELOW it -- hiding the first row in the stylesheet would
+   * have left the rule behind, floating above nothing.
+   */
+  const narrow = (): boolean =>
+    typeof matchMedia === 'function' && matchMedia('(max-width: 599px)').matches;
+  attachMenu(moreBtn, (): MenuItem[] => (narrow() ? [
+    { icon: 'feedback', label: 'Report a problem' },
+    { icon: 'troubleshoot', label: 'Troubleshooting & help' },
+    { icon: 'settings', label: 'Settings' },
+  ] : [
     { icon: 'blur_on', label: 'Backgrounds and effects' },
     { icon: 'feedback', label: 'Report a problem', ruleBefore: true },
     { icon: 'troubleshoot', label: 'Troubleshooting & help' },
     { icon: 'settings', label: 'Settings' },
-  ], { align: 'right', side: 'overlap', dx: 3, dy: -3, width: 225 });
+  ]), {
+    align: 'right',
+    side: 'overlap',
+    dx: 3,
+    dy: -3,
+    /*
+     * NARROWER ON A PHONE. Nam: "our version is a bit too wide ... our more
+     * option panel almost stretches the whole width of the video tile, original
+     * meet is a little bit more narrow - barely, but enough breathing room to not
+     * feel cramped."
+     *
+     * 212 rather than 225, which is his "barely" and is taken off the proportion
+     * in his screenshot: the reference menu is 0.835 of the tile it opens over,
+     * and the tile is now 254. HONESTLY DERIVED FROM AN IMAGE RATHER THAN
+     * MEASURED, because the mobile page would not finish rendering for the run
+     * that was going to measure it -- so this is the one number on this screen
+     * that is an estimate, and it is worth re-taking.
+     */
+    width: narrow() ? 212 : 225,
+  });
 
   const stage = h(
     'div',
     { class: 'preview' },
-    h('span', { class: 'preview-name' }, profile.name),
+    h('span', { class: 'preview-name' }, VISITOR_NAME),
     moreBtn,
     // No video element: there is no stream to put in one.
     avatar,
@@ -609,12 +679,35 @@ export function renderLobby(store: Store, media: Media): HTMLElement {
       // one taking the interview, so it is theirs — not Nam's. No real address
       // is invented: Google publishes none for this, and it would be a strange
       // thing to fabricate on a job application.
+      /*
+       * ON A PHONE THIS BAR IS A WORDMARK AND AN AVATAR. Nam, from the real
+       * product: "note that here the top only shows the avatar, not
+       * you@google.com bla bla."
+       *
+       * The account line stays for the desktop, where the reference still shows
+       * it. Both are in the markup and the stylesheet picks; building one or the
+       * other from a media query in TypeScript would mean this screen rendered
+       * differently depending on the width it was FIRST opened at, which is a
+       * bug waiting for a rotation.
+       */
+      h('div', { class: 'lobby-brand' }, lockup(true)),
       h(
         'div',
         { class: 'lobby-acct' },
         h('b', {}, 'you@google.com'),
         h('span', {}, 'Switch account'),
       ),
+      /*
+       * AND IT OPENS THE SPEC, which is what the same avatar does on the home
+       * screen -- Nam: "if you click this avatar, we open up the how this is
+       * built screen in a popup screen just like if we were to click it in the
+       * home screen." Same control, same reward, on both screens that have one.
+       */
+      (() => {
+        const av = visitorAvatarButton(() => { void openDev(store); });
+        av.classList.add('lobby-av');
+        return av;
+      })(),
     ),
     stageWrap,
   );
