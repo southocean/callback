@@ -4471,6 +4471,36 @@ export const tasks: Task[] = [
     },
   },
 
+  {
+    id: 'N260', col: 'review', size: 'S', tag: 'content',
+    title: 'Three cuts buy the breathing room back',
+    note: 'Shorter words where they were repeating themselves, and the leading goes back past where it started.',
+    detail: {
+      why: 'Nam: "the whole CV now becomes a bit cramped vertically, so I want to give it some breathing room. If we can shorten some text, we get some more vertical space to distribute on the CV vertically, maybe between the breaks." Plus two skill rewrites of his own, and: "Cut the Web Experiences ... That is enough context. Now we get one less line too."',
+      done: [
+        'Real-time clients names delta updates and client-side prediction, which is the rarest thing on the page',
+        'Performance is code splitting and compositor-only animation, on one line',
+        'The role line lost "Web Experiences" and the header went from two lines to one',
+        'Section gaps 9pt where they began at 8pt; the rule under a heading 5pt where it was 4pt',
+        '1007px against the 1024px box, and the printed file is one page by page count',
+      ],
+      raised: 'Nam, 21 Sep',
+      notes: 'THE ONE-LINE ASK WAS NOT POSSIBLE AS WRITTEN, AND THE REASON WAS THE ANSWER. "code splitting, load on demand '
+        + 'and compositor-only animation" measures 440px against a 328px column, so it could never be one line. But the first '
+        + 'two items are the same technique named twice: code splitting IS loading on demand. Dropping the repetition rather '
+        + 'than an idea gets the entry to 319px, which fits with nine to spare. Worth measuring a candidate string against the '
+        + 'real column before deciding what has to go: the obvious cut would have been compositor-only animation, the only '
+        + 'item of the three that says anything about runtime rather than delivery. '
+        + 'THE NAMING QUESTION WENT THE OTHER WAY. Nam asked whether code splitting could be called "on time loading, or '
+        + 'something more intuitive". It could not: a made-up name reads as not knowing the real one, and a CV keyword scan '
+        + 'matches nothing. The term is only jargon until it has been read once. '
+        + 'AND THE LEADING IS NOW LOOSER THAN IT HAS EVER BEEN, which is the part worth keeping. N259 squeezed section gaps '
+        + 'from 8pt to 6pt to keep Off the clock off a second page, and that squeeze is what he felt. Three content cuts '
+        + 'freed 42px; 20px of it went back into the gaps and the rest is headroom. Shortening the words is the fix; '
+        + 'tightening the leading is the thing you do when you have run out of words to shorten.',
+    },
+  },
+
   /* Flagged rather than done. Still true as of this build. */
   { id: 'T24', col: 'backlog', size: 'M', tag: 'specs', title: 'Initial payload is halfway to the ceiling', note: '24.7 kB of a 50 kB gate, up from 18.2. Still green, and the growth is real, but two deferred chunks are 17 kB and 19 kB and deserve a splitting pass before it becomes urgent.' },
 ];

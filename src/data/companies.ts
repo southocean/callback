@@ -64,7 +64,7 @@ export const companies: Company[] = [
     employer: 'Google',
     role: 'Software Engineer III, Google Meet Web Experiences',
     place: 'Stockholm',
-    target: 'Software Engineer III, Google Meet Web Experiences, Stockholm',
+    target: 'Software Engineer III, Google Meet, Stockholm',
     meeting: 'Interview for Software Engineer III at Google Meet, Stockholm',
     opener: "Hi. I'm Nam, I live in Uppsala, and I want the Google Meet Web Experiences role in Stockholm.",
     notes:

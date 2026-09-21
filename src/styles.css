@@ -1620,43 +1620,39 @@ body.plain { background: #fff; color: #16181c; }
   .doc h1 { font-size: 24pt; }
   .doc-target { font-size: 9.5pt; margin-top: 2pt; }
   .doc-top { padding-bottom: 8pt; margin-bottom: 0; }
-  .doc h2 { margin: 6pt 0 4pt; font-size: 8.5pt; padding-bottom: 2pt; }
+  .doc h2 { margin: 9pt 0 5pt; font-size: 8.5pt; padding-bottom: 2pt; }
   .doc h3 { font-size: 12pt; }
   .doc ul { font-size: 9.5pt; margin-bottom: 4pt; }
   .doc li { margin-bottom: 0; }
   .doc-sub, .doc-when { font-size: 9pt; }
-  .doc-skill { font-size: 9.5pt; line-height: 1.4; margin-bottom: 3pt; }
-  .doc section > div + div { margin-top: 4pt; }
+  .doc-skill { font-size: 9.5pt; line-height: 1.4; margin-bottom: 4pt; }
+  .doc section > div + div { margin-top: 5pt; }
   /*
-   * A SECOND TRIM, and the three numbers above it are where it went.
+   * THE RHYTHM IS LOOSER THAN THE SCREEN'S ORIGINAL, NOT TIGHTER, AND THE WORDS
+   * PAID FOR IT.
    *
-   * Off the clock had crossed onto a second page again: the content measured
-   * 1032px against the 1024px box, which is eight pixels, and eight pixels is
-   * enough to make a one-page CV read as a two-page one whose second page holds
-   * the hobbies.
+   * This block spent two rounds squeezing leading to keep Off the clock off a
+   * second page: 8pt section gaps down to 6pt, skill rows to 3pt. Nam, looking
+   * at the result: "the whole CV now becomes a bit cramped vertically ... if we
+   * can shorten some text, we get some more vertical space to distribute."
    *
-   * MEASURED FIRST, and the first measurement was wrong in a way worth
-   * recording. `doc.scrollHeight` CLAMPS AT THE VIEWPORT, so under the emulated
-   * page it reports 1024 for anything that fits and hides how much room is
-   * left. Three different candidates all came back "saves exactly 14px", which
-   * is not a coincidence, it is the clamp. Measuring the bottom of the last
-   * child against the top of the document instead gives a number that keeps
-   * moving after the content fits, and that is the number below.
+   * That is the right trade and it is the one taken here. Three content cuts,
+   * his: the role line lost "Web Experiences", which unwrapped the header from
+   * two lines to one; "under latency" left the real-time entry before it could
+   * reach a third line; and Performance dropped "load on demand", which is the
+   * same technique as "code splitting" said twice, so the entry is one line at
+   * 319px in a 328px column.
    *
-   * WHAT THE OVERFLOW ACTUALLY WAS: the header's "applying for ..." line wraps
-   * to two lines at print width and strands 26% of the second, which costs 16px
-   * on its own -- twice the overflow. Dropping ", Stockholm" unwraps it and the
-   * document lands at 1016px with eight to spare.
+   * Those three bought 42px, and the leading gave 20px of it back: section gaps
+   * are 9pt where they started at 8pt, and the rule under a heading is 5pt where
+   * it was 4pt. Skill rows and the gap between roles are back to their original
+   * 4pt and 5pt.
    *
-   * NOT DONE THAT WAY, because `commute` is not printed, so that line is the
-   * only place the PDF names the office at all. Losing the city to save eight
-   * pixels is paying in the wrong currency when the same eight pixels are
-   * sitting in the leading.
-   *
-   * So: section gap 8pt -> 6pt, skill rows 4pt -> 3pt, the gap between roles
-   * 5pt -> 4pt. Three small trims rather than one hard one, for 1007px and 17px
-   * of headroom -- enough that the next line of content does not put it back on
-   * two pages. Type sizes are untouched, for the reason the block above gives.
+   * Content is 1007px against the 1024px box. 17px of headroom, which is one
+   * added line -- so the next bullet fits and the one after that needs another
+   * cut. Measured by the bottom of the last child, never by scrollHeight, which
+   * clamps at the viewport and reports 1024 for anything that fits; the page
+   * COUNT of the printed file is the check that cannot be fooled.
    */
   /*
    * Two real columns on paper.

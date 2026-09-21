@@ -359,9 +359,9 @@ export const skills = {
   primary: [
     { name: 'Agentic programming', note: 'cross-team AI harnesses at Wasabi, and this site: one person, one agent, one week' },
     { name: 'Test automation', note: '75–90% unit coverage, AI-assisted, plus automated QA over the core flows' },
-    { name: 'Real-time clients', note: 'shared state, reconnection and latency on a live multiplayer game' },
+    { name: 'Real-time clients', note: 'shared state and reconnection, delta updates, client-side prediction' },
     { name: 'Responsive & accessible UI', note: 'roving tabindex, live regions, reduced motion, keyboard-only paths' },
-    { name: 'Performance', note: 'load budget enforced in CI, asset optimisation, lazy loading' },
+    { name: 'Performance', note: 'code splitting, compositor-only animation' },
   ],
   volume: {
     'Over 10,000 lines': ['TypeScript', 'JavaScript', 'C', 'C++', 'C#', 'Dart', 'Java'],
