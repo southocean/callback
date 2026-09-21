@@ -4443,6 +4443,34 @@ export const tasks: Task[] = [
     },
   },
 
+  {
+    id: 'N259', col: 'review', size: 'S', tag: 'specs',
+    title: 'The CV is one page again, and scrollHeight was lying about it',
+    note: 'Eight pixels over, taken out of the leading. The measurement that found them had to be fixed first.',
+    detail: {
+      why: 'Nam: "downloading the CV now gives me a 2 page CV, with the off the clock overflowing to second page. Please fix that so everything is one page thks!"',
+      done: [
+        'Section gap 8pt to 6pt, skill rows 4pt to 3pt, the gap between roles 5pt to 4pt',
+        'Content is 1007px against the 1024px box: 17px of headroom, from 8px over',
+        'The printed file is one page, checked by page count rather than by eye',
+        'No type size touched, and no word cut',
+      ],
+      raised: 'Nam, 21 Sep',
+      notes: 'THE FIRST MEASUREMENT WAS WRONG AND LOOKED RIGHT. A scratch harness tried eight candidate trims and three of '
+        + 'them came back saving exactly 14px and landing on exactly 1024. Three different changes agreeing to the pixel is '
+        + 'not a coincidence, it is a clamp: doc.scrollHeight cannot report less than the viewport, so under the emulated page '
+        + 'it says 1024 for anything that fits and hides how much room is left. Measuring the bottom of the last child against '
+        + 'the top of the document keeps moving after the content fits, and that is what the numbers above are. Worth knowing '
+        + 'because tools/print-cv.mjs reports the clamped figure too: its "fits one page" is true but carries no headroom, and '
+        + 'the page count is the thing to trust. THE OVERFLOW WAS ONE LINE, NOT A RHYTHM PROBLEM. The header "applying for ..." '
+        + 'line wraps at print width and strands a quarter of its second line, which costs 16px on its own -- twice the '
+        + 'overflow. Dropping ", Stockholm" unwraps it and lands the document at 1016px. NOT DONE THAT WAY: commute is not '
+        + 'printed, so that line is the only place the PDF names the office, and losing the city to save eight pixels is paying '
+        + 'in the wrong currency when the same eight pixels are sitting in the leading. Three small trims beat one hard one, '
+        + 'and 17px of headroom means the next line of content does not put it back on two pages.',
+    },
+  },
+
   /* Flagged rather than done. Still true as of this build. */
   { id: 'T24', col: 'backlog', size: 'M', tag: 'specs', title: 'Initial payload is halfway to the ceiling', note: '24.7 kB of a 50 kB gate, up from 18.2. Still green, and the growth is real, but two deferred chunks are 17 kB and 19 kB and deserve a splitting pass before it becomes urgent.' },
 ];

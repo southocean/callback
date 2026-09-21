@@ -1620,13 +1620,44 @@ body.plain { background: #fff; color: #16181c; }
   .doc h1 { font-size: 24pt; }
   .doc-target { font-size: 9.5pt; margin-top: 2pt; }
   .doc-top { padding-bottom: 8pt; margin-bottom: 0; }
-  .doc h2 { margin: 8pt 0 4pt; font-size: 8.5pt; padding-bottom: 2pt; }
+  .doc h2 { margin: 6pt 0 4pt; font-size: 8.5pt; padding-bottom: 2pt; }
   .doc h3 { font-size: 12pt; }
   .doc ul { font-size: 9.5pt; margin-bottom: 4pt; }
   .doc li { margin-bottom: 0; }
   .doc-sub, .doc-when { font-size: 9pt; }
-  .doc-skill { font-size: 9.5pt; line-height: 1.4; margin-bottom: 4pt; }
-  .doc section > div + div { margin-top: 5pt; }
+  .doc-skill { font-size: 9.5pt; line-height: 1.4; margin-bottom: 3pt; }
+  .doc section > div + div { margin-top: 4pt; }
+  /*
+   * A SECOND TRIM, and the three numbers above it are where it went.
+   *
+   * Off the clock had crossed onto a second page again: the content measured
+   * 1032px against the 1024px box, which is eight pixels, and eight pixels is
+   * enough to make a one-page CV read as a two-page one whose second page holds
+   * the hobbies.
+   *
+   * MEASURED FIRST, and the first measurement was wrong in a way worth
+   * recording. `doc.scrollHeight` CLAMPS AT THE VIEWPORT, so under the emulated
+   * page it reports 1024 for anything that fits and hides how much room is
+   * left. Three different candidates all came back "saves exactly 14px", which
+   * is not a coincidence, it is the clamp. Measuring the bottom of the last
+   * child against the top of the document instead gives a number that keeps
+   * moving after the content fits, and that is the number below.
+   *
+   * WHAT THE OVERFLOW ACTUALLY WAS: the header's "applying for ..." line wraps
+   * to two lines at print width and strands 26% of the second, which costs 16px
+   * on its own -- twice the overflow. Dropping ", Stockholm" unwraps it and the
+   * document lands at 1016px with eight to spare.
+   *
+   * NOT DONE THAT WAY, because `commute` is not printed, so that line is the
+   * only place the PDF names the office at all. Losing the city to save eight
+   * pixels is paying in the wrong currency when the same eight pixels are
+   * sitting in the leading.
+   *
+   * So: section gap 8pt -> 6pt, skill rows 4pt -> 3pt, the gap between roles
+   * 5pt -> 4pt. Three small trims rather than one hard one, for 1007px and 17px
+   * of headroom -- enough that the next line of content does not put it back on
+   * two pages. Type sizes are untouched, for the reason the block above gives.
+   */
   /*
    * Two real columns on paper.
    *
