@@ -50,7 +50,7 @@ export interface Source {
 }
 
 const TABS: Source[] = [
-  { id: 'cv', kind: 'tab', title: 'Nam Nguyen. Senior SWE, Web Development', host: 'southocean.github.io' },
+  { id: 'cv', kind: 'tab', title: 'Nam Nguyen. SWE III, Google Meet Web Experiences', host: 'southocean.github.io' },
   { id: 'jobad', kind: 'tab', title: 'Against the job requirement', host: 'careers.google.com' },
   { id: 'work', kind: 'tab', title: 'Things I built', host: 'southocean.github.io' },
   /*
@@ -97,7 +97,7 @@ const DOCS: Record<string, Doc> = {
    * header while the call showed the named one.
    */
   cv: {
-    title: 'Nam Nguyen. Senior SWE, Web Development',
+    title: 'Nam Nguyen. SWE III, Google Meet Web Experiences',
     host: 'southocean.github.io',
     page: () => frameOf(`${location.search}#plain`, 'Nam Nguyen, the CV as a document'),
   },
@@ -601,7 +601,7 @@ function pageJobAd(): HTMLElement {
     h('h1', { class: 'pg-h' }, 'Against the job requirement'),
     h('p', { class: 'pg-sub' }, pitch.named
       ? pitch.target
-      : 'Senior Software Engineer, Web Development, the posting this CV was written against'),
+      : 'Software Engineer, Front End, the posting this CV was written against'),
     h('ul', { class: 'pg-reqs' },
       ...requirementMap.map((r) => h('li', { class: `pg-req is-${r.strength}` },
         // A tilde rather than an en dash for the admitted-gap marker. It is a
@@ -2178,7 +2178,7 @@ function pageWindow(_onOpen: (id: string) => void, onClose: () => void): HTMLEle
   made.select('cv');
   return h('div', { class: 'pg pg-win' },
     win11({
-      title: 'Nam Nguyen. Senior SWE, Web Development',
+      title: 'Nam Nguyen. SWE III, Google Meet Web Experiences',
       icon: icChrome, body: made.body, full: false, onClose,
     }));
 }
@@ -2933,7 +2933,7 @@ function pageDesktop(onQuit: () => void, boot?: { egg?: string; cv?: boolean }):
       const made = chromeWindow({ onEmpty: () => closeWin(rec) });
       bodyEl = made.body;
       select = made.select;
-      title = 'Nam Nguyen. Senior SWE, Web Development';
+      title = 'Nam Nguyen. SWE III, Google Meet Web Experiences';
       if (tabId) made.select(tabId);
     } else {
       const made = playerWindow((tabId ?? '').replace(/^vid:/, ''));

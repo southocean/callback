@@ -4405,6 +4405,44 @@ export const tasks: Task[] = [
     },
   },
 
+  {
+    id: 'N258', col: 'review', size: 'M', tag: 'content',
+    title: 'A different job, so a different CV says so',
+    note: 'The role is the real posting now. The Join badge is a Click me, and the GitHub link is gone.',
+    detail: {
+      why: 'Nam, 21 Sep: "I decide to apply for the Front End dev, not the senior position, to lower the technical difficulty a bit... If there are any other places where it says what Im applying to, make sure we drop the senior part." Then the ad itself: Software Engineer III, Google Meet Web Experiences, Stockholm. Also: "Join button please change it to Click me. That would kill the doubt of this being a scam." And: "my friend advises to remove github, since my github is pretty much empty. He has a point, lets hide my github links."',
+      done: [
+        'companies.ts carries the real title; the neutral build says Software Engineer, Front End',
+        'The scheduled card, the tab title, the plain document, the share tabs and the no-JS fallback all follow',
+        'The card badge reads Click me. The composer Join and the lobby Join now are untouched',
+        'GitHub is out of profile.links, which clears it from the call, the ended screen, the document and the PDF at once',
+        'The requirement panel is rewritten against the real ad: nine rows, two of them new admissions',
+        'The attached PDF reprinted from the page, so it carries both changes',
+      ],
+      raised: 'Nam, 21 Sep',
+      notes: 'THE REQUIREMENT PANEL WAS THE PART THAT COULD NOT BE LEFT ALONE. Three strings and a badge is what was asked for, '
+        + 'but a panel headed "Against the job requirement" was still quoting the senior ad: five years of software development, '
+        + 'three of front end, a preference for a PhD. Every row was answerable, which is not the problem. The problem is a table '
+        + 'of requirements the job does not have, on a site whose whole claim is that it measures rather than guesses, read by the '
+        + 'one person holding the real ad. So the requirement column is the posting near enough verbatim, and the evidence column '
+        + 'is the same work remapped. TWO ROWS ARE HONEST RATHER THAN STRONG, and both are new. Apps Framework and Wiz, Soy and GSS '
+        + 'are internal to Google and there is no way to have touched them from outside, so they take the tilde the panel already '
+        + 'keeps for an admitted gap. Three admitted gaps on nine rows reads better than nine ticks, because nine ticks reads as a '
+        + 'form. AND ONE ROW LEFT ENTIRELY: "Agentic coding techniques and tools" was a requirement of the senior posting and is not '
+        + 'one of this ad. The work has not moved, since it is a bullet on the Wasabi role and a line in the case study, but a '
+        + 'strength nobody asked for does not belong in a table of things they did. THE DASH GATE EARNED ITSELF INSIDE ONE PASS: two '
+        + 'em dashes went into the new evidence strings and verify named both, with the line and the sentence. ONLY THE CARD BADGE IS '
+        + 'A CLICK ME. The composer Join sits behind typing a code and the lobby Join now behind already standing in the green room, '
+        + 'so neither is the control a stranger meets cold. The card is, and Meet word there promises a camera, a microphone and '
+        + 'other people. Rewording the other two would cost the likeness for nothing. THE GITHUB MARK AND ITS PATH STAY IN icons.ts, '
+        + 'unreferenced, so putting the link back is one line in cv.ts rather than redrawing a logo. Removing it from the DATA rather '
+        + 'than from the renderers is what made it one edit instead of four. AND THE PDF WAS THE ONE THAT WOULD HAVE BEEN MISSED: it '
+        + 'is a print of the plain document, downloadable from the home screen, and it still said Senior with a GitHub mark in the '
+        + 'contact row. npm run pdf reprints it from the page, which is the whole reason that tool is a harness rather than a file '
+        + 'somebody remembers to maintain.',
+    },
+  },
+
   /* Flagged rather than done. Still true as of this build. */
   { id: 'T24', col: 'backlog', size: 'M', tag: 'specs', title: 'Initial payload is halfway to the ceiling', note: '24.7 kB of a 50 kB gate, up from 18.2. Still green, and the growth is real, but two deferred chunks are 17 kB and 19 kB and deserve a splitting pass before it becomes urgent.' },
 ];

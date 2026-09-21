@@ -50,11 +50,11 @@ export interface Company {
  */
 export const NEUTRAL = {
   employer: '',
-  role: 'Senior Software Engineer, Web Development',
+  role: 'Software Engineer, Front End',
   place: '',
-  target: 'Senior Software Engineer, Web Development',
-  meeting: 'Interview for Senior Software Engineer, Web Development',
-  opener: "Hi. I'm Nam, I live in Uppsala, and I am applying for a senior web development role.",
+  target: 'Software Engineer, Front End',
+  meeting: 'Interview for Software Engineer, Front End',
+  opener: "Hi. I'm Nam, I live in Uppsala, and I am applying for a front-end web development role.",
 } as const;
 
 export const companies: Company[] = [
@@ -62,11 +62,11 @@ export const companies: Company[] = [
     code: '1',
     label: 'Google Meet, Stockholm',
     employer: 'Google',
-    role: 'Senior Software Engineer, Web Development',
+    role: 'Software Engineer III, Google Meet Web Experiences',
     place: 'Stockholm',
-    target: 'Senior Software Engineer, Web Development at Google Meet, Stockholm',
-    meeting: 'Interview for Senior Software Engineer at Google Meet, Stockholm',
-    opener: "Hi. I'm Nam, I live in Uppsala, and I want the Web Development role on Google Meet in Stockholm.",
+    target: 'Software Engineer III, Google Meet Web Experiences, Stockholm',
+    meeting: 'Interview for Software Engineer III at Google Meet, Stockholm',
+    opener: "Hi. I'm Nam, I live in Uppsala, and I want the Google Meet Web Experiences role in Stockholm.",
     notes:
       'The original target, and the reason the whole site is a rebuild of Meet. This is the only code where ' +
       'naming the product is an asset rather than a liability.',

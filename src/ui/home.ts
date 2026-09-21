@@ -582,6 +582,23 @@ export function renderHome(store: Store, reducedMotion = false, body?: HTMLEleme
     return [p.meeting.slice(0, -tail.length), h('span', { class: 'narrow-hide' }, tail)];
   };
 
+  /*
+   * NOT "Join" -- Nam, 21 September: "Join button please change it to Click me.
+   * That would kill the doubt of this being a scam."
+   *
+   * The clone is faithful enough that the badge reads as a real meeting-join,
+   * and a stranger sent a link to a video call they did not book has every
+   * reason to hesitate over it. Meet's own word is the one doing the harm here:
+   * it promises a camera, a microphone and other people. "Click me" promises a
+   * page, which is what this actually is.
+   *
+   * Only the card badge. The composer's "Join" next to the code box and the
+   * lobby's "Join now" are both measured clones of controls that do not carry
+   * that implication -- you have to type a code or already be in the green room
+   * to reach either -- and rewording them would cost the likeness for nothing.
+   */
+  const CARD_CTA = 'Click me';
+
   const interviewCard = (): HTMLElement => h(
     'button',
     {
@@ -614,7 +631,7 @@ export function renderHome(store: Store, reducedMotion = false, body?: HTMLEleme
       // authored and companies.ts keeps saying one true thing instead of two.
       h('div', { class: 'sched-title' }, ...meetingParts()),
     ),
-    h('span', { class: 'sched-join' }, 'Join'),
+    h('span', { class: 'sched-join' }, CARD_CTA),
   );
 
   const eggCard = (egg: Egg): HTMLElement => h(
@@ -635,7 +652,7 @@ export function renderHome(store: Store, reducedMotion = false, body?: HTMLEleme
       h('div', { class: 'sched-title' }, egg.title),
       h('div', { class: 'sched-sub' }, egg.blurb),
     ),
-    h('span', { class: 'sched-join' }, 'Join'),
+    h('span', { class: 'sched-join' }, CARD_CTA),
   );
 
   const emptyDay = (): HTMLElement => h(

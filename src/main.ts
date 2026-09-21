@@ -77,8 +77,13 @@ const store = new Store(boot);
  */
 {
   const p = pitchFor(boot.company);
+  // The employer is only worth appending when the ROLE does not already say it.
+  // "Software Engineer III, Google Meet Web Experiences, Google" is the title
+  // reading its own name twice, which is what happens when a role string starts
+  // naming the product.
+  const who = p.employer && !p.role.includes(p.employer) ? `, ${p.employer}` : '';
   document.title = p.named
-    ? `Meet Nam Nguyen, ${p.role}, ${p.employer} ${p.place ? '· ' + p.place : ''}`.trim()
+    ? `Meet Nam Nguyen, ${p.role}${who} ${p.place ? '· ' + p.place : ''}`.trim()
     : `Nam Nguyen, ${p.role}`;
 }
 

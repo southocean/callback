@@ -1504,7 +1504,7 @@ body.plain { background: #fff; color: #16181c; }
  * Nothing looks right-aligned; it looks like somebody indented it by accident.
  *
  * It wraps because the name column asks for about 640px (the "applying for
- * Senior Software Engineer, Web Development at Google Meet, Stockholm" line is
+ * Software Engineer III, Google Meet Web Experiences, Stockholm" line is
  * one long unbroken string as far as flex sizing is concerned) and the contact
  * block asks for about 190. That is 850 against a 768px content box.
  *

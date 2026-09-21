@@ -48,8 +48,8 @@ export const profile = {
    * now lives in src/data/companies.ts, resolved from a ?c= code. This string
    * is what a reader sees with no code, and it has to be true for any send.
    */
-  target: 'Senior Software Engineer, Web Development',
-  targetAlt: 'Senior Front-End Engineer, Web',
+  target: 'Software Engineer, Front End',
+  targetAlt: 'Front-End Engineer, Web',
   place: 'Uppsala, Sweden',
   commute: '38 minutes from the Stockholm office. No relocation, no visa sponsorship needed.',
   // Assembled in script rather than sitting in the markup, so a public repo
@@ -57,8 +57,22 @@ export const profile = {
   // deliberately not on this site at all — it stays in the PDF.
   emailUser: 'hainam2511',
   emailHost: 'gmail.com',
+  /*
+   * NO GITHUB -- Nam, 21 September: "my friend advises to remove github, since
+   * my github is pretty much empty. He has a point, lets hide my github links."
+   *
+   * He is right, and the reason is worth keeping. A link is an invitation to
+   * look, and a reader who accepts it finds nothing. That is a worse outcome
+   * than no link at all, because the empty profile is then evidence AGAINST the
+   * CV rather than merely absent from it -- and this site is already the code
+   * sample the link was standing in for.
+   *
+   * Removed from the data rather than hidden in the renderers, so it goes from
+   * all four places that render this list at once: the call, the ended screen,
+   * the plain document and the PDF-facing copy. The icon and its path stay in
+   * icons.ts, unreferenced, because putting it back should be one line here.
+   */
   links: [
-    { label: 'GitHub', handle: 'southocean', href: 'https://github.com/southocean' },
     { label: 'LinkedIn', handle: 'southocean', href: 'https://www.linkedin.com/in/southocean' },
     { label: 'itch.io', handle: 'southocean', href: 'https://southocean.itch.io' },
   ],
@@ -217,7 +231,7 @@ export const caseStudies: CaseStudy[] = [
       'A WebGL filter chain over live video, because effects are a feature this product ships and building one is more convincing than mentioning one.',
       'A network simulator that degrades the call: loss, jitter, resolution collapse. The failure mode this team actually lives in.',
       'Accessibility done as work rather than as a bullet: roving tabindex, focus traps, reduced-motion, and an audit panel that asserts against the live DOM and is allowed to fail.',
-      'Built with agentic tooling and the build log left in, since the senior posting asks for exactly that.',
+      'Built with agentic tooling and the build log left in: reviews, objections, what changed and why.',
     ],
     relevance:
       'Every requirement in the job ad has something here you can click on. That was the entire design brief.',
@@ -481,63 +495,84 @@ export function segments(text: string, links: Mention[] = []): { text: string; h
   return out;
 }
 
-/** Requirement-by-requirement, against the senior posting. */
+/*
+ * Requirement-by-requirement, against the REAL posting -- "Software Engineer
+ * III, Google Meet Web Experiences", Stockholm.
+ *
+ * REWRITTEN 21 SEPTEMBER, and the reason matters more than the rows. Nam moved
+ * his application off the senior req and onto this one, and this table was
+ * still quoting the old ad's bars: five years of software development, three of
+ * front end, a preference for a PhD. Every row was answerable -- that is not the
+ * problem. The problem is that a panel headed "Against the job requirement"
+ * which quotes requirements the job does not have is wrong in the one way this
+ * whole site is built not to be, and an interviewer holding the real ad is
+ * exactly the reader who would notice.
+ *
+ * The requirement column is now the ad, near enough verbatim. The evidence
+ * column is unchanged work, remapped.
+ *
+ * TWO ROWS GOT SHORTER RATHER THAN STRONGER. The bars dropped -- two years
+ * where the senior req wanted five -- so rows that were arguments are now
+ * facts, and there is nothing to be gained by restating seven years of it at
+ * length against a two-year minimum.
+ *
+ * AND ONE ROW LEFT. "Agentic coding techniques and tools" was a requirement of
+ * the senior posting and is not one of this ad, so it is not in this table any
+ * more. The work itself has not moved: it is a bullet on the Wasabi role and a
+ * line in the case study, which is where a strength that nobody asked for
+ * belongs.
+ */
 export const requirementMap: { req: string; evidence: string; strength: 'strong' | 'met' | 'honest' }[] = [
   {
-    req: "Bachelor's degree or equivalent",
+    req: "Bachelor's degree or equivalent practical experience",
     evidence: 'BS Computer Science, HUST. MSc Computer Science, Uppsala.',
     strength: 'strong',
   },
   {
-    req: '5 years software development',
-    evidence: 'Bkav 2013–2015, Wasabi Productions 2019–present. Twelve years since the first professional line.',
-    strength: 'strong',
-  },
-  {
-    req: '3 years front-end and UI development',
+    req: '2 years front-end and user interface development',
     evidence: 'Seven years leading front end at Wasabi Productions, including all UX and responsive work.',
     strength: 'strong',
   },
   {
-    req: '3 years testing, maintaining or launching software',
-    evidence: 'Two platform launches on the same product, plus a bot controller built to test live tables.',
+    req: '2 years software development, or 1 with an advanced degree',
+    evidence: 'Bkav 2013–2015, Wasabi Productions 2019–present, and the MSc on top. Twelve years since the first professional line.',
     strength: 'strong',
   },
   {
-    req: '1 year software design and architecture',
-    evidence: 'Owned the desktop → web → React + Unity hybrid re-architecture, and the client/server API surface.',
+    req: 'TypeScript, web applications and test automation',
+    evidence:
+      'This site is all three: strict TypeScript, no framework, and a unit suite you can run in the Engineering '
+      + 'panel and watch go red. Before it, a bot controller built to drive live tables under test.',
     strength: 'strong',
   },
   {
-    req: "Preferred: Master's or PhD",
-    evidence: 'MSc, Uppsala University, 2018.',
-    strength: 'strong',
-  },
-  {
-    req: 'Preferred: 5 years data structures and algorithms',
+    req: 'Preferred: 2 years data structures and algorithms',
     evidence: 'Four years optimisation research, two publications, a book chapter, a best-paper award, three semesters as an algorithms TA.',
     strength: 'strong',
   },
   {
-    req: 'Preferred: technical leadership',
-    evidence: 'Led a team of five for seven years: task breakdown, reviews, architecture decisions.',
+    req: 'Preferred: cross-functional product and feature launches',
+    evidence: 'Worked directly with design, backend, marketing and investors on what gets built next, through every platform this product has shipped on.',
     strength: 'strong',
   },
   {
-    req: 'Preferred: accessible technologies',
+    req: 'Preferred: proficient in Java and TypeScript',
+    evidence: 'Both are on the over-ten-thousand-lines list. TypeScript is this entire site, strict and dependency-free.',
+    strength: 'met',
+  },
+  {
+    req: 'Preferred: Google server-side frameworks, such as Apps Framework',
     evidence:
-      'No shipped product where it was my mandate. So the evidence is this build: keyboard-complete, screen-reader tested, with a live audit in the Engineering panel that is allowed to fail.',
+      'No. The server-side work here is the client/server API surface I designed, which is where the '
+      + 'reconnection and resync behaviour lives. Not Google’s internal stack.',
     strength: 'honest',
   },
   {
-    req: 'TypeScript (required for SWE III)',
-    evidence: 'This site: strict TypeScript, no framework, no runtime dependencies, size-gated in CI.',
-    strength: 'met',
-  },
-  {
-    req: 'Agentic coding techniques and tools',
-    evidence: 'Built with them, and the build log is in the Engineering panel: reviews, objections, what changed.',
-    strength: 'met',
+    req: 'Preferred: Wiz, Soy and GSS',
+    evidence:
+      'No. They are internal to Google, and there is no way to have used them from outside. The nearest '
+      + 'thing I can show is this: a Meet-shaped web client built with no framework at all.',
+    strength: 'honest',
   },
 ];
 
