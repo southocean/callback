@@ -4472,7 +4472,7 @@ export const tasks: Task[] = [
   },
 
   {
-    id: 'N262', col: 'review', size: 'S', tag: 'trust',
+    id: 'N262', col: 'done', size: 'S', tag: 'trust',
     title: 'The page gauge reads below the viewport',
     note: 'print-cv.mjs measured doc.scrollHeight, which cannot go under one page. It now reports real headroom.',
     detail: {
