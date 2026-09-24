@@ -58,21 +58,26 @@ export const profile = {
   emailUser: 'hainam2511',
   emailHost: 'gmail.com',
   /*
-   * NO GITHUB -- Nam, 21 September: "my friend advises to remove github, since
-   * my github is pretty much empty. He has a point, lets hide my github links."
+   * GITHUB IS BACK -- Nam, 24 September: "Earlier I've listened to my friend and
+   * taken away the github link. Im rethinking that now. Recently Ive had a lot of
+   * new fun stuff on it. Let's put it back on."
    *
-   * He is right, and the reason is worth keeping. A link is an invitation to
-   * look, and a reader who accepts it finds nothing. That is a worse outcome
-   * than no link at all, because the empty profile is then evidence AGAINST the
-   * CV rather than merely absent from it -- and this site is already the code
-   * sample the link was standing in for.
+   * The removal was right on 21 September and is wrong now, and it is worth being
+   * precise about why, because the rule did not change -- the facts under it did.
    *
-   * Removed from the data rather than hidden in the renderers, so it goes from
-   * all four places that render this list at once: the call, the ended screen,
-   * the plain document and the PDF-facing copy. The icon and its path stay in
-   * icons.ts, unreferenced, because putting it back should be one line here.
+   * The argument then was that a link is an invitation to look, and a reader who
+   * accepts it finds nothing; an empty profile is evidence AGAINST a CV rather
+   * than merely absent from it. That argument was never about GitHub. It was
+   * about what was on the profile, which is the half Nam has now changed.
+   *
+   * Which is also why this is one line rather than a restoration: the removal
+   * went into the DATA rather than into the renderers, so the call, the ended
+   * screen, the plain document and the PDF all lost it together and all get it
+   * back together. The icon and its path were deliberately left in icons.ts,
+   * unreferenced, against exactly this day.
    */
   links: [
+    { label: 'GitHub', handle: 'southocean', href: 'https://github.com/southocean' },
     { label: 'LinkedIn', handle: 'southocean', href: 'https://www.linkedin.com/in/southocean' },
     { label: 'itch.io', handle: 'southocean', href: 'https://southocean.itch.io' },
   ],

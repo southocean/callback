@@ -4472,6 +4472,35 @@ export const tasks: Task[] = [
   },
 
   {
+    id: 'N261', col: 'done', size: 'S', tag: 'content',
+    title: 'GitHub goes back on',
+    note: 'One line in profile.links, and all four surfaces plus the PDF carry it again.',
+    detail: {
+      why: 'Nam, 24 Sep: "Earlier I\u2019ve listened to my friend and taken away the github link. Im rethinking that now. Recently Ive had a lot of new fun stuff on it. Let\u2019s put it back on."',
+      done: [
+        'profile.links carries GitHub again, first in the row',
+        'The call, the ended screen and the plain document all show it',
+        'The PDF reprinted from the page: one GitHub link annotation, matching LinkedIn',
+        'Still one page, and the contact block still right-aligns to a single edge',
+      ],
+      raised: 'Nam, 24 Sep',
+      notes: 'THE REVERSAL COST ONE LINE, AND THAT WAS DESIGNED IN. N258 removed GitHub from the DATA rather than from the '
+        + 'renderers, and left the mark and its path in icons.ts unreferenced, with a comment saying putting it back should be '
+        + 'one line. It was. Worth noting as the thing that paid off: a removal made in the right layer is a decision you can '
+        + 'change your mind about, and a removal made in four renderers is one you have to re-litigate. '
+        + 'THE OLD ARGUMENT WAS NEVER ABOUT GITHUB. It was that a link is an invitation to look and a reader who accepts it '
+        + 'finds nothing, so an empty profile is evidence AGAINST a CV rather than merely absent from it. That reasoning still '
+        + 'holds; the profile is what changed under it. The rule did not get overturned, its input did. '
+        + 'THE PDF IS A PRINT, NOT A SECOND DOCUMENT, which is why this needed no separate edit: npm run pdf reprints from the '
+        + 'page and asserts the layout. Six checks pass and the file is still one page, which was the thing actually at risk \u2014 '
+        + 'the contact row grew by a third icon. IT IS NOW EXACTLY FULL, though: N260 measured 1007px against the '
+        + '1024px box, and the third icon spent all 17px of that. The harness reports 1024 against 1024. It still '
+        + 'prints as one page, but there is no slack left \u2014 the next line added anywhere in this document pushes '
+        + 'it to two, and the harness will say so rather than letting it ship quietly.',
+    },
+  },
+
+  {
     id: 'N260', col: 'review', size: 'S', tag: 'content',
     title: 'Three cuts buy the breathing room back',
     note: 'Shorter words where they were repeating themselves, and the leading goes back past where it started.',
