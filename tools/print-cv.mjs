@@ -210,6 +210,25 @@ await sleep(400);
 
 /* --- measure ------------------------------------------------------------ */
 
+/*
+ * HEIGHT IS THE BOTTOM OF THE LAST CHILD, NOT doc.scrollHeight.
+ *
+ * scrollHeight cannot report less than the viewport, so under an emulated page
+ * it returns the page height for anything that fits, and hides how much room is
+ * left. This harness used it and said "fits one page" -- true, but carrying no
+ * headroom, which the commit that landed the one-page fix said out loud. Three
+ * days later that warning did not survive contact with a hurry: a link went
+ * into the contact row, the harness printed 1024 against 1024, and it got read
+ * as "the document is now exactly full". It was not. It was 1007 both before
+ * and after, because the link joined a row that already existed and cost no
+ * height at all.
+ *
+ * Measuring the last child's bottom against the document's top keeps moving
+ * after the content fits, which is the point. A gauge that can only say yes or
+ * no cannot tell you how close to no you are, and a number that stops moving is
+ * worse than no number, because it still looks like evidence.
+ */
+
 const REPORT = `(() => {
   const doc = document.querySelector('.doc');
   const box = doc.getBoundingClientRect();
@@ -244,7 +263,12 @@ const REPORT = `(() => {
 
   return {
     contentWidth: Math.round(box.width),
-    contentHeight: Math.round(doc.scrollHeight),
+    // The bottom of the last thing, NOT doc.scrollHeight -- see HEIGHT above.
+    contentHeight: (() => {
+      const kids = [...doc.children].filter((e) => getComputedStyle(e).display !== 'none');
+      const last = kids[kids.length - 1];
+      return last ? Math.round(last.getBoundingClientRect().bottom - box.top) : Math.round(doc.scrollHeight);
+    })(),
     // The layout facts, as numbers rather than as a screenshot.
     contactOnRight: Math.round(box.right - cb.right) < 4,
     contactBesideName: cb.top < nb.bottom,
@@ -311,7 +335,7 @@ const stranded = wrapped.filter((r) => r.tail < 34);
  */
 const over = m.contentHeight - BOX.h;
 console.log(`\n  content is ${m.contentHeight}px against a ${BOX.h}px page`
-  + (over > 0 ? `, ${over}px over one page` : ', fits one page'));
+  + (over > 0 ? `, ${over}px over one page` : `, ${BOX.h - m.contentHeight}px of headroom`));
 console.log(`  ${m.rows.length} lines set, ${wrapped.length} wrap, ${stranded.length} leave a stranded tail`);
 if (stranded.length) {
   console.log('\n  worth shortening — these wrap and strand their last few words:');

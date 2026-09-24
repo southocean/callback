@@ -4472,6 +4472,36 @@ export const tasks: Task[] = [
   },
 
   {
+    id: 'N262', col: 'review', size: 'S', tag: 'trust',
+    title: 'The page gauge reads below the viewport',
+    note: 'print-cv.mjs measured doc.scrollHeight, which cannot go under one page. It now reports real headroom.',
+    detail: {
+      why: 'N259 found that doc.scrollHeight is clamped to the viewport and wrote it down. N261 then read 1024 off that '
+        + 'same clamped gauge and recorded "the page is now exactly full" in this board and in a pushed commit message. '
+        + 'A note warning about a broken instrument does not stop anyone using the instrument.',
+      done: [
+        'contentHeight is the bottom of the last visible child against the top of the document',
+        'The report prints the headroom rather than the word "fits", so the number keeps moving',
+        'Measured 1007px against the 1024px box, both with the GitHub link and with it reverted',
+        'The false claim is corrected in N261 and in the commit that carried it',
+      ],
+      raised: 'Found while writing the v1.31.0 release notes',
+      notes: 'THE GAUGE AGREED WITH ME, WHICH IS WHY IT TOOK THREE DAYS. A clamped number does not look broken: it looks '
+        + 'like a measurement, it sits in the same place as a measurement, and it says something plausible. N259 caught it '
+        + 'only because three unrelated trims all came back saving exactly 14px and landing on exactly 1024. It took a '
+        + 'coincidence too large to ignore. On its own, 1024 against 1024 reads as a document that is exactly full, and that '
+        + 'is the sentence I wrote and pushed. '
+        + 'THE FIX IS THAT THE NUMBER MOVES NOW. A gauge that can only say yes or no cannot tell you how close to no you '
+        + 'are, and a number that has stopped moving is worse than no number, because it still looks like evidence. '
+        + 'Measuring the last child’s bottom against the document’s top keeps reporting after the content fits, so '
+        + '"1007px, 17px of headroom" is now a thing that can be wrong, which is the only kind of thing worth printing. '
+        + 'WHAT IT ACTUALLY COST: nothing. The GitHub icon joined a contact row that already existed, so the document is '
+        + '1007px with it and 1007px without it, measured by rebuilding at the previous commit rather than reasoned '
+        + 'from the layout, because reasoning from the layout is what produced the wrong answer the first time.',
+    },
+  },
+
+  {
     id: 'N261', col: 'done', size: 'S', tag: 'content',
     title: 'GitHub goes back on',
     note: 'One line in profile.links, and all four surfaces plus the PDF carry it again.',
@@ -4492,11 +4522,14 @@ export const tasks: Task[] = [
         + 'finds nothing, so an empty profile is evidence AGAINST a CV rather than merely absent from it. That reasoning still '
         + 'holds; the profile is what changed under it. The rule did not get overturned, its input did. '
         + 'THE PDF IS A PRINT, NOT A SECOND DOCUMENT, which is why this needed no separate edit: npm run pdf reprints from the '
-        + 'page and asserts the layout. Six checks pass and the file is still one page, which was the thing actually at risk \u2014 '
-        + 'the contact row grew by a third icon. IT IS NOW EXACTLY FULL, though: N260 measured 1007px against the '
-        + '1024px box, and the third icon spent all 17px of that. The harness reports 1024 against 1024. It still '
-        + 'prints as one page, but there is no slack left \u2014 the next line added anywhere in this document pushes '
-        + 'it to two, and the harness will say so rather than letting it ship quietly.',
+        + 'page and asserts the layout. Six checks pass and the file is still one page, which was the thing actually at risk: '
+        + 'the contact row grew by a third icon. It cost nothing: 1007px against the 1024px box before the link and '
+        + '1007px after, measured both ways, because the icon joined a row that already existed rather than adding one. '
+        + 'I FIRST WROTE HERE THAT THE PAGE WAS NOW EXACTLY FULL, and it was not. print-cv.mjs was reporting '
+        + 'doc.scrollHeight, which cannot read below the viewport, so it said 1024 against 1024 and I read that as a '
+        + 'measurement when it only ever meant "it fits". The trap had been written down in this very file three days '
+        + 'earlier. Knowing about a broken gauge does not help if you then go and read it. The harness now measures the '
+        + 'bottom of the last child instead and prints the headroom, so the number moves when the document does.',
     },
   },
 
