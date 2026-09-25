@@ -32,9 +32,8 @@ import { spinner } from './icons.js';
 import { trapFocus } from '../a11y.js';
 // `pitch` left with pageCv (N144): it was the drawing's lead paragraph and the
 // only thing here that read it. The document the tab frames has its own.
-import { profile, roles, caseStudies, offstage, skills, segments } from '../data/cv.js';
+import { profile, roles, offstage, skills, segments } from '../data/cv.js';
 import { eggs } from '../data/eggs.js';
-import { games } from '../data/games.js';
 import { specBody } from './devportal.js';
 import { signal } from './signal.js';
 
@@ -49,8 +48,7 @@ export interface Source {
 }
 
 const TABS: Source[] = [
-  { id: 'cv', kind: 'tab', title: 'Nam Nguyen. Lead front-end developer', host: 'southocean.github.io' },
-  { id: 'work', kind: 'tab', title: 'Things I built', host: 'southocean.github.io' },
+  { id: 'cv', kind: 'tab', title: 'CV: Lead front-end developer', host: 'southocean.github.io' },
   /*
    * N36. Nam: "We actually have a how this was built page that we show in home
    * screen. We need to show that here in the mock browser." It was reachable —
@@ -95,12 +93,11 @@ const DOCS: Record<string, Doc> = {
    * header while the call showed the named one.
    */
   cv: {
-    title: 'Nam Nguyen. Lead front-end developer',
+    title: 'CV: Lead front-end developer',
     host: 'southocean.github.io',
     page: () => frameOf(`${location.search}#plain`, 'Nam Nguyen, the CV as a document'),
   },
   /* N3: one list, and it is not "four" any more. */
-  work: { title: 'Things I built', host: 'southocean.github.io', page: () => pageWork() },
   tools: { title: 'Internal tooling, a bot controller', host: 'southocean.github.io', page: () => pageTools() },
   hobby: { title: 'Off the clock', host: 'southocean.github.io', page: () => pageHobby() },
 };
@@ -133,10 +130,8 @@ DOCS['built'] = {
     return h('div', { class: 'pg pg-spec dp-light' }, tabs, body);
   },
 };
-/* 'side' is an alias for 'work' now: the two pages were answering one question
-   and have been merged (see pageWork). The id survives so side-projects.html in
-   Explorer still opens something, rather than becoming a file that does nothing. */
-DOCS['side'] = DOCS['work']!;
+/* 'side' was an alias for 'work', and both went with the page they named -- see
+   N268. Nothing points at either id now. */
 for (const e of eggs) {
   DOCS['vid:' + e.id] = {
     title: e.title,
@@ -469,12 +464,10 @@ function contentFor(src: Source, onOpen: (id: string) => void, onClose: () => vo
     // The real thing, framed. #plain is a standalone document view — it has no
     // call chrome, so framing it cannot nest the app inside itself.
     case 'cv': return frameOf(`${location.search}#plain`, 'Nam Nguyen, the CV as a document');
-    // 'work' used to frame '#tools/tests' and Nam caught what that does: 'tools'
     // is a PANEL, so the hash resolves to { screen: 'call', panel: 'tools' } and
     // the iframe loaded the entire Meet clone — a call inside the call inside
     // the share. Authored now. There is also a hard guard in main.ts so no
     // iframe can ever render the call again, whatever hash it is handed.
-    case 'work': return pageWork();
     // Authored, because the original refuses to be framed.
     // 'browser', not 'files': Window mode offers the browser now (see WINDOWS).
     // The id and the case have to move together -- renaming only the id sent this
@@ -591,74 +584,11 @@ function pageVideo(id: string): HTMLElement {
  * sub-line is that company's role; without one it says plainly which posting
  * this was written against, which is the honest version of the same sentence.
  */
-/**
- * ONE LIST. Nam: "Four things I built: what did I tell you? Change this to
- * Things I built, then merge the other things I built to the same list."
- *
- * Two pages were answering the same question — this one held the case studies,
- * and "Side projects and dev tools" held the tools and the games. A reader
- * finding one had no reason to think the other existed, and the heading counted
- * to four while the answer was closer to twelve.
- *
- * Three groups now, in the order a reader cares about: the work, the tools that
- * made the work possible, and the games. Every external row opens in this
- * browser; the games each carry their own link rather than deferring to a
- * profile page.
- */
-function pageWork(): HTMLElement {
-  const ext = (label: string, url: string, note: string): HTMLElement => {
-    const b = h('button', { class: 'pg-link', type: 'button' }, label) as HTMLButtonElement;
-    b.dataset.ext = url;
-    return h('div', { class: 'pg-role' }, b, h('span', {}, note), h('span', { class: 'pg-url' }, url));
-  };
-
-  return h('div', { class: 'pg' },
-    h('h1', { class: 'pg-h' }, 'Things I built'),
-    h('p', { class: 'pg-sub' }, 'The product, the tooling around it, and a back catalogue of small games'),
-
-    h('h2', { class: 'pg-h2' }, 'The work'),
-    h('div', { class: 'pg-cards' },
-      ...caseStudies.map((c) => h('div', { class: 'pg-card' },
-        h('b', {}, c.title),
-        h('span', {}, c.problem)))),
-
-    h('h2', { class: 'pg-h2' }, 'Tooling'),
-    /*
-     * THE BOT CONTROLLER IS GONE, and it was the strongest claim here.
-     *
-     * Nam: "We can remove the bot controller too cause now I realize without
-     * whitelisting your ip, you wont be able to sit the bots on tables." Which
-     * makes it a link that cannot work for any reader, and a link that cannot
-     * work is worse than no link: it spends the credibility the rest of the page
-     * is building. The test-automation line stays on the CV, where it is a claim
-     * about work done rather than an invitation to go and watch it.
-     */
-    h('div', { class: 'pg-roles' },
-      ext('Mahjong Stars, the live client', 'https://preview.mahjongstars.com/',
-        'The production client itself, seven years and three platform generations of it. Public preview.')),
-
-    h('h2', { class: 'pg-h2' }, 'Games'),
-    h('div', { class: 'pg-games' },
-      ...games.map((g) => h('div', { class: 'pg-game' },
-        (() => {
-          const b = h('button', { class: 'pg-link', type: 'button' }, g.title) as HTMLButtonElement;
-          b.dataset.ext = g.url;
-          return b;
-        })(),
-        h('span', { class: 'pg-game-tag' }, g.tagline),
-        h('span', {}, g.why),
-        g.playable ? h('span', { class: 'pg-game-play' }, 'Plays in the browser') : h('span', {})))),
-    h('p', { class: 'pg-note' },
-      'Seven more on the profile: ',
-      (() => {
-        const b = h('button', { class: 'pg-link', type: 'button' }, 'itch.io/southocean') as HTMLButtonElement;
-        b.dataset.ext = 'https://southocean.itch.io';
-        return b;
-      })(),
-      '. Every link on this page opens in your own browser rather than in this one.'),
-  );
-}
-
+/* "Things I built" and its page are gone -- N268. It listed the case studies,
+   the tooling and the back catalogue of small games; Nam: "Not very relevant I
+   think." The case studies survive in the About panel, which panels.ts renders
+   from the same data, so nothing was lost except a second place to read them.
+   data/games.ts had no other consumer and is deleted. */
 /*
  * THE REAL CLIENT USED TO BE A TAB HERE, and pageRiichi() rendered it framed.
  * Board ticket N82 took it out: the preview would not load reliably inside a
@@ -836,13 +766,9 @@ const icFavCv = (): HTMLElement => svg('0 0 20 20', `
   <rect x="5.5" y="5" width="9" height="1.6" rx=".8" fill="#5f6368"/>
   <rect x="5.5" y="8.2" width="9" height="1.6" rx=".8" fill="#9aa0a6"/>
   <rect x="5.5" y="11.4" width="6" height="1.6" rx=".8" fill="#9aa0a6"/>`);
-const icFavWork = (): HTMLElement => svg('0 0 20 20', `
-  <rect x="2.5" y="5" width="15" height="11" rx="2" fill="#8ab4f8"/>
-  <path d="M7.5 5V3.8A1.3 1.3 0 0 1 8.8 2.5h2.4A1.3 1.3 0 0 1 12.5 3.8V5h-1.8V4.3h-1.4V5z" fill="#5f88c8"/>
-  <rect x="2.5" y="9.4" width="15" height="1.5" fill="#5f88c8" opacity=".5"/>`);
 /* The mahjong favicon went with the tab it labelled. See N82. */
 const FAVICONS: Record<string, () => HTMLElement> = {
-  cv: icFavCv, work: icFavWork,
+  cv: icFavCv,
 };
 
 /* The desktop background.
@@ -1398,9 +1324,7 @@ function explorerBody(onOpen: (id: string) => void, onFolder?: (f: string) => vo
      them either .pdf or .html" -- fair, .url is a Windows shortcut stub nobody
      recognises on sight, and these behave like documents when opened. */
   const CV: Entry = { name: 'NamNguyen_CV_2026.pdf', kind: 'pdf', tab: 'cv' };
-  const BUILT: Entry = { name: 'four-things-i-built.html', kind: 'html', tab: 'work' };
   const HOWBUILT: Entry = { name: 'how-this-is-built.html', kind: 'html', tab: 'built' };
-  const SIDE: Entry = { name: 'side-projects.html', kind: 'html', tab: 'side' };
   const MAHJONG: Entry = { name: 'mahjong-stars.html', kind: 'html', tab: 'ext:https://preview.mahjongstars.com/' };
   const OFFCLOCK: Entry = { name: 'off-the-clock.html', kind: 'html', tab: 'hobby' };
   /* The easter-egg clips, from src/data/eggs.ts — the real files in docs/media,
@@ -1423,7 +1347,11 @@ function explorerBody(onOpen: (id: string) => void, onFolder?: (f: string) => vo
       { name: 'Hobby', kind: 'folder', to: 'Hobby' },
       CV,
     ],
-    Portfolio: [MAHJONG, BUILT, SIDE],
+    /* Just the product now -- N268. The two HTML rows in here opened "Things I
+       built", which Nam removed: "Not very relevant I think." What is left is
+       the honest one, which was always the strongest thing in the folder: a link
+       out to the live client. */
+    Portfolio: [MAHJONG],
     'This CV': [CV, HOWBUILT],
     Hobby: [OFFCLOCK, ...CLIPS],
   };
@@ -2147,7 +2075,7 @@ function pageWindow(_onOpen: (id: string) => void, onClose: () => void): HTMLEle
   made.select('cv');
   return h('div', { class: 'pg pg-win' },
     win11({
-      title: 'Nam Nguyen. Lead front-end developer',
+      title: 'CV: Lead front-end developer',
       icon: icChrome, body: made.body, full: false, onClose,
     }));
 }
@@ -2902,7 +2830,7 @@ function pageDesktop(onQuit: () => void, boot?: { egg?: string; cv?: boolean }):
       const made = chromeWindow({ onEmpty: () => closeWin(rec) });
       bodyEl = made.body;
       select = made.select;
-      title = 'Nam Nguyen. Lead front-end developer';
+      title = 'CV: Lead front-end developer';
       if (tabId) made.select(tabId);
     } else {
       const made = playerWindow((tabId ?? '').replace(/^vid:/, ''));

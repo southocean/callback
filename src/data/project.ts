@@ -4669,6 +4669,33 @@ export const tasks: Task[] = [
     },
   },
 
+  {
+    id: 'N268', col: 'review', size: 'S', tag: 'content',
+    title: 'Things I built comes out, and the CV tab says what it is',
+    note: 'Two tabs left in the picker. The Portfolio folder keeps the one honest row in it.',
+    detail: {
+      why: 'Nam: "remove the things I built site, both in the mocked browser and in the list of chrome tabs to screenshare. Not very relevant I think." And: "The mocked browser tab for the cv lets rename it ... CV: Lead front-end developer."',
+      done: [
+        'The work tab, its page, its favicon, its switch case and the side alias that pointed at it',
+        'Both Explorer rows: four-things-i-built.html and side-projects.html',
+        'Portfolio is just mahjong-stars.html, the link out to the live client',
+        'data/games.ts deleted; the page was its only consumer',
+        'Six orphaned CSS rules, found by the dead-CSS gate',
+        'The CV tab reads "CV: Lead front-end developer" in all four places',
+      ],
+      raised: 'Nam, 25 Sep',
+      notes: 'THE SIDE ALIAS WAS THE PART A GREP FOR "work" WOULD HAVE MISSED. the side entry pointed at the same page '
+        + 'object, left over from N3 when two pages were merged into one, so side-projects.html in Explorer opened '
+        + '"Things I built" too. Removing the page without it would have left a file in the folder that opens nothing. '
+        + 'AND TWO ORPHANS FELL OUT OF IT. data/games.ts, 59 lines, had exactly one consumer and now has none -- '
+        + 'deleted, because TypeScript has no equivalent of the dead-CSS gate and it would have sat there quietly. '
+        + 'caseStudies looked like the same story and is not: panels.ts renders it in the About panel from the same '
+        + 'data, so the case studies survive and only the second place to read them is gone. Worth checking rather '
+        + 'than assuming -- the first version of the comment above said they lived in the CV document, which is a '
+        + 'different panel and would have been wrong in the file that explains the removal.',
+    },
+  },
+
   /* Flagged rather than done. Still true as of this build. */
   { id: 'T24', col: 'backlog', size: 'M', tag: 'specs', title: 'Initial payload is halfway to the ceiling', note: '24.7 kB of a 50 kB gate, up from 18.2. Still green, and the growth is real, but two deferred chunks are 17 kB and 19 kB and deserve a splitting pass before it becomes urgent.' },
 ];

@@ -7157,32 +7157,8 @@ body.has-panel .reaction, body.has-panel .reaction-who { left: 0; }
  */
 
 /* ================= THINGS I BUILT ======================================== */
-/* Two pages merged into one, so it needed a way to hold three groups without
- * reading as three pages stapled together. A heading per group and one grid for
- * the games.
- */
-/* LIGHT page tokens, not dark ones. First attempt used --on-dark and
-   --dark-line, which are the call's palette: on the browser's white page the
-   heading rendered near-white on white. .pg sets #202124, so this matches it. */
-.pg-h2 {
-  font: 500 15px/22px var(--font); color: #202124; margin: 26px 0 12px;
-  padding-bottom: 7px; border-bottom: 1px solid #dadce0;
-}
-.pg-games { display: grid; grid-template-columns: repeat(auto-fill, minmax(232px, 1fr)); gap: 12px; }
-.pg-game {
-  display: flex; flex-direction: column; gap: 4px;
-  background-color: #f1f3f4; border-radius: 8px; padding: 14px;
-}
-/* The tagline is itch.io's own words, so it is set apart from ours. */
-.pg-game-tag { font: 400 12.5px/18px var(--font); color: #5f6368; font-style: italic; }
-.pg-game > span:not(.pg-game-tag):not(.pg-game-play) {
-  font: 400 12.5px/18px var(--font); color: #3c4043;
-}
-.pg-game-play {
-  font: 500 11px/1 var(--font); color: #137333; letter-spacing: .3px;
-  text-transform: uppercase; margin-top: 2px;
-}
-.pg-game .pg-link { text-align: left; }
+/* The group headings and the games grid went with "Things I built" -- N268.
+   They styled the only page that had three groups and a back catalogue. */
 
 /* ================= THE TRAY, AND WHAT IS BEHIND IT ======================= */
 /* The audit's flattest finding: the system tray held two <span>s of text and
@@ -9395,7 +9371,7 @@ body.cc-on .react-clip { bottom: calc(var(--botbar) + var(--cc-band)); }
 }
 .pg-link:hover { color: #174ea6; }
 .pg-link:focus-visible { outline: none; box-shadow: 0 0 0 3px #00639b; border-radius: 2px; }
-.pg-url { color: #80868b; font: 400 11px/16px var(--font); }
+/* .pg-url printed the address under each outbound link on that page -- N268. */
 
 /* --- 10. the build document --------------------------------------------- */
 /*

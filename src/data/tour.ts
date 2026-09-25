@@ -59,7 +59,7 @@ export type Cue =
 
   /** Maximise the browser window inside the shared desktop. */
   | 'maximise'
-  | 'tab:cv' | 'tab:built' | 'tab:work'
+  | 'tab:cv' | 'tab:built'
   /** Open the reaction tray and send the heart, then shut whatever was opened. */
   | 'heart'
   /** Open the chat panel, hold it long enough to be read, then close it again. */
