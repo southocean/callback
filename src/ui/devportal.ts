@@ -30,13 +30,14 @@ import {
 import { bugs as collection, RARITY_LABEL } from '../data/bugs.js';
 import { bugArt } from './bugart.js';
 import { isAdmin, FORGETTABLE, storedCount, forget } from '../prefs.js';
+import { retroView } from './retro.js';
 import {
   challenges, wrongRoasts, rightLines, passedLines, grantedLines, alreadyAdminLines,
   KIND_LABEL, ADMIN_PASSWORD, ADMIN_PASS_MARK, type ChallengeKind,
 } from '../data/admin.js';
 import { ADMIN_CLICKS, ADMIN_HINT_FROM, announceGrant } from './admingate.js';
 
-type Tab = 'overview' | 'process' | 'reviews' | 'board' | 'script' | 'bugs' | 'gate' | 'settings';
+type Tab = 'overview' | 'process' | 'reviews' | 'board' | 'script' | 'bugs' | 'gate' | 'retro' | 'settings';
 
 /*
  * Timeline is gone as a tab and lives inside Overview instead. Nam: "I actually
@@ -86,6 +87,22 @@ const TABS: { id: Tab; label: string; admin?: true }[] = [
    */
   { id: 'bugs', label: 'Collection', admin: true },
   { id: 'gate', label: 'The gate', admin: true },
+  /*
+   * N269. The application log: where the CV went, and what came back.
+   *
+   * CALLED "Retro" ON PURPOSE. Nam asked for "something that doesnt give away
+   * the content, maybe something like Lessons". Lessons is close and still
+   * points at itself; Retro is the word every engineer reads as a sprint
+   * retrospective, it sits naturally between Collection and Settings, and it
+   * describes what the tab is actually for rather than what it is about.
+   *
+   * Behind the gate for a stronger reason than the other three. Scripts and
+   * Collection are hidden because they spoil a game; this one is hidden because
+   * it is nobody else's business which companies said no. Which is also why
+   * there is no data in the repo -- see data/applications.ts, and note that the
+   * grant hides a tab rather than keeping a secret.
+   */
+  { id: 'retro', label: 'Retro', admin: true },
   /*
    * N80. Nam: "add a new settings tab, where we have a button to clear out
    * achivements and clear out bugs, just so we can test out the onboarding
@@ -281,6 +298,7 @@ export function specBody(
       : tab === 'script' ? renderScriptEditor()
       : tab === 'bugs' ? collectionView()
       : tab === 'gate' ? gateView()
+      : tab === 'retro' ? retroView()
       : tab === 'settings' ? settingsView()
       : boardView(),
     );

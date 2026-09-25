@@ -446,6 +446,14 @@ export const FORGETTABLE: Forgettable[] = [
   { key: 'callback.answers', label: 'Interview answers', what: 'which of the eight questions have been heard, and with them the Skip intro control' },
   { key: 'callback.quips', label: 'Commentary heard', what: 'the one-off remarks, so he notices the same things again' },
   { key: 'callback.admin', label: 'Admin access', what: 'the grant behind the hidden tabs. Clearing it puts the gate back on the next load' },
+  /*
+   * N269. Listed here for the same reason as everything else, and with one
+   * extra: this is the only row whose contents exist in exactly one place. The
+   * others can be re-earned by using the site again. Clearing this one loses
+   * the application log for good, so the `what` says so rather than leaving
+   * somebody to find out by pressing it.
+   */
+  { key: 'callback.retro', label: 'Application log', what: 'the Retro tab. It is not backed up anywhere, so copy it out first' },
   { key: SOLVED_KEY, label: 'Gate questions solved', what: 'the correct answers banked toward the twenty that open the gate the long way' },
   /*
    * N189. Only one of the two lanes is remembered -- the walkthrough -- so this

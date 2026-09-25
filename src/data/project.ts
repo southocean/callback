@@ -4696,6 +4696,36 @@ export const tasks: Task[] = [
     },
   },
 
+  {
+    id: 'N269', col: 'review', size: 'M', tag: 'trust',
+    title: 'Retro: the application log, and why none of it is in the repo',
+    note: 'A ninth tab behind the gate. Company, role, CV sent, outcome, and what to do differently.',
+    detail: {
+      why: 'Nam, after the Google rejection: "Add a new tab for the admin page in my CV to keep track of my rejections ... company, position (link to jd), CV (tailored to that job ad), applied or not, have offer or not, and lessons learned ... so I dont make the same mistake again."',
+      done: [
+        'A Retro tab in the dev portal, admin: true, between The gate and Settings',
+        'Table, add and edit form, delete, and Copy / Replace for backups',
+        'Entries live in localStorage under callback.retro. Nothing in the repo or the bundle',
+        'The key is in FORGETTABLE, with a warning that clearing it loses the only copy',
+        'The four coloured status pills are registered in the dead-check DYNAMIC list',
+      ],
+      raised: 'Nam, 25 Sep',
+      notes: 'THE DATA CANNOT LIVE IN THE REPO, AND THE REPO SAYS WHY ITSELF. prefs.ts already states that the admin '
+        + 'grant is "not a security boundary", so a const in a data file would be hidden from the tab strip and from '
+        + 'nothing else: it ships in the bundle, on a site whose whole invitation is to look at how it is built, out of '
+        + 'a public repository. That is acceptable for a CV, which is written to be read, and not for a list of who '
+        + 'said no. So the module carries the shape and the storage and no entries, and the tab says so in its second '
+        + 'paragraph rather than implying a privacy it does not have. The cost is that it lives in one browser, which '
+        + 'is why Copy exists and why the Settings row warns before clearing. '
+        + 'ONE FIELD, NOT TWO BOOLEANS. He asked for "applied or not" and "have offer or not", which can contradict '
+        + 'each other: not applied, has offer. It is a single status instead, from Not sent through to Declined it, so '
+        + 'the impossible states cannot be written down. '
+        + 'AND THE NAME IS DOING WORK. "Lessons" was his suggestion and points at itself. "Retro" is what every '
+        + 'engineer reads as a sprint retrospective, sits unremarkably between Collection and Settings, and describes '
+        + 'what the tab is FOR rather than what it is about.',
+    },
+  },
+
   /* Flagged rather than done. Still true as of this build. */
   { id: 'T24', col: 'backlog', size: 'M', tag: 'specs', title: 'Initial payload is halfway to the ceiling', note: '24.7 kB of a 50 kB gate, up from 18.2. Still green, and the growth is real, but two deferred chunks are 17 kB and 19 kB and deserve a splitting pass before it becomes urgent.' },
 ];

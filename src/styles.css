@@ -9544,6 +9544,83 @@ body.cc-on .react-clip { bottom: calc(var(--botbar) + var(--cc-band)); }
 .rb-clear { flex: 0 0 auto; }
 .rb-clear:disabled { opacity: .45; cursor: default; }
 
+/* --- the Retro tab, the application log -------------------------------- N269
+ *
+ * Its own `rt-` prefix rather than borrowing `rb-`, which is the rule the note
+ * above this block was written to state: two unrelated components sharing one
+ * prefix is a bug waiting for whichever is written second. The rows look alike
+ * and are not the same thing -- one is a list of storage keys, this is a table.
+ *
+ * On the panel's own tokens, so it follows the portal between light and dark
+ * without a second palette to keep in step.
+ */
+.rt-table { display: flex; flex-direction: column; margin-top: 14px; }
+.rt-row {
+  display: grid;
+  grid-template-columns: minmax(96px, 1.1fr) minmax(120px, 1.6fr) 96px 104px 116px auto;
+  gap: 12px; align-items: baseline;
+  padding: 11px 4px; border-bottom: 1px solid var(--dp-line);
+  font: 400 13px/19px var(--font); color: var(--dp-ink2);
+}
+.rt-row > span, .rt-row > a { min-width: 0; overflow-wrap: anywhere; }
+.rt-head {
+  font: 500 11px/16px var(--font); letter-spacing: .06em; text-transform: uppercase;
+  color: var(--dp-ink3); border-bottom-width: 2px;
+}
+.rt-row > span:first-child { font-weight: 500; color: var(--dp-ink); }
+
+/* The status reads at a glance or it is just another column of words. */
+.rt-pill {
+  justify-self: start; border-radius: 999px; padding: 2px 9px;
+  font: 500 11.5px/17px var(--font); background-color: var(--dp-line); color: var(--dp-ink2);
+}
+.rt-row.is-offer .rt-pill { background-color: #c4eed0; color: #072711; }
+.rt-row.is-rejected .rt-pill { background-color: #fadcd6; color: #5c1b12; }
+.rt-row.is-interviewing .rt-pill,
+.rt-row.is-screening .rt-pill { background-color: #fde9c4; color: #4a3200; }
+
+.rt-rowbtns { display: flex; gap: 6px; justify-self: end; }
+
+/* The lessons hang under their row rather than in a cell: they are sentences,
+   and a sentence in a 116px column is a column of single words. */
+.rt-lessons {
+  margin: 0 0 4px; padding: 6px 0 12px 22px;
+  border-bottom: 1px solid var(--dp-line);
+  font: 400 12.5px/19px var(--font); color: var(--dp-ink3);
+}
+.rt-lessons li { margin-bottom: 3px; }
+
+.rt-form {
+  border: 1px solid var(--dp-line); border-radius: 10px;
+  padding: 16px; margin: 12px 0 6px;
+}
+.rt-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px 16px; }
+.rt-field { display: flex; flex-direction: column; gap: 5px; min-width: 0; }
+.rt-field > span { font: 500 12px/17px var(--font); color: var(--dp-ink3); }
+.rt-wide { margin-top: 12px; }
+.rt-in {
+  font: 400 13px/19px var(--font); color: var(--dp-ink);
+  background-color: transparent; border: 1px solid var(--dp-line);
+  border-radius: 7px; padding: 8px 10px; width: 100%;
+}
+.rt-in:focus-visible { outline: none; box-shadow: 0 0 0 3px #00639b; }
+.rt-area { resize: vertical; font-family: var(--font); }
+.rt-actions { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; margin-top: 14px; }
+.rt-restore { margin-top: 22px; }
+.rt-restore summary {
+  cursor: pointer; font: 500 12.5px/18px var(--font); color: var(--dp-ink3);
+  margin-bottom: 8px;
+}
+
+/* The table is six columns of small print, and below about 760 it stops being
+   a table and becomes six columns of single words. Stack it. */
+@media (max-width: 760px) {
+  .rt-row { grid-template-columns: 1fr; gap: 3px; }
+  .rt-head { display: none; }
+  .rt-rowbtns { justify-self: start; margin-top: 6px; }
+  .rt-grid { grid-template-columns: 1fr; }
+}
+
 /* ==================== THE BUG COLLECTION (N59) =========================== */
 /* Rebuilt after Nam's review: "I want this collection frame to be BEAUTIFUL,
    and in the same design language as google meet."

@@ -52,6 +52,10 @@ const DYNAMIC = [
   /^rv-(strong|mixed|risk)$/,
   // ```sc-quip-k is-${qp.kind}``` in scripted.ts -- click quips and event quips.
   /^is-(click|event)$/,
+  // ```rt-row is-${a.outcome}``` in retro.ts -- the application log's status
+  // colour. Only the four that get one are styled; draft, applied and declined
+  // fall back to the neutral pill, which is why they are not in this pattern.
+  /^is-(offer|rejected|interviewing|screening)$/,
   // ```sc-tick${... ' is-partstart' : ''}``` in scripted.ts -- the first line of
   // a part, which is the row that carries the segment's label and rule.
   /^is-partstart$/,
