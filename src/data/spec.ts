@@ -141,18 +141,23 @@ export const method = {
     'Substituted a system font stack for Google Sans, which is not distributable. Shapes and spacing are exact; the typeface is the nearest thing already on your machine.',
   ],
   /*
-   * N264. This said "there is no Google wordmark or logo anywhere", which is the
-   * same checkable lie N133 struck out of the call panel and which survived
-   * here. The build opens on the Google sign-in and draws the Meet camera mark,
-   * so the sentence was false on the first screen a visitor sees.
+   * THE `honest` PARAGRAPH IS GONE -- board ticket N264.
    *
-   * Nam settled the underlying question then: "We do, and I am taking that risk
-   * okay." What was never acceptable is the page claiming otherwise, because a
-   * false line in the one paragraph headed "honest" is worse than no paragraph.
+   * It said "there is no Google wordmark or logo anywhere", which was the same
+   * checkable lie N133 struck out of the call panel, surviving in a second
+   * place, about a build that opens on the Google sign-in and draws the Meet
+   * camera mark.
+   *
+   * Rewritten first, to name both marks instead of denying them. Nam: "remove
+   * it then" -- and he is right that the rewrite was the worse of the two fixes.
+   * The paragraph existed to disclaim, and a disclaimer nobody needs is the same
+   * legal throat-clearing N23 removed from the CV footer. Its only other claim,
+   * the substituted typeface, is already step five of the list above it, so
+   * deleting the paragraph loses no fact.
+   *
+   * What the marks are and why they are used is in the README, at length, to a
+   * reader who chose to read about the build. That is where a caveat belongs.
    */
-  honest:
-    'Two marks are used and not recreated: the Google sign-in and the Meet camera. Everything else is drawn here, ' +
-    'and the typeface is a substitute, because Google Sans is not distributable. Those are choices, not gaps.',
 };
 
 export const stats = {

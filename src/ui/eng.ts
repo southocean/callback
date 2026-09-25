@@ -183,7 +183,6 @@ function specView(quests: Quests): HTMLElement {
 
     h('div', { class: 'shead' }, method.title),
     h('ol', { class: 'actions-list' }, ...method.steps.map((s) => h('li', {}, s))),
-    h('p', { class: 'fx-warn' }, method.honest),
   );
 }
 
