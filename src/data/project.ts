@@ -4726,6 +4726,33 @@ export const tasks: Task[] = [
     },
   },
 
+  {
+    id: 'N270', col: 'review', size: 'S', tag: 'trust',
+    title: 'The application log goes into the repo after all',
+    note: 'He was asked to accept a constraint he does not have. Committed entries, browser holds the working copy.',
+    detail: {
+      why: 'Nam, on the reasoning for keeping the entries out of the repo: "no this is fine too, I dont care. I just want to keep track and has no problem with privacy."',
+      done: [
+        'SEED in data/applications.ts holds the Google and TV4 entries',
+        'readLog falls back to it when the browser has no working copy',
+        'An empty array in storage is honoured, so deleting every entry sticks',
+        'The tab and both file headers say plainly that anyone can read this',
+      ],
+      raised: 'Nam, 25 Sep',
+      notes: 'THE ANALYSIS WAS RIGHT AND THE CONCLUSION WAS NOT MINE TO DRAW. Everything in the first version is still '
+        + 'true: the admin grant is not a security boundary, the entries ship in the bundle, the repo is public. What '
+        + 'was wrong was treating "this will be visible" as "this must be prevented". It is his rejection list and he '
+        + 'does not mind who sees it, which makes the whole objection moot and the localStorage-only design a cost '
+        + 'with nothing bought: the log lived in one browser and vanished with site data. '
+        + 'SO THE FILE IS THE BACKUP AND THE BROWSER IS THE DRAFT, with one rule stated in both places so the two '
+        + 'sources cannot quietly disagree: localStorage wins while it exists. A browser with no key starts from the '
+        + 'file; a browser holding an EMPTY ARRAY is somebody who deleted everything, and that is honoured rather '
+        + 'than refilled, because silently restoring what a person just deleted is worse than losing it. '
+        + 'The honesty moved rather than went: the tab says anyone can read the committed entries instead of implying '
+        + 'a privacy the gate does not provide.',
+    },
+  },
+
   /* Flagged rather than done. Still true as of this build. */
   { id: 'T24', col: 'backlog', size: 'M', tag: 'specs', title: 'Initial payload is halfway to the ceiling', note: '24.7 kB of a 50 kB gate, up from 18.2. Still green, and the growth is real, but two deferred chunks are 17 kB and 19 kB and deserve a splitting pass before it becomes urgent.' },
 ];

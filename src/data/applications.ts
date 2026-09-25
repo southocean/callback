@@ -1,32 +1,34 @@
 // The application log: what was sent where, and what it taught.
 //
-// Board ticket N269. Nam: "this page will keep track of my applications and what
-// I can learn from it, so I dont make the same mistake again."
+// Board ticket N269, revised by N270. Nam: "this page will keep track of my
+// applications and what I can learn from it, so I dont make the same mistake
+// again."
 //
 // ---------------------------------------------------------------------------
-// THERE IS NO DATA IN THIS FILE, AND THAT IS THE DESIGN.
+// THE ENTRIES ARE IN THE REPO, AND THAT WAS HIS CALL TO MAKE.
 //
-// The obvious build puts the entries in a const here, renders them behind the
-// admin tab and calls it private. It would not be private by any reading:
+// The first build kept them out of it. The reasoning was that prefs.ts says the
+// admin grant is "not a security boundary", so a const here is hidden from the
+// tab strip and from nothing else: it ships in the bundle, on a site that
+// invites people to read its source, out of a public repository. Which is all
+// still true. It just is not a problem:
 //
-//   - prefs.ts says so itself about the grant. "Not a security boundary ...
-//     Anyone who opens devtools can write thirty ids into it." A client-side
-//     gate hides a tab, not a string.
-//   - the entries would be in the shipped bundle, so they are one view-source
-//     away on a site whose whole invitation is "look at how this is built".
-//   - this repository is public. A committed line reading "Google, rejected,
-//     did not meet minimum requirements" is published the moment it lands.
+//   Nam: "no this is fine too, I dont care. I just want to keep track and has
+//   no problem with privacy."
 //
-// Every one of those is fine for a CV, which is a document meant to be read,
-// and none of them are fine for a list of rejections. So the entries live in
-// localStorage on Nam's own machine, this module carries only the shape and the
-// reading and writing of it, and nothing about where he applied is ever in the
-// repo, the bundle or the deployed site.
+// So the reader should know what they are looking at rather than assume a
+// privacy this does not have: ANYONE CAN READ THIS. It is in the public repo
+// and in the shipped JavaScript. Write entries on that basis.
 //
-// The cost is real and worth stating: it lives in one browser. Clearing site
-// data loses it, which is why the tab has Copy and Paste controls and why the
-// Settings tab lists the key. A backup is one click and belongs wherever he
-// keeps things, not here.
+// WHAT THE FILE IS FOR, now that it holds data. It is the seed and the backup.
+// The tab edits a working copy in localStorage so an entry can be added in ten
+// seconds without a rebuild; this array is what a browser with no working copy
+// starts from, which is also what survives clearing site data, a new machine
+// and a new browser. The tab's Copy control emits the whole log as JSON to
+// paste back in here when it is worth committing.
+//
+// Two sources needs one rule, so here it is: LOCALSTORAGE WINS WHILE IT EXISTS.
+// The file is where the log is kept; the browser is where it is being edited.
 
 /** Where an application has got to. One field, because two booleans lie. */
 export type Outcome = 'draft' | 'applied' | 'screening' | 'interviewing' | 'rejected' | 'offer' | 'declined';
@@ -64,6 +66,46 @@ export interface Application {
   lessons: string[];
 }
 
+/**
+ * The log as committed. See the note at the top: this is the seed and the
+ * backup, and the browser holds the working copy.
+ */
+export const SEED: Application[] = [
+  {
+    id: 'a-google',
+    company: 'Google',
+    role: 'Software Engineer III, Google Meet Web Experiences',
+    url: '',
+    cv: '',
+    applied: '2026-09-21',
+    outcome: 'rejected',
+    lessons: [
+      'Rejected as not meeting the minimum requirements, which on paper he does. Worth treating as a keyword result rather than a judgement, because every minimum was met.',
+      'THE PDF NEVER SAYS HOW MANY YEARS. The one sentence that does, the summary line, is hidden from print by @media print in styles.css. For a requirement written in years, that is the wrong thing to cut.',
+      'No literal "Bachelor" or "Master" anywhere. The PDF says BS and MSc, and a filter looking for the word finds neither.',
+      'No "Software Engineer" as a job title. Every title on the CV reads Lead front-end developer or C++ developer.',
+      'No HTML, CSS, Node, Git, CI/CD or REST anywhere in the PDF, on an application for a web client role.',
+      'The skills tags on the application form were missing React and any front-end discipline tag until the day of sending.',
+      'The PDF itself is machine-readable: 2434 characters extract cleanly with a real parser. The problem was what it said, not whether it could be read.',
+    ],
+  },
+  {
+    id: 'a-tv4',
+    company: 'TV4',
+    role: 'Sr. Fullstack Engineer, Frontend and Content Experience',
+    url: 'https://jobb.tv4.se/jobs/8259879-sr-fullstack-engineer-frontend-content-experience',
+    cv: 'tv4',
+    applied: '',
+    outcome: 'draft',
+    lessons: [
+      'Carry the literal phrases from the ad: React, TypeScript, frontend architecture, performance optimisation, backend development, API integration, cloud.',
+      'State the years in words, not only as date ranges.',
+      'Lead with the agentic tooling. Their stack names Claude Code and OpenAI Codex, and building the harness is rarer than using the tool.',
+      'The gap to answer directly rather than hope nobody asks: cloud. It is a required qualification and nothing on the CV mentions it.',
+    ],
+  },
+];
+
 const KEY = 'callback.retro';
 
 /**
@@ -77,7 +119,10 @@ const KEY = 'callback.retro';
 export function readLog(): Application[] {
   try {
     const raw = localStorage.getItem(KEY);
-    if (!raw) return [];
+    // No working copy: start from the file. An empty ARRAY in storage is a
+    // different thing from no key at all, and means he deleted every entry,
+    // so that is honoured rather than silently refilled from the seed.
+    if (raw === null) return SEED.map((a) => ({ ...a, lessons: [...a.lessons] }));
     const parsed: unknown = JSON.parse(raw);
     if (!Array.isArray(parsed)) return [];
     return parsed.filter((x): x is Application => !!x && typeof x === 'object' && 'company' in x);

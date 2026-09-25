@@ -6,8 +6,8 @@
 // strip nothing at all. Every engineer reads it as a sprint retrospective.
 //
 // A table, a form, and two clipboard controls. No framework, same as everything
-// else here, and the whole of it reads and writes one localStorage key. See
-// data/applications.ts for why the entries are not in the repo.
+// else here. It edits a working copy in localStorage; the committed entries are
+// the seed in data/applications.ts, and that file has the note on which wins.
 
 import { h, clear } from '../dom.js';
 import {
@@ -195,10 +195,10 @@ export function retroView(): HTMLElement {
       + 'point of the page: a rejection with nothing written next to it is a thing that happened '
       + 'rather than a thing learned.'),
     h('p', { class: 'dp-note' },
-      'This lives in your browser and nowhere else. It is not in the repository, not in the '
-      + 'bundle and not on the deployed site, because the admin gate hides a tab rather than '
-      + 'keeping a secret and this repo is public. The trade is that clearing site data loses it, '
-      + 'so keep a copy somewhere with the button below.'),
+      'Committed entries live in data/applications.ts and this browser holds the working copy, '
+      + 'which wins while it exists. Anyone can read the committed ones: they are in a public '
+      + 'repo and in the shipped JavaScript, and the admin gate hides a tab rather than keeping '
+      + 'a secret. Copy the log to get JSON to paste back into that file.'),
     h('div', { class: 'rt-actions' },
       h('button', {
         class: 'm-btn m-filled', type: 'button',
