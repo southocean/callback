@@ -140,9 +140,19 @@ export const method = {
     'Rebuilt every glyph as an inline SVG path. The real icon font would be a third-party request, and this project makes none.',
     'Substituted a system font stack for Google Sans, which is not distributable. Shapes and spacing are exact; the typeface is the nearest thing already on your machine.',
   ],
+  /*
+   * N264. This said "there is no Google wordmark or logo anywhere", which is the
+   * same checkable lie N133 struck out of the call panel and which survived
+   * here. The build opens on the Google sign-in and draws the Meet camera mark,
+   * so the sentence was false on the first screen a visitor sees.
+   *
+   * Nam settled the underlying question then: "We do, and I am taking that risk
+   * okay." What was never acceptable is the page claiming otherwise, because a
+   * false line in the one paragraph headed "honest" is worse than no paragraph.
+   */
   honest:
-    'Two things are deliberately not faithful: there is no Google wordmark or logo anywhere, and the typeface is a ' +
-    'substitute. Both are choices, not gaps, an homage should not ship someone else’s trademark.',
+    'Two marks are used and not recreated: the Google sign-in and the Meet camera. Everything else is drawn here, ' +
+    'and the typeface is a substitute, because Google Sans is not distributable. Those are choices, not gaps.',
 };
 
 export const stats = {

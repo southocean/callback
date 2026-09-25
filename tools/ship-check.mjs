@@ -69,9 +69,22 @@ const ABSENT = [
   },
 ];
 
+/*
+ * ONE ASSERTION LEFT THIS LIST IN N264, WHICH IS THE MOVE THIS FILE MAKES HARD
+ * ON PURPOSE. It held Nam's referral blurb -- "Always very extra in all the
+ * right ways" -- against the built bundle, so nobody could quietly drop a line
+ * he had written himself.
+ *
+ * It is gone because the thing it guarded is gone: the referral, the blurb and
+ * the Copy button all came out when the application closed. A PRESENT assertion
+ * for copy that no longer exists fails forever, and a gate that always fails is
+ * a gate somebody switches off.
+ *
+ * Deleting an assertion is only honest when the FEATURE went, not when the
+ * assertion became inconvenient. That is the test to apply to the next one.
+ */
 const PRESENT = [
   { text: 'Live transcription', why: 'N129. The chat panel’s switch.' },
-  { text: 'Always very extra in all the right ways', why: 'N130. Nam’s own referral copy.' },
 ];
 
 /* The board quotes Nam's instructions verbatim, including the copy those

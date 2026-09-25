@@ -597,7 +597,7 @@ export function renderHome(store: Store, reducedMotion = false, body?: HTMLEleme
    * that implication -- you have to type a code or already be in the green room
    * to reach either -- and rewording them would cost the likeness for nothing.
    */
-  const CARD_CTA = 'Click me';
+  const CARD_CTA = 'Click Me';
 
   const interviewCard = (): HTMLElement => h(
     'button',

@@ -176,13 +176,32 @@ export function buildRail(store: Store, bugs: Bugs | undefined, opts: RailOpts =
       h('span', { class: 'rail-pill' }, sym('event', 24, { fill: true })),
       h('span', { class: 'rail-label' }, 'Meetings'),
     ),
+    /*
+     * CALLS IS A BUTTON THAT GOES NOWHERE, ON PURPOSE -- board ticket N264.
+     *
+     * The screen behind it was a contact picker for one referral, and with the
+     * referral gone it is an empty picker: a heading, a search field over
+     * nothing, and no way forward. Nam: "we can keep the calls tab but don't
+     * process the click event from the main tab, so basically we still have the
+     * calls tab button, fully clickable, but it doesnt do anything."
+     *
+     * His call, and it is the right side of a real trade. Meet has a Calls tab
+     * and removing it costs the likeness; keeping the route costs the visitor a
+     * dead end they have to find their own way out of. A control that presses,
+     * ripples and stays put is the smaller of the two.
+     *
+     * NOT `disabled`, and that is the whole of the implementation note. A
+     * disabled button loses its state layer, drops out of the tab order and is
+     * announced as unavailable -- three visible changes to a clone of a control
+     * that is none of those things. It keeps every affordance and simply has
+     * nothing wired to it.
+     */
     h(
       'button',
       {
         class: 'rail-item',
         type: 'button',
         'aria-current': 'false',
-        onclick: () => store.dispatch({ t: 'screen', screen: 'calls' }),
       },
       h('span', { class: 'rail-pill' }, sym('call', 24)),
       h('span', { class: 'rail-label' }, 'Calls'),

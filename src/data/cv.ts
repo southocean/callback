@@ -520,32 +520,17 @@ export function segments(text: string, links: Mention[] = []): { text: string; h
  * document is addressed to somebody else.
  */
 
-/** For the friend who has to put his name on it (review H4, R2, R5). Fact-only. */
 /*
- * FOUR LINES, AND NAM WROTE THEM - board ticket N130.
+ * THE REFERRAL BLURB IS GONE -- board ticket N264.
  *
- * The version this replaces was nine lines and listed seven years, two years of
- * C++, an MSc, four years of research, two publications, a book chapter, an
- * award, three semesters of teaching, a language level and a commute. Every
- * clause was true and checkable, which is exactly what it was optimised for
- * under review R5, and it read like a form because a form is what it was written
- * against.
+ * Four lines in Nam's own voice, written for a friend to paste into one
+ * company's referral form, with a Copy button beside them in the call.
  *
- * Nam: "I think this is waaaay too long and boring. Let's shorten it a lot more
- * and let this CV speak for itself." He is right about the audience. A referral
- * is a favour asked of a person who already knows him, pasted into a box by
- * somebody doing him a kindness at an awkward hour; it does not need to
- * re-litigate the CV sitting one link away.
- *
- * Note what that trades. The old blurb could be defended sentence by sentence
- * because every sentence was a fact. "Always very extra in all the right ways"
- * is a characterisation, and it is his to make about himself in his own voice.
- * The link is what carries the evidence now, which is the whole argument for
- * making it short.
+ * It outlived the referral by a week and the application by a day. A referral
+ * blurb cannot be made generic: the whole form of it is one named person
+ * vouching to one named employer, and with neither of those it is just a
+ * paragraph of self-description sitting where a reader expected a reason.
  */
-export const referralBlurb =
-  'Nam Nguyen, Uppsala. Seven years as lead front-end developer. Always very extra in all the right ways. ' +
-  'His CV is a proof of that, an homage to Google Meet: ';
 
 export const meta = {
   siteName: 'Callback',

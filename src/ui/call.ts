@@ -24,7 +24,7 @@ import type { MenuItem } from './gm3.js';
 import type { IconName } from './icons.js';
 import type { Store, Panel } from '../state.js';
 import { clock } from '../state.js';
-import { profile, pitch, roles, referralBlurb, SITE } from '../data/cv.js';
+import { profile, pitch, roles } from '../data/cv.js';
 import { visitorAvatar, VISITOR_NAME } from './avatar.js';
 import { renderChat, renderPeople, renderPresent, renderAbout } from './panels.js';
 import { renderOffClock } from './offclock.js';
@@ -2628,24 +2628,19 @@ function sessionRow(): HTMLElement {
 
 /* No `store` parameter any more: the one dispatch in here was the plain route,
    and the CV opens as an overlay now (N54). */
+/*
+ * THE "FOR MY REFERRER" BLOCK IS GONE -- board ticket N264.
+ *
+ * It was a heading, a paragraph beginning "A friend on the Meet team offered to
+ * refer me", a pre-written blurb and a Copy button, all for one person to paste
+ * into one company's referral form. That application is over.
+ *
+ * The paragraph is the reason this could not just be reworded: it named the
+ * team. A generic version of a referral note is a note for nobody, and the two
+ * things underneath it -- the PDF and the document -- were always the parts a
+ * reader actually used.
+ */
 function hostControls(): HTMLElement {
-  const url = SITE;
-  const text = referralBlurb + url;
-  const copy = h(
-    'button',
-    {
-      class: 'mbtn fill',
-      type: 'button',
-      onclick: () => {
-        void navigator.clipboard?.writeText(text).then(
-          () => (copy.textContent = 'Copied'),
-          () => (copy.textContent = 'Select it by hand, clipboard blocked'),
-        );
-      },
-    },
-    'Copy',
-  );
-
   return h(
     'div',
     {},
@@ -2658,15 +2653,6 @@ function hostControls(): HTMLElement {
      */
     h('div', { class: 'shead' }, 'This session'),
     sessionRow(),
-    h('div', { class: 'shead' }, 'For my referrer'),
-    h(
-      'p',
-      { class: 'pnote' },
-      'A friend on the Meet team offered to refer me, which is generous and is the reason this exists at all, the ' +
-        'work is still mine to defend.',
-    ),
-    h('div', { class: 'relevance', style: 'font-size:12.5px' }, text),
-    h('div', { style: 'margin:12px 0 4px' }, copy),
     h('div', { class: 'shead' }, 'Take it away with you'),
     h(
       'div',

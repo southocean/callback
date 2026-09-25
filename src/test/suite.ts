@@ -358,20 +358,6 @@ suite('content integrity', () => {
     ok(!pitchFor(codeFromUrl('?c=' + NEUTRAL_CODE)).named, 'the neutral pitch named an employer');
   });
 
-  test('the referral blurb carries no superlatives', async () => {
-    /*
-     * Review R5 asked for fact-only, because the friend has to defend every
-     * sentence. N130 relaxed that deliberately: the blurb is four lines in Nam's
-     * own voice now and one of them is a characterisation, which is his to make.
-     * What the gate still holds is the narrower and more useful line - the words
-     * that read as somebody else's marketing copy pasted into a referral form.
-     */
-    const { referralBlurb } = await import('../data/cv.js');
-    // 'best-paper award' is an award's name, not self-description, so it is exempt.
-    const banned = /\b(best(?![- ]paper)|amazing|incredible|world[- ]class|rockstar|ninja|guru|exceptional|brilliant)\b/i;
-    ok(!banned.test(referralBlurb), 'a superlative crept into the referral blurb');
-  });
-
   test('every measured token names where it came from', async () => {
     const { surfaces, geometry } = await import('../data/spec.js');
     for (const t of [...surfaces.tokens, ...geometry.tokens]) {
@@ -424,7 +410,6 @@ suite('content integrity', () => {
       import('../data/contacts.js'),
       import('../data/companies.js'),
       import('../data/project.js'),
-      import('../data/story.js'),
     ]);
     const blob = mods.map((m) => JSON.stringify(m)).join(' ');
     ok(!/wasabiproductions/i.test(blob), 'the current work address leaked into the public build');
