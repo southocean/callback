@@ -4563,6 +4563,43 @@ export const tasks: Task[] = [
     },
   },
 
+  {
+    id: 'N263', col: 'review', size: 'L', tag: 'content',
+    title: 'The CV stops applying to anybody',
+    note: 'The target, the referral, the requirement tab and the personal segment all come out. The rebuild stays.',
+    detail: {
+      why: 'Nam, rejected: "strip off all mentioning of applying to google. Its okay to say we recreate google meet UI, just a fun thing to do as a front end dev ... We make this a generic CV, not tailored to any specific job."',
+      done: [
+        'companies.ts is empty and the default code is neutral, so a bare link names nobody',
+        'The header states the role instead of a target: no "applying for" anywhere',
+        'The referral is out of contacts.ts, and the Calls empty state stops promising one',
+        'The job-requirement tab, its page, its Explorer row, its favicon and its CSS are gone',
+        'The requirement map is deleted; it was only ever true against one posting',
+        'The personal segment is gated off behind TELL_STORY, content intact',
+        'The media player closes on the sign-off line, via a data-win hook on the window',
+        'Six script lines rewritten or cut to Nam\u2019s wording',
+      ],
+      raised: 'Nam, 25 Sep',
+      notes: 'THE GATE EARNED ITS KEEP THREE TIMES IN ONE PASS. Thirteen tests failed, and not one of them was noise. '
+        + 'Removing a part broke every test that used jobreq as a sample id, which is the suite noticing that a running '
+        + 'order changed. The dead-CSS check found the requirement-list rules still styled after their page was deleted. '
+        + 'And the hand-over threshold turned out to be derived rather than chosen: QUEUE_HANDOVER means "the visitor has '
+        + 'queued every part that is not on air", which was five of six and is now four of five. Left at five it could '
+        + 'never trip, so a safety valve would have been quietly dead. The test comment had said "spelled out so the test '
+        + 'fails loudly if the threshold moves" -- and that is exactly how it was caught. '
+        + 'ONE FAILURE WAS MINE AND THE SUITE WAS RIGHT TO REJECT IT. The personal segment was first gated inside the '
+        + 'reducer, which made eleven true statements about the reducer start failing. The reducer answers "if asked, do '
+        + 'this"; the decision not to ask belongs to the stage. Moved there, every one of those tests passed again '
+        + 'untouched, and the segment is still fully covered for whenever it is switched back on. '
+        + 'GATED, NOT DELETED, for the eight answers and for the whole company module. The answers are the best writing '
+        + 'in the script; the module is how the next targeted send gets built. Emptying the data and keeping the '
+        + 'machinery costs nothing and is one object away from working again. '
+        + 'AND THE CLICK POSITIONS DID NOT NEED ADJUSTING, which Nam expected they would. The hand presses tabs by '
+        + 'selector and Explorer rows by their text, both resolved at beat time, so removing one tab moves nothing. That '
+        + 'is the N79 decision -- prefer selectors over coordinates -- paying out two hundred tickets later.',
+    },
+  },
+
   /* Flagged rather than done. Still true as of this build. */
   { id: 'T24', col: 'backlog', size: 'M', tag: 'specs', title: 'Initial payload is halfway to the ceiling', note: '24.7 kB of a 50 kB gate, up from 18.2. Still green, and the growth is real, but two deferred chunks are 17 kB and 19 kB and deserve a splitting pass before it becomes urgent.' },
 ];

@@ -50,27 +50,42 @@ export interface Company {
  */
 export const NEUTRAL = {
   employer: '',
-  role: 'Software Engineer, Front End',
+  role: 'Lead front-end developer',
   place: '',
-  target: 'Software Engineer, Front End',
-  meeting: 'Interview for Software Engineer, Front End',
-  opener: "Hi. I'm Nam, I live in Uppsala, and I am applying for a front-end web development role.",
+  /*
+   * NOT "applying for" ANY MORE -- board ticket N263.
+   *
+   * Nam, after the Google rejection: "strip off all mentioning of applying to
+   * google ... We make this a generic CV, not tailored to any specific job."
+   *
+   * So the line under the name states what he IS rather than what he wants. A
+   * CV that announces a target is dated the moment that target closes, and this
+   * one outlived its target by about a week. What it says now is true on any
+   * day it is opened, which is the only property worth having in a document
+   * that gets forwarded.
+   */
+  target: 'Lead front-end developer, Uppsala',
+  meeting: "Nam Nguyen's interactive CV",
+  opener: "Hi. I'm Nam, a lead front-end developer in Uppsala. Thanks for taking a look.",
 } as const;
 
 export const companies: Company[] = [
-  {
-    code: '1',
-    label: 'Google Meet, Stockholm',
-    employer: 'Google',
-    role: 'Software Engineer III, Google Meet Web Experiences',
-    place: 'Stockholm',
-    target: 'Software Engineer III, Google Meet, Stockholm',
-    meeting: 'Interview for Software Engineer III at Google Meet, Stockholm',
-    opener: "Hi. I'm Nam, I live in Uppsala, and I want the Google Meet Web Experiences role in Stockholm.",
-    notes:
-      'The original target, and the reason the whole site is a rebuild of Meet. This is the only code where ' +
-      'naming the product is an asset rather than a liability.',
-  },
+  /*
+   * EMPTY BY DECISION -- board ticket N263.
+   *
+   * This held one entry, Google Meet in Stockholm, and that application closed
+   * with a rejection. Nam: "strip off all mentioning of applying to google ...
+   * We make this a generic CV, not tailored to any specific job."
+   *
+   * THE MACHINERY STAYS AND THE CONTENT GOES, which is the whole shape of this
+   * change. Every renderer already resolves its employer-specific line through
+   * pitchFor(), so an empty list is a working state rather than a broken one:
+   * everything falls back to NEUTRAL, which is now written to be true on any
+   * day by anyone. Adding the next target back is one object in this array.
+   *
+   * Deleting the machinery instead would have been the expensive version of the
+   * same afternoon, and would have to be rebuilt for the next send.
+   */
 ];
 
 /** The resolved copy for a code, falling back to the neutral version. */
@@ -133,12 +148,22 @@ export const NEUTRAL_CODE = '0';
  * employer's requirements. That is T7 on the board, and this closes it from the
  * other end.
  */
-export const DEFAULT_CODE = '1';
+/*
+ * NO DEFAULT TARGET ANY MORE -- N263 reverses N66.
+ *
+ * N66 made the Google code the default because "the reuse is hypothetical and
+ * the Google application is not". Both halves of that have now flipped: the
+ * application is over, and the reuse is the only thing left. So an absent ?c=
+ * means what it originally meant, which is that this CV is not addressed to
+ * anybody in particular.
+ */
+export const DEFAULT_CODE = '';
 
 export function codeFromUrl(search: string): string | null {
   const v = new URLSearchParams(search).get('c');
   if (v === NEUTRAL_CODE) return null;
-  return v && companyByCode(v) ? v : DEFAULT_CODE;
+  const fallback = DEFAULT_CODE || null;
+  return v && companyByCode(v) ? v : fallback;
 }
 
 /**

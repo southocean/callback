@@ -129,7 +129,16 @@ export function nextScripted(s: TourState): Part | null {
  * to stop narrating it.
  */
 export const QUEUE_BRIEF = 3;
-export const QUEUE_HANDOVER = 5;
+/*
+ * FOUR, NOT FIVE, SINCE N263 -- and the number is derived rather than picked.
+ *
+ * This is "the visitor has queued every part that is not currently on air",
+ * which was five when there were six parts. Removing the job-requirement part
+ * made it four. Left at five it would never trip at all, because there are no
+ * longer five other parts to ask for, and a hand-over that cannot happen is a
+ * visitor being narrated at while they are plainly trying to explore.
+ */
+export const QUEUE_HANDOVER = 4;
 
 export function registerFor(queueLength: number): Register {
   return queueLength >= QUEUE_BRIEF ? 'brief' : 'commentary';

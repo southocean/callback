@@ -86,8 +86,8 @@ export function renderCalls(_o: CallsOpts): HTMLElement {
   const input = h('input', {
     type: 'text',
     class: 'calls-input',
-    placeholder: 'Search my referral',
-    'aria-label': 'Search my referral',
+    placeholder: 'Search my references',
+    'aria-label': 'Search my references',
     autocomplete: 'off',
     role: 'combobox',
     'aria-expanded': 'false',
@@ -380,12 +380,13 @@ export function renderCalls(_o: CallsOpts): HTMLElement {
     band,
     h('div', { class: 'calls-empty' },
       h('div', { class: 'calls-art', 'aria-hidden': 'true' }, art()),
-      h('h1', { class: 'calls-h' }, 'Connect with someone who knows the work'),
+      h('h1', { class: 'calls-h' }, 'No references listed yet'),
       h('p', { class: 'calls-s' },
         /* Nam: "All these texts are very professional. Maybe one of them can be
            more playful, maybe the second line." The heading carries the serious
            claim, so the line under it does not have to. */
-        'A reference beats a claim, and he did volunteer. There is also an interview sitting on the Meetings tab, ' +
+        'A reference beats a claim, so this is the place for one, once somebody has said yes to appearing here. ' +
+        'There is also an interview sitting on the Meetings tab, ' +
         'already running, with one participant looking at his watch.'),
       /*
        * The referral note button is gone. Nam: "The referral note may not be very

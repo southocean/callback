@@ -1796,7 +1796,6 @@ export function renderCall(store: Store, quests: Quests, deps: CallDeps, bugs: B
     // always the honest destination for a file called spec anyway.
     if (id === 'spec') { store.dispatch({ t: 'engTab', tab: 'spec' }); return; }
     if (id === 'hobby' || id.startsWith('vid:')) { store.dispatch({ t: 'panel', panel: 'offclock' }); return; }
-    if (id === 'jobad') { store.dispatch({ t: 'panel', panel: 'about' }); return; }
     openPlain();
   }
 

@@ -5450,23 +5450,9 @@ body.has-panel .reaction, body.has-panel .reaction-who { left: 0; }
  * different things -- a CARD is a thing, a ROW is an entry in a list -- and the
  * row keeps its 3px blue rule. Everything else is common.
  */
-.pg-reqs { list-style: none; margin: 0; padding: 0; display: grid; gap: 10px; }
-.pg-req { display: flex; gap: 12px; align-items: flex-start; }
-.pg-req b { display: block; font: 500 13px/18px var(--font); }
-.pg-req span span { color: #5f6368; font: 400 12.5px/18px var(--font); }
-.pg-tick {
-  flex: 0 0 18px; width: 18px; height: 18px; border-radius: 50%; text-align: center;
-  font: 700 11px/18px var(--font); background-color: #c4eed0; color: #072711;
-}
-/* The honest rows get a different mark, because a tick on a requirement he only
-   partly meets would be the one dishonest pixel on the whole page.
- *
- * The rule to do that was described in this comment and never written, so every
- * `~` was sitting on the same green as every `✓` and the distinction the tilde
- * exists to draw was invisible. Amber from the same family the mic-warning chip
- * uses, and #653b00 rather than a lighter ink because 11px bold has to clear
- * contrast on a 4.5:1 basis, not a 3:1 one. */
-.pg-req.is-honest .pg-tick { background-color: #feefc3; color: #653b00; }
+/* The requirement-list rules went with the page that used them -- N263. The
+   tick, the amber tilde for an admitted gap, and the row layout were all for
+   "Against the job requirement", which is gone with the posting it answered. */
 
 .pg-cards { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
 .pg-card { background-color: #f1f3f4; border-radius: 8px; padding: 14px; }

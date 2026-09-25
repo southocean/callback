@@ -42,7 +42,7 @@
 import { h } from '../dom.js';
 import { prefersReducedMotion } from '../a11y.js';
 import {
-  parts, story, acks, asides, backTo, opener, resumeAt, askQuestion,
+  parts, story, TELL_STORY, acks, asides, backTo, opener, resumeAt, askQuestion,
   banter, outroOpen, outroClose, outroTease, outroAllFound,
   OUTRO_GAPS, OUTRO_COUNT_SLOT, BANTER_SLOTS,
   type Beat, type Line, type Surface,
@@ -324,7 +324,7 @@ export function startTour(root: HTMLElement, podium: Podium): TourHandle {
    * the only thing left to want is out. So it swaps, once, and never back.
    */
   const heardAtStart = heardAnswers();
-  let skipOffered = heardAtStart.length > 0 && heardAtStart.length < story.length;
+  let skipOffered = TELL_STORY && heardAtStart.length > 0 && heardAtStart.length < story.length;
   const stopBtn = h('button', {
     class: 'tour-stop', type: 'button',
     'aria-label': skipOffered ? 'Skip the walkthrough and go to the questions' : 'Stop him talking',
@@ -1214,6 +1214,7 @@ export function startTour(root: HTMLElement, podium: Podium): TourHandle {
     if (cue === 'chat') return showChat();
     if (cue.startsWith('zoom:')) return doZoom(Number(cue.slice(5)) || 1);
     if (cue === 'maximise') return doMaximise();
+    if (cue === 'shutplayer') { await pressSel('.shot .wx[data-win="player"] .wx-close', true); return; }
     if (cue === 'files') { await openFiles(); return; }
     if (cue === 'eggs') return doEggs();
     if (cue === 'park') { await hand.park(); return; }
@@ -2392,7 +2393,10 @@ export function startTour(root: HTMLElement, podium: Podium): TourHandle {
     }
     if (quiet < SETTLE_MS) settled = false;
     const still = now - Math.max(visitor.lastInput, flowEndedAt);
-    if (!paused && !pauseWanted && still >= STORY_MS && tour.mode === 'finished' && !tour.told && passive(visitor, now)) {
+    // TELL_STORY is the gate (see data/tour.ts). The reducer still knows how to
+    // run the segment and the suite still covers it; this is the only thing that
+    // used to ask, and it no longer does.
+    if (TELL_STORY && !paused && !pauseWanted && still >= STORY_MS && tour.mode === 'finished' && !tour.told && passive(visitor, now)) {
       tour = reduceTour(tour, { t: 'tell' });
       if (tour.mode === 'telling') void tell();
     }

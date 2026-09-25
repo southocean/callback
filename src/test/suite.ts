@@ -44,7 +44,7 @@ import { eggs as allEggs } from '../data/eggs.js';
 import { eggs, eggMap, weekendMark, lastWeekendMark, key as dayKey, type Egg } from '../data/eggs.js';
 import { VISIBLE_QUESTS, board as questBoard } from '../data/quests.js';
 import { bugs as bugList, bugById, BUG_COUNT } from '../data/bugs.js';
-import { codeFromUrl, pitchFor, DEFAULT_CODE, NEUTRAL_CODE } from '../data/companies.js';
+import { codeFromUrl, pitchFor, NEUTRAL_CODE } from '../data/companies.js';
 
 export interface Result {
   suite: string;
@@ -321,30 +321,40 @@ suite('content integrity', () => {
   });
 
   /*
-   * N58's own line, and the only thing worth pinning about it: it promises bugs,
-   * and there had better be some.
+   * INVERTED BY N263, and it is the same argument N157 made about the raised
+   * hand. The opening used to promise bugs -- "Lots of bugs here ;)" -- and Nam
+   * cut it. A collection the script announces is a collection the script has
+   * handed over on the visitor's behalf; the bugs are a thing to find, so the
+   * intro must not find them for you.
+   *
+   * There still have to BE bugs, which is the half of the old test that was
+   * never about the wording.
    */
-  test('the opening promises bugs, and there are bugs', () => {
+  test('the opening does not give the bug hunt away', () => {
     const intro = tourParts.find((p) => p.id === 'intro');
     const line = intro?.lines.map((l) => l.text).join(' ') ?? '';
-    ok(/\bbugs\b/i.test(line), 'the opening no longer hands over the bug hunt');
-    ok(BUG_COUNT > 0, 'the opening promises bugs and the collection is empty');
+    ok(!/\bbugs?\b/i.test(line), 'the opening hands over the bug hunt again');
+    ok(BUG_COUNT > 0, 'the collection is empty');
   });
 
   /*
-   * N66. Nam: "let's just treat the default CV (without c parameter) as c = 1."
+   * N263 REVERSES N66, and the reason is worth keeping next to the assertion.
    *
-   * Worth a test rather than a read of the source, because the failure mode is
-   * silent and expensive: a send that renders a generic heading looks fine and
-   * is the one thing the whole companies module exists to prevent.
+   * N66 made a bare link resolve to the employer, because "the reuse is
+   * hypothetical and the Google application is not". Both halves flipped when
+   * that application closed: the reuse is now the only thing left. So a link
+   * with no code on it names nobody, which is what it meant originally.
+   *
+   * Still worth a test rather than a read of the source, with the failure mode
+   * now pointing the other way: a send that quietly addresses itself to an
+   * employer nobody applied to is the expensive mistake this module exists to
+   * prevent.
    */
-  test('no code at all resolves to the employer, and ?c=0 does not', () => {
-    eq(codeFromUrl(''), DEFAULT_CODE, 'a bare link no longer names the employer');
+  test('a bare link names nobody, and there is nobody to name', () => {
+    eq(codeFromUrl(''), null, 'a bare link still resolves to an employer');
     eq(codeFromUrl('?c=' + NEUTRAL_CODE), null, 'the neutral build is no longer reachable');
-    eq(codeFromUrl('?c=' + DEFAULT_CODE), DEFAULT_CODE);
-    // An unknown code is a typo in a link, not a request for a generic CV.
-    eq(codeFromUrl('?c=zzz'), DEFAULT_CODE, 'an unrecognised code fell back to nobody');
-    ok(pitchFor(codeFromUrl('')).named, 'the default pitch names no employer');
+    eq(codeFromUrl('?c=zzz'), null, 'an unrecognised code resolved to somebody');
+    ok(!pitchFor(codeFromUrl('')).named, 'the default pitch named an employer');
     ok(!pitchFor(codeFromUrl('?c=' + NEUTRAL_CODE)).named, 'the neutral pitch named an employer');
   });
 
@@ -459,9 +469,7 @@ suite('the conversation director', () => {
     eq(s.mode, 'commenting');
     eq(s.current, 'offclock');
     s = reduceTour(s, { t: 'partDone' });               // offclock done -> back to script
-    eq(s.current, 'jobreq', 'did not resume at the lowest unplayed part');
-    s = reduceTour(s, { t: 'partDone' });
-    eq(s.current, 'built');
+    eq(s.current, 'built', 'did not resume at the lowest unplayed part');
     s = reduceTour(s, { t: 'partDone' });
     eq(s.current, 'close', 'the visited part was narrated twice');
   });
@@ -491,7 +499,7 @@ suite('the conversation director', () => {
 
   test('a busy queue switches to the brief register', () => {
     let s = started();
-    for (const id of ['cv', 'jobreq', 'built']) s = reduceTour(s, { t: 'visit', id });
+    for (const id of ['cv', 'built', 'offclock']) s = reduceTour(s, { t: 'visit', id });
     eq(s.queue.length, QUEUE_BRIEF);
     s = reduceTour(s, { t: 'partDone' });
     eq(s.register, 'brief', 'a long queue did not shorten the commentary');
@@ -506,9 +514,10 @@ suite('the conversation director', () => {
 
   test('too many requests hands over instead of talking faster', () => {
     let s = started();
-    // Five, which is QUEUE_HANDOVER. Spelled out so the test fails loudly if
-    // the threshold moves rather than silently following it.
-    const ids = ['cv', 'jobreq', 'built', 'offclock', 'close'];
+    // Four, which is QUEUE_HANDOVER. Spelled out so the test fails loudly if
+    // the threshold moves rather than silently following it -- which is exactly
+    // what it did when N263 removed a part, and how the move was caught.
+    const ids = ['cv', 'built', 'offclock', 'close'];
     for (const id of ids) s = reduceTour(s, { t: 'visit', id });
     eq(s.mode, 'handedOver', 'it kept narrating a visitor who was clearly exploring');
     eq(s.queue.length, 0, 'a handed-over run still had work queued');
@@ -516,7 +525,7 @@ suite('the conversation director', () => {
 
   test('handing over is terminal', () => {
     let s = started();
-    for (const id of ['cv', 'jobreq', 'built', 'offclock', 'close']) s = reduceTour(s, { t: 'visit', id });
+    for (const id of ['cv', 'built', 'offclock', 'close']) s = reduceTour(s, { t: 'visit', id });
     const after = reduceTour(s, { t: 'visit', id: 'cv' });
     eq(after.mode, 'handedOver', 'it came back after handing over');
     eq(reduceTour(s, { t: 'partDone' }).mode, 'handedOver');
@@ -552,7 +561,7 @@ suite('the conversation director', () => {
    */
   test('skip intro records the parts as decided, not as pending', () => {
     let s = reduceTour(started(), { t: 'skipIntro' });
-    eq(s.played.length, 6, 'the skipped parts were left in the running order');
+    eq(s.played.length, 5, 'the skipped parts were left in the running order');
     eq(nextScripted(s), null, 'the walkthrough could still be narrated after a skip');
   });
 
@@ -571,7 +580,7 @@ suite('the conversation director', () => {
 
   test('skip intro cannot rescue a run that handed over', () => {
     let s = started();
-    for (const id of ['cv', 'jobreq', 'built', 'offclock', 'close']) s = reduceTour(s, { t: 'visit', id });
+    for (const id of ['cv', 'built', 'offclock', 'close']) s = reduceTour(s, { t: 'visit', id });
     eq(s.mode, 'handedOver');
     eq(reduceTour(s, { t: 'skipIntro' }).mode, 'handedOver');
   });
@@ -583,7 +592,7 @@ suite('the conversation director', () => {
    */
   test('going quiet drops a stale backlog', () => {
     let s = started();
-    for (const id of ['cv', 'jobreq', 'built']) s = reduceTour(s, { t: 'visit', id });
+    for (const id of ['cv', 'built', 'offclock']) s = reduceTour(s, { t: 'visit', id });
     eq(s.queue.length, QUEUE_BRIEF);
     s = reduceTour(s, { t: 'settle' });
     eq(s.queue.length, 0, 'it kept a backlog the visitor had moved on from');
@@ -608,7 +617,7 @@ suite('the conversation director', () => {
 
   test('settling does not disturb a run that has handed over', () => {
     let s = started();
-    for (const id of ['cv', 'jobreq', 'built', 'offclock', 'close']) s = reduceTour(s, { t: 'visit', id });
+    for (const id of ['cv', 'built', 'offclock', 'close']) s = reduceTour(s, { t: 'visit', id });
     eq(reduceTour(s, { t: 'settle' }).mode, 'handedOver');
   });
 

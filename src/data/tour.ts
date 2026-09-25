@@ -59,7 +59,7 @@ export type Cue =
 
   /** Maximise the browser window inside the shared desktop. */
   | 'maximise'
-  | 'tab:cv' | 'tab:jobad' | 'tab:built' | 'tab:work'
+  | 'tab:cv' | 'tab:built' | 'tab:work'
   /** Open the reaction tray and send the heart, then shut whatever was opened. */
   | 'heart'
   /** Open the chat panel, hold it long enough to be read, then close it again. */
@@ -79,6 +79,8 @@ export type Cue =
    * while the clips themselves wait for its third (N114). `eggs` still does this
    * for itself when nothing has opened it, so the two are safe in either order.
    */
+  /** Shut the media player, so the close is not delivered over a clip. */
+  | 'shutplayer'
   | 'files'
   /** Play the easter-egg clips this visitor has not found yet. */
   | 'eggs'
@@ -198,7 +200,7 @@ export const parts: Part[] = [
       L('Hello! Welcome!', 1900),
       L('Thanks for joining. I know a CV that opens a call is a bit much.', 3600),
       L("So let me be quick about why I'm in your applicant pool.", 3000),
-      L('While I talk, click around if you want. Lots of bugs here ;)', 4200),
+      L('While I talk, click around if you want.', 3000),
       L('First, let me get my screen up.', 2400),
     ],
     beats: [
@@ -260,17 +262,21 @@ export const parts: Part[] = [
       L('Before that, four years of optimisation research. Two papers and a book chapter.', 4800),
       L('And before that, C++ on signing hardware. Correctness was the product.', 4400),
       L('Here are my tech skills.', 2000),
+      L('Education: Vietnam, Japan, Sweden.', 2600),
       /*
        * THE HESITATION IS AUTHORED, which is the whole of what N53 asked for.
        * The word is in the line because Nam put it there, and the caption's
        * tokeniser holds on it the way it holds on a full stop. Nothing derives
        * the placement, so nothing can put it in front of a punchline again.
+       *
+       * N263 moved it here, off a line that was cut. Nam asked for the pause in
+       * so many words -- "How do I like Sweden? Uh, (pause here) lagom" -- and
+       * "Uh," IS the pause: there is no separate timing knob, the comma and the
+       * held word are the whole mechanism. Which is also the joke. Lagom is the
+       * word for exactly-enough, so answering with it, slowly, is the most
+       * Swedish possible answer to how you find Sweden.
        */
-      L('Claude made this whole section, uh, redundant. LOL.', 4400),
-      L('Education: Vietnam, Japan, Sweden.', 2600),
-      /* N111. Was a line about tonkotsu and three countries, which answered a
-         question nobody asked. Nam: "This line sucks!" */
-      L('What I think of Sweden? Just like Japan, but in black and white.', 4400),
+      L('How do I like Sweden? Uh, lagom.', 3400),
     ],
     beats: [
       // N78. The document is laid out for a full screen and arrives inside a
@@ -282,7 +288,7 @@ export const parts: Part[] = [
       { at: 5, roll: { of: 'cv', to: 0.42, ms: 1600 } },
       { at: 6, roll: { of: 'cv', to: 0.55, ms: 1400 } },
       { at: 7, roll: { of: 'cv', to: 'Skills', ms: 1500 } },
-      { at: 9, roll: { of: 'cv', to: 'Education', ms: 1400 } },
+      { at: 8, roll: { of: 'cv', to: 'Education', ms: 1400 } },
     ],
     commentary: [
       L('The CV, yes. One data module renders this and the call, so they cannot disagree.', 4200),
@@ -292,46 +298,9 @@ export const parts: Part[] = [
   },
 
   {
-    id: 'jobreq',
-    label: 'Against the job requirement',
-    priority: 3,
-    needs: 'share',
-    entry: 'clean',
-    /*
-     * N40. Nam: "Oh damn I completely forgot the part against the job
-     * requirement!" It is the single most load-bearing screen for the person
-     * actually reading this and it was not in the script at all.
-     *
-     * It bridges straight off the CV with no seam, which is why the first line
-     * is a question rather than an introduction.
-     */
-    lines: [
-      L('Great. So how does all that score against the job requirement?', 3600),
-      L("I've got you covered.", 1800),
-      L('Degree ✅. Five years of software development ✅.', 3600),
-      L('Front end, algorithm, architecture, QA: ✅ ✅ ✅ ✅.', 4000),
-      /* N113. "I ran out of requirements before I ran out of evidence." sat here
-         and Nam cut it: "horrible line! Lets just remove it, next line is already
-         the punch." A setup arriving after the setup weakens the joke it sets up.
-         The last roll moved down onto the punch with it, so the page still
-         reaches the bottom of the posting as he lands it. */
-      L("Yeah. I'm a safe hire.", 2600),
-    ],
-    beats: [
-      { at: 1, cue: 'tab:jobad' },
-      { at: 2, roll: { of: 'page', to: 0.25, ms: 1500 } },
-      { at: 3, roll: { of: 'page', to: 0.6, ms: 1800 } },
-      { at: 4, roll: { of: 'page', to: 1, ms: 1800 } },
-    ],
-    commentary: [L('The posting, line by line. Every requirement has something here you can click on.', 4200)],
-    brief: [L('Every requirement in the posting, with the evidence next to it.', 3200)],
-    triggers: ['.cb-tab[data-tab-id="jobad"]'],
-  },
-
-  {
     id: 'built',
     label: 'How this was built',
-    priority: 4,
+    priority: 3,
     needs: 'share',
     entry: 'clean',
     /*
@@ -349,8 +318,8 @@ export const parts: Part[] = [
       /* N45's "go and break the tests" line is gone. The tests already have a
          quip, a panel and a switch that breaks them; a fourth pitch for one
          feature is the section selling instead of showing. */
-      L("A CV gamified to the moon, cause who doesn't like games?", 4000),
-      L("One person and an agent, one week. The most fun I've had in months!", 4600),
+      L("I gamified it a lot, cause who doesn't like games!", 3600),
+      L('One person, one agent, one week. The rest is fun!', 3800),
     ],
     beats: [
       { at: 0, cue: 'tab:built' },
@@ -370,7 +339,7 @@ export const parts: Part[] = [
   {
     id: 'offclock',
     label: 'Off the clock',
-    priority: 5,
+    priority: 4,
     entry: 'clean',
     /*
      * N41. Which clips the visitor has already found is remembered, so this act
@@ -383,7 +352,7 @@ export const parts: Part[] = [
       L("Here are the ones you didn't.", 2400),
       /* N115. Was "Hope you've enjoyed this too!", which asks the visitor to
          report back on a feeling. An invitation does not. */
-      L("So yeah, I'm not bad at having fun. Come join my party 🎉", 4400),
+      L('I try to live to the fullest, cause life is a celebration! 🎉', 4400),
     ],
     beats: [
       /* N114. Explorer opens on the FIRST line rather than the third. Nam: "its
@@ -402,7 +371,7 @@ export const parts: Part[] = [
   {
     id: 'close',
     label: 'The close',
-    priority: 6,
+    priority: 5,
     entry: 'clean',
     /*
      * N42. Nam: "VERY IMPORTANT! Signal to them that this is the end of the tour,
@@ -422,6 +391,17 @@ export const parts: Part[] = [
        * ending -- which is the exact failure the caption loop used to cause.
        */
       L("And that's everything I came here to show you. The rest is yours.", 3800),
+      /*
+       * N263. The clip from Off the clock is still playing under this line, and
+       * a goodbye delivered over somebody's zombie walk is not a goodbye. Nam:
+       * "after this I want to close the media player. If user wants to watch
+       * anything they can reopen it."
+       *
+       * Closed rather than paused, and the difference is the point: a paused
+       * player is still a window sitting on the desktop with a thing in it,
+       * which reads as unfinished business. An empty desktop is the screen
+       * saying the same thing the line just said.
+       */
       /*
        * N64. This used to be one line naming three things and doing none of
        * them: "Open the panels, drag the windows, run the tests." Nam: "Each of
@@ -478,6 +458,7 @@ export const parts: Part[] = [
      * left exactly where they left it.
      */
     beats: [
+      { at: 0, cue: 'shutplayer' },
       { at: 2, cue: 'chat' },
       { at: 3, cue: 'heart' },
       { at: 5, cue: 'park' },
@@ -557,6 +538,31 @@ export const resumeAt = (n: number, q: string): Line =>
 
 /** The question, asked before it is answered. */
 export const askQuestion = (n: number, q: string): Line => L(`${n}. ${q}`, 3600);
+
+/*
+ * THE PERSONAL SEGMENT DOES NOT PLAY ITSELF ANY MORE -- board ticket N263.
+ *
+ * Nam: "The personal segment, we hide this segment. I think the CV is already
+ * long enough, we don't need to make it any longer. We save it for user to
+ * explore. Instead of the personal segment, we start to wait to trigger the
+ * banter pool."
+ *
+ * He is right about the arithmetic. The walkthrough is about four minutes and
+ * these eight answers are another hundred seconds on top, unprompted, to a
+ * visitor who has already been told the tour is over. A CV that keeps talking
+ * after its own goodbye is a CV that does not trust what it just showed you.
+ *
+ * GATED RATHER THAN DELETED, and that is the whole point of the flag. The eight
+ * answers are the best writing in the script and every word of them is still
+ * here, still exported, still covered by the suite. Turning them back on is one
+ * boolean. Deleting them would have been a decision about the content; this is a
+ * decision about whether it plays uninvited.
+ *
+ * What the visitor gets instead is the outro: silence, and then the banter pool
+ * -- which is the conversation ending like a conversation rather than like a
+ * second act.
+ */
+export const TELL_STORY = false;
 
 export const story: Chapter[] = [
   {

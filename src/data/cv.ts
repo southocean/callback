@@ -48,8 +48,8 @@ export const profile = {
    * now lives in src/data/companies.ts, resolved from a ?c= code. This string
    * is what a reader sees with no code, and it has to be true for any send.
    */
-  target: 'Software Engineer, Front End',
-  targetAlt: 'Front-End Engineer, Web',
+  target: 'Lead front-end developer, Uppsala',
+  targetAlt: 'Front-end engineer, web',
   place: 'Uppsala, Sweden',
   commute: '38 minutes from the Stockholm office. No relocation, no visa sponsorship needed.',
   // Assembled in script rather than sitting in the markup, so a public repo
@@ -501,85 +501,24 @@ export function segments(text: string, links: Mention[] = []): { text: string; h
 }
 
 /*
- * Requirement-by-requirement, against the REAL posting -- "Software Engineer
- * III, Google Meet Web Experiences", Stockholm.
+ * THE REQUIREMENT MAP IS GONE -- board ticket N263.
  *
- * REWRITTEN 21 SEPTEMBER, and the reason matters more than the rows. Nam moved
- * his application off the senior req and onto this one, and this table was
- * still quoting the old ad's bars: five years of software development, three of
- * front end, a preference for a PhD. Every row was answerable -- that is not the
- * problem. The problem is that a panel headed "Against the job requirement"
- * which quotes requirements the job does not have is wrong in the one way this
- * whole site is built not to be, and an interviewer holding the real ad is
- * exactly the reader who would notice.
+ * Nine rows, each pairing one line of the Google posting with the evidence for
+ * it, rendered by the "Against the job requirement" tab. Nam, after the
+ * rejection: "this is specifically matching google jd ... I feel that we should
+ * just remove that part."
  *
- * The requirement column is now the ad, near enough verbatim. The evidence
- * column is unchanged work, remapped.
+ * Right, and for a reason worth writing down rather than just doing. A
+ * requirement map is the single most perishable thing a CV can carry: it is
+ * only true against one posting, it is wrong the moment it is read against any
+ * other, and it cannot be made generic because a requirement with no job behind
+ * it is not a requirement. Everything it proved is still on the site, in the
+ * place that does not expire -- the roles, the case studies and the skills.
  *
- * TWO ROWS GOT SHORTER RATHER THAN STRONGER. The bars dropped -- two years
- * where the senior req wanted five -- so rows that were arguments are now
- * facts, and there is nothing to be gained by restating seven years of it at
- * length against a two-year minimum.
- *
- * AND ONE ROW LEFT. "Agentic coding techniques and tools" was a requirement of
- * the senior posting and is not one of this ad, so it is not in this table any
- * more. The work itself has not moved: it is a bullet on the Wasabi role and a
- * line in the case study, which is where a strength that nobody asked for
- * belongs.
+ * It is in git if the next application wants one. Rebuilding it against a new
+ * ad is half an hour; carrying a stale one is a reader finding out that the
+ * document is addressed to somebody else.
  */
-export const requirementMap: { req: string; evidence: string; strength: 'strong' | 'met' | 'honest' }[] = [
-  {
-    req: "Bachelor's degree or equivalent practical experience",
-    evidence: 'BS Computer Science, HUST. MSc Computer Science, Uppsala.',
-    strength: 'strong',
-  },
-  {
-    req: '2 years front-end and user interface development',
-    evidence: 'Seven years leading front end at Wasabi Productions, including all UX and responsive work.',
-    strength: 'strong',
-  },
-  {
-    req: '2 years software development, or 1 with an advanced degree',
-    evidence: 'Bkav 2013–2015, Wasabi Productions 2019–present, and the MSc on top. Twelve years since the first professional line.',
-    strength: 'strong',
-  },
-  {
-    req: 'TypeScript, web applications and test automation',
-    evidence:
-      'This site is all three: strict TypeScript, no framework, and a unit suite you can run in the Engineering '
-      + 'panel and watch go red. Before it, a bot controller built to drive live tables under test.',
-    strength: 'strong',
-  },
-  {
-    req: 'Preferred: 2 years data structures and algorithms',
-    evidence: 'Four years optimisation research, two publications, a book chapter, a best-paper award, three semesters as an algorithms TA.',
-    strength: 'strong',
-  },
-  {
-    req: 'Preferred: cross-functional product and feature launches',
-    evidence: 'Worked directly with design, backend, marketing and investors on what gets built next, through every platform this product has shipped on.',
-    strength: 'strong',
-  },
-  {
-    req: 'Preferred: proficient in Java and TypeScript',
-    evidence: 'Both are on the over-ten-thousand-lines list. TypeScript is this entire site, strict and dependency-free.',
-    strength: 'met',
-  },
-  {
-    req: 'Preferred: Google server-side frameworks, such as Apps Framework',
-    evidence:
-      'No. The server-side work here is the client/server API surface I designed, which is where the '
-      + 'reconnection and resync behaviour lives. Not Google’s internal stack.',
-    strength: 'honest',
-  },
-  {
-    req: 'Preferred: Wiz, Soy and GSS',
-    evidence:
-      'No. They are internal to Google, and there is no way to have used them from outside. The nearest '
-      + 'thing I can show is this: a Meet-shaped web client built with no framework at all.',
-    strength: 'honest',
-  },
-];
 
 /** For the friend who has to put his name on it (review H4, R2, R5). Fact-only. */
 /*

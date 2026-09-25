@@ -32,10 +32,9 @@ import { spinner } from './icons.js';
 import { trapFocus } from '../a11y.js';
 // `pitch` left with pageCv (N144): it was the drawing's lead paragraph and the
 // only thing here that read it. The document the tab frames has its own.
-import { profile, roles, caseStudies, requirementMap, offstage, skills, segments } from '../data/cv.js';
+import { profile, roles, caseStudies, offstage, skills, segments } from '../data/cv.js';
 import { eggs } from '../data/eggs.js';
 import { games } from '../data/games.js';
-import { currentPitch } from '../data/companies.js';
 import { specBody } from './devportal.js';
 import { signal } from './signal.js';
 
@@ -50,8 +49,7 @@ export interface Source {
 }
 
 const TABS: Source[] = [
-  { id: 'cv', kind: 'tab', title: 'Nam Nguyen. SWE III, Google Meet Web Experiences', host: 'southocean.github.io' },
-  { id: 'jobad', kind: 'tab', title: 'Against the job requirement', host: 'careers.google.com' },
+  { id: 'cv', kind: 'tab', title: 'Nam Nguyen. Lead front-end developer', host: 'southocean.github.io' },
   { id: 'work', kind: 'tab', title: 'Things I built', host: 'southocean.github.io' },
   /*
    * N36. Nam: "We actually have a how this was built page that we show in home
@@ -97,11 +95,10 @@ const DOCS: Record<string, Doc> = {
    * header while the call showed the named one.
    */
   cv: {
-    title: 'Nam Nguyen. SWE III, Google Meet Web Experiences',
+    title: 'Nam Nguyen. Lead front-end developer',
     host: 'southocean.github.io',
     page: () => frameOf(`${location.search}#plain`, 'Nam Nguyen, the CV as a document'),
   },
-  jobad: { title: 'Against the job requirement', host: 'careers.google.com', page: () => pageJobAd() },
   /* N3: one list, and it is not "four" any more. */
   work: { title: 'Things I built', host: 'southocean.github.io', page: () => pageWork() },
   tools: { title: 'Internal tooling, a bot controller', host: 'southocean.github.io', page: () => pageTools() },
@@ -479,7 +476,6 @@ function contentFor(src: Source, onOpen: (id: string) => void, onClose: () => vo
     // iframe can ever render the call again, whatever hash it is handed.
     case 'work': return pageWork();
     // Authored, because the original refuses to be framed.
-    case 'jobad': return pageJobAd();
     // 'browser', not 'files': Window mode offers the browser now (see WINDOWS).
     // The id and the case have to move together -- renaming only the id sent this
     // straight past to the default branch, which is the desktop, so the Window
@@ -595,27 +591,6 @@ function pageVideo(id: string): HTMLElement {
  * sub-line is that company's role; without one it says plainly which posting
  * this was written against, which is the honest version of the same sentence.
  */
-function pageJobAd(): HTMLElement {
-  const pitch = currentPitch();
-  return h('div', { class: 'pg' },
-    h('h1', { class: 'pg-h' }, 'Against the job requirement'),
-    h('p', { class: 'pg-sub' }, pitch.named
-      ? pitch.target
-      : 'Software Engineer, Front End, the posting this CV was written against'),
-    h('ul', { class: 'pg-reqs' },
-      ...requirementMap.map((r) => h('li', { class: `pg-req is-${r.strength}` },
-        // A tilde rather than an en dash for the admitted-gap marker. It is a
-        // glyph rather than prose, so the site-wide dash rule is arguably not
-        // about it -- but a tilde reads as "partly" next to a tick, where a dash
-        // reads as "no", and the honest rows are not nos.
-        h('span', { class: 'pg-tick', 'aria-hidden': 'true' }, r.strength === 'honest' ? '~' : '✓'),
-        h('span', {}, h('b', {}, r.req), h('span', {}, r.evidence))))),
-    pitch.named ? h('span', {}) : h('p', { class: 'pg-note' },
-      'Every line above is measured against that one posting. If you are reading this from somewhere else, '
-      + 'the requirements will not be yours, but the evidence beside them still is.'),
-  );
-}
-
 /**
  * ONE LIST. Nam: "Four things I built: what did I tell you? Change this to
  * Things I built, then merge the other things I built to the same list."
@@ -861,18 +836,13 @@ const icFavCv = (): HTMLElement => svg('0 0 20 20', `
   <rect x="5.5" y="5" width="9" height="1.6" rx=".8" fill="#5f6368"/>
   <rect x="5.5" y="8.2" width="9" height="1.6" rx=".8" fill="#9aa0a6"/>
   <rect x="5.5" y="11.4" width="6" height="1.6" rx=".8" fill="#9aa0a6"/>`);
-const icFavGoogle = (): HTMLElement => svg('0 0 20 20', `
-  <path d="M10 8.2v3.4h4.8a4.2 4.2 0 0 1-1.8 2.7l2.9 2.2A8 8 0 0 0 18 10c0-.6-.06-1.2-.17-1.8z" fill="#4285f4"/>
-  <path d="M10 18a8 8 0 0 0 5.55-2.02l-2.9-2.2A5 5 0 0 1 5.3 11.6l-3 2.3A8 8 0 0 0 10 18z" fill="#34a853"/>
-  <path d="M5.3 11.6a4.8 4.8 0 0 1 0-3.06l-3-2.3a8 8 0 0 0 0 7.66z" fill="#fbbc05"/>
-  <path d="M10 5.2c1.3 0 2.5.45 3.43 1.34l2.57-2.57A8 8 0 0 0 2.3 6.24l3 2.3A4.8 4.8 0 0 1 10 5.2z" fill="#ea4335"/>`);
 const icFavWork = (): HTMLElement => svg('0 0 20 20', `
   <rect x="2.5" y="5" width="15" height="11" rx="2" fill="#8ab4f8"/>
   <path d="M7.5 5V3.8A1.3 1.3 0 0 1 8.8 2.5h2.4A1.3 1.3 0 0 1 12.5 3.8V5h-1.8V4.3h-1.4V5z" fill="#5f88c8"/>
   <rect x="2.5" y="9.4" width="15" height="1.5" fill="#5f88c8" opacity=".5"/>`);
 /* The mahjong favicon went with the tab it labelled. See N82. */
 const FAVICONS: Record<string, () => HTMLElement> = {
-  cv: icFavCv, jobad: icFavGoogle, work: icFavWork,
+  cv: icFavCv, work: icFavWork,
 };
 
 /* The desktop background.
@@ -1428,7 +1398,6 @@ function explorerBody(onOpen: (id: string) => void, onFolder?: (f: string) => vo
      them either .pdf or .html" -- fair, .url is a Windows shortcut stub nobody
      recognises on sight, and these behave like documents when opened. */
   const CV: Entry = { name: 'NamNguyen_CV_2026.pdf', kind: 'pdf', tab: 'cv' };
-  const POSTING: Entry = { name: 'google-careers-posting.html', kind: 'html', tab: 'jobad' };
   const BUILT: Entry = { name: 'four-things-i-built.html', kind: 'html', tab: 'work' };
   const HOWBUILT: Entry = { name: 'how-this-is-built.html', kind: 'html', tab: 'built' };
   const SIDE: Entry = { name: 'side-projects.html', kind: 'html', tab: 'side' };
@@ -1455,7 +1424,7 @@ function explorerBody(onOpen: (id: string) => void, onFolder?: (f: string) => vo
       CV,
     ],
     Portfolio: [MAHJONG, BUILT, SIDE],
-    'This CV': [CV, POSTING, HOWBUILT],
+    'This CV': [CV, HOWBUILT],
     Hobby: [OFFCLOCK, ...CLIPS],
   };
 
@@ -2178,7 +2147,7 @@ function pageWindow(_onOpen: (id: string) => void, onClose: () => void): HTMLEle
   made.select('cv');
   return h('div', { class: 'pg pg-win' },
     win11({
-      title: 'Nam Nguyen. SWE III, Google Meet Web Experiences',
+      title: 'Nam Nguyen. Lead front-end developer',
       icon: icChrome, body: made.body, full: false, onClose,
     }));
 }
@@ -2933,7 +2902,7 @@ function pageDesktop(onQuit: () => void, boot?: { egg?: string; cv?: boolean }):
       const made = chromeWindow({ onEmpty: () => closeWin(rec) });
       bodyEl = made.body;
       select = made.select;
-      title = 'Nam Nguyen. SWE III, Google Meet Web Experiences';
+      title = 'Nam Nguyen. Lead front-end developer';
       if (tabId) made.select(tabId);
     } else {
       const made = playerWindow((tabId ?? '').replace(/^vid:/, ''));
@@ -2973,6 +2942,12 @@ function pageDesktop(onQuit: () => void, boot?: { egg?: string; cv?: boolean }):
     el.style.left = `${60 + n * 28}px`;
     el.style.top = `${40 + n * 26}px`;
     el.addEventListener('pointerdown', () => focus(rec), true);
+
+    // What kind of window this is, in the DOM. The tour presses the media
+    // player's Close at the end of the walkthrough, and a selector it can
+    // resolve at beat time is the only version of that which survives the
+    // windows being in a different order or a different place.
+    el.dataset.win = kind;
 
     live.push(rec);
     surface.appendChild(el);

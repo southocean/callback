@@ -66,42 +66,22 @@ export interface Contact {
  * real entries and set confirmed: true.
  */
 export const CONTACTS: Contact[] = [
-  {
-    /*
-     * A real person, and the only confirmed entry. Nam: "I have the contact of my
-     * referral here: https://diepbp.github.io/. Guard this against the company
-     * param, add him into the list as my referral."
-     *
-     * Guarded because a referral is specific to the company being applied to --
-     * naming someone as your route into an employer you are not applying to is
-     * both untrue and unfair to them. It appears only when a ?c= code is present;
-     * see referrableContacts() below.
-     *
-     * No address published: the link is his own public page, which he controls
-     * and can take down. That keeps the privacy rule at the top of this file
-     * intact while still making the referral real.
-     */
-    id: 'ref-diep',
-    name: 'Diep Bui',
-    email: 'diepbp.github.io',
-    initials: 'DB',
-    tint: '#c4eed0',
-    ink: '#072711',
-    // No `relation`: see the field's note. His own page does the introducing.
-    href: 'https://diepbp.github.io/',
-    voice: 'https://diepbp.github.io/',
-    confirmed: true,
-    referral: true,
-  },
   /*
-   * The two invented references are gone. Nam: "You can delete the 2 references
-   * too."
+   * EMPTY, AND THAT IS THE CURRENT STATE RATHER THAN A GAP -- board ticket N263.
    *
-   * They were structurally honest — confirmed: false, an example.com address, a
-   * comment saying they were placeholders — and still the wrong thing on the
-   * page. A reader does not see the flag; they see three references, two of which
-   * cannot be contacted. One real referral says more than one real referral
-   * flanked by two hypotheticals.
+   * This held one real, confirmed entry: the referral into the employer this CV
+   * was written for. Nam, after the rejection: "the referral, remove."
+   *
+   * A referral is the most employer-specific thing on the whole site. It names a
+   * person who put their word behind one application, and carrying that into a
+   * CV sent anywhere else is untrue about the application and unfair to him.
+   *
+   * The screen it feeds already handles this: renderHome drops the Calls tab
+   * when the list comes back empty, which is exactly what the neutral build has
+   * always done. So nothing renders half-built; the tab is simply not there.
+   *
+   * The structure stays because the next real reference goes here and nowhere
+   * else, with `confirmed` still gating the address.
    */
 ];
 

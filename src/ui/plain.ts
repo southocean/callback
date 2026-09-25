@@ -62,7 +62,12 @@ export function renderPlain(onBack: () => void, embedded = false): HTMLElement {
         'div',
         {},
         h('h1', {}, profile.name),
-        h('div', { class: 'doc-target' }, `${profile.headline} · applying for ${currentPitch().target}`),
+        /*
+         * NO "applying for" -- N263. With no target on the URL the pitch IS the
+         * headline, so the old template printed the same words twice with a
+         * preposition between them. It states the role instead.
+         */
+        h('div', { class: 'doc-target' }, currentPitch().target),
       ),
       h(
         'div',
