@@ -113,6 +113,55 @@ The senior posting asks for experience with agentic coding techniques, so it see
 
 ---
 
+## The PDF, generic and tailored
+
+`docs/NamNguyen_CV_2026.pdf` is a **print of the plain document**, not a second
+file maintained by hand. There is one CV; the PDF is a view of it.
+
+```bash
+npm run pdf
+```
+
+That prints the generic one, the one the site links, and runs the layout
+assertions on the way.
+
+### Tailoring one to a job
+
+The site itself is deliberately generic and stays that way. Per-job wording
+happens in the PDF:
+
+```bash
+cp jobs/example.json jobs/tv4.json   # edit it
+npm run pdf:job tv4                  # writes out/NamNguyen_CV_2026_tv4.pdf
+```
+
+**Nothing in `src/` or `docs/` is touched.** The overrides are applied to the
+rendered document in the browser, after it loads and before it prints, so there
+is no source edit and nothing to remember to revert. The obvious alternative --
+edit `data/cv.ts`, print, revert -- has two traps in it: the printer writes the
+file the public site serves, and "remember to revert" is a rule that holds until
+the one evening it matters.
+
+Three things the harness will not let you do:
+
+- **Ship a PDF that is not actually tailored.** A `swap` whose text matches
+  nothing is a hard failure naming the string, and no file is written. A silent
+  no-op would produce a CV that looks tailored, is not, and gets attached by
+  somebody who believes it is.
+- **Ship a two-page one.** For a tailored print the single page is enforced
+  rather than reported, because this is the run that happens ten minutes before
+  the application goes out. A failing print deletes its own output rather than
+  leaving it in `out/` under the right name.
+- **Publish where you applied.** `jobs/*.json` is gitignored apart from the
+  example. This repo is public, and a committed `jobs/tv4.json` would say who
+  and when.
+
+One measurement worth knowing if you are trimming to fit: **the content fitting
+is not the same question as the page count.** `break-inside: avoid` on each
+section means a section that would be cut moves whole, so the page can break
+with the height still reading as comfortable. The harness checks the page count
+for exactly that reason, and says which of the two failed.
+
 ## Layout
 
 ```

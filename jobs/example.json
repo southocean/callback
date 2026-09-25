@@ -1,0 +1,35 @@
+{
+  "_README": [
+    "Copy this file to jobs/<name>.json and run `npm run pdf:job <name>`.",
+    "It prints out/NamNguyen_CV_2026_<name>.pdf and changes nothing in src/ or docs/.",
+    "",
+    "Only jobs/example.json is committed. Everything else in jobs/ is gitignored,",
+    "because this repo is public and a file named jobs/tv4.json tells the world",
+    "where you applied.",
+    "",
+    "target  replaces the line under your name. The one thing that genuinely",
+    "        changes per job. Keep it short: it fits one line at print width up",
+    "        to about 85 characters, and wrapping it costs 16px of the 17px of",
+    "        headroom the page has.",
+    "",
+    "swap    exact find-and-replace over the rendered text, for a skill note or",
+    "        a bullet you want to lead with differently. A find that matches",
+    "        NOTHING fails the run and writes no file, so a typo cannot produce",
+    "        a PDF that looks tailored and is not.",
+    "",
+    "label   what the harness prints so you can see which job it just made.",
+    "url     the posting, so the file still explains itself in six months."
+  ],
+
+  "label": "Example Co. - Senior Front-End Engineer",
+  "url": "https://example.com/jobs/000000",
+
+  "target": "Senior front-end engineer, Uppsala",
+
+  "swap": [
+    [
+      "Performance: code splitting, compositor-only animation",
+      "Performance: code splitting, compositor-only animation, profiling"
+    ]
+  ]
+}

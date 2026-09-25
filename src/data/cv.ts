@@ -475,7 +475,7 @@ export const offstage = {
       why: 'Short films: Tomma Händer (.MOV Filmfestival 2026), The Darkest Hour, Don’t Cry Over Spilled Milk.',
     },
     {
-      what: 'Uppsala Zombie Walk organiser',
+      what: 'Uppsala Zombie Walk',
       why: 'Website, marketing, makeup and logistics. Featured on SVT and UNT.',
       links: [
         { text: 'SVT', href: 'https://www.svt.se/nyheter/lokalt/uppsala/zombie-walk-i-uppsala' },

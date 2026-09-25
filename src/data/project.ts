@@ -4631,6 +4631,44 @@ export const tasks: Task[] = [
     },
   },
 
+  {
+    id: 'N267', col: 'review', size: 'M', tag: 'specs',
+    title: 'A harness for the tailored PDF, so the generic one cannot be overwritten',
+    note: 'npm run pdf:job tv4. Overrides applied in the browser, never to the source.',
+    detail: {
+      why: 'N266 moved per-job wording out of the site and into the PDF, which left one sharp edge: the obvious way to do it is to edit data/cv.ts, print, and remember to revert. The printer writes docs/, which is the file the public site links, so a forgotten revert ships a job-specific CV to everybody. Nam: "make a harness for the tailored-PDF workflow."',
+      done: [
+        'tools/print-cv.mjs takes --job <name> and reads jobs/<name>.json',
+        'Overrides are applied to the rendered DOM, so src/ and docs/ are untouched',
+        'Output goes to out/, which is gitignored; only the generic print writes docs/',
+        'A swap matching nothing is a hard failure naming the string, and writes no file',
+        'One page is ENFORCED for a tailored print, and a failure deletes its own output',
+        'jobs/*.json is gitignored apart from example.json: this repo is public',
+      ],
+      raised: 'Nam, 25 Sep',
+      notes: 'IT EXTENDS THE PRINTER RATHER THAN BEING A SECOND SCRIPT, and that is the whole design argument. A '
+        + 'tailored line is usually LONGER than the generic one, the CV fits one page with seventeen pixels to spare, '
+        + 'and every layout assertion plus the stranded-tail report already live in print-cv.mjs. A separate tool would '
+        + 'have had to grow all of that back, badly, and would have been the one without the checks on the day it '
+        + 'mattered. '
+        + 'THE DIFFERENCE BETWEEN THE TWO MODES IS WHO IS WATCHING. For the generic print the page count is reported to '
+        + 'somebody looking at the output. A tailored one gets printed ten minutes before it is attached, so there the '
+        + 'single page is a gate, and a failing run removes the PDF instead of leaving a two-page file in out/ under '
+        + 'exactly the name you were about to attach. '
+        + 'FITTING AND PAGINATING ARE DIFFERENT QUESTIONS, found while testing the gate rather than reasoned out in '
+        + 'advance. A deliberately over-long target line measured 1023px against the 1024px box -- one pixel spare -- '
+        + 'and printed two pages anyway. break-inside: avoid moves a whole section rather than splitting it, so the '
+        + 'height figure stays reassuring while the PDF is not. The gate reads the page COUNT for that reason and now '
+        + 'says which of the two failed, because "must fit one page" printed under "1px of headroom" reads as a bug in '
+        + 'the harness. '
+        + 'A MISS IS A FAILURE, NOT A WARNING. A find-and-replace that quietly hits nothing is the worst outcome '
+        + 'available here: a PDF that looks tailored, is not, and is sent by somebody who believes it is. So a miss '
+        + 'names the string, writes nothing and exits 1. '
+        + 'AND THE JOB FILES ARE GITIGNORED. The repo is public. A committed jobs/tv4.json publishes where he applied '
+        + 'and when, which is the same privacy rule that kept employer names out of the CV, applied to the tool.',
+    },
+  },
+
   /* Flagged rather than done. Still true as of this build. */
   { id: 'T24', col: 'backlog', size: 'M', tag: 'specs', title: 'Initial payload is halfway to the ceiling', note: '24.7 kB of a 50 kB gate, up from 18.2. Still green, and the growth is real, but two deferred chunks are 17 kB and 19 kB and deserve a splitting pass before it becomes urgent.' },
 ];

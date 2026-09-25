@@ -10,3 +10,13 @@ QA/
 # The CSS fingerprint harness gets copied here to be served (the page CSP is
 # script-src 'self'), but it is a tool and must never ship with the site.
 docs/css-snapshot.js
+
+# Tailored PDFs and the job files that describe them.
+#
+# This repo is public, so a committed jobs/tv4.json would publish where Nam
+# applied and when. The example is committed because it is the documentation;
+# every real one is his business and nobody else's. out/ is the printer's
+# output, which is a build artifact either way.
+out/
+jobs/*.json
+!jobs/example.json

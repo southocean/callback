@@ -41,14 +41,70 @@
 // Chrome speaks CDP, so this needs no dependency, which matters in a repo whose
 // whole claim is that it has none.
 
-import { writeFileSync, existsSync, mkdirSync, rmSync } from 'node:fs';
+import { writeFileSync, readFileSync, existsSync, mkdirSync, rmSync } from 'node:fs';
 import { spawn } from 'node:child_process';
 import { createServer } from 'node:http';
 import { readFile } from 'node:fs/promises';
 import { join, extname, normalize, resolve } from 'node:path';
 
 const CHECK_ONLY = process.argv.includes('--check');
-const OUT = 'docs/NamNguyen_CV_2026.pdf';
+
+/*
+ * ---------------------------------------------------------------------------
+ * TAILORED PRINTS -- `--job <name>`, board ticket N267.
+ *
+ * Nam: "for each job we will tailor the pdf version of the CV to the job, but
+ * not this generic CV." That was the reason the ?c= codes could go, and it left
+ * one sharp edge: the obvious way to do it is to edit data/cv.ts, run the
+ * printer and remember to revert. Both halves of that are traps. The printer
+ * writes docs/, which is the PDF the public site links, so a forgotten revert
+ * ships a job-specific CV to everybody; and "remember to revert" is a rule that
+ * works until the one evening it matters.
+ *
+ * So a tailored print touches neither. The overrides are applied to the
+ * RENDERED DOCUMENT, in the browser, after it loads and before it prints. No
+ * source file changes, nothing to revert, and the working tree is as clean
+ * afterwards as it was before.
+ *
+ * It reuses this harness rather than being its own script, and that is the
+ * whole argument for the design: a tailored line is usually LONGER than the
+ * generic one, the CV fits one page with seventeen pixels to spare, and every
+ * layout assertion and the wrap report already live here. A separate script
+ * would have had to grow them all back, badly.
+ *
+ * ONE DIFFERENCE, AND IT IS DELIBERATE. For the generic print the page count is
+ * reported; for a tailored one it is ENFORCED. The generic PDF is printed by
+ * somebody looking at the output. A tailored one gets printed ten minutes
+ * before it is attached to an application, which is exactly when a second page
+ * goes out unnoticed.
+ */
+const jobArg = process.argv.indexOf('--job');
+const JOB_NAME = jobArg !== -1 ? process.argv[jobArg + 1] : null;
+if (jobArg !== -1 && !JOB_NAME) {
+  console.error('print-cv: --job needs a name, e.g. --job tv4 for jobs/tv4.json');
+  process.exit(1);
+}
+
+let JOB = null;
+if (JOB_NAME) {
+  const path = `jobs/${JOB_NAME}.json`;
+  if (!existsSync(path)) {
+    console.error(`print-cv: no ${path}. Copy jobs/example.json and edit it.`);
+    process.exit(1);
+  }
+  try {
+    JOB = JSON.parse(readFileSync(path, 'utf8'));
+  } catch (e) {
+    console.error(`print-cv: ${path} is not valid JSON. ${e.message}`);
+    process.exit(1);
+  }
+}
+
+/* Tailored prints land in out/, which is gitignored. The generic one, and only
+   the generic one, overwrites the file the site serves. */
+const OUT = JOB_NAME
+  ? `out/NamNguyen_CV_2026_${JOB_NAME}.pdf`
+  : 'docs/NamNguyen_CV_2026.pdf';
 const PORT = 4199;
 const DEBUG_PORT = 9333;
 
@@ -208,6 +264,54 @@ if (!ready) {
 }
 await sleep(400);
 
+/* --- tailor, if this is a job print ------------------------------------- */
+
+/*
+ * Applied to the DOM, and every substitution must MATCH SOMETHING.
+ *
+ * A find-and-replace that quietly hits nothing is the worst outcome available
+ * here: it produces a PDF that looks tailored, is not, and gets attached to an
+ * application by somebody who believes it is. So a miss is a hard failure that
+ * names the string, rather than a warning in a wall of output.
+ */
+if (JOB) {
+  const applied = await evaluate(`(() => {
+    const job = ${JSON.stringify(JOB)};
+    const doc = document.querySelector('.doc');
+    const missed = [];
+
+    if (job.target) {
+      const el = doc.querySelector('.doc-target');
+      if (el) el.textContent = job.target;
+      else missed.push('.doc-target is not on the page');
+    }
+
+    for (const [find, replace] of job.swap ?? []) {
+      let hit = false;
+      const walk = document.createTreeWalker(doc, NodeFilter.SHOW_TEXT);
+      const nodes = [];
+      while (walk.nextNode()) nodes.push(walk.currentNode);
+      for (const n of nodes) {
+        if (!n.nodeValue.includes(find)) continue;
+        n.nodeValue = n.nodeValue.split(find).join(replace);
+        hit = true;
+      }
+      if (!hit) missed.push(find);
+    }
+    return missed;
+  })()`);
+
+  if (applied.length) {
+    console.error(`\nprint-cv: ${applied.length} substitution(s) in jobs/${JOB_NAME}.json matched nothing:\n`);
+    for (const miss of applied) console.error(`  ${miss}`);
+    console.error('\nNothing was written. Fix the strings so they match the document exactly.');
+    ws.close();
+    done(1);
+  }
+  // Let the reflow settle before anything measures it.
+  await sleep(200);
+}
+
 /* --- measure ------------------------------------------------------------ */
 
 /*
@@ -295,6 +399,7 @@ if (!CHECK_ONLY) {
     paperHeight: PAGE_MM.h / 25.4,
   });
   const bytes = Buffer.from(pdf.data, 'base64');
+  if (JOB_NAME) mkdirSync('out', { recursive: true });
   writeFileSync(OUT, bytes);
   kb = bytes.length / 1024;
   pages = (bytes.toString('latin1').match(/\/Type\s*\/Page[^s]/g) ?? []).length;
@@ -312,6 +417,10 @@ const checks = [
 ];
 
 console.log(`print-cv  ${CHECK_ONLY ? '(check only)' : OUT}`);
+if (JOB) {
+  console.log(`          tailored for ${JOB.label ?? JOB_NAME}`);
+  if (JOB.url) console.log(`          ${JOB.url}`);
+}
 if (!CHECK_ONLY) console.log(`          ${kb.toFixed(1)} kB, ${pages} page${pages === 1 ? '' : 's'}, ${m.contentWidth}px content width`);
 console.log('');
 for (const [label, ok] of checks) console.log(`  ${ok ? 'ok  ' : 'FAIL'}  ${label}`);
@@ -344,7 +453,49 @@ if (stranded.length) {
   }
 }
 
-const pass = checks.every(([, ok]) => ok);
+/*
+ * The one-page rule is a GATE for a tailored print and a REPORT for the generic
+ * one. See the note at the top: the difference is who is watching when it runs.
+ */
+let onePage = true;
+if (JOB) {
+  onePage = over <= 0 && (CHECK_ONLY || pages === 1);
+  if (!onePage) {
+    console.log('\n  TAILORED PRINTS MUST FIT ONE PAGE, and this one does not.');
+    if (over > 0) {
+      console.log(`  The content is ${over}px past the bottom of the page.`);
+    } else {
+      /*
+       * FITTING AND PAGINATING ARE DIFFERENT QUESTIONS, and this branch is the
+       * proof. Found while testing the gate: content measured 1023px against a
+       * 1024px box, one pixel to spare, and still printed two pages.
+       *
+       * `break-inside: avoid` on .doc section means a section that would be cut
+       * moves WHOLE. So the last one can be pushed over by a couple of pixels of
+       * pressure further up, and the height figure stays reassuring while the PDF
+       * is not. The page COUNT is the only honest check, which is why the gate
+       * reads it rather than the arithmetic.
+       */
+      console.log(`  The content fits by ${-over}px, but a section broke onto a second page:`);
+      console.log('  break-inside: avoid moves a whole section rather than splitting it.');
+    }
+    console.log('  Shorten the target line or a swapped line. The stranded-tail list above');
+    console.log('  is the cheapest place to look: unwrapping one line buys about 13px.');
+
+    /*
+     * AND THE FILE GOES. A failed tailored print must not leave a PDF on disk:
+     * out/ is where the thing you are about to attach lives, and a two-page one
+     * sitting there under the right name is the mistake this harness exists to
+     * prevent. Same rule as a missed substitution, which writes nothing at all.
+     */
+    if (!CHECK_ONLY && existsSync(OUT)) {
+      rmSync(OUT);
+      console.log(`\n  ${OUT} was deleted rather than left for you to attach.`);
+    }
+  }
+}
+
+const pass = checks.every(([, ok]) => ok) && onePage;
 console.log(`\n${pass ? 'layout checks pass' : 'LAYOUT CHECKS FAILED'}`);
 ws.close();
 done(pass ? 0 : 1);

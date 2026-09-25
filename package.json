@@ -13,6 +13,7 @@
     "dashes": "node tools/no-em-dash.mjs",
     "shipcheck": "node tools/ship-check.mjs",
     "pdf": "node tools/print-cv.mjs",
+    "pdf:job": "node tools/print-cv.mjs --job",
     "qa": "node tools/spec-layout.mjs"
   },
   "type": "module",
