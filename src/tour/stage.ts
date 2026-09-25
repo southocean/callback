@@ -51,7 +51,6 @@ import {
   markEggSeen, unseenEggs, seenBanter, markBanterSeen, chooseBanter, clearBanter,
   heardAnswers, markAnswerHeard, markQuipFound,
 } from '../prefs.js';
-import { currentPitch } from '../data/companies.js';
 import { makeHand, type Hand, type Scroller } from './cursor.js';
 import {
   reduceTour, initialTour, linesFor, partForElement, quipForElement, quipForEvent, quipById,
@@ -507,7 +506,7 @@ export function startTour(root: HTMLElement, podium: Podium): TourHandle {
    * nobody applied to is worse than no sentence at all.
    */
   const words = (line: Line): string => (
-    line.alt !== undefined && !currentPitch().named ? line.alt : line.text
+    line.text
   );
 
   /* -------------------------------------------------------- the interview -- */

@@ -50,6 +50,23 @@ export const profile = {
    */
   target: 'Lead front-end developer, Uppsala',
   targetAlt: 'Front-end engineer, web',
+  /*
+   * WHAT THE SCHEDULED CARD AND THE MAIL SUBJECT SAY -- board ticket N266.
+   *
+   * These lived in data/companies.ts, which is deleted. That module existed to
+   * swap three strings per employer behind a ?c= code, and Nam has retired the
+   * idea: "we can delete the ?c= company code too, this will be the generic CV.
+   * And for each job we will tailor the pdf version of the CV to the job, but
+   * not this generic CV."
+   *
+   * Which is the better split, and the PDF harness already supports it: `npm
+   * run pdf` prints whatever is in this file at that moment, so a tailored PDF
+   * is an uncommitted edit plus one command. The published site stays one
+   * document that is true for everybody, and nothing has to be parameterised
+   * to keep it that way.
+   */
+  meeting: "Nam Nguyen's interactive CV",
+  mailSubject: 'Your interactive CV',
   place: 'Uppsala, Sweden',
   commute: '38 minutes from the Stockholm office. No relocation, no visa sponsorship needed.',
   // Assembled in script rather than sitting in the markup, so a public repo

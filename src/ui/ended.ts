@@ -6,7 +6,6 @@
 // fewer than the original, since the referral card was removed.
 
 import { h } from '../dom.js';
-import { mailSubject } from '../data/companies.js';
 import { sym } from './icons.js';
 import type { Store } from '../state.js';
 import { profile, SITE } from '../data/cv.js';
@@ -526,7 +525,7 @@ export function renderEnded(store: Store, _quests: Quests, bugs: Bugs): HTMLElem
              * is pressed. `address` still builds the href from profile, so there
              * is still exactly one place the address is written down.
              */
-            h('a', { class: 'm-btn m-outlined', href: `mailto:${address}?subject=${mailSubject()}` }, 'Email me'),
+            h('a', { class: 'm-btn m-outlined', href: `mailto:${address}?subject=${encodeURIComponent(profile.mailSubject)}` }, 'Email me'),
           ),
         ),
       ),

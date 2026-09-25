@@ -4,13 +4,13 @@ import { h, clear, must } from './dom.js';
 import { Store, parseRoute, routeToHash, initial } from './state.js';
 import type { State } from './state.js';
 import { renderHome } from './ui/home.js';
+import { profile } from './data/cv.js';
 import { spinner } from './ui/icons.js';
 import { prefersReducedMotion } from './a11y.js';
 import { Quests, konami } from './achievements.js';
 import { Bugs, wireBugs } from './bugs.js';
 import { openDev } from './ui/devopen.js';
 import { togglePlain, onPlainOpened } from './ui/plainoverlay.js';
-import { codeFromUrl, pitchFor } from './data/companies.js';
 import { beginPass } from './pass.js';
 
 const root = must('#app');
@@ -64,7 +64,6 @@ const boot: State = {
   ...(route.plain ? { plain: true } : {}),
   // From ?c=, not the hash: the hash is the router and a code has to survive
   // moving between screens. See src/data/companies.ts.
-  company: codeFromUrl(location.search),
 };
 
 const store = new Store(boot);
@@ -75,17 +74,8 @@ const store = new Store(boot);
  * default, which used to be right for one send and wrong for every other one,
  * and is now simply what the default is.
  */
-{
-  const p = pitchFor(boot.company);
-  // The employer is only worth appending when the ROLE does not already say it.
-  // "Software Engineer III, Google Meet Web Experiences, Google" is the title
-  // reading its own name twice, which is what happens when a role string starts
-  // naming the product.
-  const who = p.employer && !p.role.includes(p.employer) ? `, ${p.employer}` : '';
-  document.title = p.named
-    ? `Meet Nam Nguyen, ${p.role}${who} ${p.place ? '· ' + p.place : ''}`.trim()
-    : `Nam Nguyen, ${p.role}`;
-}
+// One title, because there is one audience -- N266.
+document.title = `Nam Nguyen, ${profile.target}`;
 
 window.matchMedia('(prefers-reduced-motion: reduce)').addEventListener('change', (e) => {
   store.dispatch({ t: 'reducedMotion', on: e.matches });
@@ -272,12 +262,6 @@ function render(): void {
       onLeave: () => { history.pushState(null, '', '#home'); store.dispatch({ t: 'screen', screen: 'home' }); },
       onGo: (id) => { history.pushState(null, '', '#egg/' + id); render(); },
     })));
-    return;
-  }
-
-  if (key === 'company') {
-    mount(key, () => import('./ui/company.js')
-      .then((m) => m.renderCompany(() => store.dispatch({ t: 'screen', screen: 'home' }))));
     return;
   }
 

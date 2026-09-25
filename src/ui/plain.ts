@@ -8,7 +8,6 @@
 // Nothing here is a summary. It is the whole thing.
 
 import { h } from '../dom.js';
-import { currentPitch } from '../data/companies.js';
 import { sym, socialLink, type SocialName } from './icons.js';
 import {
   profile, pitch, roles, education, teaching, skills, offstage, segments,
@@ -67,7 +66,7 @@ export function renderPlain(onBack: () => void, embedded = false): HTMLElement {
          * headline, so the old template printed the same words twice with a
          * preposition between them. It states the role instead.
          */
-        h('div', { class: 'doc-target' }, currentPitch().target),
+        h('div', { class: 'doc-target' }, profile.target),
       ),
       h(
         'div',

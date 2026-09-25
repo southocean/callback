@@ -4600,6 +4600,37 @@ export const tasks: Task[] = [
     },
   },
 
+  {
+    id: 'N266', col: 'review', size: 'M', tag: 'specs',
+    title: 'The ?c= codes are deleted, and the PDF takes over the tailoring',
+    note: 'Two files, a screen, a route, a boot field and thirty lines of CSS. One document, true for everybody.',
+    detail: {
+      why: 'Nam: "we can delete the ?c= company code too, this will be the generic CV. And for each job we will tailor the pdf version of the CV to the job, but not this generic CV."',
+      done: [
+        'data/companies.ts and ui/company.ts deleted, with the #company route and screen',
+        'The three strings it swapped are constants in data/cv.ts: target, meeting, mailSubject',
+        'boot.company, the company Screen and the parseRoute branch are gone',
+        'Line.alt and the named/neutral split go with it; nothing was using them',
+        'The #company stylesheet and .doc-foot, which that page was the last user of',
+        '?c=1 is now an inert query parameter and #company falls through to home',
+      ],
+      raised: 'Nam, 25 Sep',
+      notes: 'THE BETTER SPLIT, AND THE HARNESS ALREADY SUPPORTED IT. N263 kept this module on the argument that it '
+        + 'was how the next targeted send gets built. Nam has a cheaper answer: tailor the PDF, leave the site alone. '
+        + 'tools/print-cv.mjs prints whatever is in data/cv.ts at that moment, so a job-specific PDF is an uncommitted '
+        + 'edit plus one command -- no parameter, no second code path, and no risk of the published site quietly '
+        + 'addressing itself to somebody. A build-time edit beats a runtime switch when there is exactly one audience. '
+        + 'ONE TEST WAS DELETED RATHER THAN NARROWED, which is worth distinguishing from the two that were narrowed '
+        + 'last week. It asserted that a bare link names nobody. There is now no mechanism by which a link COULD name '
+        + 'anybody, so the property is structural rather than conditional, and a test for a thing the code can no '
+        + 'longer express is a test of nothing. '
+        + 'AND THE DEAD-CSS GATE FOUND THE PART A GREP WOULD HAVE MISSED. Nine .co-* rules were obviously the deleted '
+        + 'page\u2019s. The tenth was .doc-foot, which reads like it belongs to the CV document and does not: the '
+        + '#company page was its only user, and it had a second rule in the print block hiding it. Two rules for a '
+        + 'class nothing rendered, in a file where the CV footer genuinely exists under a different name.',
+    },
+  },
+
   /* Flagged rather than done. Still true as of this build. */
   { id: 'T24', col: 'backlog', size: 'M', tag: 'specs', title: 'Initial payload is halfway to the ceiling', note: '24.7 kB of a 50 kB gate, up from 18.2. Still green, and the growth is real, but two deferred chunks are 17 kB and 19 kB and deserve a splitting pass before it becomes urgent.' },
 ];

@@ -44,7 +44,6 @@ import { eggs as allEggs } from '../data/eggs.js';
 import { eggs, eggMap, weekendMark, lastWeekendMark, key as dayKey, type Egg } from '../data/eggs.js';
 import { VISIBLE_QUESTS, board as questBoard } from '../data/quests.js';
 import { bugs as bugList, bugById, BUG_COUNT } from '../data/bugs.js';
-import { codeFromUrl, pitchFor, NEUTRAL_CODE } from '../data/companies.js';
 
 export interface Result {
   suite: string;
@@ -338,25 +337,14 @@ suite('content integrity', () => {
   });
 
   /*
-   * N263 REVERSES N66, and the reason is worth keeping next to the assertion.
+   * THE EMPLOYER TEST IS GONE WITH THE MODULE IT TESTED -- N266.
    *
-   * N66 made a bare link resolve to the employer, because "the reuse is
-   * hypothetical and the Google application is not". Both halves flipped when
-   * that application closed: the reuse is now the only thing left. So a link
-   * with no code on it names nobody, which is what it meant originally.
-   *
-   * Still worth a test rather than a read of the source, with the failure mode
-   * now pointing the other way: a send that quietly addresses itself to an
-   * employer nobody applied to is the expensive mistake this module exists to
-   * prevent.
+   * It asserted that a bare link names nobody. There is no longer any way for
+   * a link to name anybody: data/companies.ts is deleted, and every string it
+   * used to swap is a constant in data/cv.ts. The property the test defended is
+   * now structural rather than conditional, which is the only kind of guarantee
+   * worth more than a test.
    */
-  test('a bare link names nobody, and there is nobody to name', () => {
-    eq(codeFromUrl(''), null, 'a bare link still resolves to an employer');
-    eq(codeFromUrl('?c=' + NEUTRAL_CODE), null, 'the neutral build is no longer reachable');
-    eq(codeFromUrl('?c=zzz'), null, 'an unrecognised code resolved to somebody');
-    ok(!pitchFor(codeFromUrl('')).named, 'the default pitch named an employer');
-    ok(!pitchFor(codeFromUrl('?c=' + NEUTRAL_CODE)).named, 'the neutral pitch named an employer');
-  });
 
   test('every measured token names where it came from', async () => {
     const { surfaces, geometry } = await import('../data/spec.js');
@@ -408,7 +396,6 @@ suite('content integrity', () => {
     const mods = await Promise.all([
       import('../data/cv.js'),
       import('../data/contacts.js'),
-      import('../data/companies.js'),
       import('../data/project.js'),
     ]);
     const blob = mods.map((m) => JSON.stringify(m)).join(' ');

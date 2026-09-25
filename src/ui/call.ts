@@ -14,7 +14,6 @@
 // four panels; everything technical lives behind Meeting tools.
 
 import { h, clear, icon, icons } from '../dom.js';
-import { mailSubject } from '../data/companies.js';
 import { openDev } from './devopen.js';
 import { openPlain } from './plainoverlay.js';
 import { sym } from './icons.js';
@@ -2659,7 +2658,7 @@ function hostControls(): HTMLElement {
       { style: 'display:flex;gap:8px;flex-wrap:wrap' },
       h('a', { class: 'mbtn', href: 'NamNguyen_CV_2026.pdf', download: true }, 'Download the PDF'),
       h('button', { class: 'mbtn', type: 'button', onclick: () => openPlain() }, 'Read as a document'),
-      h('a', { class: 'mbtn', href: `mailto:${profile.emailUser}@${profile.emailHost}?subject=${mailSubject()}` }, 'Email me'),
+      h('a', { class: 'mbtn', href: `mailto:${profile.emailUser}@${profile.emailHost}?subject=${encodeURIComponent(profile.mailSubject)}` }, 'Email me'),
     ),
     h('div', { class: 'shead' }, 'Links'),
     h(

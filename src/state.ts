@@ -5,10 +5,6 @@
 // clone covers the whole journey rather than one screenshot of it (review V1).
 
 /**
- * 'company' is the unlisted index of per-company codes. Reachable only by
- * typing #company; nothing in the CV links to it.
- */
-/**
  * 'start' is the title card and the only screen that is not part of the clone.
  *
  * It is a screen rather than an overlay because it is a PLACE: it has a hash, it
@@ -16,7 +12,7 @@
  * meant the home screen rendering behind it, which is the Meet chrome painting
  * underneath the card that exists to arrive before the Meet chrome. See N158.
  */
-export type Screen = 'start' | 'home' | 'calls' | 'lobby' | 'call' | 'ended' | 'company';
+export type Screen = 'start' | 'home' | 'calls' | 'lobby' | 'call' | 'ended';
 // 'about' is the CV material that used to squat inside the People panel.
 // Nam: "This is a panel for the people in the meeting." Right — so the career
 // timeline moved out to its own, reached from the participant-count popup.
@@ -64,11 +60,6 @@ export interface State {
    * panel: `engTab` sets panel: 'tools' and leaves `screen` alone, so from home
    * the button changed state and painted nothing at all.
    */
-  /**
-   * The company code from ?c=, or null. Decides whether the employer is named
-   * anywhere. See src/data/companies.ts for why it is a query parameter.
-   */
-  company: string | null;
   /**
    * An easter-egg clip to present on the shared screen as soon as the call
    * mounts. Nam wanted the eggs to happen INSIDE the call rather than on their
@@ -123,7 +114,6 @@ export const initial: State = {
   net: 'good',
   chaos: false,
   reducedMotion: false,
-  company: null,
   eggPlay: null,
   plain: false,
 };
@@ -299,7 +289,6 @@ export function parseRoute(hash: string): Route {
    */
   if (head === 'start') return { screen: 'start', panel: 'none' };
   if (head === 'plain') return { screen: 'call', panel: 'none', plain: true };
-  if (head === 'company') return { screen: 'company', panel: 'none' };
   if (head === 'ended') return { screen: 'ended', panel: 'none' };
   if (head === 'calls') return { screen: 'calls', panel: 'none' };
   if (head === 'lobby') return { screen: 'lobby', panel: 'none' };

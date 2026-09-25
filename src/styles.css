@@ -1558,7 +1558,7 @@ body.plain { background: #fff; color: #16181c; }
 .doc-skill { font: 400 14px/1.5 var(--font); margin-bottom: 7px; color: #2b2f36; }
 .doc-skill b { color: #16181c; font-weight: 500; }
 .doc-note { font: 400 13px/1.5 var(--font); color: #6b7280; }
-.doc-foot { font: 400 12px/1.6 var(--font); color: #8a8f98; border-top: 1px solid #dcdcd6; padding-top: 14px; margin-top: 34px; }
+/* .doc-foot belonged to the #company page's footer and went with it -- N266. */
 
 /* ============================ THE PRINTED CV ============================= */
 /* The PDF is a print of this document, so this block is not a courtesy — it is
@@ -1582,7 +1582,7 @@ body.plain { background: #fff; color: #16181c; }
 @media print {
   body.plain { background: #fff; }
   .doc { padding: 0; max-width: none; font-size: 10.5pt; }
-  .doc-back, .doc-foot, .no-print { display: none !important; }
+  .doc-back, .no-print { display: none !important; }
 
   .doc-top { flex-wrap: nowrap; align-items: flex-start; gap: 16pt; }
   /* The name column absorbs the shortfall; the contact column keeps its width
@@ -10088,35 +10088,7 @@ body.bug-struck { animation: bug-shake 520ms cubic-bezier(0.36, 0.07, 0.19, 0.97
    rather than the one bordered button in the whole build. */
 .doc-close { color: #444746; }
 
-/* --- #company, the unlisted index --------------------------------------- */
-.co-lead { font: 400 15px/23px var(--font); color: #2b2f36; margin: 18px 0 26px; max-width: 70ch; }
-.co h2 { font: 400 20px/1.3 var(--font-title); margin: 28px 0 6px; color: #1f2328; }
-.co-note { font: 400 12.5px/18px var(--font); color: #5f6368; margin: 6px 0 0; max-width: 70ch; }
-.co-block { margin: 0 0 26px; }
-.co-head { display: flex; align-items: baseline; gap: 10px; margin-top: 14px; }
-.co-head h3 { font: 500 15px/22px var(--font); color: #1f2328; }
-.co-code {
-  font: 500 12px/1 ui-monospace, monospace; background-color: #f0f4f9;
-  color: #0b57d0; padding: 4px 8px; border-radius: 4px;
-}
-.co-link { font: 400 12px/18px ui-monospace, monospace; color: #5f6368; margin: 4px 0 8px; word-break: break-all; }
-.co-card {
-  display: grid; grid-template-columns: auto 1fr; gap: 6px 16px;
-  background-color: #f0f4f9; border-radius: 8px; padding: 14px 16px; margin: 0;
-}
-.co-row { display: contents; }
-.co-card dt { font: 500 12.5px/19px var(--font); color: #444746; }
-.co-card dd { margin: 0; font: 400 13px/19px var(--font); color: #1f2328; }
-.co-card dd i { color: #80868b; }
-/* Filled primary, section 7 — not the bordered button this page first had. */
-.co-home {
-  height: 40px; padding: 0 20px; border: 0; border-radius: 20px;
-  background-color: #0b57d0; color: #ffffff; cursor: pointer;
-  font: 500 14px/1 var(--font-title);
-}
-.co-home:hover { background-color: #0a4fbc; }
-.co-home:focus-visible { box-shadow: 0 0 0 3px #00639b; outline: none; }
-@media (max-width: 620px) { .co-card { grid-template-columns: 1fr; } }
+/* The #company index and its whole stylesheet went with the ?c= codes -- N266. */
 
 /* ====== ROUND 26: PROJECT SPECIFICATIONS ================================= */
 /* A card over the client, in the palette of whatever opened it.

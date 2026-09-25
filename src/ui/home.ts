@@ -9,11 +9,11 @@
 // now. Clicking Join is how you enter the CV.
 
 import { h, clear } from '../dom.js';
+import { profile } from '../data/cv.js';
 import { sym, lockup, spinner, focusRing, playLockup, settleLockup } from './icons.js';
 import { openDev } from './devopen.js';
 import { buildRail } from './rail.js';
 import type { Bugs } from '../bugs.js';
-import { currentPitch } from '../data/companies.js';
 import { visitorAvatarButton } from './avatar.js';
 
 import { openPlain } from './plainoverlay.js';
@@ -575,12 +575,13 @@ export function renderHome(store: Store, reducedMotion = false, body?: HTMLEleme
    * off the neutral copy, which names no city and must not lose half a role
    * title to a rule written for one that does.
    */
-  const meetingParts = (): (string | HTMLElement)[] => {
-    const p = currentPitch();
-    const tail = p.place ? `, ${p.place}` : '';
-    if (!tail || !p.meeting.endsWith(tail)) return [p.meeting];
-    return [p.meeting.slice(0, -tail.length), h('span', { class: 'narrow-hide' }, tail)];
-  };
+  /*
+   * ONE STRING NOW -- N266. This used to split a trailing ", <city>" into a
+   * span the phone breakpoint hid, because the employer-specific meeting title
+   * ran to three lines at 390px. With no employer there is no city to cut and
+   * the title is short enough to sit on one line at any width.
+   */
+  const meetingParts = (): (string | HTMLElement)[] => [profile.meeting];
 
   /*
    * NOT "Join" -- Nam, 21 September: "Join button please change it to Click me.
