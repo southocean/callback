@@ -564,6 +564,32 @@ export const askQuestion = (n: number, q: string): Line => L(`${n}. ${q}`, 3600)
  */
 export const TELL_STORY = false;
 
+/*
+ * FOUR QUESTIONS, DOWN FROM EIGHT -- board ticket N265.
+ *
+ * Nam: "remove also question 6 and 7. Too much we dont need to know all that
+ * ... so now we end up with question 1, 3 4 and 8. I think that's enough, if we
+ * ever want to show them back again."
+ *
+ * Out: what he likes about the work, how he works with others, what happens
+ * when he is wrong, and the hardest thing he has shipped. Each was two good
+ * lines and together they were three minutes of a man answering questions
+ * nobody in the room had asked yet.
+ *
+ * What survives is the set that earns the time: why now, what he is strongest
+ * at, an honest weakness, and why him. The one that was cut hardest is
+ * "what do you actually like" -- it also carried the last company-specific
+ * sentence in the whole script, so the `alt` mechanism on Line now has nothing
+ * using it. Kept anyway: it is the generic hook for the next targeted send, and
+ * the company module it serves is deliberately still here.
+ *
+ * AND THE ANSWERS STOP ECHOING THE QUESTION. askQuestion() prints "3. What are
+ * you strongest at?" a beat before the answer, and three of the four then
+ * opened by asking it again. Nam: "we already print the question." Reading a
+ * question aloud twice in six seconds is the tic of somebody stalling, which is
+ * the opposite of what these are for.
+ */
+
 export const story: Chapter[] = [
   {
     id: 'why-now',
@@ -574,30 +600,10 @@ export const story: Chapter[] = [
     ],
   },
   {
-    id: 'what-i-like',
-    q: 'What do you actually like about this kind of work?',
-    lines: [
-      L('What I like is to correctly guess user intention. I apply that in my daily life too!', 5000),
-      /*
-       * The only company-specific sentence in the whole script, which is why
-       * Line carries an `alt`. Nam: "This part touches google and should be
-       * guarded on the company code." With N66 the guard almost never fires,
-       * and it still has to exist: the neutral build is one parameter away and
-       * a sentence naming an employer nobody applied to is worse than no
-       * sentence at all.
-       */
-      {
-        text: 'Plus I love the beauty and efficiency in the simplicity. I found a lot of that at Google.',
-        ms: 5200,
-        alt: 'Plus I love the beauty and efficiency in the simplicity. It is rarer than it should be.',
-      },
-    ],
-  },
-  {
     id: 'strongest',
     q: 'What are you strongest at?',
     lines: [
-      L("What's my strength? Going the extra miles. And having fun with it! This CV speaks for itself.", 5600),
+      L('Going the extra miles and having fun with it! I hope this CV speaks for itself.', 5000),
       L('I learn fast and deliver. We downsized after a pivot, and I quadrupled my own output with AI.', 5400),
     ],
   },
@@ -605,33 +611,9 @@ export const story: Chapter[] = [
     id: 'weakness',
     q: 'What are your weaknesses, honestly?',
     lines: [
-      L('Weakness? I easily get carried away. You know, flow state. I try to aim it at the right priority.', 5400),
+      L('I easily get carried away. You know, flow state. I try to aim it at the right priority.', 4900),
       L('For example, I could make a fun CV in one evening. It has been a week.', 4400),
       L("The other one: I am funnier in writing than in a first meeting. Let's hope you never notice.", 4600),
-    ],
-  },
-  {
-    id: 'with-people',
-    q: 'How do you work with other people?',
-    lines: [
-      L('How I work with others? I listen first, get all the constraints, then propose the best solution I can find.', 5600),
-      L('I also write it down before we discuss. Most disagreements turn out to be about different constraints.', 5200),
-    ],
-  },
-  {
-    id: 'when-wrong',
-    q: 'What happens when you are wrong?',
-    lines: [
-      L("What if I'm wrong? I record it, and I never make the same mistake twice.", 4400),
-      L('And I chase it the extra mile. A technical mistake is fine. An interpretation mistake means the team was misaligned.', 6000),
-    ],
-  },
-  {
-    id: 'hardest',
-    q: 'What is the hardest thing you have shipped?',
-    lines: [
-      L("The hardest thing I've shipped? Pivoting from Unity to React in two weeks. I was in the zone.", 5200),
-      L('So the hardest part was not technical. It was the deadline, and I set it myself. I could have taken three months.', 5800),
     ],
   },
   {
@@ -644,7 +626,7 @@ export const story: Chapter[] = [
        * in a more positive light." He is right that it was a defensive frame
        * borrowed from a conversation nobody in this one is having.
        */
-      L('Last one. Why me? Because I chase beauty and efficiency, which is exactly what you build for.', 5200),
+      L('Last one. Because I chase beauty and efficiency, which is exactly what you build for.', 4800),
       L("Let's have fun doing it together. Thanks for listening!", 3400),
     ],
   },

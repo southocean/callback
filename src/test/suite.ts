@@ -1669,11 +1669,18 @@ suite('the questions, and remembering them', () => {
   });
 
   test('every stored id still matches a chapter', () => {
-    // The failure this guards: a chapter renamed in the data while somebody's
-    // saved progress still names the old id, which would silently replay it.
+    /*
+     * The failure this guards: a chapter RENAMED in the data while somebody's
+     * saved progress still names the old id, which would silently replay it.
+     *
+     * Narrowed to four in N265, when the other four were deliberately removed.
+     * Removal is a different event from a rename and is covered by its own test
+     * a few lines up: an id that no longer names a question counts for nothing.
+     * Listing the dead ids here would have made this test refuse the removal
+     * rather than notice a rename, which is not the failure it is for.
+     */
     const ids = new Set(tourStory.map((c) => c.id));
-    for (const id of ['why-now', 'what-i-like', 'strongest', 'weakness',
-      'with-people', 'when-wrong', 'hardest', 'why-me']) {
+    for (const id of ['why-now', 'strongest', 'weakness', 'why-me']) {
       ok(ids.has(id), `the stored id "${id}" no longer matches a chapter`);
     }
   });
